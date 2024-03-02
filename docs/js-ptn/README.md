@@ -1,6 +1,4 @@
-# 介绍
-
-# JavaScript Patterns
+# JavaScript 模式
 
 ![JavaScript.patterns](img/cover.jpg)
 

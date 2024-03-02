@@ -370,29 +370,29 @@ o2.foo();        // o1:foo
 
 你已经十分清楚地知道了如何使用`"`或`'`分隔符来声明字符串字面量，而且你还知道它们不是（像有些语言中拥有的）内容将被解析为插值表达式的 *智能字符串*。
 
-但是，ES6 引入了一种新型的字符串字面量，使用反引号```js 作为分隔符。这些字符串字面量允许嵌入基本的字符串插值表达式，之后这些表达式自动地被解析和求值。
+但是，ES6 引入了一种新型的字符串字面量，使用反引号`` ` ``作为分隔符。这些字符串字面量允许嵌入基本的字符串插值表达式，之后这些表达式自动地被解析和求值。
 
 这是老式的前 ES6 方式：
 
-```
+```js
 var name = "Kyle";
 
 var greeting = "Hello " + name + "!";
 
 console.log( greeting );            // "Hello Kyle!"
 console.log( typeof greeting );        // "string"
-```js
+```
 
 现在，考虑这种新的 ES6 方式：
 
-```
+```js
 var name = "Kyle";
 
 var greeting = `Hello ${name}!`;
 
 console.log( greeting );            // "Hello Kyle!"
 console.log( typeof greeting );        // "string"
-```js
+```
 
 如你所见，我们在一系列被翻译为字符串字面量的字符周围使用了``..``，但是`${..}`形式中的任何表达式都将立即内联地被解析和求值。称呼这样的解析和求值的高大上名词就是 *插值（interpolation）*（比模板要准确多了）。
 
@@ -402,7 +402,7 @@ console.log( typeof greeting );        // "string"
 
 插值型字符串字面量的一个真正的好处是他们允许被分割为多行：
 
-```
+```js
 var text =
 `Now is the time for all good men
 to come to the aid of their
@@ -412,7 +412,7 @@ console.log( text );
 // Now is the time for all good men
 // to come to the aid of their
 // country!
-```js
+```
 
 在插值型字符串字面量中的换行将会被保留在字符串值中。
 
@@ -424,7 +424,7 @@ console.log( text );
 
 考虑如下代码：
 
-```
+```js
 function upper(s) {
     return s.toUpperCase();
 }
@@ -438,7 +438,7 @@ to all of you ${upper( `${who}s` )}!`;
 console.log( text );
 // A very WARM welcome
 // to all of you READERS!
-```js
+```
 
 当我们组合变量`who`与字符串`s`时， 相对于`who + "s"`，这里的内部插值型字符串字面量``${who}s``更方便一些。有些情况下嵌套的插值型字符串字面量是有用的，但是如果你发现自己做这样的事情太频繁，或者发现你自己嵌套了好几层时，你就要小心一些。
 
@@ -452,7 +452,7 @@ console.log( text );
 
 考虑如下代码：
 
-```
+```js
 function foo(str) {
     var name = "foo";
     console.log( str );
@@ -466,7 +466,7 @@ function bar() {
 var name = "global";
 
 bar();                    // "Hello from bar!"
-```js
+```
 
 在函数`bar()`内部，字符串字面量``..``被表达的那一刻，可供它查找的作用域发现变量的`name`的值为`"bar"`。既不是全局的`name`也不是`foo(..)`的`name`。换句话说，一个插值型字符串字面量在它出现的地方是词法作用域的，而不是任何方式的动态作用域。
 
@@ -478,7 +478,7 @@ bar();                    // "Hello from bar!"
 
 例如：
 
-```
+```js
 function foo(strings, ...values) {
     console.log( strings );
     console.log( values );
@@ -489,13 +489,13 @@ var desc = "awesome";
 foo`Everything is ${desc}!`;
 // [ "Everything is ", "!"]
 // [ "awesome" ]
-```js
+```
 
 让我们花点儿时间考虑一下前面的代码段中发生了什么。首先，跳出来的最刺眼的东西就是`foo`Everything...`;`。它看起来不像是任何我们曾经见过的东西。不是吗？
 
 它实质上是一种不需要`( .. )`的特殊函数调用。*标签* —— 在字符串字面量``..``之前的`foo`部分 —— 是一个应当被调用的函数的值。实际上，它可以是返回函数的任何表达式，甚至是一个返回另一个函数的函数调用，就像：
 
-```
+```js
 function bar() {
     return function foo(strings, ...values) {
         console.log( strings );
@@ -508,7 +508,7 @@ var desc = "awesome";
 bar()`Everything is ${desc}!`;
 // [ "Everything is ", "!"]
 // [ "awesome" ]
-```js
+```
 
 但是当作为一个字符串字面量的标签时，函数`foo(..)`被传入了什么？
 
@@ -524,7 +524,7 @@ bar()`Everything is ${desc}!`;
 
 一般来说，一个字符串字面连标签函数（在前面的代码段中是`foo(..)`）应当计算一个恰当的字符串值并返回它，所以你可以使用标签型字符串字面量作为一个未打标签的字符串字面量来使用：
 
-```
+```js
 function tag(strings, ...values) {
     return strings.reduce( function(s,v,idx){
         return s + (idx > 0 ? values[idx-1] : "") + v;
@@ -536,13 +536,13 @@ var desc = "awesome";
 var text = tag`Everything is ${desc}!`;
 
 console.log( text );            // Everything is awesome!
-```js
+```
 
 在这个代码段中，`tag(..)`是一个直通操作，因为它不实施任何特殊的修改，而只是使用`reduce(..)`来循环遍历，并像一个未打标签的字符串字面量一样，将`strings`和`values`拼接/穿插在一起。
 
 那么实际的用法是什么？有许多高级的用法超出了我们要在这里讨论的范围。但这里有一个格式化美元数字的简单想法（有些像基本的本地化）：
 
-```
+```js
 function dollabillsyall(strings, ...values) {
     return strings.reduce( function(s,v,idx){
         if (idx > 0) {
@@ -572,7 +572,7 @@ console.log( text );
 // Thanks for your purchase, Kyle! Your
 // product cost was $11.99, which with tax
 // comes out to $12.95.
-```js
+```
 
 如果在`values`数组中遇到一个`number`值，我们就在它前面放一个`"$"`并用`toFixed(2)`将它格式化为小数点后两位有效。否则，我们就不碰这个值而让它直通过去。
 
@@ -580,7 +580,7 @@ console.log( text );
 
 在前一个代码段中，我们的标签函数接受的第一个参数值称为`strings`，是一个数组。但是有一点儿额外的数据被包含了进来：所有字符串的原始未处理版本。你可以使用`.raw`属性访问这些原始字符串值，就像这样：
 
-```
+```js
 function showraw(strings, ...values) {
     console.log( strings );
     console.log( strings.raw );
@@ -590,13 +590,13 @@ showraw`Hello\nWorld`;
 // [ "Hello
 // World" ]
 // [ "Hello\nWorld" ]
-```js
+```
 
 原始版本的值保留了原始的转义序列`\n`（``和`n`是两个分离的字符），但处理过的版本认为它是一个单独的换行符。但是，早先提到的行终结符泛化操作，是对两个值都实施的。
 
 ES6 带来了一个内建函数，它可以用做字符串字面量的标签：`String.raw(..)`。它简单地直通`strings`值的原始版本：
 
-```
+```js
 console.log( `Hello\nWorld` );
 // Hello
 // World
@@ -606,7 +606,7 @@ console.log( String.raw`Hello\nWorld` );
 
 String.raw`Hello\nWorld`.length;
 // 12
-```js
+```
 
 字符串字面量标签的其他用法包括国际化，本地化，和许多其他的特殊处理。
 
@@ -616,7 +616,7 @@ String.raw`Hello\nWorld`.length;
 
 作为与普通函数的比较，我们首先来展示一下箭头函数看起来什么样：
 
-```
+```js
 function foo(x,y) {
     return x + y;
 }
@@ -624,7 +624,7 @@ function foo(x,y) {
 // 对比
 
 var foo = (x,y) => x + y;
-```js
+```
 
 箭头函数的定义由一个参数列表（零个或多个参数，如果参数不是只有一个，需要有一个`( .. )`包围这些参数）组成，紧跟着是一个`=>`符号，然后是一个函数体。
 
@@ -634,7 +634,7 @@ var foo = (x,y) => x + y;
 
 这里是一些其他种类的箭头函数：
 
-```
+```js
 var f1 = () => 12;
 var f2 = x => x * 2;
 var f3 = (x,y) => {
@@ -643,7 +643,7 @@ var f3 = (x,y) => {
     x *= 3;
     return (x + y + z) / 2;
 };
-```js
+```
 
 箭头函数 *总是* 函数表达式；不存在箭头函数声明。而且很明显它们都是匿名函数表达式 —— 它们没有可以用于递归或者事件绑定/解除的命名引用 —— 但在第七章的“函数名”中将会讲解为了调试的目的而存在的 ES6 函数名接口规则。
 
@@ -653,13 +653,13 @@ var f3 = (x,y) => {
 
 这说明在关于箭头函数的讨论中，几乎所有的例子都是简短的单语句工具，比如那些作为回调传递给各种工具的箭头函数。例如：
 
-```
+```js
 var a = [1,2,3,4,5];
 
 a = a.map( v => v * 2 );
 
 console.log( a );                // [2,4,6,8,10]
-```js
+```
 
 在这些情况下，你的内联函数表达式很适合这种在一个单独语句中快速计算并返回结果的模式，对于更繁冗的`function`关键字和语法来说箭头函数确实看起来是一个很吸人，而且轻量的替代品。
 
@@ -669,7 +669,7 @@ console.log( a );                // [2,4,6,8,10]
 
 回忆本章早前的字符串字面量标签函数`dollabillsyall(..)` —— 让我们将它改为使用`=>`语法：
 
-```
+```js
 var dollabillsyall = (strings, ...values) =>
     strings.reduce( (s,v,idx) => {
         if (idx > 0) {
@@ -685,7 +685,7 @@ var dollabillsyall = (strings, ...values) =>
 
         return s + v;
     }, "" );
-```js
+```
 
 在这个例子中，我做的唯一修改是删除了`function`，`return`，和一些`{ .. }`，然后插入了`=>`和一个`var`。这是对代码可读性的重大改进吗？呵呵。
 
@@ -705,7 +705,7 @@ var dollabillsyall = (strings, ...values) =>
 
 让我们重温本章早前的另一个例子：
 
-```
+```js
 var controller = {
     makeRequest: function(..){
         var self = this;
@@ -716,7 +716,7 @@ var controller = {
         }, false );
     }
 };
-```js
+```
 
 我们使用了黑科技`var self = this`，然后引用了`self.makeRequest(..)`，因为在我们传递给`addEventListener(..)`的回调函数内部，`this`绑定将与`makeRequest(..)`本身中的`this`绑定不同。换句话说，因为`this`绑定是动态的，我们通过`self`变量退回到了可预测的词法作用域。
 
@@ -724,7 +724,7 @@ var controller = {
 
 考虑如下代码：
 
-```
+```js
 var controller = {
     makeRequest: function(..){
         btn.addEventListener( "click", () => {
@@ -733,7 +733,7 @@ var controller = {
         }, false );
     }
 };
-```js
+```
 
 前面代码段的箭头函数中的词法`this`现在指向的值与外围的`makeRequest(..)`函数相同。换句话说，`=>`是`var self = this`的语法上的替代品。
 
@@ -745,7 +745,7 @@ var controller = {
 
 考虑如下代码：
 
-```
+```js
 var controller = {
     makeRequest: (..) => {
         // ..
@@ -757,7 +757,7 @@ var controller = {
 };
 
 controller.makeRequest(..);
-```js
+```
 
 虽然我们以`controller.makeRequest(..)`的方式进行了调用，但是`this.helper`引用失败了，因为这里的`this`没有像平常那样指向`controller`。那么它指向哪里？它通过词法继承了外围的作用域中的`this`。在前面的代码段中，它是全局作用域，`this`指向了全局作用域。呃。
 
@@ -788,7 +788,7 @@ controller.makeRequest(..);
 
 让我们比较`for..of`与`for..in`来展示它们的区别：
 
-```
+```js
 var a = ["a","b","c","d","e"];
 
 for (var idx in a) {
@@ -800,13 +800,13 @@ for (var val of a) {
     console.log( val );
 }
 // "a" "b" "c" "d" "e"
-```js
+```
 
 如你所见，`for..in`循环遍历数组`a`中的键/索引，而`for.of`循环遍历`a`中的值。
 
 这是前面代码段中`for..of`的前 ES6 版本：
 
-```
+```js
 var a = ["a","b","c","d","e"],
     k = Object.keys( a );
 
@@ -815,11 +815,11 @@ for (var val, i = 0; i < k.length; i++) {
     console.log( val );
 }
 // "a" "b" "c" "d" "e"
-```js
+```
 
 而这是一个 ES6 版本的非`for..of`等价物，它同时展示了手动迭代一个迭代器（见第三章的“迭代器”）：
 
-```
+```js
 var a = ["a","b","c","d","e"];
 
 for (var val, ret, it = a[Symbol.iterator]();
@@ -829,7 +829,7 @@ for (var val, ret, it = a[Symbol.iterator]();
     console.log( val );
 }
 // "a" "b" "c" "d" "e"
-```js
+```
 
 在幕后，`for..of`循环向可迭代对象要来一个迭代器（使用内建的`Symbol.iterator`；参见第七章的“通用 Symbols”），然后反复调用这个迭代器并将它产生的值赋值给循环迭代的变量。
 
@@ -844,18 +844,18 @@ for (var val, ret, it = a[Symbol.iterator]();
 
 这是如何遍历一个基本类型的字符串中的字符：
 
-```
+```js
 for (var c of "hello") {
     console.log( c );
 }
 // "h" "e" "l" "l" "o"
-```js
+```
 
 基本类型字符串`"hello"`被强制转换/封箱为等价的`String`对象包装器，它是默认就是一个可迭代对象。
 
 在`for (XYZ of ABC)..`中，`XYZ`子句既可以是一个赋值表达式也可以是一个声明，这与`for`和`for..in`中相同的子句一模一样。所以你可以做这样的事情：
 
-```
+```js
 var o = {};
 
 for (o.a of [1,2,3]) {
@@ -867,7 +867,7 @@ for ({x: o.a} of [ {x: 1}, {x: 2}, {x: 3} ]) {
   console.log( o.a );
 }
 // 1 2 3
-```js
+```
 
 与其他的循环一样，使用`break`，`continue`，`return`（如果是在一个函数中），以及抛出异常，`for..of`循环可以被提前终止。在任何这些情况下，迭代器的`return(..)`函数（如果存在的话）都会被自动调用，以便让迭代器进行必要的清理工作。
 
@@ -904,7 +904,7 @@ JavaScript 字符串通常被解释为 16 位字符的序列，它们对应于 *
 ```
 /^.-clef/ .test( "𝄞-clef" );        // false
 /^.-clef/u.test( "𝄞-clef" );        // true
-```js
+```
 
 这个范例中的`^.-clef`说要在普通的`"-clef"`文本前面只匹配一个单独的字符。在标准的 BMP 模式下，这个匹配会失败（因为是两个字符），但是在 Unicode 模式标志位`u`打开的情况下，这个匹配会成功（一个字符）。
 
@@ -918,7 +918,7 @@ JavaScript 字符串通常被解释为 16 位字符的序列，它们对应于 *
 
 为了展示一下，让我们考虑两个正则表达式，第一个没有使用粘性模式而第二个有：
 
-```
+```js
 var re1 = /foo/,
     str = "++foo++";
 
@@ -929,7 +929,7 @@ re1.lastIndex;            // 0 —— 没有更新
 re1.lastIndex = 4;
 re1.test( str );        // true —— `lastIndex`被忽略了
 re1.lastIndex;            // 4 —— 没有更新
-```js
+```
 
 关于这个代码段可以观察到三件事：
 
@@ -939,7 +939,7 @@ re1.lastIndex;            // 4 —— 没有更新
 
 现在，让我们试一下粘性模式的正则表达式：
 
-```
+```js
 var re2 = /foo/y,        // <-- 注意粘性标志`y`
     str = "++foo++";
 
@@ -953,7 +953,7 @@ re2.lastIndex;            // 5 —— 在前一次匹配后更新了
 
 re2.test( str );        // false
 re2.lastIndex;            // 0 —— 在前一次匹配失败后重置
-```js
+```
 
 于是关于粘性模式我们可以观察到一些新的事实：
 
@@ -974,7 +974,7 @@ re2.lastIndex;            // 0 —— 在前一次匹配失败后重置
 
 考虑如下代码：
 
-```
+```js
 var re = /f../y,
     str = "foo       far       fad";
 
@@ -985,7 +985,7 @@ str.match( re );        // ["far"]
 
 re.lastIndex = 20;
 str.match( re );        // ["fad"]
-```js
+```
 
 然而，如果你正在解析一个没有像这样被格式化为固定位置的字符串，在每次匹配之前搞清楚为`lastIndex`设置什么东西的做法可能会难以维系。
 
@@ -999,7 +999,7 @@ str.match( re );        // ["fad"]
 
 拥有结构化的字符串输入，可能是`y`能够在一个字符串上由始至终地进行反复匹配的最实际场景。考虑如下代码：
 
-```
+```js
 var re = /\d+\.\s(.*?)(?:\s|$)/y
     str = "1\. foo 2\. bar 3\. baz";
 
@@ -1010,7 +1010,7 @@ str.match( re );        // [ "2\. bar ", "bar" ]
 
 re.lastIndex;            // 14 —— 正确位置！
 str.match( re );        // ["3\. baz", "baz"]
-```js
+```
 
 这能够工作是因为我事先知道输入字符串的结构：总是有一个像`"1\. "`这样的数字的前缀出现在期望的匹配（`"foo"`，等等）之前，而且它后面要么是一个空格，要么就是字符串的末尾（`$`锚点）。所以我构建的正则表达式在每次主匹配中捕获了所有这一切，然后我使用一个匹配分组`( )`使我真正关心的东西被方便地分离出来。
 
@@ -1022,7 +1022,7 @@ str.match( re );        // ["3\. baz", "baz"]
 
 一些读者可能意识到，你可以使用全局匹配标志位`g`和`exec(..)`方法来模拟某些像`lastIndex`相对匹配的东西，就像这样：
 
-```
+```js
 var re = /o+./g,        // <-- 看，`g`！
     str = "foot book more";
 
@@ -1037,7 +1037,7 @@ re.lastIndex;            // 13
 
 re.exec( str );            // null —— 没有更多的匹配了！
 re.lastIndex;            // 0 —— 现在重新开始！
-```js
+```
 
 虽然使用`exec(..)`的`g`范例确实从`lastIndex`的当前值开始它们的匹配，而且也在每次匹配（或失败）之后更新`lastIndex`，但这与`y`的行为不是相同的东西。
 
@@ -1047,12 +1047,12 @@ re.lastIndex;            // 0 —— 现在重新开始！
 
 考虑如下代码：
 
-```
+```js
 var re = /o+./g,        // <-- 看，`g`！
     str = "foot book more";
 
 str.match( re );        // ["oot","ook","or"]
-```js
+```
 
 看到所有的匹配是如何一次性地被返回的吗？有时这没问题，但有时这不是你想要的。
 
@@ -1068,7 +1068,7 @@ ES6 选择不这么做。`^`在一个范例中绝对且唯一地意味着输入�
 
 这样的后果是，一个像`/^foo/y`这样的范例将总是仅在一个字符串的开头找到`"foo"`匹配，*如果它被允许在那里匹配的话*。如果`lastIndex`不是`0`，匹配就会失败。考虑如下代码：
 
-```
+```js
 var re = /^foo/y,
     str = "foo";
 
@@ -1079,7 +1079,7 @@ re.lastIndex;            // 0 —— 失败之后被重置
 re.lastIndex = 1;
 re.test( str );            // false —— 由于定位而失败
 re.lastIndex;            // 0 —— 失败之后被重置
-```js
+```
 
 底线：`y`加`^`加`lastIndex > 0`是一种不兼容的组合，它将总是导致失败的匹配。
 
@@ -1089,7 +1089,7 @@ re.lastIndex;            // 0 —— 失败之后被重置
 
 在 ES6 之前，如果你想要检查一个正则表达式来看看它被施用了什么标志位，你需要将它们 —— 讽刺的是，可能是使用另一个正则表达式 —— 从`source`属性的内容中解析出来，就像这样：
 
-```
+```js
 var re = /foo/ig;
 
 re.toString();            // "/foo/ig"
@@ -1097,15 +1097,15 @@ re.toString();            // "/foo/ig"
 var flags = re.toString().match( /\/([gim]*)$/ )[1];
 
 flags;                    // "ig"
-```js
+```
 
 在 ES6 中，你现在可以直接得到这些值，使用新的`flags`属性：
 
-```
+```js
 var re = /foo/ig;
 
 re.flags;                // "gi"
-```js
+```
 
 虽然是个细小的地方，但是 ES6 规范要求表达式的标志位以`"gimuy"`的顺序罗列，无论原本的范例中是以什么顺序指定的。这就是出现`/ig`和`"gi"`的区别的原因。
 
@@ -1113,7 +1113,7 @@ re.flags;                // "gi"
 
 ES6 的另一个调整是，如果你向构造器`RegExp(..)`传递一个既存的正则表达式，它现在是`flags`敏感的：
 
-```
+```js
 var re1 = /foo*/y;
 re1.source;                            // "foo*"
 re1.flags;                            // "y"
