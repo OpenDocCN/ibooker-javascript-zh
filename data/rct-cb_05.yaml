@@ -1,0 +1,1561 @@
+- en: Chapter 5\. Connecting to Services
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第5章 连接到服务
+- en: React, unlike frameworks such as Angular, does not include everything you might
+    need for an application. In particular, it does not provide a standard way to
+    get data from network services into your application. That freedom is excellent
+    because it means that React applications can use the latest technology. The downside
+    is that developers just starting with React are left to struggle on their own.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与Angular等框架不同，React并不包含应用程序可能需要的一切。特别是，它不提供一种标准方法将数据从网络服务获取到您的应用程序中。这种自由很好，因为它意味着React应用程序可以使用最新的技术。不利之处在于，刚开始使用React的开发人员可能会被单独留给自己解决的困境。
+- en: In this chapter, we will look at a few ways to attach network services to your
+    application. We will see some common themes through each of these recipes, and
+    we’ll try to keep the network code separate from the components that use it. That
+    way, when a new web service technology comes along, we can switch to it without
+    changing a lot of code.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将看到一些将网络服务附加到您的应用程序的方法。我们将通过每个示例看到一些共同的主题，并尝试将网络代码与使用它的组件分开。这样，当新的网络服务技术出现时，我们可以无需大量更改代码就进行切换。
+- en: Convert Network Calls to Hooks
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将网络调用转换为Hooks
+- en: Problem
+  id: totrans-4
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: One of the advantages of component-based development is that it breaks the code
+    down into small manageable chunks, each of which performs a distinct, identifiable
+    action. In some ways, the best kind of component is one that you can see on a
+    large screen without scrolling. One of the great features of React is that it
+    has, in many ways, gotten simpler over time. React hooks and the move away from
+    class-based components have removed boilerplate and reduced the amount of code.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件化开发的优势之一是将代码分解为小的可管理的块，每个块执行一个明确可识别的操作。在某些方面，最好的组件是您可以在大屏幕上看到而无需滚动的组件。React的一个伟大特性是，它在许多方面随着时间的推移变得更简单了。React
+    hooks和远离基于类的组件已经消除了样板代码并减少了代码量。
+- en: However, one way to inflate the size of a component is by filling it with networking
+    code. If you aim to create simple code, you should try to strip out networking
+    code from your components. The components will become smaller, and the network
+    code will be more reusable.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，扩展组件大小的一种方法是填充网络代码。如果您的目标是创建简单的代码，您应该尝试从组件中剥离网络代码。组件将变得更小，网络代码将更具重复使用性。
+- en: But how should we split out the networking code?
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们应该如何拆分出网络代码呢？
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: In this recipe, we will look at a way of moving your network requests into React
+    hooks to track whether a network request is still underway or if there has been
+    some error that prevented it from succeeding.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，我们将看到一种将您的网络请求移动到React hooks中的方法，以跟踪网络请求是否仍在进行中，或者是否发生了阻止其成功的错误。
+- en: 'Before we look at the details, we need to think about what is important to
+    us when making an asynchronous network request. There are three things that we
+    need to track:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们查看细节之前，我们需要考虑在进行异步网络请求时对我们来说什么是重要的。有三件事我们需要跟踪：
+- en: The data returned by the request
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 请求返回的数据
+- en: Whether the request is still loading the data from the server
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 请求是否仍在从服务器加载数据
+- en: Any errors that might have occurred when running the request
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在运行请求时可能发生的任何错误
+- en: You will see these three things appearing in each of the recipes in this chapter.
+    It doesn’t matter whether we are making the requests with `fetch` or `axios` commands,
+    via Redux middleware, or through an API query layer like *GraphQL*; our component
+    will always care about data, loading state, and errors.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将会在本章的每个示例中看到这三个要素出现。无论我们是使用`fetch`或`axios`命令，通过Redux中间件，还是通过类似*GraphQL*的API查询层进行请求，我们的组件始终会关注数据、加载状态和错误。
+- en: As an example, let’s build a simple message board that contains several forums.
+    The messages on each forum contain an `author` field and a `text` field. [Figure 5-1](#ch05_image_1)
+    shows a screenshot of the example application, which you can download from the
+    GitHub site.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们构建一个简单的留言板，其中包含几个论坛。每个论坛上的留言包含一个`author`字段和一个`text`字段。[图 5-1](#ch05_image_1)显示了示例应用程序的屏幕截图，您可以从GitHub站点下载。
+- en: '![](Images/recb_0501.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0501.png)'
+- en: Figure 5-1\. The buttons select the *NASA* or *Not NASA* forums
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-1\. 这些按钮选择*NASA*或*Not NASA*论坛
+- en: 'The buttons at the top of the page select the “NASA” or “Not NASA” forums.
+    A small Node server provides the backend for our example application, which has
+    pre-populated some messages into the NASA forum. Once you have downloaded the
+    source code, you can run the backend server by running the *server.js* script
+    in the application’s main directory:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面顶部的按钮选择“NASA”或“Not NASA”论坛。一个小的Node服务器为我们的示例应用程序提供后端，预先向NASA论坛中预填充了一些消息。下载源代码后，您可以通过运行应用程序主目录中的*server.js*脚本来运行后端服务器：
+- en: '[PRE0]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'The backend server runs at *http://localhost:5000*. We can start the React
+    application itself in the usual way:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 后端服务器运行在*http://localhost:5000*。我们可以以通常的方式启动React应用程序：
+- en: '[PRE1]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The React application will run on port 3000.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React应用程序将在端口3000上运行。
+- en: When in development mode, we proxy all backend requests through the React server.
+    If you’re using `create-react-app`, you can do this by adding a `proxy` property
+    to *package.json* and setting it to *http://localhost:5000*. The React server
+    will pass API calls to our *server.js* backend. For example, *http://localhost:3000/messages/nasa*
+    (which returns an array of messages for the NASA forum) will be proxied to *http://localhost:5000/messages/nasa*.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发模式下，我们通过React服务器代理所有后端请求。如果您使用的是`create-react-app`，可以通过在*package.json*中添加`proxy`属性并将其设置为*http://localhost:5000*来实现这一点。React服务器将API调用传递给我们的*server.js*后端。例如，*http://localhost:3000/messages/nasa*（返回NASA论坛的消息数组）将被代理到*http://localhost:5000/messages/nasa*。
+- en: 'We’ll make the network request to read the messages using a simple `fetch`
+    command:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用简单的`fetch`命令进行网络请求以读取消息：
+- en: '[PRE2]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Here, the `forum` value will contain the string ID of the forum. The `fetch`
+    command is asynchronous and returns a promise, so we will `await` it. Then we
+    can check whether the call failed with any bad HTTP status, and if so, we will
+    throw an error. We will extract the JSON object out of the response and store
+    it in the `body` variable. If the response body is not a correctly formatted JSON
+    object, we will also throw an error.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`forum`值将包含论坛的字符串ID。`fetch`命令是异步的并返回一个promise，所以我们将`await`它。然后我们可以检查调用是否因为任何错误的HTTP状态而失败，如果是，我们将抛出一个错误。我们将从响应中提取JSON对象并将其存储在`body`变量中。如果响应体不是正确格式的JSON对象，我们也将抛出一个错误。
+- en: 'We need to keep track of three things in this call: the data, the loading state,
+    and any errors. We’re going to bundle this whole thing up inside a custom hook,
+    so let’s have three states called `data`, `loading`, and `error`:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此调用中，我们需要跟踪三件事：数据、加载状态和任何错误。我们将把整个过程封装在一个自定义钩子中，所以让我们有三个状态称为`data`、`loading`和`error`：
+- en: '[PRE3]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'We’ll pass in the forum name as a parameter to the `useMessages` hook, which
+    will return an object containing the `data`, `loading`, and `error` states. We
+    can use object destructuring to extract and rename the values in any component
+    that uses the hook, like this:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将论坛名称作为参数传递给`useMessages`钩子，该钩子将返回一个包含`data`、`loading`和`error`状态的对象。我们可以在使用该钩子的任何组件中使用对象解构来提取和重命名这些值，例如：
+- en: '[PRE4]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Renaming the variables in a spread operator helps avoid naming conflicts. For
+    example, if you want to read messages from more than one forum, you could make
+    a second call to the `useMessages` hook and choose a variable other than `messages`
+    for the second hook response.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在扩展运算符中重命名变量有助于避免命名冲突。例如，如果您想从多个论坛读取消息，可以第二次调用`useMessages`钩子并选择与第二个钩子响应不同的变量名。
+- en: 'Let’s get back to the `useMessages` hook. The network request depends upon
+    the `forum` value that we pass in, so we need to make sure that we run the `fetch`
+    request inside a `useEffect`:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到`useMessages`钩子。网络请求取决于我们传入的`forum`值，因此我们需要确保在`useEffect`中运行`fetch`请求：
+- en: '[PRE5]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: We’re omitting for the moment the code that makes the actual request. The code
+    inside the `useEffect` will run the first time the hook is called. If the client
+    component is re-rendered and passes in the same value for `forum`, the `useEffect`
+    will not run because the `[forum]` dependency will not have changed. It will run
+    again only if the `forum` value changes.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前我们省略了实际请求的代码。`useEffect`中的代码将在第一次调用钩子时运行。如果客户端组件重新渲染并传入相同的`forum`值，`useEffect`将不会运行，因为`[forum]`依赖项没有变化。只有当`forum`值改变时，它才会再次运行。
+- en: 'Now let’s look at how we can drop in the `fetch` request to this hook:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们看看如何将`fetch`请求插入到这个钩子中：
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Because we’re using `await` to handle the promises correctly, we need to wrap
+    the code in a rather ugly `(async () => {...})` call. Inside there, we’re able
+    to set values for `data`, `loading`, and `error` as the request runs, finishes,
+    and (possibly) fails. All of this will happen asynchronously after the call to
+    the hook has been completed. When the `data`, `loading`, and `error` states change,
+    the hook will cause the component to be re-rendered with the new values.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们使用`await`正确处理承诺，所以我们需要在一个相当难看的`(async () => {...})`调用中包装代码。在其中，我们能够为`data`、`loading`和`error`设置值，因为请求运行、完成和（可能）失败。所有这些将在钩子调用完成后异步发生。当`data`、`loading`和`error`状态变化时，钩子将导致组件使用新值重新渲染。
+- en: A consequence of having asynchronous code inside a hook is that the hook will
+    return before the network response has been received. This means there’s a chance
+    that the hook might be called again, before the previous network response has
+    been received. To avoid the network responses being resolved in the wrong order,
+    the example code tracks if the current request was overridden by a later request
+    using the `didCancel` variable. This variable will control whether the hook returns
+    the data from the hook. It won’t cancel the network request itself. To do that,
+    see [“Cancel Network Requests with Tokens”](#ch05-03).
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在钩子中使用异步代码的后果是，在网络响应接收之前，钩子将返回。这意味着在先前的网络响应接收之前，有可能再次调用钩子。为了避免网络响应按错误的顺序解析，示例代码使用`didCancel`变量跟踪当前请求是否被后续请求覆盖。这个变量将控制钩子是否返回钩子中的数据。它不会取消网络请求本身。要取消网络请求，请参阅[“使用令牌取消网络请求”](#ch05-03)。
+- en: 'Let’s take a look at *App.js* in the example application to see what it looks
+    like to use this hook:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看一看示例应用程序中的*App.js*，看看如何使用这个钩子：
+- en: '[PRE7]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Our example application changes which forum is loaded when you click either
+    the NASA or Not NASA button. The example server returns a 404-status for the “Not
+    NASA” forum, which causes an error to appear on-screen. In [Figure 5-2](#ch05_image_2),
+    we can see the example application showing the loading state, the messages from
+    the NASA forum, and an error when we try to load data from the missing “Not NASA”
+    forum.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用程序在你点击NASA或非NASA按钮时改变加载的论坛。示例服务器返回“Not NASA”论坛的404状态，导致屏幕上出现错误。在[图 5-2](#ch05_image_2)中，我们可以看到示例应用程序显示加载状态，来自NASA论坛的消息，以及尝试从缺失的“Not
+    NASA”论坛加载数据时的错误。
+- en: '![](Images/recb_0502.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0502.png)'
+- en: Figure 5-2\. The application showing loading, messages, and errors
+  id: totrans-43
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-2\. 应用程序显示加载、消息和错误
+- en: The `useMessages` hook will also cope if the server throws an error, as shown
+    in [Figure 5-3](#ch05_image_3).
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果服务器抛出错误，`useMessages` 钩子也会处理，如[图 5-3](#ch05_image_3)所示。
+- en: '![](Images/recb_0503.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0503.png)'
+- en: Figure 5-3\. The component can display errors from the server
+  id: totrans-46
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-3\. 组件可以显示来自服务器的错误
+- en: Discussion
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you’re creating an application, it’s tempting to spend your time building
+    features that assume everything works. But it is worth investing the time to handle
+    errors and make an effort to show when data is still loading. Your application
+    will be pleasant to use, and you will have an easier time tracking down slow services
+    and errors.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你创建一个应用程序时，很容易花费时间构建假设一切正常工作的功能。但是值得投资时间来处理错误，并努力显示数据仍在加载的状态。你的应用将更加愉快使用，并且你将更容易追踪到慢服务和错误。
+- en: You might also consider combining this recipe with [“Build a Centralized Error
+    Handler”](ch04.xhtml#ch04-01), which will make it easier for users to describe
+    what happened.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以考虑将此示例与[“构建集中式错误处理程序”](ch04.xhtml#ch04-01)结合使用，这将使用户更容易描述发生的情况。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/T6M6q).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/T6M6q)下载此示例的源代码。
+- en: Refresh Automatically with State Counters
+  id: totrans-51
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用状态计数器自动刷新
+- en: Problem
+  id: totrans-52
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Network services often need to interact with each other. Take, for example,
+    the forum application we used in the previous recipe. If we add a form to post
+    a new message, we want the message list to update automatically every time a person
+    posts something.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网络服务经常需要相互交互。例如，在我们之前的示例中使用的论坛应用程序中。如果我们添加一个表单来发布新消息，我们希望每次有人发布消息时，消息列表都会自动更新。
+- en: In the previous version of this application, we created a custom hook called
+    `useMessages`, which contained all of the code needed to read a forum’s messages.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个应用程序的先前版本中，我们创建了一个名为`useMessages`的自定义钩子，其中包含读取论坛消息所需的所有代码。
+- en: 'We’ll add a form to the application to post new messages to the server:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将向应用程序添加一个表单，用于将新消息发布到服务器：
+- en: '[PRE8]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Here’s the problem: when you post a new message, it doesn’t appear on the list
+    unless you refresh the page manually (see [Figure 5-4](#ch05_image_4)).'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是问题所在：当您发布新消息时，除非手动刷新页面（参见[图5-4](#ch05_image_4)），否则不会出现在列表中。
+- en: '![](Images/recb_0504.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0504.png)'
+- en: Figure 5-4\. Posting a message does not refresh the message list
+  id: totrans-59
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-4\. 发布消息不会刷新消息列表
+- en: How do we automatically reload the messages from the server each time we post
+    a new one?
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何在每次发布新消息时自动重新加载来自服务器的消息？
+- en: Solution
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We’re going to trigger data refreshes by using a thing called a *state counter*.
+    A state counter is just an increasing number. It doesn’t matter what the counter’s
+    current value is; it just matters that we change it every time we want to reload
+    the data:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将通过使用*状态计数器*来触发数据刷新。状态计数器只是一个递增的数字。当前计数器的值无关紧要；重要的是每次重新加载数据时更改它：
+- en: '[PRE9]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'You can think of a state counter as representing our perceived version of the
+    data on the server. When we do something that we suspect will change the server
+    state, we update the state counter to reflect the change:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将状态计数器视为表示服务器数据视图的版本。当我们做一些可能改变服务器状态的操作时，我们会更新状态计数器以反映这些变化：
+- en: '[PRE10]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Notice that we’re increasing the `stateVersion` value using a function, rather
+    than saying `setStateVersion(stateVersion + 1)`. You should always use a function
+    to update a state value if the new value depends upon the old value. That’s because
+    React sets states asynchronously. If we ran `setStateVersion(stateVersion + 1)`
+    twice in rapid succession, the value of `stateVersion` might not change in between
+    the two calls, and we would miss an increment.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们正在使用函数增加`stateVersion`的值，而不是使用`setStateVersion(stateVersion + 1)`。如果新值取决于旧值，您应始终使用函数来更新状态值。这是因为React异步设置状态。如果我们快速连续两次运行`setStateVersion(stateVersion
+    + 1)`，则`stateVersion`的值在两次调用之间可能不会更改，我们会错过一个增量。
+- en: 'The code that reads the current set of messages is wrapped inside a `useEffect`,
+    which we can force to rerun by making it dependent upon the `stateVersion` value:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 读取当前消息集的代码被包装在`useEffect`中，我们可以通过使其依赖于`stateVersion`值来强制重新运行它：
+- en: '[PRE11]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: If the value of the `forum` variable changes or if the `stateVersion` changes,
+    it will automatically reload the messages (see [Figure 5-5](#ch05_image_5)).
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`forum`变量的值更改或者`stateVersion`更改，它将自动重新加载消息（参见[图5-5](#ch05_image_5)）。
+- en: '![](Images/recb_0505.png)'
+  id: totrans-70
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0505.png)'
+- en: Figure 5-5\. Posting a new message causes the message list to reload
+  id: totrans-71
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-5\. 发布新消息会导致消息列表重新加载
+- en: 'So that’s our approach. Now we need to look at where we’re going to put the
+    code. Here is the previous version of the component, which is only reading messages:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们的方法。现在我们需要看看代码放在哪里。这是组件的上一个版本，只读取消息：
+- en: '[PRE12]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: We’re going to add the new form to this component. We could also include the
+    networking code and the state counter code right here, inside the component. However,
+    that would put the posting code in the component and the reading code in the `useMessages`
+    hook. It’s better to keep all the networking code together in the hook. Not only
+    will the component be cleaner, but the networking code will be more reusable.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将把新的表单添加到这个组件中。我们还可以在组件内部包括网络代码和状态计数器代码。但是，这会将发布代码放在组件中，并将读取代码放在`useMessages`钩子中。将所有网络代码集中在钩子中更好。这样不仅组件更清洁，而且网络代码更可重用。
+- en: This is code we’ll use for a new version of the `useMessages` hook, which we
+    will rename `useForum`:^([1](ch05.xhtml#idm46634412810120))
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们将用于`useForum`钩子新版本的代码，我们将其重命名为`useMessages`：^([1](ch05.xhtml#idm46634412810120))
+- en: '[PRE13]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: We now construct a `create` function inside the `useForum` hook and then return
+    it with various other pieces of state to the component. Notice that we are wrapping
+    the `create` function inside a `useCallback`, which means that we won’t create
+    a new version of the function unless we need to do it to create data for a different
+    `forum` value.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在在`useForum`钩子内构造一个`create`函数，然后将其与其他各种状态一起返回到组件中。请注意，我们将`create`函数包装在`useCallback`中，这意味着除非我们需要为不同的`forum`值创建数据，否则我们不会创建函数的新版本。
+- en: Be careful when creating functions inside hooks and components. React will often
+    trigger a re-render if a new function object is created, even if that function
+    does the same thing as the previous version.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在hooks和组件内创建函数时要小心。如果创建了一个新的函数对象，即使这个函数与之前的版本做的事情相同，React通常会触发重新渲染。
+- en: When we call the `create` function, it posts a new message to the forum and
+    then updates the `stateVersion` value, which will automatically cause the hook
+    to re-read the messages from the server. Notice that we also have a `creating`
+    value, which is `true` when the network code is sending the message to the server.
+    We can use the `creating` value to disable the POST button.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用`create`函数时，它会向论坛发布一条新消息，然后更新`stateVersion`值，这将自动导致hook从服务器重新读取消息。请注意，我们还有一个`creating`值，在网络代码发送消息到服务器时为`true`。我们可以使用`creating`值来禁用POST按钮。
+- en: However, we don’t track any errors inside the `create`. Why don’t we? After
+    all, we do when we’re *reading* data from the server. It’s because you often want
+    more control over exception handling when changing data on the server than you
+    do when you are simply reading it. In the example application, we clear out the
+    message form when sending a message to the server. If there’s an error, we want
+    to leave the text in the message form.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在`create`中我们不会跟踪任何错误。为什么不呢？毕竟，当我们从服务器*读取*数据时我们会这样做。这是因为当您在服务器上更改数据时，通常希望对异常处理有更多的控制，而不像在仅仅读取数据时那样。在示例应用程序中，当向服务器发送消息时，我们会清空消息表单。如果有错误发生，我们希望保留消息表单中的文本。
+- en: 'Now let’s look at the code that calls the hook:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们来看一下调用hook的代码：
+- en: '[PRE14]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: The details of how we read and write messages are hidden inside the `useForum`
+    hook. We use object destructuring to assign the `create` function to the `createMessage`
+    variable. If we call `createMessage`, it will not only post the message but also
+    automatically re-read the new messages from the forum and update the screen (see
+    [Figure 5-6](#ch05_image_6)).
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们读取和写入消息的详细信息隐藏在`useForum` hook内部。我们使用对象解构将`create`函数赋值给`createMessage`变量。如果我们调用`createMessage`，它不仅会发布消息，还会自动从论坛重新读取消息并更新屏幕（见[图5-6](#ch05_image_6)）。
+- en: '![](Images/recb_0505.png)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0505.png)'
+- en: Figure 5-6\. Posting a new message and automatically reloading
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-6\. 发布新消息并自动重新加载
+- en: Our hook is no longer just a way to read data from the server. It’s becoming
+    a *service* for managing the forum itself.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的hook不再只是从服务器读取数据的方式。它正在变成管理论坛本身的*服务*。
+- en: Discussion
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Be careful using this approach if you intend to post data to the server in one
+    component and then read data in a *different* component. Separate hook instances
+    will have separate state counters, and posting data from one component will not
+    automatically re-read the data in another component. If you want to split code
+    to post and read across separate components, call the custom hook in some common
+    parent component, pass the data, and post functions to the child components that
+    need them.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您打算在一个组件中向服务器发送数据，然后在*不同*的组件中读取数据，请注意使用此方法时要小心。独立的hook实例将有独立的状态计数器，从一个组件中发布数据将不会自动在另一个组件中重新读取数据。如果您想要将发布和读取数据的代码拆分到不同的组件中，请在某个共同的父组件中调用自定义hook，将数据传递给子组件，并将需要它们的发布函数传递给子组件。
+- en: If you want to make your code poll a network service at a regular interval,
+    then consider creating a clock and making your network code depend upon the current
+    clock value, much as the preceding code depends upon the state counter.^([2](ch05.xhtml#idm46634411899256))
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要使您的代码定期轮询网络服务，那么请考虑创建一个时钟，并使您的网络代码依赖于当前时钟值，就像前面的代码依赖于状态计数器一样。^([2](ch05.xhtml#idm46634411899256))
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/knyC5).
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/knyC5)下载此配方的源代码。
+- en: Cancel Network Requests with Tokens
+  id: totrans-91
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 取消网络请求的令牌
+- en: Problem
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Let’s consider a buggy application that can search for cities. When a user starts
+    to type a name in the search field, a list of matching cities appears. As the
+    user types “C… H… I… G…” the matching cities appear in the table of results. But
+    then, after a moment, a longer list of cities appears, which includes erroneous
+    results, such as Wichita Falls (see [Figure 5-7](#ch05_image_7)).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个有bug的应用程序，可以搜索城市。当用户在搜索框中开始输入名称时，会出现一列匹配的城市。当用户输入“C... H... I... G...”时，匹配的城市会出现在结果表中。但是，过了一会儿，会出现一个更长的城市列表，其中包括错误的结果，比如威奇托福尔斯（见[图5-7](#ch05_image_7)）。
+- en: '![](Images/recb_0507.png)'
+  id: totrans-94
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0507.png)'
+- en: Figure 5-7\. The search works initially; then the wrong cities appear
+  id: totrans-95
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-7\. 初始搜索正常工作，然后显示错误的城市
+- en: The problem is that the application is sending a new network request each time
+    the user types a character. But not all network requests take the same amount
+    of time. In the example you can see here, the network request searching for “CHI”
+    took a couple of seconds longer than the search for “CHIG.” That meant that the
+    “CHI” results returned after the results for “CHIG.”
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于应用程序每次用户输入字符时都会发送新的网络请求。但并不是所有的网络请求所花费的时间都相同。在这个例子中，你可以看到，“CHI”搜索花费的时间比“CHIG”搜索长了几秒钟。这意味着“CHI”的结果在“CHIG”的结果之后返回。
+- en: How can you prevent a series of asynchronous network calls from returning out
+    of sequence?
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何防止一系列异步网络调用返回顺序混乱？
+- en: Solution
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: If you are making multiple GET calls to a network server, you can cancel old
+    calls before sending new ones, which means that you will never get results back
+    out of order because you will have only one network request calling the service
+    at a time.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您正在向网络服务器进行多次GET调用，您可以在发送新请求之前取消旧调用，这意味着您永远不会因为只有一个网络请求在服务端调用时，不会收到结果返回顺序不一致的问题。
+- en: 'For this recipe, we are going to use the Axios network library. That means
+    that we have to install it:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此示例，我们将使用Axios网络库。这意味着我们必须安装它：
+- en: '[PRE15]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The Axios library is a wrapper for the native `fetch` function and allows you
+    to cancel network requests using tokens. The Axios implementation is based on
+    the [cancelable promises proposal](https://oreil.ly/jd4LF) from ECMA.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Axios库是原生`fetch`函数的封装，允许您使用令牌取消网络请求。Axios的实现基于ECMA的[可取消的Promise提案](https://oreil.ly/jd4LF)。
+- en: Let’s begin by looking at our problem code. The network code is wrapped in a
+    custom hook:^([3](ch05.xhtml#idm46634411877064))
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先看看我们的问题代码。网络代码被包装在一个自定义钩子内部：^([3](ch05.xhtml#idm46634411877064))
+- en: '[PRE16]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: The `terms` parameter contains the search string. The problem occurred because
+    the code made a network request to */search* for the string `"CHI"`.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`terms`参数包含搜索字符串。问题出现在代码发送了一个网络请求到*/search*，搜索字符串为`"CHI"`。'
+- en: While that was in progress, we made another call with the string `"CHIG"`. The
+    earlier request took longer, which caused the bug.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这期间，我们使用字符串`"CHIG"`再次发起了另一个调用。之前的请求花费了更长的时间，这导致了错误。
+- en: We’re going to avoid this problem by using an Axios cancel token. If we attach
+    a token to a request, we can then later use the token to cancel the request. The
+    browser will terminate the request, and we’ll never hear back from it.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将通过使用Axios取消令牌来避免这个问题。如果我们给请求附加一个令牌，我们稍后可以使用这个令牌来取消请求。浏览器将终止请求，我们将不再接收到响应。
+- en: 'To use the token, we need to first create a source for it:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用令牌，我们首先需要为其创建一个源：
+- en: '[PRE17]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'The `source` is like a remote control for the network request. Once a network
+    request is connected to a source, we can tell the source to cancel it. We associate
+    a source with a request using `source.token`:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`source`就像是网络请求的遥控器。一旦网络请求与源关联，我们可以告诉源取消它。我们使用`source.token`将源与请求关联：'
+- en: '[PRE18]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Axios will remember which token is attached to which network request. If we
+    want to cancel the request, we can call this:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Axios会记住哪个令牌附加在哪个网络请求上。如果我们想要取消请求，我们可以调用这个：
+- en: '[PRE19]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'We need to make sure that we cancel a request only when we make a new request.
+    Fortunately, our network call is inside a `useEffect`, which has a handy feature.
+    If we return a function that cancels the current request, this function will be
+    run *just before* the `useEffect` runs again. So if we return a function that
+    cancels the current network request, we will automatically cancel the old network
+    request each time we run a new one.^([4](ch05.xhtml#idm46634411658232)) Here is
+    the updated version of the custom hook:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要确保仅在发出新请求时取消请求。幸运的是，我们的网络调用位于一个`useEffect`内部，它有一个很方便的特性。如果我们返回一个取消当前请求的函数，这个函数会在`useEffect`再次运行之前被执行。因此，如果我们返回一个取消当前网络请求的函数，每次运行新请求时就会自动取消旧的网络请求。^([4](ch05.xhtml#idm46634411658232))
+    这是定制钩子的更新版本：
+- en: '[PRE20]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Discussion
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You should use this approach only if you are accessing idempotent services.
+    In practice, this means that you should use it for `GET` requests where you are
+    interested only in the latest results.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有在访问幂等服务时才应该使用这种方法。实际上，这意味着您应该仅对您只关心最新结果的`GET`请求使用它。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/aQj5g).
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/aQj5g)下载此示例的源代码。
+- en: Make Network Calls with Redux Middleware
+  id: totrans-119
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Redux中间件进行网络调用
+- en: Problem
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Redux is a library that allows you to manage application state centrally.^([5](ch05.xhtml#idm46634411249656))
+    When you want to change the application state, you do it by dispatching commands
+    (called *actions*) that are captured and processed by JavaScript functions called
+    *reducers*. Redux is popular with React developers because it provides a way to
+    separate state-management logic from component code. Redux performs actions asynchronously
+    but in strict order. So, you can create large, complex applications in Redux that
+    are both efficient and stable.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux是一个允许您集中管理应用程序状态的库。^([5](ch05.xhtml#idm46634411249656))当您想要更改应用程序状态时，您通过分派命令（称为*actions*）来执行，这些命令由JavaScript函数（称为*reducers*）捕获并处理。
+    Redux因为提供了一种将状态管理逻辑与组件代码分离的方式，因此在React开发人员中很受欢迎。 Redux异步执行操作但严格按顺序执行。 因此，您可以在Redux中创建大型复杂的应用程序，这些应用程序既高效又稳定。
+- en: It would be great if we could leverage the power of Redux to orchestrate all
+    of our network requests. We could dispatch actions that say things like “Go and
+    read the latest search results,” and Redux could make the network request and
+    then update the central state.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们能利用Redux的强大功能来编排所有网络请求，那将是很好的。我们可以分派类似于“去读取最新搜索结果”的操作，Redux可以进行网络请求，然后更新中心状态。
+- en: 'However, to ensure that Redux code is stable, reducer functions have to meet
+    several quite strict criteria: and one of them is that *no reducer function can
+    have side effects*. That means that you should never make network requests inside
+    a reducer.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，为了确保Redux代码稳定，减少函数必须符合几个非常严格的标准之一是*没有任何减速器函数可以具有副作用*。这意味着你永远不应该在减速器内部进行网络请求。
+- en: But if we cannot make network requests inside reducer functions, how can we
+    configure Redux to talk to the network for us?
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果我们不能在减速器函数内部进行网络请求，那么我们如何配置Redux来代替我们与网络进行通信呢？
+- en: Solution
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: In a React Redux application, components publish (*dispatch*) actions, and reducers
+    respond to actions by updating the central state (see [Figure 5-8](#ch05_image_8)).
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在React Redux应用程序中，组件发布（*dispatch*）操作，并且减速器通过更新中心状态来响应操作（请参阅[图 5-8](#ch05_image_8)）。
+- en: '![](Images/recb_0508.png)'
+  id: totrans-127
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0508.png)'
+- en: Figure 5-8\. Using Redux reducers to update central state
+  id: totrans-128
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-8。 使用Redux减速器更新中心状态
+- en: If we want to create actions with side effects, we will have to use Redux *middleware*.
+    Middleware receives actions before Redux sends them to the reducers, and middleware
+    can transform actions, cancel them, or create new actions. Most importantly, Redux
+    middleware code is allowed to have side effects. That means that if a component
+    dispatches an action that says “Go and search for this string,” we can write middleware
+    that receives that action, generates a network call, and then converts the response
+    into a new “Store these search results” action. You can see how Redux middleware
+    works in [Figure 5-9](#ch05_image_9).
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要创建具有副作用的操作，我们将不得不使用Redux *中间件*。 中间件在Redux将它们发送到减速器之前接收操作，并且中间件可以转换操作、取消操作或创建新操作。
+    最重要的是，Redux中间件代码允许具有副作用。 这意味着如果组件分派一个说“去搜索这个字符串”的操作，我们可以编写一个接收该操作的中间件，生成一个网络调用，然后将响应转换为新的“存储这些搜索结果”的操作。
+    您可以在[图 5-9](#ch05_image_9)中看到Redux中间件的工作原理。
+- en: '![](Images/recb_0509.png)'
+  id: totrans-130
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0509.png)'
+- en: Figure 5-9\. Middleware can make network calls
+  id: totrans-131
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-9。 中间件可以进行网络调用
+- en: Let’s create some middleware that intercepts an action of type `"SEARCH"` and
+    uses it to generate a network service.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们创建一个中间件，拦截类型为`"SEARCH"`的操作，并使用它来生成一个网络服务。
+- en: 'When we get the results back from the network, we will then create a new action
+    of type `"SEARCH_RESULTS"`, which we can then use to store the search results
+    in the central Redux state. Our action object will look something like this:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们从网络获取结果返回时，我们将创建一个类型为`"SEARCH_RESULTS"`的新操作，然后可以将搜索结果存储在中央Redux状态中。我们的操作对象将看起来像这样：
+- en: '[PRE21]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'This is the *axiosMiddleware.js* code that we’ll use to intercept `SEARCH`
+    actions:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们将用来拦截`SEARCH`操作的*axiosMiddleware.js*代码：
+- en: '[PRE22]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: The function signature for Redux middleware can be confusing. You can think
+    of it as a function that receives a store, an action, and another function called
+    `next` that can forward actions on to the rest of Redux.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux中间件的函数签名可能会让人感到困惑。 您可以将其视为接收存储、操作和称为`next`的另一个函数的函数，该函数可以将操作转发到Redux的其余部分。
+- en: In the preceding code, we check to see if the action is of type `SEARCH`. If
+    it is, we will make a network call. If it isn’t, we run `next(action)`, which
+    will pass it on to any other code interested in it.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述代码中，我们检查操作是否为`SEARCH`类型。如果是，我们将进行网络调用。如果不是，则运行`next(action)`，这会将其传递给其他对其感兴趣的代码。
+- en: 'When we start the network call, receive data, or capture any errors, then we
+    can generate a new `SEARCH_RESULTS` action:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们启动网络调用、接收数据或捕获任何错误时，我们可以生成一个新的`SEARCH_RESULTS`操作：
+- en: '[PRE23]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'The payload for our new action has the following:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的新操作的有效载荷如下：
+- en: A Boolean flag called `loading`, which is `true` while the network request is
+    running
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个名为`loading`的布尔标志，当网络请求正在运行时为`true`
+- en: A `data` object that contains the response from the server
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包含来自服务器响应的`data`对象
+- en: An `error` object containing the details of any error that has occurred^([6](ch05.xhtml#idm46634410954808))
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包含发生的任何错误详细信息的`error`对象^([6](ch05.xhtml#idm46634410954808))
+- en: 'We can then create a reducer that will store `SEARCH_RESULTS` in the central
+    state:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以创建一个减速器，将`SEARCH_RESULTS`存储在中心状态中：
+- en: '[PRE24]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'We also need to register our middleware using the Redux `applyMiddleware` function
+    when we create the Redux store. In the example code, we do this in the *App.js*
+    file:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们创建Redux存储时，还需要使用Redux `applyMiddleware`函数注册我们的中间件。在示例代码中，我们在*App.js*文件中执行此操作：
+- en: '[PRE25]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Finally, we can wire everything up in a `Search` component, which will dispatch
+    a search request, and then read the results through a Redux selector:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以在一个`Search`组件中将所有内容连接起来，该组件将调度一个搜索请求，然后通过Redux选择器读取结果：
+- en: '[PRE26]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: You can see the demo application running in [Figure 5-10](#ch05_image_10).
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以查看运行中的演示应用程序[图 5-10](#ch05_image_10)。
+- en: '![](Images/recb_0510.png)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0510.png)'
+- en: Figure 5-10\. The application when data is loading, loaded, or errored
+  id: totrans-153
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-10\. 数据加载、加载完成或出错时的应用程序
+- en: Discussion
+  id: totrans-154
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Redux reducers always process actions in strict dispatch order. The same is
+    not true for network requests generated by middleware. If you are making many
+    network requests in quick succession, you might find that responses return in
+    a different order. If this is likely to lead to bugs, then consider using cancellation
+    tokens.^([7](ch05.xhtml#idm46634410368616))
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux减速器总是严格按照调度顺序处理操作。对于由中间件生成的网络请求则不然。如果您快速连续进行许多网络请求，可能会发现响应以不同的顺序返回。如果这可能导致错误，请考虑使用取消令牌。^([7](ch05.xhtml#idm46634410368616))
+- en: You might also consider moving all Redux `useDispatch()/useSelector()` code
+    out of components and into custom hooks, which will give you a more flexible architecture
+    by separating your service layer from your component code.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以考虑将所有Redux `useDispatch()/useSelector()`代码从组件中移出，并将其放入自定义挂钩中，这样可以通过将服务层与组件代码分开来获得更灵活的架构。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/YlqEF).
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/YlqEF)下载此配方的源代码。
+- en: Connect to GraphQL
+  id: totrans-158
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 连接到GraphQL
+- en: Problem
+  id: totrans-159
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: GraphQL is an excellent way of creating APIs. If you’ve used REST services for
+    a while, then some features of GraphQL will seem odd (or even heretical), but
+    having worked on a few GraphQL projects, we would certainly recommend that you
+    consider it for your next development project.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL是创建API的绝佳方式。如果您已经使用REST服务一段时间，那么GraphQL的某些功能看起来会有些奇怪（甚至可能是异端的），但是在几个GraphQL项目上工作后，我们强烈建议您考虑在下一个开发项目中使用它。
+- en: When people refer to GraphQL, they can mean several things. They might be referring
+    to the GraphQL language, which is managed and maintained by the GraphQL Foundation.
+    GraphQL allows you to specify APIs and to create queries to access and mutate
+    the data stored behind those APIs. They might be referring to a GraphQL server,
+    which stitches together multiple low-level data access methods into a rich web
+    service. Or they might be talking about a GraphQL client, which allows you to
+    rapidly create new client requests with very little code and transfer just the
+    data you need across the network.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当人们提到GraphQL时，他们可能指的是几件事情。他们可能指的是由GraphQL基金会管理和维护的GraphQL语言。GraphQL允许您指定API并创建查询，以访问和变异存储在这些API背后的数据。他们可能是指GraphQL服务器，它将多个低级数据访问方法组合成一个丰富的Web服务。或者他们可能正在讨论GraphQL客户端，它允许您仅使用极少的代码快速创建新的客户端请求，并在网络上传输您所需的数据。
+- en: But how do you integrate GraphQL with your React application?
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如何将GraphQL集成到您的React应用程序中？
+- en: Solution
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Before we look at how to use GraphQL from React, we will begin by creating a
+    small GraphQL server. The first thing we need is a GraphQL *schema*. The schema
+    is a formal definition of the data and services that our GraphQL server will provide.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们看如何从React中使用GraphQL之前，我们将先创建一个小的GraphQL服务器。我们需要的第一件事是一个GraphQL *schema*。该模式是我们的GraphQL服务器将提供的数据和服务的正式定义。
+- en: 'Here is the *schema.graphql* schema we’ll use. It’s a GraphQL specification
+    of the forum message example we’ve used previously in this chapter:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们将使用的*schema.graphql*模式。这是我们在本章中之前使用的论坛消息示例的GraphQL规范：
+- en: '[PRE27]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: This schema defines a single *query* (method for reading data) called `messages`,
+    which returns an array of `Message` objects. Each `Message` has an `id`, a non-null
+    string called `author`, and a non-null string called `text`. We also have a single
+    *mutation* (method for changing data) called `addMessage`, which will store a
+    message based on an `author` string and a `text` string.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该模式定义了一个名为`messages`的单一*query*（用于读取数据的方法），它返回一个`Message`对象数组。每个`Message`具有一个`id`，一个名为`author`的非空字符串和一个名为`text`的非空字符串。我们还有一个名为`addMessage`的单一*mutation*（用于更改数据的方法），它将基于`author`字符串和`text`字符串存储消息。
+- en: 'Before we create our sample server, we’ll install a few libraries:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建样本服务器之前，我们将安装一些库：
+- en: '[PRE28]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'The `apollo-server` is a framework for creating GraphQL servers. The `require-text`
+    library will allows us to read the `schema.graphql` file. This is *server.js*,
+    our example server:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`apollo-server`是一个创建GraphQL服务器的框架。`require-text`库允许我们读取`schema.graphql`文件。这是*server.js*，我们的示例服务器：'
+- en: '[PRE29]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'The server stores messages in an array, which is prepopulated with a few messages.
+    You can start the server with:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务器将消息存储在一个数组中，并预先填充了一些消息。您可以使用以下命令启动服务器：
+- en: '[PRE30]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: This command will start the server on port 5000\. If you open a browser to *http://localhost:5000*,
+    you will see the GraphQL Playground client. The Playground client is a tool that
+    allows you to try out queries and mutations interactively before adding them to
+    your code (see [Figure 5-11](#ch05_image_11)).
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令将在5000端口启动服务器。如果您打开浏览器到*http://localhost:5000*，您将看到GraphQL Playground客户端。Playground客户端是一个工具，允许您在将其添加到代码之前交互式地尝试查询和变更（见[图5-11](#ch05_image_11)）。
+- en: '![](Images/recb_0511.png)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0511.png)'
+- en: Figure 5-11\. The GraphQL Playground should be running at http://localhost:5000
+  id: totrans-176
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图5-11\. GraphQL Playground应该在http://localhost:5000运行
+- en: 'Now we can start to look at the React client code. We’ll install the Apollo
+    client:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以开始查看React客户端代码了。我们将安装Apollo客户端：
+- en: '[PRE31]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'GraphQL supports both `GET` and `POST` requests, but the Apollo client sends
+    queries and mutations to the GraphQL server as `POST` requests, which avoids any
+    cross-domain issues and means you can connect to a third-party GraphQL server
+    without having to proxy. As a consequence, it means that a GraphQL client has
+    to handle its own caching, so we will need to provide a cache and the address
+    of the server when we configure the client in *App.js*:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL支持`GET`和`POST`请求，但Apollo客户端将查询和变更发送到GraphQL服务器作为`POST`请求，这样可以避免任何跨域问题，也意味着你可以连接到第三方GraphQL服务器而无需代理。因此，这意味着GraphQL客户端必须处理自己的缓存，所以当我们在*App.js*中配置客户端时，我们需要提供一个缓存和服务器地址：
+- en: '[PRE32]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: The `ApolloProvider` makes the client available to any child component. If you
+    forget to add the `ApolloProvider`, you will find that all of your GraphQL client
+    code will fail.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ApolloProvider`使客户端对任何子组件都可用。如果忘记添加`ApolloProvider`，您会发现您的所有GraphQL客户端代码将失败。'
+- en: 'We’re going to make the calls to GraphQL from inside the `Forum` component.
+    We’ll be performing two actions:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从`Forum`组件内部调用GraphQL。我们将执行两个操作：
+- en: A *query* called `Messages` that reads all of the messages
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个称为`Messages`的*query*，读取所有消息
+- en: A *mutation* called `AddMessage` that will post a new message
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个称为`AddMessage`的*mutation*，将发布一个新消息
+- en: 'The query and the mutation are written in the GraphQL language. Here’s the
+    `Messages` query:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询和变更是用GraphQL语言编写的。这是`Messages`查询：
+- en: '[PRE33]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'This query means that we want to read all of the messages, but we only want
+    to return the `author` and `text` strings. Because we’re not asking for the message
+    `id`, the GraphQL server won’t return it. This is part of the flexibility of GraphQL:
+    you specify what you want at query time rather than by crafting a particular API
+    call for each variation.'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此查询意味着我们想要读取所有消息，但只想返回`author`和`text`字符串。因为我们没有请求消息的`id`，GraphQL服务器将不会返回它。这是GraphQL的灵活性的一部分：您在查询时指定您想要的内容，而不是为每种变化制定特定的API调用。
+- en: 'The `AddMessage` mutation is a little more complex, because it needs to be
+    parameterized so that we can specify the `author` and `text` values each time
+    we call it:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`AddMessage` 变更略微复杂，因为它需要参数化，以便我们每次调用时可以指定 `author` 和 `text` 值：'
+- en: '[PRE34]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'We’re going to use the `useQuery` and `useMutation` hooks provided by the Apollo
+    GraphQL client. The `useQuery` hook returns an object with `data`, `loading`,
+    and `error` attributes.^([8](ch05.xhtml#idm46634409704920)) The `useMutation`
+    hook returns an array with two values: a function and an object representing the
+    result.'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用 Apollo GraphQL 客户端提供的 `useQuery` 和 `useMutation` 钩子。`useQuery` 钩子返回一个带有
+    `data`、`loading` 和 `error` 属性的对象。^([8](ch05.xhtml#idm46634409704920)) `useMutation`
+    钩子返回一个包含两个值的数组：一个函数和表示结果的对象。
+- en: 'In [“Refresh Automatically with State Counters”](#ch05-02), we looked at how
+    to automatically reload data after some mutation has changed it on the server.
+    Thankfully, the Apollo client has a ready-made solution. When you call a mutation,
+    you can specify an array of other queries that should be rerun if the mutation
+    is successful:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [“使用状态计数器自动刷新”](#ch05-02) 中，我们看到了如何在某些变更后自动重新加载数据。幸运的是，Apollo 客户端提供了现成的解决方案。当你调用一个变更时，你可以指定一个数组，包含了在变更成功时应该重新运行的其他查询：
+- en: '[PRE35]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: The `'Messages'` string refers to the name of the GraphQL query, which means
+    we can be running multiple queries against the GraphQL service and specify which
+    of them are likely to need refreshing after a change.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`''Messages''` 字符串指的是 GraphQL 查询的名称，这意味着我们可以对 GraphQL 服务运行多个查询，并指定哪些查询在变更后可能需要刷新。'
+- en: 'Finally, here is the complete `Forum` component:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，这是完整的 `Forum` 组件：
+- en: '[PRE36]'
+  id: totrans-195
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: When you run the application and post a new message, the messages list automatically
+    updates with the new message added to the end, as shown in [Figure 5-12](#ch05_image_12).
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您运行应用程序并发布新消息时，消息列表将自动更新，并将新消息添加到末尾，如图 [Figure 5-12](#ch05_image_12) 所示。
+- en: '![](Images/recb_0512.png)'
+  id: totrans-197
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0512.png)'
+- en: Figure 5-12\. After we post a message, it appears on the list
+  id: totrans-198
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-12\. 我们发布消息后，它将出现在列表中
+- en: Discussion
+  id: totrans-199
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: GraphQL is particularly useful if you have a team split between frontend and
+    backend developers. Unlike REST, a GraphQL system does not require the backend
+    developers to handcraft every API call made by the client. Instead, the backend
+    team can provide a solid and consistent API structure and leave it to the frontend
+    team to decide precisely *how* they will use it.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的团队分为前端和后端开发人员，GraphQL 将特别有用。与 REST 不同，GraphQL 系统不需要后端开发人员手工制定客户端的每个 API
+    调用。相反，后端团队可以提供一个坚固和一致的 API 结构，让前端团队决定 *如何* 使用它。
+- en: If you are creating a React application using GraphQL, you might consider extracting
+    all of the `useQuery` and `useMutation` calls into a custom hooks.^([9](ch05.xhtml#idm46634409299480))
+    In this way, you will create a more flexible architecture in which the components
+    are less bound to the details of the service layer.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您正在使用 GraphQL 创建 React 应用程序，您可能考虑将所有 `useQuery` 和 `useMutation` 调用提取到自定义钩子中。^([9](ch05.xhtml#idm46634409299480))
+    这样一来，您将创建一个更灵活的架构，使组件不那么依赖于服务层的细节。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/xTcAK).
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 站点](https://oreil.ly/xTcAK) 下载此示例的源代码。
+- en: Reduce Network Load with Debounced Requests
+  id: totrans-203
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用防抖请求减少网络负载
+- en: Problem
+  id: totrans-204
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: It is easy to forget about performance when you’re working in a development
+    system. That’s probably a good thing because it’s more important that code does
+    the right thing rather than do the wrong thing quickly.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发系统中工作时，很容易忽略性能问题。这可能是件好事，因为比起快速执行错误操作，正确执行代码更为重要。
+- en: But when your application gets deployed to its first realistic environment—such
+    as one used for user acceptance testing—then performance will become more important.
+    The kind of dynamic interfaces associated with React often make a lot of network
+    calls, and the cost of these calls will be noticeable only once the server has
+    to cope with lots of concurrent clients.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，当您的应用程序部署到其首个实际环境（例如用于用户验收测试的环境）时，性能将变得更加重要。与 React 相关的动态界面通常会产生大量的网络调用，而这些调用的成本只有在服务器必须处理大量并发客户端时才会显现。
+- en: We’ve used an example search application a few times in this chapter. In the
+    search app, a user can look for a city by name or state. The search happens immediately—while
+    they are typing. If you open the developer tools and look at the network requests
+    (see [Figure 5-13](#ch05_image_13)), you will see that it generates network requests
+    for each character typed.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们多次使用了一个示例搜索应用程序。在搜索应用程序中，用户可以按名称或州查找城市。搜索是实时进行的——当他们输入时。如果打开开发者工具并查看网络请求（参见[图
+    5-13](#ch05_image_13)），你会发现它为每个键入的字符生成网络请求。
+- en: '![](Images/recb_0513.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0513.png)'
+- en: Figure 5-13\. The demo search application runs a network request for each character
+  id: totrans-209
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-13\. 演示搜索应用程序为每个字符运行网络请求。
+- en: 'Most of these network requests will provide almost no value. The average typist
+    will probably hit a key every half-second, and if they are looking at their keyboard,
+    they probably won’t even see the results for each of those searches. Of the seven
+    requests they send to the server, they will likely read the results from only
+    one of them: the last. That means the server is doing seven times more work than
+    was needed.'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数这些网络请求几乎没有价值。平均打字员可能每半秒钟按一次键，如果他们看着键盘，他们可能甚至看不到每个搜索的结果。在发送给服务器的七个请求中，他们可能只会阅读最后一个的结果。这意味着服务器做了七倍于所需的工作。
+- en: What can we do to avoid sending so many wasted requests?
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们能做些什么来避免发送这么多浪费的请求？
+- en: Solution
+  id: totrans-212
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to *debounce* the network requests for the search calls. Debouncing
+    means that we will delay sending a network request for a very short period, say
+    a half-second. If another request comes in while we’re waiting, we’ll forget about
+    the first request and then create another delayed request. In this way, we defer
+    sending any request until we receive no new requests for half a second.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将对搜索调用的网络请求进行*防抖*。防抖意味着我们将延迟发送网络请求一个非常短的时间，比如半秒钟。如果在等待时有另一个请求进来，我们将忘记第一个请求，然后创建另一个延迟请求。通过这种方式，我们推迟发送任何请求，直到半秒钟内没有收到新请求。
+- en: 'To see how to do this, look at our example search hook, *useSearch.js*:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解如何做到这一点，请查看我们的示例搜索钩子 *useSearch.js*：
+- en: '[PRE37]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: The code that sends the network request is inside the `(async ()....)()` block
+    of code. We need to delay this code until we get a half-second to spare.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发送网络请求的代码位于`(async ()....)()`代码块内。我们需要延迟此代码，直到我们有半秒钟的空闲时间。
+- en: 'The JavaScript function `setTimeout` will run the code after a delay. This
+    will be key to how we implement the debounce feature:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 函数 `setTimeout` 将在延迟后运行代码。这将是我们实现防抖特性的关键：
+- en: '[PRE38]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'We can use the `newTimer` value to clear the timeout, which might mean that
+    our function never gets called if we do it quickly enough. To see how we can use
+    this to debounce the network requests, look at *useDebouncedSearch.js*, a debounced
+    version of *useSearch.js*:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `newTimer` 值来清除超时，如果我们做得足够快，这可能意味着我们的函数永远不会被调用。要了解如何使用此功能来防抖网络请求，请查看
+    *useDebouncedSearch.js*，这是 *useSearch.js* 的防抖版本：
+- en: '[PRE39]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'We pass the network code into the `setTimeout` function and then return the
+    following:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将网络代码传递给 `setTimeout` 函数，然后返回以下内容：
+- en: '[PRE40]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: If you return a function from `useEffect`, this code is called just before the
+    next time `useEffect` triggers, which means if the user keeps typing quickly,
+    we will keep deferring the network request. Only when the user stops typing for
+    half a second will the code submit a network request.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果从 `useEffect` 返回一个函数，这段代码将在下次 `useEffect` 触发之前调用，这意味着如果用户快速输入，我们将继续推迟网络请求。只有当用户停止输入半秒钟时，代码才会提交一个网络请求。
+- en: The original version of the `useSearch` hook ran a network request for every
+    single character. With the debounced version of the hook, typing at an average
+    speed will result in just a single network request (see [Figure 5-14](#ch05_image_14)).
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useSearch` 钩子的原始版本为每个字符都运行一个网络请求。使用钩子的防抖版本后，以平均速度打字将仅导致单个网络请求（参见[图 5-14](#ch05_image_14)）。'
+- en: '![](Images/recb_0514.png)'
+  id: totrans-225
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0514.png)'
+- en: Figure 5-14\. The debounced search hook will send fewer requests
+  id: totrans-226
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-14\. 防抖搜索钩子将发送更少的请求。
+- en: Discussion
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Debouncing requests will reduce your network traffic and the load on the server.
+    It’s important to remember that debouncing reduces the number of unnecessary network
+    requests. It does *not* avoid the problem of network responses returning in a
+    different order. For more details on how to avoid the response order problem,
+    see [“Cancel Network Requests with Tokens”](#ch05-03).
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 防抖动请求将减少您的网络流量和服务器负载。重要的是要记住，防抖动可以减少不必要的网络请求数量，但不能避免网络响应以不同顺序返回的问题。有关如何避免响应顺序问题的详细信息，请参阅“使用令牌取消网络请求”(#ch05-03)。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/5nciD).
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub 网站](https://oreil.ly/5nciD)下载此示例的源代码。
+- en: ^([1](ch05.xhtml#idm46634412810120-marker)) We’re renaming it because it is
+    no longer just a way to read a list of messages but the forum as a whole. We could
+    eventually add functions to delete, edit, or flag messages.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch05.xhtml#idm46634412810120-marker)) 我们正在重命名它，因为它不再仅仅是读取消息列表的方式，而是整个论坛。我们最终可以添加删除、编辑或标记消息的功能。
+- en: ^([2](ch05.xhtml#idm46634411899256-marker)) See [“Measure Time with a Clock”](ch03.xhtml#ch03-04).
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch05.xhtml#idm46634411899256-marker)) 查看“使用时钟测量时间”章节(ch03.xhtml#ch03-04)。
+- en: ^([3](ch05.xhtml#idm46634411877064-marker)) Compare this code with [“Convert
+    Network Calls to Hooks”](#ch05-01), which uses `fetch`.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch05.xhtml#idm46634411877064-marker)) 将此代码与使用`fetch`的“将网络调用转换为 Hooks”(ch05-01)进行比较。
+- en: ^([4](ch05.xhtml#idm46634411658232-marker)) If the previous network request
+    has completed, canceling it will have no effect.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch05.xhtml#idm46634411658232-marker)) 如果上一个网络请求已完成，则取消它将不会产生任何效果。
+- en: ^([5](ch05.xhtml#idm46634411249656-marker)) It can also be quite confusing when
+    you first use it. See [Chapter 3](ch03.xhtml#chapter03) for more Redux recipes.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch05.xhtml#idm46634411249656-marker)) 第一次使用时可能会感到相当困惑。查看[第三章](ch03.xhtml#chapter03)以获取更多
+    Redux 示例。
+- en: ^([6](ch05.xhtml#idm46634410954808-marker)) To simplify things, we are simply
+    storing the entire object. In reality, you would want to ensure that the error
+    contained only serializable text.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch05.xhtml#idm46634410954808-marker)) 为简化问题，我们只是存储整个对象。实际上，您会希望确保错误只包含可序列化的文本。
+- en: ^([7](ch05.xhtml#idm46634410368616-marker)) See [“Cancel Network Requests with
+    Tokens”](#ch05-03).
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch05.xhtml#idm46634410368616-marker)) 参见“使用令牌取消网络请求”(#ch05-03)。
+- en: ^([8](ch05.xhtml#idm46634409704920-marker)) This is a standard set of values
+    for an asynchronous service. We’ve used them in other recipes in this chapter.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch05.xhtml#idm46634409704920-marker)) 这是异步服务的标准值集合。我们在本章的其他示例中也使用过它们。
+- en: ^([9](ch05.xhtml#idm46634409299480-marker)) Much as we do with HTTP network
+    calls in [“Refresh Automatically with State Counters”](#ch05-02).
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch05.xhtml#idm46634409299480-marker)) 就像我们在“使用状态计数器自动刷新”中处理 HTTP 网络调用一样。

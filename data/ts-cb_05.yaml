@@ -1,0 +1,1913 @@
+- en: Chapter 4\. Generics
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第四章 泛型
+- en: Until now, our main goal was to take the inherent flexibility of JavaScript
+    and find a way to formalize it through the type system. We added static types
+    for a dynamically typed language, to communicate intent, get tooling, and catch
+    bugs before they happen.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直到现在，我们的主要目标是利用类型系统对动态类型语言 JavaScript 的固有灵活性进行形式化。我们为了传达意图、获取工具并在错误发生之前捕获它们，为动态类型的语言添加了静态类型。
+- en: Some parts in JavaScript don’t really care about static types, though. For example,
+    an `isKeyAvailableInObject` function should only check if a key is available in
+    an object; it doesn’t need to know about the concrete types. To properly formalize
+    a function like this we can use TypeScript’s structural type system and describe
+    either a very wide type for the price of information or a very strict type for
+    the price of flexibility.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管在 JavaScript 的某些部分确实不关心静态类型。例如，`isKeyAvailableInObject` 函数应该只检查对象中是否存在键；它不需要了解具体类型。为了正确形式化这样一个函数，我们可以使用
+    TypeScript 的结构类型系统，并为信息的代价描述一个非常宽泛的类型或为灵活性的代价描述一个非常严格的类型。
+- en: But we don’t want to pay any price. We want both flexibility and information.
+    Generics in TypeScript are just the silver bullet we need. We can describe complex
+    relationships and formalize structure for data that has not been defined yet.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们不想付出任何代价。我们既需要灵活性又需要信息。在 TypeScript 中，泛型正是我们所需的银弹。我们可以描述复杂的关系，并为尚未定义的数据结构形式化结构。
+- en: Generics, along with its gang of mapped types, type maps, type modifiers, and
+    helper types, open the door to metatyping, where we can create new types based
+    on old ones and keep relationships between types intact while the newly generated
+    types challenge our original code for possible bugs.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 泛型及其映射类型、类型映射、类型修改器和辅助类型，打开了元类型化的大门，我们可以基于旧类型创建新类型，并在新生成的类型挑战原始代码可能存在的错误时保持类型之间的关系。
+- en: This is the entrance to advanced TypeScript concepts. But fear not, *there shan’t
+    be dragons*, unless we define them.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是进阶 TypeScript 概念的入口。但不用担心，*除非我们定义它们*。
+- en: 4.1 Generalizing Function Signatures
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.1 泛化函数签名
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have two functions that work the same, but on different and largely incompatible
+    types.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您有两个功能，它们在不同且大部分不兼容的类型上工作相同。
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Generalize their behavior using generics.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用泛型概括它们的行为。
+- en: Discussion
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'You are writing an application that stores several language files (for example,
+    subtitles) in an object. The keys are the language codes, and the values are URLs.
+    You load language files by selecting them via a language code, which comes from
+    some API or user interface as `string`. To make sure the language code is correct
+    and valid, you add an `isLanguageAvailable` function that does an `in` check and
+    sets the correct type using a type predicate:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在编写一个应用程序，该应用程序在对象中存储多个语言文件（例如字幕）。键是语言代码，值是 URL。您通过选择它们来加载语言文件，选择由某些 API 或用户界面作为
+    `string` 提供的语言代码。为了确保语言代码是正确且有效的，您添加了一个 `isLanguageAvailable` 函数，执行 `in` 检查并使用类型断言设置正确的类型：
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Same application, different scenario, entirely different file. You load media
+    data into an HTML element: either audio, video, or a combination with certain
+    animations in a `canvas` element. All elements exist in the application already,
+    but you need to select the right one based on input from an API. Again, the selection
+    comes as `string`, and you write an `isElementAllowed` function to ensure that
+    the input is actually a valid key of your `AllowedElements` collection:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相同的应用程序，不同的场景，完全不同的文件。您将媒体数据加载到 HTML 元素中：音频、视频或与 `canvas` 元素中某些动画的组合。所有元素已存在于应用程序中，但根据来自
+    API 的输入，您需要选择正确的元素。再次，选择作为 `string` 提供，并编写 `isElementAllowed` 函数以确保输入实际上是 `AllowedElements`
+    集合的有效键：
+- en: '[PRE1]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'You don’t need to look too closely to see that both scenarios are very similar.
+    The type guard functions especially catch our eye. If we strip away all the type
+    information and align the names, they are identical:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您不需要仔细观察就能看出这两种情况非常相似。特别是类型守卫函数引起我们的注意。如果我们去除所有类型信息并对齐名称，它们是相同的：
+- en: '[PRE2]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: The two of them exist because of the type information we get. Not because of
+    the input parameters, but because of the type predicates. In both scenarios we
+    can tell more about the input parameters by asserting a specific `keyof` type.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它们之所以存在是因为我们获得的类型信息。不是因为输入参数，而是因为类型断言。在这两种情况下，我们可以通过断言特定的 `keyof` 类型更多地了解输入参数。
+- en: The problem is that both input types for the collection are entirely different
+    and have no overlap. Except for the empty object, for which we don’t get that
+    much valuable information if we create a `keyof` type. `keyof {}` is actually
+    `never`.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于集合的两种输入类型完全不同且没有重叠。除了空对象外，我们无法获得太多有价值的信息，如果我们创建一个 `keyof` 类型。`keyof {}`
+    实际上是 `never`。
+- en: But there is some type information here that we can generalize. We know the
+    first input parameter is an object. And the second one is a property key. If this
+    check evaluates to `true`, we know that the first parameter is a key of the second
+    parameter.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这里有一些类型信息，我们可以泛化。我们知道第一个输入参数是一个对象。第二个是一个属性键。如果此检查评估为 `true`，我们知道第一个参数是第二个参数的键。
+- en: 'To generalize this function, we can add a *generic type parameter* to `isAvailable`
+    called `Obj`, put in angle brackets. This is a placeholder for an actual type
+    that will be substituted once `isAvailable` is used. We can use this *generic
+    type parameter* like we would use `AllowedElements` or `Languages` and can add
+    a type predicate. Since `Obj` can be substituted for *every* type, `key` needs
+    to include all possible property keys—`string`, `symbol`, and `number`:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要泛化此函数，我们可以在 `isAvailable` 中添加一个 *泛型类型参数*，称为 `Obj`，放在尖括号中。这是一个用于实际类型替换 `isAvailable`
+    时的占位符。我们可以像使用 `AllowedElements` 或 `Languages` 一样使用这个 *泛型类型参数*，并且可以添加类型断言。由于 `Obj`
+    可以替代 *每一个* 类型，`key` 需要包括所有可能的属性键 — `string`，`symbol` 和 `number`：
+- en: '[PRE3]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'And there you have it: one function that works in both scenarios, no matter
+    which types we substitute `Obj` for. Just like JavaScript works! We still get
+    the same functionality, and we get the right type information. Index access becomes
+    safe, without sacrificing flexibility.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们有了一个可以在两种情况下工作的函数，不管我们用什么类型替换 `Obj`，它都可以工作！就像 JavaScript 一样！我们仍然得到相同的功能，并且得到正确的类型信息。索引访问变得安全，而不会牺牲灵活性。
+- en: The best part? We can use `isAvailable` just like we would use an untyped JavaScript
+    equivalent. This is because TypeScript infers types for generic type parameters
+    through usage. And this comes with some neat side effects. You can read more about
+    that in [Recipe 4.3](#ch04_no_any).
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最棒的部分？我们可以像使用未类型化的 JavaScript 等效项一样使用 `isAvailable`。这是因为 TypeScript 通过使用推断泛型类型参数的类型。这带来了一些很棒的副作用。你可以在
+    [Recipe 4.3](#ch04_no_any) 中详细了解更多。
+- en: 4.2 Creating Related Function Arguments
+  id: totrans-25
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.2 创建相关函数参数
+- en: Problem
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You write functions where the second parameter is dependent on the first one.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你编写函数，其中第二个参数依赖于第一个参数。
+- en: Solution
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Annotate each parameter with a generic type and create a relationship between
+    them through generic constraints.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用泛型类型为每个参数进行注释，并通过泛型约束创建它们之间的关系。
+- en: Discussion
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Similar to [Recipe 4.1](#ch04_generalizing), our application stores a list
+    of subtitles in an object of type `Languages`. `Languages` has a set of keys describing
+    the language code and a URL as the value:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 [Recipe 4.1](#ch04_generalizing)，我们的应用程序在 `Languages` 类型的对象中存储字幕列表。`Languages`
+    具有一组描述语言代码的键和一个 URL 作为值：
+- en: '[PRE4]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'There are several lists like this in our application, and we can abstract them
+    in a type called `URLList`, whose index signatures allow for any `string` key:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用程序中有几个类似的列表，我们可以将它们抽象成一个名为 `URLList` 的类型，其索引签名允许任何 `string` 键：
+- en: '[PRE5]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '`URLList` is a supertype of `Languages`: every value of type `Languages` is
+    a `URLList`, but not every `URLList` is `Languages`. Still, we can use `URLList`
+    to write a function called `fetchFile`, where we load a specific entry from this
+    list:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`URLList` 是 `Languages` 的超类型：`Languages` 类型的每个值都是 `URLList`，但并非每个 `URLList`
+    都是 `Languages`。尽管如此，我们可以使用 `URLList` 编写一个名为 `fetchFile` 的函数，在此列表中加载特定条目：'
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The problem is that type `string` for `key` allows for way too many entries.
+    For example, no Italian subtitles are defined, but `fetchFile` doesn’t keep us
+    from loading `"it"` as a language code anyway. When we load items from a specific
+    `URLList`, it would be great to also know which keys we can access.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`key` 为 `string` 类型的问题在于允许输入过多的条目。例如，未定义任何意大利字幕，但 `fetchFile` 仍然允许我们加载 `"it"`
+    作为语言代码。从特定的 `URLList` 加载项目时，我们也想知道可以访问哪些键。'
+- en: 'We can solve this by substituting the broader type for a generic and setting
+    a *generic constraint* to make sure we pass a subtype of `URLList`. This way,
+    the function signature behaves very similarly to before, but we can work with
+    the subtituted types much better. We define a *generic type parameter* `List`
+    which is a subtype of `URLList` and set `key` to `keyof List`:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过用更通用的类型替换泛型，并设置*泛型约束*来解决这个问题，以确保我们传递的是`URLList`的子类型。这样，函数签名的行为与以前非常相似，但我们可以更好地使用替代类型。我们定义一个*泛型类型参数*
+    `List`，它是 `URLList` 的子类型，并将 `key` 设置为 `keyof List`：
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: The moment we call `fetchFile`, `List` will be substituted for an actual type,
+    and we know that `"it"` is not part of the keys of `Languages`. TypeScript will
+    show us when we made a typo or selected elements that aren’t part of our data
+    types.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用 `fetchFile` 时，`List` 将被替换为实际类型，并且我们知道 `"it"` 不是 `Languages` 的键。TypeScript
+    会在我们打错字或选择不属于我们数据类型的元素时向我们显示。
+- en: 'This also works if we are loading many keys. The same constraints, the same
+    effect:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们加载多个键，这也适用。相同的约束，相同的效果：
+- en: '[PRE8]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: We store the results in a tuple with the language key as first element and the
+    data as the second element. However, when we get the result, it’s an array of
+    `Promise`s that resolve to an `any[]`. This is understandable, as `fetch` does
+    not tell us anything about the data loaded, and with `data` being of type `any`
+    and thus having the broadest type, it just swallows `el`, which is `keyof List`.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将结果存储在一个元组中，语言键作为第一个元素，数据作为第二个元素。然而，当我们获取结果时，它是解析为 `any[]` 的 `Promise` 数组。这是可以理解的，因为
+    `fetch` 不告诉我们有关加载的数据的任何信息，而 `data` 是 `any` 类型，因此具有最广泛的类型，它只是吞下了 `el`，即 `keyof
+    List`。
+- en: 'But we know more at this stage. We know, for example, that `[el, data]` is
+    not an array but a tuple. There is a subtle but important difference, as shown
+    in [Recipe 2.4](ch02.html#ch02_item_tuple_types). If we annotate the result with
+    a tuple type, we get more information from our return values:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是我们在这个阶段了解得更多。例如，我们知道`[el, data]`不是一个数组，而是一个元组。这有微妙但重要的区别，如[食谱 2.4](ch02.html#ch02_item_tuple_types)所示。如果我们用元组类型注释结果，我们从返回值中获得更多信息：
+- en: '[PRE9]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '`fetchFiles` now returns an array of `Promise`s of `[keyof List, any]`. So
+    the moment we substitute `List` for `Languages`, we know that the only possible
+    keys can be language codes.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`fetchFiles` 现在返回一个 `[keyof List, any]` 的 `Promise` 数组。因此，我们一旦用 `Languages`
+    替换 `List`，我们就知道唯一可能的键是语言代码。'
+- en: 'However, there’s still one caveat. As the preceding code sample shows, the
+    only languages available in `de_and_fr` are German and French, but the compiler
+    doesn’t warn us that we check for English later on. The compiler should be able
+    to do that, because this condition will always return false:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，仍然有一个注意事项。如前面的代码示例所示，`de_and_fr` 中唯一可用的语言是德语和法语，但编译器并未警告我们随后检查英语。编译器应该能够做到这一点，因为这个条件总是返回
+    false：
+- en: '[PRE10]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: The problem is that we are dealing again with a type that is way too broad.
+    Yes, `keyof List` is already a lot narrower than `string`, but we can substitute
+    all keys for a smaller set as well.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于，我们再次处理的类型范围太广泛了。是的，`keyof List`比`string`窄得多，但我们也可以用一个更小的集合替换所有键。
+- en: 'We need to repeat the same process:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要重复相同的过程：
+- en: Create a new generic type parameter.
+  id: totrans-51
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 创建一个新的泛型类型参数。
+- en: Set the broader type as a constraint of the newly created generic type parameter.
+  id: totrans-52
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将更广泛的类型设置为新创建的泛型类型参数的约束。
+- en: Use the parameter in the function signature to be substituted for an actual
+    type.
+  id: totrans-53
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在函数签名中使用参数来替代实际类型。
+- en: 'And just like that, we can also substitute `keyof List` with a subtype: `"de"
+    | "fr"`:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就这样，我们也可以用一个子类型 `"de" | "fr"` 替换 `keyof List`：
+- en: '[PRE11]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'What’s nice about this is that we can set relationships between generic type
+    parameters. The second type parameter can be constrained by something from the
+    first generic type parameter. This allows us to narrow very specifically, until
+    we substitute with real values. The effect? We know about possible values of our
+    types anywhere in our code. So we won’t check for English language if we can already
+    say that we never requested to load English:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 令人满意的是，我们可以在泛型类型参数之间建立关系。第二个类型参数可以由第一个泛型类型参数中的某些内容约束。这使我们可以非常具体地缩小范围，直到我们用真实值替换。效果？我们可以在代码中的任何地方了解到我们类型的可能值。所以，如果我们已经知道我们从未请求过加载英语，我们就不会检查英语语言：
+- en: '[PRE12]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: One check that we didn’t get rid of is to see which language is at position
+    0.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们没有摆脱的一个检查是看看在位置 0 的是哪种语言。
+- en: 'One thing that we didn’t take into account is *generic instantiation*. We let
+    type parameters be substituted for real values through usage, just like type inference.
+    But we also could substitute them explicitly through annotations:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们没有考虑的一件事是*泛型实例化*。我们通过使用方式让类型参数被真实值替换，就像类型推断一样。但我们也可以通过注释显式地替换它们：
+- en: '[PRE13]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Here the types tell us there might be Japanese subtitles as well, even though
+    we can see from usage that we load only German ones. Let this be a reminder, and
+    get more insights in [Recipe 4.4](#ch04_understanding_generic_instantiation).
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，类型告诉我们可能还有日文字幕，尽管我们从使用中可以看到我们只加载了德文字幕。让这成为一个提醒，并在[配方 4.4](#ch04_understanding_generic_instantiation)中获取更多见解。
+- en: 4.3 Getting Rid of any and unknown
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.3 摆脱 any 和 unknown
+- en: Problem
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Generic type parameters, `any`, and `unknown` all seem to describe very wide
+    sets of values. When should you use what?
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 泛型类型参数、`any` 和 `unknown` 看起来都描述了非常广泛的值集。在什么情况下应该使用哪个？
+- en: Solution
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use generic type parameters when you get to the actual type eventually; refer
+    to [Recipe 2.2](ch02.html#ch02_item_any) on the decision between `any` and `unknown`.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你最终要得到实际类型时，请使用泛型类型参数；参考[配方 2.2](ch02.html#ch02_item_any)中关于`any`和`unknown`的决策。
+- en: Discussion
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'When we are using generics, they might seem like a substitute for `any` and
+    `unknown`. Take an `identity` function—its only job is to return the value passed
+    as input parameter:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们使用泛型时，它们可能看起来像`any`和`unknown`的替代品。取一个`identity`函数作为例子——它的唯一工作就是返回作为输入参数传递的值：
+- en: '[PRE14]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'It takes values of every type, and the return type of it can also be anything.
+    We can write the same function using `unknown` if we want to safely access properties:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它接受每种类型的值，其返回类型也可以是任何类型。如果我们想安全访问属性，我们可以使用`unknown`编写相同的函数：
+- en: '[PRE15]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'We can even mix and match `any` and `unknown`, but the result is always the
+    same: Type information is lost. The type of the return value is what we define
+    it to be.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们甚至可以混合和匹配 `any` 和 `unknown`，但结果始终如一：类型信息会丢失。返回值的类型是我们定义的。
+- en: 'Now let’s write the same function with generics instead of `any` or `unknown`.
+    Its type annotations say that the generic type is also the return type:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们使用泛型而不是`any`或`unknown`来编写相同的函数。它的类型注释表明泛型类型也是返回类型：
+- en: '[PRE16]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'We can use this function to pass in any value and see which type TypeScript
+    infers:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用此函数传递任何值，并查看 TypeScript 推断的类型：
+- en: '[PRE17]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Assigning to a binding with `const` instead of `let` gives slightly different
+    results:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`const`而不是`let`分配到绑定时，结果略有不同：
+- en: '[PRE18]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: For primitive types, TypeScript substitutes the generic type parameter with
+    the actual type. We can make great use of this in more advanced scenarios.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于原始类型，TypeScript 会用实际类型替换泛型类型参数。我们可以在更高级的场景中大量使用这一特性。
+- en: 'With TypeScript’s generics, it’s also possible to *annotate* the generic type
+    parameter:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 TypeScript 的泛型，也可以*注释*泛型类型参数：
+- en: '[PRE19]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: If this behavior reminds you of annotation and inference described in [Recipe
+    3.4](ch03.html#ch03_item_const_context), you are absolutely right. It’s very similar
+    but with generic type parameters in functions.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这种行为让你想起了[配方 3.4](ch03.html#ch03_item_const_context)中描述的注解和推断，那么你绝对是正确的。它非常类似，但在函数中使用了泛型类型参数。
+- en: When using generics without constraints, we can write functions that work with
+    values of any type. Inside, they behave like `unknown`, which means we can do
+    type guards to narrow the type. The biggest difference is that once we use the
+    function, we substitute our generics with real types, not losing any information
+    on typing at all.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用无约束的泛型时，我们可以编写能处理任何类型值的函数。在内部，它们的行为像`unknown`，这意味着我们可以做类型保护来缩小类型。最大的区别在于一旦我们使用函数，我们就用实际类型替换我们的泛型，完全不会丢失任何关于类型的信息。
+- en: 'This allows us to be a bit clearer with our types than just allowing everything.
+    This `pairs` function takes two arguments and creates a tuple:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使我们在类型上比允许一切更加清晰。这个`pairs`函数接受两个参数并创建一个元组：
+- en: '[PRE20]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'With generic type parameters, we get a nice tuple type:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用泛型类型参数，我们得到了一个漂亮的元组类型：
+- en: '[PRE21]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Using the same generic type parameter, we can make sure we get tuples only
+    where each element is of the same type:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用相同的泛型类型参数，我们可以确保只在每个元素都是相同类型的元组中获取元组：
+- en: '[PRE22]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: So, should you use generics everywhere? Not necessarily. This chapter includes
+    many solutions that rely on getting the right type information at the right time.
+    When you are happy with a wider set of values and can rely on subtypes being compatible,
+    you don’t need to use generics at all. If you have `any` and `unknown` in your
+    code, think whether you need the actual type at some point. Adding a generic type
+    parameter instead might help.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，你应该在所有地方都使用泛型吗？未必。本章包括许多解决方案，这些解决方案依赖于在正确的时间获得正确的类型信息。当你对更广泛的值集合感到满意并且可以依赖于子类型兼容时，你根本不需要使用泛型。如果你的代码中有`any`和`unknown`，请思考是否在某个时刻需要实际类型。添加一个泛型类型参数可能会有所帮助。
+- en: 4.4 Understanding Generic Instantiation
+  id: totrans-91
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.4 理解泛型实例化
+- en: Problem
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You understand how generics are substituted for real types, but sometimes errors
+    like “`Foo` is assignable to the constraint of type `Bar`, but could be instantiated
+    with a different subtype of constraint `Baz`” confuse you.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你理解泛型如何被实际类型替换，但有时像“`Foo`可分配给类型`Bar`的约束，但可以用约束`Baz`的不同子类型来实例化”这样的错误会让你困惑。
+- en: Solution
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Remember that values of a generic type can be—explicitly and implicitly—substituted
+    with a variety of subtypes. Write subtype-friendly code.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住，泛型类型的值可以明确和隐式地替换为各种子类型。编写友好于子类型的代码。
+- en: Discussion
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'You create a filter logic for your application. You have different filter rules
+    that you can combine using `"and" | "or"` combinators. You can also chain regular
+    filter rules with the outcome of *combinatorial filters*. You create your types
+    based on this behavior:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为你的应用程序创建一个过滤逻辑。你有不同的过滤规则，可以使用 `"and" | "or"` 运算符组合起来。你还可以将常规过滤规则与*组合过滤器*的结果链接起来。你根据这种行为创建你的类型：
+- en: '[PRE23]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Now you want to write a `reset` function that, based on an already provided
+    filter, resets all rules. You use type guards to distinguish between `CombinatorialFilter`
+    and `ChainedFilter`:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你想要编写一个`reset`函数，根据已提供的过滤器，重置所有规则。你使用类型守卫来区分`CombinatorialFilter`和`ChainedFilter`：
+- en: '[PRE24]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'The behavior is what you are after, but the return type of `reset` is too wide.
+    When we pass a `CombinatorialFilter`, we should be sure that the reset filter
+    is also a `Co⁠mb⁠in⁠ato⁠rial​Fil⁠ter`. Here it’s the union type, just like our
+    function signature indicates. But you want to make sure that if you pass a filter
+    of a certain type, you also get the same return type. So you replace the broad
+    union type with a generic type parameter that is constrained to `Filter`. The
+    return type works as intended, but the implementation of your function throws
+    errors:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 行为是你追求的，但`reset`的返回类型太宽泛了。当我们传递一个`CombinatorialFilter`时，我们应该确保重置的过滤器也是一个`Com⁠bin⁠a⁠to⁠rial​Fil⁠ter`。这里是联合类型，就像我们的函数签名所指示的那样。但你希望确保如果传递某种类型的过滤器，也能获得相同的返回类型。因此，你用一个受约束的泛型类型参数替换了广泛的联合类型。返回类型按预期工作，但函数的实现会抛出错误：
+- en: '[PRE25]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: While you want to differentiate between two parts of a union, TypeScript thinks
+    more broadly. It knows that you might pass in an object that is *structurally
+    compatible* with `Filter`, but it has more properties and is therefore a subtype.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然你想要区分联合的两部分，但TypeScript的思考更加广泛。它知道你可能会传递一个与`Filter`结构兼容但具有更多属性的对象，因此它是一个子类型。
+- en: 'This means you can call `reset` with `F` instantiated to a subtype, and your
+    program would happily override all excess properties. This is wrong, and TypeScript
+    tells you that:'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着你可以用子类型实例化`F`来调用`reset`，你的程序会愉快地覆盖所有多余的属性。这是错误的，TypeScript告诉你：
+- en: '[PRE26]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Overcome this by writing subtype-friendly code. Clone the input object (still
+    type `F`), set the properties that need to be changed accordingly, and return
+    something that is still of type `F`:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过编写友好于子类型的代码来克服这个问题。克隆输入对象（仍然是类型`F`），根据需要更改属性，并返回仍然是类型`F`的东西：
+- en: '[PRE27]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Generic types can be one of many in a union, but they can be much, much more.
+    TypeScript’s structural type system allows you to work on a variety of subtypes,
+    and your code needs to reflect that.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 泛型类型可以是联合类型中的一种，但也可以是更多，更多。TypeScript的结构类型系统允许你处理各种子类型，你的代码需要反映这一点。
+- en: 'Here’s a different scenario but with a similar outcome. You want to create
+    a tree data structure and write a recursive type that stores all tree items. This
+    type can be subtyped, so you write a `createRootItem` function with a generic
+    type parameter since you want to instantiate it with the correct subtype:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是另一种场景，但结果类似。您想创建一个树形数据结构，并编写一个递归类型来存储所有树项。此类型可以进行子类型化，因此您编写了一个带有通用类型参数的`createRootItem`函数，因为您希望使用正确的子类型进行实例化：
+- en: '[PRE28]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'We get a similar error as before, since we can’t possibly say that the return
+    value will be compatible with all the subtypes. To solve this problem, get rid
+    of the generic! We know how the return type will look—it’s a `TreeItem`:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与之前类似，我们遇到了类似的错误，因为我们不可能说返回值与所有子类型兼容。为了解决这个问题，我们去掉了通用类型！我们知道返回类型的外观——它是一个`TreeItem`：
+- en: '[PRE29]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'The simplest solutions are often the better ones. But now you want to extend
+    your software by being able to attach children of type or subtype `TreeItem` to
+    a newly created root. We don’t add any generics yet and are somewhat dissatisfied:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最简单的解决方案通常是最好的。但现在你想通过能够将类型或子类型的`TreeItem`附加到新创建的根来扩展你的软件。我们尚未添加任何通用类型，并且有些不满意：
+- en: '[PRE30]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '`root` is of type `TreeItem`, but we lose any information about the subtyped
+    children. Even if we add a generic type parameter just for the children, constrained
+    to `Tr⁠ee​It⁠em`, we don’t retain this information on the go:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`root`的类型是`TreeItem`，但我们丢失了关于子类型化子项的任何信息。即使我们为子项添加了一个通用类型参数，并将其限制为`TreeItem`，我们也不能在此过程中保留此信息：'
+- en: '[PRE31]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: When we start adding a generic type as a return type, we run into the same problems
+    as before. To solve this issue, we need to split the root item type from the children
+    item type, by opening up `TreeItem` to be a generic, where we can set `Children`
+    to be a subtype of `TreeItem`.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们开始将通用类型作为返回类型时，我们遇到了与之前相同的问题。为了解决这个问题，我们需要将根项目类型与子项目类型分离开来，通过将`TreeItem`定义为通用类型，其中我们可以将`Children`设置为`TreeItem`的子类型。
+- en: 'Since we want to avoid any circular references, we need to set `Children` to
+    a default `BaseTreeItem`, so we can use `TreeItem` both as a constraint for `Children`
+    and for `attachToRoot`:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们希望避免任何循环引用，我们需要将`Children`设置为默认的`BaseTreeItem`，这样我们就可以将`TreeItem`用作`Children`的约束和`attachToRoot`的输入：
+- en: '[PRE32]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Again, we write subtype friendly and treat our input parameters as their own,
+    instead of making assumptions.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次编写子类型友好并将输入参数视为它们自己，而不是做出假设。
+- en: 4.5 Generating New Object Types
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.5 生成新的对象类型
+- en: Problem
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a type in your application that is related to your model. Every time
+    the model changes, you need to change your types as well.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的应用程序中有一个与您的模型相关的类型。每次模型更改时，您都需要相应地更改您的类型。
+- en: Solution
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use generic mapped types to create new object types based on the original type.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用通用映射类型来基于原始类型创建新的对象类型。
+- en: Discussion
+  id: totrans-126
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Let’s go back to the toy shop from [Recipe 3.1](ch03.html#ch03_item_modelling_data).
+    Thanks to union types, intersection types, and discriminated union types, we were
+    able to model our data quite nicely:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到玩具店，来自[Recipe 3.1](ch03.html#ch03_item_modelling_data)。多亏了联合类型、交集类型和判别联合类型，我们能够很好地对我们的数据进行建模：
+- en: '[PRE33]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Somewhere in our code, we need to group all toys from our model in a data structure
+    that can be described by a type called `GroupedToys`. `GroupedToys` has a property
+    for each category (or `"kind"`) and a `Toy` array as value. A `groupToys` function
+    takes an unsorted list of toys and groups them by kind:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的代码中的某个地方，我们需要将模型中的所有玩具分组到可以由称为`GroupedToys`的类型描述的数据结构中。`GroupedToys`具有每个类别（或“kind”）的属性和一个`Toy`数组作为值。一个`groupToys`函数接受一个未排序的玩具列表，并按种类分组：
+- en: '[PRE34]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: There are already some niceties in this code. First, we use an explicit type
+    annotation when declaring `groups`. This ensures we are not forgetting any category.
+    Also, since the keys of `GroupedToys` are the same as the union of `"kind"` types
+    in `Toy`, we can easily index access `groups` by `toy.kind`.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码中已经有一些美好之处。首先，在声明`groups`时我们使用了显式的类型注解，这确保我们没有忘记任何类别。此外，由于`GroupedToys`的键与`Toy`中“kind”类型的联合相同，我们可以轻松地通过`toy.kind`索引访问`groups`。
+- en: 'Months and sprints pass, and we need to touch our model again. The toy shop
+    is now selling original or maybe alternate vendors of interlocking toy bricks.
+    We wire the new type `Bricks` up to our `Toy` model:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 几个月和开发周期过去了，我们需要再次触及我们的模型。现在玩具店正在销售原始或者说是互锁玩具积木的替代供应商。我们将新类型`Bricks`连接到我们的`Toy`模型：
+- en: '[PRE35]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'Since `groupToys` needs to deal with `Bricks`, too, we get a nice error because
+    `GroupedToys` has no clue about a `"bricks"` kind:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 `groupToys` 需要处理 `Bricks`，我们会收到一个很好的错误，因为 `GroupedToys` 对 `"bricks"` 种类一无所知：
+- en: '[PRE36]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'This is desired behavior in TypeScript: knowing when types don’t match anymore.
+    This should draw our attention. Let’s give `GroupedToys` and `groupToys` an update:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 TypeScript 中期望的行为：知道何时类型不再匹配。这应该引起我们的注意。让我们更新 `GroupedToys` 和 `groupToys`：
+- en: '[PRE37]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'There is one bothersome thing: the task of grouping toys is always the same.
+    No matter how much our model changes, we will always select by kind and push into
+    an array. We would need to maintain `groups` with every change, but if we change
+    how we think about groups, we can optimize for change. First, we change the type
+    `Gr⁠oup⁠ed​To⁠ys` to feature optional properties. Second, we initialize each group
+    with an empty array if there hasn’t been any initialization yet:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一件令人烦恼的事情：分组玩具的任务总是相同的。无论我们的模型如何变化，我们始终会按种类选择并推入数组。我们需要随着每次变化来维护 `groups`，但如果我们改变对群组的思考方式，我们可以优化变化。首先，我们将类型
+    `GroupedToys` 改为具有可选属性。其次，如果尚未进行任何初始化，我们用空数组初始化每个组：
+- en: '[PRE38]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: We don’t need to maintain `groupToys` anymore. The only thing that needs maintenance
+    is the type `GroupedToys`. If we look closely at `GroupedToys`, we see that there
+    is an implicit relation to `Toy`. Each property key is part of `Toy["kind"]`.
+    Let’s make this relation *explicit*. With a *mapped type*, we create a new object
+    type based on each type in `Toy["kind"]`.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不再需要维护 `groupToys`。唯一需要维护的是类型 `GroupedToys`。如果我们仔细观察 `GroupedToys`，我们会发现它与
+    `Toy` 有一个隐含的关系。每个属性键都是 `Toy["kind"]` 的一部分。让我们将这种关系变得*显式*。通过*映射类型*，我们基于 `Toy["kind"]`
+    中的每种类型创建一个新的对象类型。
+- en: '`Toy["kind"]` is a union of string literals: `"boardgame" | "puzzle" | "doll"
+    | "bricks"`. Since we have a very reduced set of strings, each element of this
+    union will be used as its own property key. Let that sink in for a moment: we
+    can use a *type* to be a *property key* of a newly generated type. Each property
+    has an optional type modifier and points to a `Toy[]`:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Toy["kind"]` 是一个字符串文字的联合：`"boardgame" | "puzzle" | "doll" | "bricks"`。由于我们有一个非常有限的字符串集合，这个联合的每个元素将被用作自己的属性键。让我们稍作思考：我们可以使用一个*类型*作为新生成的类型的*属性键*。每个属性都有一个可选的类型修饰符，并指向一个
+    `Toy[]`：'
+- en: '[PRE39]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Fantastic! Every time we change `Toy`, we immediately change `Toy[]`. Our code
+    needs no change at all; we can still group by kind as we did before.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！每次我们改变 `Toy`，我们立即改变 `Toy[]`。我们的代码完全不需要改动；我们仍然可以像以前一样按种类分组。
+- en: 'This is a pattern we have the potential to generalize. Let’s create a `Group`
+    type that takes a collection and groups it by a specific selector. We want to
+    create a generic type with two type parameters:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们有潜力泛化的模式。让我们创建一个 `Group` 类型，它接受一个集合并按特定选择器进行分组。我们想要创建一个具有两个类型参数的通用类型：
+- en: The `Collection` can be anything.
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Collection` 可以是任何内容。'
+- en: The `Selector`, a key of `Collection`, so it can create the respective properties.
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Selector` 是 `Collection` 的一个键，因此它可以创建相应的属性。'
+- en: 'Our first attempt would be to take what we had in `GroupedToys` and replace
+    the concrete types with type parameters. This creates what we need but also causes
+    an error:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的第一次尝试是采用 `GroupedToys` 中的内容，并用类型参数替换具体类型。这会创建我们需要的内容，但也会导致错误：
+- en: '[PRE40]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: TypeScript warns us that `Collection[string] | Collection[number] | Collection[symbol]`
+    could result in anything, not just things that can be used as a key. That’s true,
+    and we need to prepare for that. We have two options.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 警告我们 `Collection[string] | Collection[number] | Collection[symbol]`
+    可能会导致任何结果，而不仅仅是可以用作键的内容。这是真的，我们需要为此做好准备。我们有两个选择。
+- en: 'First, use a type constraint on `Collection` that points to `Record<string,
+    any>`. `Record` is a utility type that generates a new object where the first
+    parameter gives you all keys and the second parameter gives you the types:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在 `Collection` 上使用类型约束，指向 `Record<string, any>`。`Record` 是一个实用类型，它生成一个新对象，其中第一个参数提供所有键，第二个参数提供类型：
+- en: '[PRE41]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'This elevates `Collection` to a wildcard object, effectively disabling the
+    type-check from `Groups`. This is OK because if something would be an unusable
+    type for a property key, TypeScript will throw it away anyway. So the final `Group`
+    has two constrained type parameters:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将 `Collection` 提升为通配符对象，有效地禁用了来自 `Groups` 的类型检查。这没关系，因为如果某个东西不能作为属性键使用，TypeScript
+    会将其丢弃。因此最终的 `Group` 有两个约束类型参数：
+- en: '[PRE42]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'The second option is to do a check for each key to see if it is a valid string
+    key. We can use a *conditional type* to see if `Collection[Selector]` is in fact
+    a valid type for a key. Otherwise, we would remove this type by choosing `never`.
+    Conditional types are their own beast, and we tackle this in [Recipe 5.4](ch05.html#ch05_removing_object_properties)
+    extensively:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个选项是对每个键进行检查，看它是否是有效的字符串键。我们可以使用*条件类型*来查看`Collection[Selector]`是否确实是键的有效类型。否则，我们会通过选择`never`来移除此类型。条件类型本身就是一种特殊情况，在[第
+    5.4 节](ch05.html#ch05_removing_object_properties)中我们对此进行了详细讨论：
+- en: '[PRE43]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'Note that we did remove the optional type modifier. We do this because making
+    keys optional is not the task of grouping. We have another type for that: `Partial<T>`,
+    another mapped type that makes every property in an object type optional:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们已经移除了可选类型修饰符。我们这样做是因为使键可选不是分组的任务。我们有另一种类型来处理这个问题：`Partial<T>`，这是另一种映射类型，使对象类型中的每个属性变为可选：
+- en: '[PRE44]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'No matter which `Group` helper you create, you can now create a `GroupedToys`
+    object by telling TypeScript that you want a `Partial` (changing everything to
+    optional properties) of a `Group` of `Toys` by `"kind"`:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论你创建了哪个 `Group` 辅助函数，现在你都可以通过告诉 TypeScript 你想要一个 `Partial`（将所有属性变为可选属性）的 `Group`
+    of `Toys`，来创建一个 `GroupedToys` 对象，通过 `"kind"`：
+- en: '[PRE45]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Now that reads nicely.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在读起来很不错。
+- en: 4.6 Modifying Objects with Assertion Signatures
+  id: totrans-161
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.6 使用断言签名修改对象
+- en: Problem
+  id: totrans-162
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: After a certain function execution in your code, you know the type of a value
+    has changed.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代码中的某个函数执行后，你知道值的类型已经改变了。
+- en: Solution
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use assertion signatures to change types independently of `if` and `switch`
+    statements.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用断言签名可以独立于`if`和`switch`语句改变类型。
+- en: Discussion
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'JavaScript is a very flexible language. Its dynamic typing features allow you
+    to change objects at runtime, adding new properties on the fly. And developers
+    use this. There are situations where you, for example, run over a collection of
+    elements and need to assert certain properties. You then store a `checked` property
+    and set it to `true`, just so you know that you passed a certain mark:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 是一种非常灵活的语言。其动态类型特性允许您在运行时更改对象，动态添加新属性。开发者们利用了这一点。有些情况下，例如，您遍历一个元素集合并需要断言某些属性。然后，您存储一个
+    `checked` 属性，并将其设置为 `true`，这样您就知道您已经通过了某个标记点：
+- en: '[PRE46]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: You want to mirror this behavior in the type system; otherwise, you would need
+    to constantly do extra checks if certain properties are in an object, even though
+    you can be sure that they exist.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望在类型系统中反映这种行为；否则，你将不得不不断地进行额外检查，以确定对象中是否存在某些属性，尽管你可以确信它们存在。
+- en: 'One way to assert that certain properties exist are, well, type assertions.
+    We say that at a certain point in time, this property has a different type:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言某些属性存在的一种方法是使用类型断言。我们说在某个时间点，此属性具有不同的类型：
+- en: '[PRE47]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Good, but you would need to do this type assertion over and over again, as
+    they don’t change the original type of `person`. Another way to assert that certain
+    properties are available is to create type predicates, like those shown in [Recipe
+    3.5](ch03.html#ch03_item_type_predicates):'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过，你需要一遍又一遍地进行这种类型断言，因为它们不会改变`person`的原始类型。另一种断言某些属性可用的方法是创建类型谓词，就像[第 3.5 节](ch03.html#ch03_item_type_predicates)中展示的那样：
+- en: '[PRE48]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'This situation is a bit different, though, which makes the `check` function
+    feel clumsy: you need to do an extra condition and return `true` in the predicate
+    function. This doesn’t feel right.'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这种情况有些不同，这使得`check`函数感觉笨拙：你需要在断言函数中执行额外的条件并返回`true`。这感觉不对劲。
+- en: 'Thankfully, TypeScript has another technique we can leverage in situations
+    like this: assertion signatures. Assertion signatures can change the type of a
+    value in control flow, without the need for conditionals. They have been modeled
+    for the Node.js `assert` function, which takes a condition, and it throws an error
+    if it isn’t true. This means that, after calling `assert`, you might have more
+    information than before. For example, if you call `assert` and check if a value
+    has a type of `string`, you know that after this `assert` function the value should
+    be `string`:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，TypeScript 还有另一种我们可以在这种情况下利用的技术：断言签名。断言签名可以在控制流中改变值的类型，而无需条件语句。它们已经为 Node.js
+    的 `assert` 函数建模，该函数接受一个条件，如果条件不为真则抛出错误。这意味着在调用 `assert` 后，你可能比之前拥有更多的信息。例如，如果你调用
+    `assert` 并检查值是否为 `string` 类型，你知道在这个 `assert` 函数之后该值应该是 `string`：
+- en: '[PRE49]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: Please note that the function short-circuits if the condition is false. It throws
+    an error, the `never` case. If this function passes, you can really assert the
+    condition.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，如果条件为 false，该函数会提前终止。它会抛出一个错误，即 `never` 情况。如果此函数通过，您确实可以断言该条件。
+- en: 'While assertion signatures have been modeled for the Node.js assert function,
+    you can assert any type you like. For example, you can have a function that takes
+    any value for an addition, but you assert that the values need to be `number`
+    to continue:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然断言签名已经为 Node.js 的 assert 函数建模，但您可以断言任何您喜欢的类型。例如，您可以有一个函数，接受任何类型的值进行加法，但要求这些值必须是
+    `number` 才能继续：
+- en: '[PRE50]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'All the examples you find on assertion signatures are based after assertions
+    and short-circuit with errors. But we can take the same technique to tell TypeScript
+    that more properties are available. We write a function that is very similar to
+    `check` in the predicate function before, but this time we don’t need to return
+    `true`. We set the property, and since objects are passed by value in JavaScript,
+    we can assert that after calling this function whatever we pass has a property
+    `checked`, which is `true`:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有关于断言签名的示例都是在断言和条件不成立时抛出错误后立即终止的。但是我们可以使用相同的技术告诉 TypeScript 更多的属性可用。我们编写一个函数，与之前的断言函数中的
+    `check` 非常相似，但这次我们不需要返回 `true`。我们设置属性，并且由于 JavaScript 中的对象是按值传递的，所以我们可以断言，在调用此函数后，无论我们传入什么，它都具有一个
+    `checked` 属性，该属性为 `true`：
+- en: '[PRE51]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: And with that, we can modify a value’s type on the fly. It’s a little-known
+    technique that can help you a lot.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个技巧，我们可以即时修改值的类型。这是一个鲜为人知但非常有用的技术。
+- en: 4.7 Mapping Types with Type Maps
+  id: totrans-183
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.7 类型映射
+- en: Problem
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You write a factory function that creates an object of a specific subtype based
+    on a string identifier, and there are a lot of possible subtypes.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您编写一个工厂函数，根据字符串标识符创建特定子类型的对象，并且有很多可能的子类型。
+- en: Solution
+  id: totrans-186
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Store all subtypes in a type map, widen with index access, and use mapped types
+    like `Partial<T>`.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将所有子类型存储在类型映射中，通过索引访问扩展，并使用像 `Partial<T>` 这样的映射类型。
+- en: Discussion
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Factory functions are great if you want to create variants of complex objects
+    based on some basic information. One scenario that you might know from browser
+    JavaScript is the creation of elements. The `document.createElement` function
+    accepts an element’s tag name, and you get an object where you can modify all
+    necessary properties.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您希望根据一些基本信息创建复杂对象的变体，工厂函数是一个很好的选择。您可能从浏览器 JavaScript 中了解到一个场景是创建元素。`document.createElement`
+    函数接受元素的标签名，您会得到一个对象，可以修改所有必要的属性。
+- en: 'You want to spice up this creation with a neat factory function you call `cr⁠ea⁠te​El⁠eme⁠nt`.
+    Not only does it take the element’s tag name, but it also makes a list of properties
+    so you don’t need to set each property individually:'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望为这种创建增加一些趣味，可以调用一个名为 `cr⁠ea⁠te​El⁠eme⁠nt` 的漂亮工厂函数。它不仅接受元素的标签名，还会列出属性的清单，因此您无需逐个设置每个属性：
+- en: '[PRE52]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'You want to create good types for this, so you need to take care of two things:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望为此创建良好的类型，因此需要注意两件事：
+- en: Make sure you create only valid HTML elements.
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 确保您仅创建有效的 HTML 元素。
+- en: Provide a type that accepts a subset of an HTML element’s properties.
+  id: totrans-194
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 提供一个接受 HTML 元素属性子集的类型。
+- en: Let’s take care of the valid HTML elements first. There are around 140 possible
+    HTML elements, which is a lot. Each of those elements has a tag name, which can
+    be represented as a string, and a respective prototype object in the DOM. Using
+    the *dom* lib in your *tsconfig.json*, TypeScript has information on those prototype
+    objects in the form of types. And you can figure out all 140 element names.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先我们来处理有效的 HTML 元素。大约有 140 种可能的 HTML 元素，这实在是很多。每个元素都有一个标签名，可以表示为字符串，并且在 DOM
+    中有一个对应的原型对象。使用你的 *tsconfig.json* 中的 *dom* 库，TypeScript 中有关这些原型对象的信息以类型的形式存在。你可以找出所有这
+    140 个元素名。
+- en: 'A good way to provide a mapping between element tag names and prototype objects
+    is to use a *type map*. A type map is a technique where you take a type alias
+    or interface and let keys point to the respective type variants. You can then
+    get the correct type variant using index access of a string literal type:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供元素标签名与原型对象之间的映射的一个好方法是使用 *类型映射*。类型映射是一种技术，您可以采用类型别名或接口，并让键指向相应的类型变体。然后，您可以使用字符串字面类型的索引访问获取正确的类型变体：
+- en: '[PRE53]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'It looks like accessing a JavaScript object’s properties using index access,
+    but remember that we’re still working on a type level. This means index access
+    can be broad:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 看起来像是使用索引访问来访问 JavaScript 对象的属性，但请记住我们仍然在类型级别上工作。这意味着索引访问可以很广泛：
+- en: '[PRE54]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'Let’s use this map to type the `createElement` function. We use a generic type
+    parameter constrained to all keys of `AllElements`, which allows us to pass only
+    valid HTML elements:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使用这个映射来为`createElement`函数命名类型。我们使用一个泛型类型参数，该参数受限于`AllElements`的所有键，这使我们只能传递有效的HTML元素：
+- en: '[PRE55]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: Use generics here to pin a string literal to a literal type, which we can use
+    to index the right HTML element variant from the type map. Also note that using
+    `do⁠cum⁠ent.​cre⁠ate⁠Ele⁠me⁠nt` requires two type assertions. One makes the set
+    wider (`T` to `string`), and one makes the set narrower (`HTMLElement` to `AllElements[T]`).
+    Both assertions indicate that we have to deal with an API outside our control,
+    as established in [Recipe 3.9](ch03.html#ch03_item_assertions). We will deal with
+    the assertions later on.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里使用泛型来将字符串文字固定到字面类型，我们可以用它来索引类型映射中正确的HTML元素变体。还要注意，使用`do⁠cum⁠ent.​cre⁠ate⁠Ele⁠me⁠nt`需要两个类型断言。一个使集合变宽（从`T`到`string`），另一个使集合变窄（从`HTMLElement`到`AllElements[T]`）。这两个断言表明我们必须处理一个在我们控制之外的API，正如在[食谱3.9](ch03.html#ch03_item_assertions)中所确定的那样。我们将在稍后处理这些断言。
+- en: 'Now we want to provide the option to pass extra properties for said HTML elements,
+    to set an `href` to an `HTMLAnchorElement`, and so forth. All properties are already
+    in the respective `HTMLElement` variants, but they’re required, not optional.
+    We can make all properties optional with the built-in type `Partial<T>`. It’s
+    a mapped type that takes all properties of a certain type and adds a type modifier:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们想要提供选项来传递所述HTML元素的额外属性，例如将`href`设置为`HTMLAnchorElement`等。所有属性已经在各自的`HTMLElement`变体中，但它们是必需的，而不是可选的。我们可以使用内置类型`Partial<T>`使所有属性变为可选。它是一个映射类型，它获取某种类型的所有属性并添加一个类型修饰符：
+- en: '[PRE56]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'We extend our function with an optional argument `props` that is a `Partial`
+    of the indexed element from `AllElements`. This way, we know that if we pass an
+    `"a"`, we can only set properties that are available in `HTMLAnchorElement`:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们扩展我们的函数，添加一个可选参数`props`，它是`AllElements`中索引元素的`Partial`。这样，我们知道如果传递一个`"a"`，我们只能设置在`HTMLAnchorElement`中可用的属性：
+- en: '[PRE57]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'Fantastic! Now it’s up to you to figure out all 140 HTML elements. Or not.
+    Somebody already did the work and put `HTMLElementTagNameMap` into *lib.dom.ts*.
+    So let’s use this instead:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！现在轮到你找出所有140个HTML元素了。或者不找。有人已经完成了这项工作，并将`HTMLElementTagNameMap`放入*lib.dom.ts*中。所以让我们使用这个：
+- en: '[PRE58]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: This is also the interface used by `document.createElement`, so there is no
+    friction between your factory function and the built-in one. No extra assertions
+    necessary.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这也是`document.createElement`使用的接口，因此你的工厂函数和内置函数之间没有摩擦。不需要额外的断言。
+- en: There is only one caveat. You are restricted to the 140 elements provided by
+    `HT⁠ML​Ele⁠men⁠tTa⁠gNa⁠me⁠Map`. What if you want to create SVG elements, or web
+    components that can have fully customized element names? Your factory function
+    suddenly is too constrained.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有一个注意事项。你只能使用`HT⁠ML​Ele⁠men⁠tTa⁠gNa⁠me⁠Map`提供的140个元素。如果你想创建SVG元素，或者可以完全自定义元素名称的Web组件，你的工厂函数突然太受限制了。
+- en: 'To allow for more—as `document.createElement` does—we would need to add all
+    possible strings to the mix again. `HTMLElementTagNameMap` is an interface. So
+    we can use *declaration merging* to extend the interface with an *indexed signature*,
+    where we map all remaining strings to `HTMLUnknownElement`:'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了允许更多——就像`document.createElement`那样——我们需要再次将所有可能的字符串添加到混合中。`HTMLElementTagNameMap`是一个接口。所以我们可以使用*声明合并*来通过*索引签名*扩展接口，其中我们将所有剩余的字符串映射到`HTMLUnknownElement`：
+- en: '[PRE59]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'Now we have everything we want:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们拥有我们想要的一切：
+- en: A great factory function to create typed HTML elements
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个出色的工厂函数来创建类型化的HTML元素
+- en: The possibility to set element properties with just one configuration object
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 只需一个配置对象即可设置元素属性的可能性
+- en: The flexibility to create more elements than defined
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 灵活性可以创建比定义的更多的元素
+- en: The last is great, but what if you only want to allow for web components? Web
+    components have a convention; they need to have a *dash* in their tag name. We
+    can model this using a mapped type on a *string template literal type*. You will
+    learn all about string template literal types in [Chapter 6](ch06.html#ch06).
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个很棒，但是如果你只想允许Web组件呢？Web组件有一个约定；它们需要在它们的标签名称中有一个*破折号*。我们可以使用*字符串模板文字类型*上的映射类型来建模这一点。你将在[第6章](ch06.html#ch06)中详细了解字符串模板文字类型。
+- en: For now, the only thing you need to know is that we create a set of strings
+    where the pattern is *any string* followed by a *dash* followed by *any string*.
+    This is enough to ensure we only pass correct element names.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，你需要知道的唯一一件事情是，我们创建了一组字符串，其中模式是*任意字符串*后跟一个*破折号*，然后是*任意字符串*。这足以确保我们只传递正确的元素名称。
+- en: '*Mapped types* work only with type aliases, not interface declarations, so
+    we need to define an `AllElements` type again:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*映射类型*仅适用于类型别名，而不是接口声明，因此我们需要重新定义一个`AllElements`类型：'
+- en: '[PRE60]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'Fantastic. With the `AllElements` type we also get type assertions back, which
+    we don’t like that much. In that case, instead of asserting, we can also use a
+    function overload, defining two declarations: one for our users, and one for us
+    to implement the function. You can learn more about this function overload technique
+    in Recipes [2.6](ch02.html#ch02_item_function_overloads) and [12.7](ch12.html#ch12_overloads_vs_conditionals):'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了。使用`AllElements`类型，我们还可以获得类型断言，尽管我们不太喜欢这样。在这种情况下，我们可以使用函数重载，定义两个声明：一个用于我们的用户，另一个用于实现函数。您可以在《食谱》[2.6](ch02.html#ch02_item_function_overloads)和[12.7](ch12.html#ch12_overloads_vs_conditionals)中了解更多关于这种函数重载技术的信息：
+- en: '[PRE61]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: We are all set. We defined a *type map* with *mapped types* and *index signatures*,
+    using *generic type parameters* to be very explicit about our intentions. A great
+    combination of multiple tools in our TypeScript tool belt.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经准备好了。我们使用*映射类型*和*索引签名*定义了一个*类型映射*，并使用*泛型类型参数*非常明确地表达了我们的意图。这是在我们的TypeScript工具箱中多种工具的巧妙结合。
+- en: 4.8 Using ThisType to Define this in Objects
+  id: totrans-224
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.8 使用ThisType来定义对象中的this
+- en: Problem
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Your app requires complex configuration objects with methods, where `this` has
+    a different context depending on usage.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的应用程序需要具有方法的复杂配置对象，其中`this`在使用时具有不同的上下文。
+- en: Solution
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the built-in generic `ThisType<T>` to define the correct `this`.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用内置的泛型`ThisType<T>`来定义正确的`this`。
+- en: Discussion
+  id: totrans-229
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Frameworks like [VueJS](https://vuejs.org) rely a lot on factory functions,
+    where you pass a comprehensive configuration object to define initial data, computed
+    properties, and methods for each instance. You want to create a similar behavior
+    for components of your app. The idea is to provide a configuration object with
+    three properties:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像[VueJS](https://vuejs.org)这样的框架非常依赖于工厂函数，其中您传递一个全面的配置对象来定义初始数据、计算属性和每个实例的方法。您希望为应用程序的组件创建类似的行为。想法是提供一个具有三个属性的配置对象：
+- en: A `data` function
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`data`函数
+- en: The return value is the initial data for the instance. You should not have access
+    to any other properties from the configuration object in this function.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回值是实例的初始数据。在此函数中，您不应该访问配置对象的任何其他属性。
+- en: A `computed` property
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`computed`属性
+- en: This is for computed properties, which are based on the initial data. Computed
+    properties are declared using functions. They can access initial data just like
+    normal properties.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是用于基于初始数据的计算属性。计算属性使用函数声明。它们可以像普通属性一样访问初始数据。
+- en: A `methods` property
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`methods`属性
+- en: 'Methods can be called and can access computed properties as well as the initial
+    data. When methods access computed properties, they access it like they would
+    access normal properties: no need to call the function.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法可以被调用，并且可以访问计算属性以及初始数据。当方法访问计算属性时，它们像访问普通属性一样访问它：无需调用函数。
+- en: 'Looking at the configuration object in use, there are three different ways
+    to interpret `this`. In `data`, `this` doesn’t have any properties at all. In
+    `computed`, each function can access the return value of `data` via `this` just
+    like it would be part of their object. In `methods`, each method can access computed
+    properties and `data` via `this` in the same way:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查看正在使用的配置对象时，有三种不同的方法来解释`this`。在`data`中，`this`根本没有任何属性。在`computed`中，每个函数都可以像其对象的一部分一样访问`data`的返回值，通过`this`来访问。在`methods`中，每个方法可以像在`this`中一样访问计算属性和`data`：
+- en: '[PRE62]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: This behavior is special but not uncommon. And with a behavior like that, we
+    definitely want to rely on good types.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种行为是特殊的，但并不罕见。并且像这样的行为，我们绝对希望依赖良好的类型。
+- en: Note
+  id: totrans-240
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In this lesson we will focus only on the types, not on the actual implementation,
+    as that would exceed this chapter’s scope.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本课程中，我们只关注类型，而不是实际的实现，因为那将超出本章的范围。
+- en: 'Let’s create types for each property. We define a type `Options`, which we
+    are going to refine step by step. First is the `data` function. `data` can be
+    user defined, so we want to specify `data` using a generic type parameter. The
+    data we are looking for is specified by the return type of the `data` function:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们为每个属性创建类型。我们定义了一个类型`Options`，我们将逐步完善它。首先是`data`函数。`data`可以由用户定义，因此我们希望使用泛型类型参数来指定`data`的数据：
+- en: '[PRE63]'
+  id: totrans-243
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: So once we specify an actual return value in the `data` function, the `Data`
+    placeholder gets substituted with the real object’s type. Note that we also define
+    `this` to point to the empty object, which means that we don’t get access to any
+    other property from the configuration object.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，一旦我们在`data`函数中指定实际的返回值，`Data`占位符就会被实际对象类型替换。请注意，我们还定义了`this`指向空对象，这意味着我们不能从配置对象中访问任何其他属性。
+- en: 'Next, we define `computed`. `computed` is an object of functions. We add another
+    generic type parameter called `Computed` and let the value of `Computed` be typed
+    through usage. Here, `this` changes to all the properties of `Data`. Since we
+    can’t set `this` like we do in the `data` function, we can use the built-in helper
+    type `ThisType` and set it to the generic type parameter `Data`:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们定义了`computed`。`computed`是一个函数对象。我们添加了另一个名为`Computed`的泛型类型参数，并允许通过使用进行类型化。在这里，`this`会更改为`Data`的所有属性。由于我们无法像在`data`函数中那样设置`this`，我们可以使用内置的辅助类型`ThisType`并将其设置为泛型类型参数`Data`：
+- en: '[PRE64]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: This allows us to access, for example, `this.firstName`, like in the previous
+    example. Last but not least, we want to specify `methods`. `methods` is again
+    special, as you are getting access not only to `Data` via `this` but also to all
+    methods and to all computed properties as properties.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使得我们可以访问例如`this.firstName`，就像前面的示例中一样。最后但并非最不重要的是，我们想要指定`methods`。`methods`再次特殊，因为您不仅通过`this`获取`Data`，还可以通过属性访问获取所有方法和所有计算属性。
+- en: '`Computed` holds all computed properties as functions. We would need their
+    value, though—more specifically, their return value. If we access `fullName` via
+    property access, we expect it to be a `string`.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Computed`保存所有计算属性作为函数。我们需要它们的值，更具体地说，是它们的返回值。如果我们通过属性访问访问`fullName`，我们期望它是一个`string`。'
+- en: 'For that, we create a helper type called `MapFnToProp`. It takes a type that
+    is an object of functions and maps it to the return values’ types. The built-in
+    `ReturnType` helper type is perfect for this scenario:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们创建了一个名为`MapFnToProp`的辅助类型。它接受一个类型，该类型是函数对象，并将其映射到返回值类型。内置的`ReturnType`辅助类型在这种情况下非常完美：
+- en: '[PRE65]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'We can use `MapFnToProp` to set `ThisType` for a newly added generic type parameter
+    called `Methods`. We also add `Data` and `Methods` to the mix. To pass the `Computed`
+    generic type parameter to `MapFnToProp`, it needs to be constrained to `FnObj`,
+    the same constraint of the first parameter `FunctionObj` in `MapFnToProp`:'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用`MapFnToProp`为新添加的泛型类型参数`Methods`设置`ThisType`。我们还将`Data`和`Methods`混合在一起。为了将`Computed`泛型类型参数传递给`MapFnToProp`，它需要被限制为`FnObj`，这与`MapFnToProp`的第一个参数`FunctionObj`的约束相同：
+- en: '[PRE66]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'And that’s the type! We take all generic type properties and add them to the
+    `create` factory function:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这种类型！我们获取所有泛型类型属性并将它们添加到`create`工厂函数中：
+- en: '[PRE67]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: Through usage, all generic type parameters will be substituted. And the way
+    `Options` is typed, we get all the autocomplete necessary to ensure we don’t run
+    into troubles, as seen in [Figure 4-1](#img-autocomplete-thistype).
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用，所有泛型类型参数将被替换。并且`Options`的类型方式，我们得到了所有必要的自动完成，以确保我们不会遇到问题，正如在[图 4-1](#img-autocomplete-thistype)中所见。
+- en: This example shows wonderfully how TypeScript can be used to type elaborate
+    APIs where a lot of object manipulation is happening underneath.^([1](ch04.html#id652))
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例很好地展示了TypeScript如何用于类型复杂的API，其中进行了许多对象操作。^([1](ch04.html#id652))
+- en: '![tscb 0401](assets/tscb_0401.png)'
+  id: totrans-257
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tscb 0401](assets/tscb_0401.png)'
+- en: Figure 4-1\. The methods configuration in the factory function having all the
+    access to the correct properties
+  id: totrans-258
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-1\. 工厂函数中方法配置，具有访问所有正确属性的权限
+- en: 4.9 Adding Const Context to Generic Type Parameters
+  id: totrans-259
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 4.9 向泛型类型参数添加Const上下文
+- en: Problem
+  id: totrans-260
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: When you pass complex, literal values to a function, TypeScript widens the type
+    to something more general. While this is desired behavior in a lot of cases, in
+    some you want to work on the literal types rather than the widened type.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您将复杂的文字值传递给函数时，TypeScript会将类型扩展为更一般的东西。虽然这在许多情况下是期望的行为，但在某些情况下，您希望处理文字类型而不是扩展类型。
+- en: Solution
+  id: totrans-262
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Add a `const` modifier in front of your generic type parameter to keep the passed
+    values in *const context*.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你的泛型类型参数前面添加`const`修饰符，以保持传递的值处于*const上下文*。
+- en: Discussion
+  id: totrans-264
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Single-page application (SPA) frameworks tend to reimplement a lot of browser
+    functionality in JavaScript. For example, features like the [History API](https://oreil.ly/KMBgj)
+    made it possible to override the regular navigation behavior, which SPA frameworks
+    use to switch between pages without a real page reload, by swapping the content
+    of the page and changing the URL in the browser.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单页应用（SPA）框架倾向于在JavaScript中重新实现许多浏览器功能。例如，像[History API](https://oreil.ly/KMBgj)这样的功能使得覆盖常规导航行为成为可能，SPA框架利用它在浏览器中切换页面时避免真正的页面重新加载，通过交换页面内容和更改浏览器中的URL来实现。
+- en: 'Imagine working on a minimalistic SPA framework that uses a so-called router
+    to navigate between pages. Pages are defined as *components*, and a `ComponentConstructor`
+    interface knows how to instantiate and render new elements on your website:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一下，您正在开发一个使用所谓的路由器在页面之间导航的极简SPA框架。页面被定义为*组件*，并且`ComponentConstructor`接口知道如何在您的网站上实例化和渲染新元素：
+- en: '[PRE68]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'The *router* should take a list of components and associated paths, stored
+    as `string`. When creating a router through the `router` function, it should return
+    an object that lets you `navigate` the desired path:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*路由器*应该接受一个组件列表和相关路径，以`string`形式存储。在通过`router`函数创建路由器时，应返回一个对象，该对象允许你`navigate`到所需的路径：'
+- en: '[PRE69]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: How the actual navigation is implemented is of no concern to us right now; instead,
+    we want to focus on the typings of the function interface.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际导航的实现方式对我们目前不重要；相反，我们希望专注于函数接口的类型定义。
+- en: 'The router works as intended; it takes an array of `Route` objects and returns
+    an object with a `navigate` function, which allows us to trigger the navigation
+    from one URL to the other and renders the new component:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路由器按预期工作；它接受一个`Route`对象数组并返回一个带有`navigate`函数的对象，允许我们从一个URL导航到另一个URL并渲染新组件：
+- en: '[PRE70]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: What you immediately see is that the types are way too broad. If we allow navigating
+    to every `string` available, nothing keeps us from using bogus routes that lead
+    nowhere. We would need to implement some sort of error handling for information
+    that is already ready and available. So why not use it?
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您立即看到的是类型太广泛了。如果我们允许导航到每个可用的`string`，那么没有任何东西可以阻止我们使用导致无处可去的虚假路由。我们需要为已准备和可用的信息实现一些错误处理。那么，为什么不使用它呢？
+- en: 'Our first idea would be to replace the concrete type with a generic type parameter.
+    The way TypeScript deals with generic substitution is that if we have a literal
+    type, TypeScript will subtype accordingly. Introducing `T` for `Route` and using
+    `T["path"]` instead of `string` comes close to what we want to achieve:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的第一个想法是用泛型类型参数替换具体类型。TypeScript处理泛型替换的方式是，如果我们有一个字面类型，TypeScript会相应地进行子类型化。引入`T`代表`Route`，并使用`T["path"]`而不是`string`接近我们想要实现的目标：
+- en: '[PRE71]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'In theory, this should work. If we remind ourselves what TypeScript does with
+    literal, primitives types in that case, we would expect the value to be narrowed
+    to the literal type:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理论上，这应该有效。如果我们回顾一下TypeScript在这种情况下如何处理字面、基本类型，我们期望值会被缩小到字面类型：
+- en: '[PRE72]'
+  id: totrans-277
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: You can read more on that in [Recipe 4.3](#ch04_no_any). One important detail
+    is that `path` in the previous example is in a *const context*, because the returned
+    value is immutable.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在[Recipe 4.3](#ch04_no_any)中了解更多信息。前面例子中的`path`处于*const上下文*，因为返回的值是不可变的。
+- en: 'The only problem is that we are working with objects and arrays, and TypeScript
+    tends to widen types in objects and arrays to something more general to allow
+    for the mutability of values. If we look at a similar example, but with a nested
+    object, we see that TypeScript takes the broader type instead:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 唯一的问题是，我们正在处理对象和数组，并且TypeScript倾向于将对象和数组的类型扩展为更一般的类型，以允许值的可变性。如果我们看一个类似的例子，但带有嵌套对象，我们会发现TypeScript接受更广泛的类型：
+- en: '[PRE73]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: For objects, the *const context* for `paths` is only for the binding of the
+    variable, not for its contents. This eventually leads to losing some of the information
+    we need to correctly type `navigate`.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于对象，`paths`的*const上下文*仅适用于变量的绑定，而不适用于其内容。这最终导致我们丢失一些我们正确类型化`navigate`所需的信息。
+- en: 'A way to work around this limitation is to manually apply *const context*,
+    which needs us to redefine the input parameter to be `readonly`:'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决这种限制的一种方法是手动应用*const上下文*，这需要我们重新定义输入参数为`readonly`：
+- en: '[PRE74]'
+  id: totrans-283
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: This works but also requires that we not forget a very important detail when
+    coding. And actively remembering workarounds is always a recipe for disaster.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做虽然有效，但也要求我们在编码时不要忘记一个非常重要的细节。而积极记住解决方法总是灾难的开端。
+- en: 'Thankfully, TypeScript allows us to request *const context* from generic type
+    parameters. Instead of applying it to the value, we substitute the generic type
+    parameter for a concrete value *but* in *const context* by adding the `const`
+    modifier to the generic type parameter:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，TypeScript 允许我们从泛型类型参数中请求*const context*。而不是将其应用于值，我们通过将`const`修饰符添加到泛型类型参数中，用具体值*but*替代*const
+    context*：
+- en: '[PRE75]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'We can then use our router just as we are accustomed to and even get autocomplete
+    for possible paths:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以像往常一样使用我们的路由器，甚至可以为可能的路径得到自动完成：
+- en: '[PRE76]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'Even better, we get proper errors when we pass in something bogus:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的是，当我们传入无效参数时，我们会得到适当的错误提示：
+- en: '[PRE77]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: 'The beautiful thing: it’s all hidden in the function’s API. What we expect
+    becomes clearer, the interface tells us the constraints, and we don’t have to
+    do anything extra when using `router` to ensure type safety.'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 精彩的是：这一切都隐藏在函数的 API 中。我们所期望的变得更加清晰，接口告诉我们约束条件，使用`router`确保类型安全时无需额外操作。
+- en: ^([1](ch04.html#id652-marker)) Special thanks to the creators of [Type Challenges](https://oreil.ly/pHc9j)
+    for this beautiful example.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch04.html#id652-marker)) 特别感谢[Type Challenges](https://oreil.ly/pHc9j)的创建者提供了这个精美的例子。

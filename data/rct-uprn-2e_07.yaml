@@ -1,0 +1,2246 @@
+- en: Chapter 7\. Building the App’s Components
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第七章。构建应用程序的组件
+- en: Now that you know all the basics of creating custom React components (and using
+    the built-in ones), using JSX to define the user interfaces, and using `create-react-app`
+    for building and deploying the results, it’s time to start building a more complete
+    app.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经了解了创建自定义 React 组件（以及使用内置组件）、使用 JSX 定义用户界面，以及使用`create-react-app`构建和部署结果的所有基础知识，是时候开始构建更完整的应用程序了。
+- en: The app is called “Whinepad,” and it allows users to keep notes and rate the
+    wines they are trying. It doesn’t have to be wines, really; it could be anything
+    they’d like to *whine* about. It should do all you would expect from a create,
+    read, update, and delete (CRUD) application. It should also be a client-side app,
+    storing the data on the client. The goal is to learn React, so the non-React parts
+    (e.g., server-side storage, CSS presentation) of the narrative are kept to a minimum.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该应用程序称为“Whinepad”，允许用户记笔记和评价他们尝试的葡萄酒。实际上不一定是葡萄酒；它可以是任何他们想要*抱怨*的东西。它应该完成您对创建、读取、更新和删除（CRUD）应用程序的所有期望。它还应该是一个客户端应用程序，将数据存储在客户端上。目标是学习
+    React，因此叙述中非 React 部分（例如服务器端存储、CSS 展示）被保持在最低限度。
+- en: When building an app, it’s a good idea to start with small, reusable components
+    and combine them to form the whole. The more independent and reusable these components
+    are, the better. This chapter focuses on creating the components, one at a time,
+    and the next chapter puts them all together.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建应用程序时，从小、可重用的组件开始，并将它们组合成整体是一个好主意。这些组件越独立和可重用，越好。本章重点介绍逐个创建组件，下一章将它们组合在一起。
+- en: Setup
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 设置
+- en: 'First, initialize and start the new CRA app:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，初始化并启动新的 CRA 应用程序：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Start Coding
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 开始编码
+- en: 'Just to verify that all is working as expected, open *~/reactbook/whinepad/public/index.html*
+    and change the title of the document to match the new app:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅仅为了验证一切都按预期工作，打开*~/reactbook/whinepad/public/index.html*并将文档标题更改为匹配新应用程序：
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The browser auto-reloads and you can see the title change (shown in [Figure 7-1](#FIG0701)).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器自动重新加载，您可以看到标题更改（见[图 7-1](#FIG0701)）。
+- en: '![rur2 0701](Images/rur2_0701.png)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0701](Images/rur2_0701.png)'
+- en: Figure 7-1\. The beginning of a new app
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1。一个新应用程序的开端
+- en: 'Now, for the purposes of organization, let’s keep all the React components
+    and their corresponding CSS inside a new directory *whinepad/src/components*.
+    Any other code that is not strictly components, like various utilities you might
+    need, can go in *whinepad/src/modules*. The root *src* contains all the files
+    CRA generated. You can change them, of course, but any new code goes in either
+    of the two new directories `components` or `modules`:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，为了组织目的，让我们将所有 React 组件及其对应的 CSS 放在一个新目录*whinepad/src/components*内。其他不严格属于组件的代码，例如您可能需要的各种实用程序，可以放在*whinepad/src/modules*内。根目录*src*包含
+    CRA 生成的所有文件。当然您可以更改它们，但任何新代码都放在这两个新目录`components`或`modules`中：
+- en: '[PRE2]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Refactoring the Excel Component
+  id: totrans-15
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 重构 Excel 组件
+- en: Let’s get Whinepad off the ground. It’s a rating app where you take notes. So
+    how about having the welcome screen be the list of stuff you’ve already rated
+    in a nice table? This means reusing the `<Excel>` component from [Chapter 4](ch04.xhtml#ch4).
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们开始 Whinepad。这是一个评级应用程序，您可以在其中做笔记。那么，将欢迎屏幕设置为您已经评级的东西的列表，放在一个漂亮的表格中如何？这意味着从[第四章](ch04.xhtml#ch4)重复使用`<Excel>`组件。
+- en: Let’s grab a version of `Excel` (extracted from the file *04.10.fn.table-reducer.html*
+    as it appears toward the end of [Chapter 4](ch04.xhtml#ch4)) and copy it over
+    to *whinepad/src/components/Excel.js*.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从*04.10.fn.table-reducer.html*文件中获取`Excel`的一个版本（正如它在[第四章](ch04.xhtml#ch4)末尾所示），并将其复制到*whinepad/src/components/Excel.js*。
+- en: '`Excel` can now be a reusable standalone component that doesn’t know anything
+    about where data is coming from and how the content is inserted into an HTML page.
+    It’s just a React component, one of the building blocks of the app. And you already
+    know that a usable component has three jobs:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Excel`现在可以是一个可重用的独立组件，不知道数据来自哪里以及如何将内容插入 HTML 页面中。它只是一个 React 组件，应用程序的构建块之一。您已经知道一个可用的组件有三个工作：'
+- en: Import dependencies.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 导入依赖项。
+- en: Do the work.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 做这项工作。
+- en: Export the component.
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 导出组件。
+- en: 'Ignoring the dependencies part for a minute, now `Excel` can look like so:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 忽略依赖部分一分钟，现在`Excel`看起来是这样的：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Back to the dependencies. Before, when dealing with pure HTML, `React` was
+    a global variable and so was `PropTypes`. Now you `import` them:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到依赖项。之前，在处理纯 HTML 时，`React`是一个全局变量，`PropTypes`也是如此。现在您需要`import`它们：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Now you can use the state hook via `React.useState()`. However it’s often convenient
+    to assign some of the React properties using the *named import* syntax:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您可以通过 `React.useState()` 使用状态钩子。但通常使用 *named import* 语法分配一些 React 属性更为方便：
+- en: '[PRE5]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: And now you can use the state hook with the shorter `useState()`.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您可以使用状态钩子，并使用更短的 `useState()`。
+- en: 'Finally, let’s move the object cloning helper into its own module, since it’s
+    not really `Excel`’s job, and moving it will make it easier to replace the quick-and-dirty
+    implementation with a proper library at any time later on. This means importing
+    a new `clone` module from `Excel`:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们将对象克隆助手移到自己的模块中，因为这不是 `Excel` 的职责，将其移动将使在任何后续时间更容易用正确的库替换快速而简单的实现。这意味着从
+    `Excel` 导入一个新的 `clone` 模块：
+- en: '[PRE6]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'The implementation of the clone module lives in *modules/* directory, the place
+    designed for modules. In other words, it’s a JavaScript file with no dependencies
+    named *whinepad/src/modules/clone.js* that looks like so:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 克隆模块的实现位于 *modules/* 目录中，这是为模块设计的位置。换句话说，它是一个没有依赖关系的 JavaScript 文件，名为 *whinepad/src/modules/clone.js*，看起来像这样：
+- en: '[PRE7]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Note
+  id: totrans-33
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'When importing JavaScript files, you can omit the *.js* extension. You can
+    use:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在导入 JavaScript 文件时，可以省略 *.js* 扩展名。您可以使用：
+- en: '[PRE8]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Instead of:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是：
+- en: '[PRE9]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'And so the new `Excel` looks like the following:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，新的 `Excel` 看起来如下所示：
+- en: '[PRE10]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Version 0.0.1 of the New App
+  id: totrans-40
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 新应用程序的版本 0.0.1
+- en: 'Now you have a standalone reusable component. So let’s use it. The *App.js*
+    file that was generated by CRA is the top-level component for the application,
+    and you can import `Excel` there. Deleting the CRA-generated code and replacing
+    with `Excel` and some temporary data, you get:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您有了一个独立可重用的组件。因此，让我们使用它。由 CRA 生成的 *App.js* 文件是应用程序的顶级组件，在那里您可以导入 `Excel`。删除
+    CRA 生成的代码，并用 `Excel` 和一些临时数据替换，您可以得到：
+- en: '[PRE11]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: With this, you have a working app, shown in [Figure 7-2](#FIG0702). It’s fairly
+    modest, but it can still search and edit data.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式，您可以获得一个工作的应用程序，显示在 [图 7-2](#FIG0702) 中。它相当简单，但仍然可以搜索和编辑数据。
+- en: '![rur2 0702](Images/rur2_0702.png)'
+  id: totrans-44
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0702](Images/rur2_0702.png)'
+- en: Figure 7-2\. A new app is born
+  id: totrans-45
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-2\. 一个新应用程序诞生了
+- en: CSS
+  id: totrans-46
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: CSS
+- en: As discussed in [Chapter 6](ch06.xhtml#ch6), let’s have one CSS file per component.
+    So *Excel.js* component should come (if needed) with an *Excel.css*. Any class
+    names in *Excel.js* should be prefixed with *Excel-*. In the current implementation
+    from [Chapter 4](ch04.xhtml#ch4), elements are styled using the HTML selectors
+    (e.g. `table th {...}`), but in a real app consisting of reusable elements, the
+    styles should be scoped to components so they don’t interfere with other components.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如 [第 6 章](ch06.xhtml#ch6) 中讨论的，让每个组件都有一个 CSS 文件。因此，如果需要的话，*Excel.js* 组件应该配有一个
+    *Excel.css*。*Excel.js* 中的任何类名都应以 *Excel-* 为前缀。在来自 [第 4 章](ch04.xhtml#ch4) 的当前实现中，元素使用
+    HTML 选择器进行样式设置（例如 `table th {...}`），但在由可重用元素组成的真实应用程序中，样式应该被限定在组件内部，以防止干扰其他组件。
+- en: Note
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: There are many options when it comes to styling your app. But for the purposes
+    of this discussion, let’s focus on the React parts. A simple CSS naming convention
+    will do the trick.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在样式应用程序方面有许多选择。但是，为了本次讨论的目的，让我们专注于 React 部分。一个简单的 CSS 命名约定就可以搞定。
+- en: Any “global” styles can go in the CRA-created *App.css*, but these should be
+    limited to a small set of really generic styles, for example the fonts for the
+    whole app. CRA also generates an *index.css* but to avoid confusion about which
+    global styles go where, let’s delete it.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何“全局”样式都可以放在 CRA 创建的 *App.css* 中，但这些样式应该限制在一小部分真正通用的样式，例如整个应用程序的字体。 CRA 还生成了一个
+    *index.css*，但为了避免混淆哪些全局样式放在哪里，请将其删除。
+- en: 'So the top-level `<div>` that `Excel` renders becomes:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，`Excel` 渲染的顶级 `<div>` 变成了：
+- en: '[PRE12]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Now you can scope the styles to apply only to this component by using the `Excel`
+    prefix:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您可以通过使用 `Excel` 前缀将样式范围限定为仅适用于此组件：
+- en: '[PRE13]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Local Storage
+  id: totrans-55
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 本地存储
+- en: To keep the discussion limited to React as much as possible, let’s keep all
+    the data in the browser and not worry about the server-side parts. But instead
+    of hardcoding the data in the app, let’s use `localStorage`. If the storage is
+    empty, one default should be enough to hint to the user about the purpose of the
+    app.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了尽可能将讨论限制在 React 上，让我们将所有数据保留在浏览器中，不要担心服务器端的部分。但是，不要在应用程序中硬编码数据，而是使用 `localStorage`。如果存储为空，则一个默认值足以向用户提示应用程序的目的。
+- en: 'The data retrieval can happen in the top-level *App.js*:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据检索可以在顶层的 *App.js* 中完成：
+- en: '[PRE14]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Let’s also just remove the “search” button from `Excel`; it should become a
+    part of its own component, better separated from the `Excel` component.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们也将 “搜索” 按钮从 `Excel` 中删除；它应该成为自己组件的一部分，与 `Excel` 组件分离得更好。
+- en: And with that, you’re on a path to a great new app (see [Figure 7-3](#FIG0703)).
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，你就在通向一个伟大新应用程序的道路上了（见 [图 7-3](#FIG0703)）。
+- en: '![rur2 0703](Images/rur2_0703.png)'
+  id: totrans-61
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0703](Images/rur2_0703.png)'
+- en: Figure 7-3\. An app with style
+  id: totrans-62
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-3\. 一个带有风格的应用程序
+- en: The Components
+  id: totrans-63
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 组件
+- en: Now that you know the setup is working, it’s time to build all the components
+    that make up the app. Figures [7-4](#FIG0704) and [7-5](#FIG0705) show screenshots
+    of the app-to-be.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你知道设置已经起作用了，是时候构建组成应用程序的所有组件了。图 [7-4](#FIG0704) 和 [7-5](#FIG0705) 显示了即将构建的应用程序的截图。
+- en: '![rur2 0704](Images/rur2_0704.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0704](Images/rur2_0704.png)'
+- en: Figure 7-4\. The Whinepad app to be built
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-4\. 要构建的 Whinepad 应用程序
+- en: '![rur2 0705](Images/rur2_0705.png)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0705](Images/rur2_0705.png)'
+- en: Figure 7-5\. Editing items
+  id: totrans-68
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-5\. 编辑项目
+- en: Reusing the existing `<Excel>` component is one way to get started; however,
+    this component is doing too much. It’s better to “divide and conquer” by splitting
+    it into small, reusable components. For example, the buttons should be their own
+    components so they can be reused outside of the context of the `Excel` table.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重新使用现有的 `<Excel>` 组件是开始的一种方式；然而，这个组件做得太多了。通过“分而治之”的方式将其分割成小的可重用组件更好。例如，按钮应该是它们自己的组件，这样它们可以在
+    `Excel` 表格之外被重复使用。
+- en: 'Additionally, the app needs some other specialized components such as a rating
+    widget that shows emojis instead of just a number, a dialog component, and so
+    on. Before getting started with new components, let’s add one more helper—a component
+    discovery tool. Its goals are to:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，应用程序还需要一些其他专业组件，如一个显示表情符号而不仅仅是数字的评分小部件，一个对话框组件等等。在开始新组件之前，让我们再添加一个辅助工具——一个组件发现工具。它的目标是：
+- en: Let you develop and test components in isolation. Often using a component in
+    an app leads you to “marry” the component to the app and reduce its reusability.
+    Having the component by itself forces you to make better decisions about decoupling
+    it from the environment.
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 让你在隔离环境中开发和测试组件。通常，在应用程序中使用组件会导致你将组件与应用程序“结合”起来，降低其可重用性。将组件单独存在迫使你做出更好的关于将其与环境解耦的决策。
+- en: Let other team members discover and reuse existing components. As your app grows,
+    so does the team. To minimize the risk of two people working on strikingly similar
+    components and to promote component reuse (which leads to faster app development),
+    it’s a good idea to have all components in one place, together with examples of
+    how they are meant to be used.
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 让其他团队成员发现和重复使用现有的组件。随着应用程序的增长，团队也在增长。为了最小化两个人同时工作在非常相似的组件上的风险，并促进组件重用（这导致更快的应用程序开发），将所有组件放在一个地方是个好主意，同时附带它们的使用示例。
+- en: There are tools available that allow for component discovery and testing, but
+    let’s not introduce another dependency. Instead, let’s take a lightweight do-it-yourself
+    approach.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一些可用的工具允许组件发现和测试，但让我们不要引入另一个依赖。相反，让我们采取一种轻量级的自助方法。
+- en: Discovery
+  id: totrans-74
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 发现
+- en: A discovery tool can be implemented as a new component that lives together with
+    the app.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个发现工具可以作为一个新组件实现，与应用程序一起存在。
+- en: 'This task can be as simple as creating a new component (*src/components/Discovery.js*)
+    where you list all your components. You can even render the same component with
+    different props to demonstrate various uses of a component. For example:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个任务可以很简单，比如创建一个新组件（*src/components/Discovery.js*），在这里列出所有你的组件。你甚至可以使用不同的 props
+    渲染相同的组件，以演示组件的各种用法。例如：
+- en: '[PRE15]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Now you can load the discovery component instead of the real app, by using
+    the URL as a condition in your *App.js*:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以通过在 *App.js* 中使用 URL 作为条件，加载发现组件而不是真正的应用程序：
+- en: '[PRE16]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Now, if you load *http://localhost:3000/discovery* instead of *http://localhost:3000/*,
+    you can see all the components you’ve added to the `<Discovery>`. At this point
+    there’s only a single component, but this page will grow soon enough. Your new
+    component discovery tool (see [Figure 7-6](#FIG0706)) is the place to start playing
+    with your new components as they come to life. Let’s get to work and build them—one
+    at a time.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果你加载 *http://localhost:3000/discovery* 而不是 *http://localhost:3000/*，你可以看到你已经添加到
+    `<Discovery>` 的所有组件。此时只有一个组件，但这个页面很快会变得更多。你的新组件发现工具（见 [图 7-6](#FIG0706)）是开始使用新组件的地方。让我们开始工作，逐个构建它们。
+- en: '![rur2 0706](Images/rur2_0706.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0706](Images/rur2_0706.png)'
+- en: Figure 7-6\. Whinepad’s component discovery tool
+  id: totrans-82
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-6\. Whinepad 的组件发现工具
+- en: Logo and a Body
+  id: totrans-83
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Logo 和一个 Body
+- en: 'Starting with a few simple components you can verify that things are working
+    and to get excited as you see quick progress. Here are two new components that
+    every app needs:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从几个简单的组件开始，你可以验证一切是否正常工作，并因快速进展而感到兴奋。以下是每个应用程序都需要的两个新组件：
+- en: Logo
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Logo
+- en: 'A *components/Logo.js* doesn’t need much. And just to show it’s possible, let’s
+    use an arrow function to define this component:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 *components/Logo.js* 并不需要太多。为了展示可能性，让我们使用箭头函数来定义这个组件：
+- en: '[PRE17]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The image files you need you can store in *src/images/*, siblings to the components
+    found in *src/components/*.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要的图像文件可以存储在 *src/images/* 中，与 *src/components/* 中找到的组件同级。
+- en: Body
+  id: totrans-89
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Body
+- en: 'The body is also a simple place for a few styles, and it merely renders the
+    children passed to it:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主体也是一个简单的地方，只需呈现传递给它的子元素：
+- en: '[PRE18]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'In the *Body.css*, you refer to images the same way as in a JavaScript file:
+    relative to where the CSS is located. The build process takes care to extract
+    the images referred to in the code and package them with the rest of the app in
+    the *build/* directory (as you saw in the previous chapter):'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *Body.css* 中，你可以像在 JavaScript 文件中一样引用图片：相对于 CSS 文件所在位置。构建过程会确保提取代码中引用的图片，并将它们打包到
+    *build/* 目录下（正如你在上一章节中看到的）：
+- en: '[PRE19]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Discoverable
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 可发现的
+- en: 'These are really simple components (and maybe unnecessary, you may argue, but
+    apps do tend to grow), and they illustrate how you start assembling the app from
+    little puzzle pieces. And since they exist, they should be in the discovery tool
+    (as shown in [Figure 7-7](#FIG0707)):'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些确实是非常简单的组件（也许是不必要的，你可能会争论，但应用程序确实会不断增长），它们展示了如何从小拼图开始组装应用程序。既然它们存在，它们应该出现在发现工具中（如
+    [图 7-7](#FIG0707) 所示）：
+- en: '[PRE20]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '![rur2 0707](Images/rur2_0707.png)'
+  id: totrans-97
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0707](Images/rur2_0707.png)'
+- en: Figure 7-7\. Starting to build the library of components
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-7\. 开始构建组件库
+- en: <Button> Component
+  id: totrans-99
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '`<Button>` 组件'
+- en: It’s not an exaggeration to generalize that every app needs a button. It’s often
+    a nicely styled vanilla HTML `<button>`, but sometimes it may have to be an `<a>`,
+    as was necessary in [Chapter 3](ch03.xhtml#ch3) for the download buttons. How
+    about making the new shiny `<Button>` take an optional `href` property? If present,
+    it renders an `<a>` underneath it all.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并非言过其实地概括，每个应用都需要一个按钮。它通常是一个样式良好的原生 HTML `<button>`，但有时可能需要是一个 `<a>`，就像在 [第三章](ch03.xhtml#ch3)
+    中下载按钮所需的那样。新的闪亮 `<Button>` 是否可以接受一个可选的 `href` 属性？如果有，它会在底层渲染一个 `<a>`。
+- en: 'In the spirit of test-driven development (TDD), you can start backwards by
+    defining example usage of the component in the `<Discovery>` component:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 符合测试驱动开发（TDD）精神，你可以从定义 `<Discovery>` 组件的示例使用开始：
+- en: '[PRE21]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: (Should we call it discovery-driven development, or DDD, then?)
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （那我们是不是应该称之为发现驱动开发，或者 DDD？）
+- en: Button.js
+  id: totrans-104
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Button.js
+- en: 'Let’s see *components/Button.js* in its entirety:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们完整地看一下 *components/Button.js*：
+- en: '[PRE22]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'This component is short, but there are a few things to note:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个组件很简短，但有几点需要注意：
+- en: It uses the `classnames` module (more to follow).
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它使用了 `classnames` 模块（后续会有更多内容）。
+- en: It uses a *function expression* syntax (`const Button = () => {}` as opposed
+    to `function Button() {}`). There’s really no reason to use this syntax in this
+    context; it’s up to you which syntax you prefer, but it’s nice to know it’s possible.
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它使用了函数表达式语法（`const Button = () => {}` 而不是 `function Button() {}`）。在这个上下文中真的没有理由使用这种语法；你可以选择自己喜欢的语法，但知道这种方式是可能的也是好的。
+- en: 'It uses the spread operator `...props` as a convenient way to say: whatever
+    properties were passed to `Button`, carry them over to the underlying HTML element.'
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它使用展开运算符 `...props` 作为一种方便的方式来表达：无论传递给 `Button` 的属性是什么，都将其传递到底层的 HTML 元素。
+- en: classnames Package
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: classnames 包
+- en: Remember this line?
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住这行吗？
+- en: '[PRE23]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: The `classnames` package gives you a helpful function when dealing with CSS
+    class names. It helps with the common task of having your component use its own
+    classes but is also flexible enough to allow customization via class names passed
+    by the parent.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`classnames` 包为处理 CSS 类名提供了一个有用的函数。它可以帮助组件使用自己的类名，同时也灵活到允许通过父组件传递的类名进行自定义。'
+- en: 'Bringing in the package to your CRA setup involves running:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将这个包引入你的 CRA 设置中需要运行：
+- en: '[PRE24]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Notice that your *package.json* is updated with the new dependency.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意你的 *package.json* 已经更新了新的依赖。
+- en: 'Using the package’s only function:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用包的唯一函数：
+- en: '[PRE25]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: This line merges the `Button` class name with any (if any) class names passed
+    as properties when creating the component (see [Figure 7-8](#FIG0708)).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这行代码将 `Button` 类名与创建组件时传递的任何（如果有的话）类名合并在一起（参见 [图 7-8](#FIG0708)）。
+- en: '![rur2 0708](Images/rur2_0708.png)'
+  id: totrans-121
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0708](Images/rur2_0708.png)'
+- en: Figure 7-8\. `<Button>` with a custom class name
+  id: totrans-122
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-8\. 带有自定义类名的`<Button>`
+- en: Note
+  id: totrans-123
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'You can always do it yourself and concatenate class names, but `classnames`
+    is a tiny package that makes it more convenient to do this common task. It also
+    lets you set class names conditionally, which is convenient too, for example:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你总是可以自己去做，并连接类名，但是`classnames`是一个小巧的包，更方便地完成这种常见任务。它还允许你有条件地设置类名，这也很方便，例如：
+- en: '[PRE26]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Forms
+  id: totrans-126
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 表单
+- en: 'Let’s move on to the next task, which is essential to any data-entry app: dealing
+    with forms. As app developers, we’re rarely satisfied with the look and feel of
+    the browser’s built-in form inputs and we tend to create our own versions. The
+    Whinepad app could not possibly be an exception.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们继续下一个任务，这对于任何数据录入应用程序都是必不可少的：处理表单。作为应用程序开发者，我们很少满足于浏览器内置表单输入的外观和感觉，因此我们倾向于创建我们自己的版本。Whinepad
+    应用程序当然也不例外。
+- en: Let’s have a generic `<FormInput>` component—a factory, if you will. Depending
+    on its `type` property, this component should delegate the input creation to more
+    specialized components, for example, `<Suggest>` input, `<Rating>` input, and
+    so on.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看一个通用的`<FormInput>`组件——可以说是一个工厂。根据它的`type`属性，这个组件应该将输入的创建委托给更专门的组件，例如，`<Suggest>`输入、`<Rating>`输入等。
+- en: Let’s start with the lower-level components.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从较低级别的组件开始。
+- en: <Suggest>
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '`<Suggest>`'
+- en: Fancy auto-suggest (a.k.a. typeahead) inputs are common on the Web, but let’s
+    keep it simple (as in [Figure 7-9](#FIG0709)) and piggyback on what the browser
+    already provides—namely, a [`<datalist>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/datalist)
+    HTML element.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网页上常见的高级自动建议（也称为类型提醒）输入很复杂，但我们可以简单一点（就像[图 7-9](#FIG0709)中一样），利用浏览器已经提供的东西——即[`<datalist>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/datalist)
+    HTML元素。
+- en: 'First things first—update the discovery app:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先要做的事情是——更新发现应用程序：
+- en: '[PRE27]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Now off to implementing the component in *components/Suggest.js*:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们去实现组件在*components/Suggest.js*中：
+- en: '[PRE28]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: As the preceding code demonstrates, there’s nothing special about this component;
+    it’s just a wrapper around an `<input>` with a `<datalist>` attached to it (via
+    the `randomid`).
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如前面的代码所示，这个组件并没有什么特别之处；它只是一个围绕着一个带有`<datalist>`的`<input>`的包装器（通过`randomid`连接）。
+- en: '![rur2 0709](Images/rur2_0709.png)'
+  id: totrans-137
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0709](Images/rur2_0709.png)'
+- en: Figure 7-9\. The `<Suggest>` input in action
+  id: totrans-138
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-9\. `<Suggest>`输入的示例
+- en: 'In terms of JavaScript syntax, this example shows how it’s possible to use
+    the *destructuring assignment* to assign more than one property to a variable
+    and at the same time define default values:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从JavaScript语法角度来看，这个例子展示了如何使用*解构赋值*来为一个变量赋值多个属性，并同时定义默认值：
+- en: '[PRE29]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: <Rating> Component
+  id: totrans-141
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '`<Rating>` 组件'
+- en: The app is about taking notes of things you try. The laziest way to take notes
+    is by using star ratings, for example a scale of whole numbers from 1 through
+    5, with 5 being the highest/best rating.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该应用程序是关于记录你尝试的事物。最懒的记笔记方法就是使用星级评分，例如从1到5的整数标度，5分为最高/最好评分。
+- en: 'This highly reusable component can be configured to:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个高度可重用的组件可以配置为：
+- en: Use any number of “stars.” Default is 5, but why not, say, 11?
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用任意数量的“星星”。默认是 5，但为什么不试试 11 呢？
+- en: Be read-only, because sometimes you don’t want accidental clicks on the stars
+    to change that all-important rating data.
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 保持只读，因为有时你不希望意外点击星星来改变那些重要的评分数据。
+- en: 'Test the component in the discovery tool (see [Figure 7-10](#FIG0710)):'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在发现工具中测试这个组件（见[图 7-10](#FIG0710)）：
+- en: '[PRE30]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '![rur2 0710](Images/rur2_0710.png)'
+  id: totrans-148
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0710](Images/rur2_0710.png)'
+- en: Figure 7-10\. A rating widget
+  id: totrans-149
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-10\. 评分小部件
+- en: 'The bare necessities of the implementation include setting up properties, their
+    types and default values, as well as the state to be maintained:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实施的基本要求包括设置属性、它们的类型和默认值，以及要维护的状态：
+- en: '[PRE31]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'Properties are self-explanatory: `max` is the number of stars, and `readonly`
+    makes the widget, well, read-only. The state contains `rating`, which is the current
+    value of stars assigned, and `tempRating`, which is to be used when the user moves
+    the mouse around the component but is not yet ready to click and commit to a rating.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 属性是不言自明的：`max`是星星的数量，`readonly`使得小部件只读。状态包含`rating`，即分配的当前星级值，以及`tempRating`，用户在组件周围移动鼠标但尚未点击提交评分时使用的临时值。
+- en: 'Next comes the rendering. It has:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是渲染。它有：
+- en: 'A loop to make stars between 1 and `props.max`. The stars are just the emoji
+    symbol `&#128514;`. When the `RatingOn` style is *not* applied, the stars become
+    grey with the help of a CSS filter (`filter: grayscale(0.9);`).'
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '循环生成星星，从1到`props.max`。星星只是表情符号`&#128514;`。当未应用`RatingOn`样式时，星星通过CSS滤镜变灰（`filter:
+    grayscale(0.9);`）。'
+- en: 'A hidden input to act as a real form input and let the value be harvestable
+    in a generic fashion (just like any old `<input>`):'
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 作为真正表单输入的隐藏输入，允许以通用方式获取其值（就像任何旧的`<input>`一样）：
+- en: '[PRE32]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: When the user moves the mouse over the component, the `tempRating` state is
+    getting updated, which changes the `RatingOn` class name. When the user clicks,
+    the real `rating` state is getting updated, which also updates the hidden input.
+    Leaving the component (on mouse out) abandons the `tempRating`, making it the
+    same as the `rating`.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户将鼠标移动到组件上时，`tempRating`状态会更新，从而改变`RatingOn`类名。当用户点击时，真正的`rating`状态也会更新，同时更新隐藏输入。离开组件（鼠标移出时），`tempRating`会被放弃，变成与`rating`相同。
+- en: Here you can also see an example of using conditional CSS class names with the
+    `classNames` function. The class `Rating` is always applied while the `RatingReadonly`
+    is applied only when the `readonly` prop is set to `true`.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里还可以看到使用`classNames`函数的条件性CSS类名的示例。`Rating`类始终应用，而`RatingReadonly`仅在将`readonly`属性设置为`true`时应用。
+- en: 'And here’s the relevant part of the CSS that deals with read-only and mouseover
+    behaviors:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是处理只读和鼠标悬停行为的相关CSS的部分：
+- en: '[PRE33]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: A <FormInput> “Factory”
+  id: totrans-161
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 一个 `<FormInput>`“工厂”
+- en: Next comes a generic `<FormInput>` that is capable of producing different inputs
+    based on the given properties. This will allow you to generalize the whole app
+    and turn it from taking wine notes to, say, managing your personal book library
+    via a simple configuration. More on this in a moment.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是一个通用的`<FormInput>`，根据给定的属性可以生成不同的输入。这将允许您将整个应用程序泛化，从撰写葡萄酒笔记转变为例如通过简单配置管理个人图书馆。稍后详细说明。
+- en: 'Testing the `<FormInput>` in the discovery app (see [Figure 7-11](#FIG0711)):'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在发现应用程序中测试`<FormInput>`（参见[图 7-11](#FIG0711)）：
+- en: '[PRE34]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: '![rur2 0711](Images/rur2_0711.png)'
+  id: totrans-165
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0711](Images/rur2_0711.png)'
+- en: Figure 7-11\. Form inputs
+  id: totrans-166
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-11\. 表单输入
+- en: 'The implementation of `<FormInput>` (found in *components/FormInput.js*) requires
+    the usual boilerplate of import, export, and `propTypes` for validation:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<FormInput>`的实现（位于*components/FormInput.js*中）需要常规的导入、导出和`propTypes`用于验证的样板文件：'
+- en: '[PRE35]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Note `PropTypes.oneOfType([])` in the prop types; it allows the component to
+    accept either strings or numbers for default values.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意`PropTypes.oneOfType([])`中的属性类型，它允许组件接受默认值为字符串或数字的任一类型。
+- en: 'The rendering is one big `switch` statement, which delegates the individual
+    input creation to a more specific component or falls back to the built-in DOM
+    elements `<input>` and `<textarea>`:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染部分是一个大的`switch`语句，它将个别的输入创建委托给更具体的组件，或者回退到内置的DOM元素`<input>`和`<textarea>`：
+- en: '[PRE36]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: As you can see, not much going on here; this component is just a convenience
+    wrapper that allows for implementation-agnostic definition of forms.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您所看到的，这里并没有太多事情；此组件只是一个方便的包装器，允许对表单进行实现无关的定义。
+- en: <Form>
+  id: totrans-173
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '`<Form>`'
+- en: 'Now you have:'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您有：
+- en: Custom inputs (e.g., `<Rating>`)
+  id: totrans-175
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 自定义输入（例如`<Rating>`）
+- en: Built-in inputs (e.g., `<textarea>`)
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 内置输入（例如`<textarea>`）
+- en: '`<FormInput>`—a factory that makes inputs based on the `type` property'
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`<FormInput>`—一个基于`type`属性制作输入的工厂'
+- en: It’s time to make them all work together in a `<Form>` (see [Figure 7-12](#FIG0712)).
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是时候在`<Form>`中使它们全部协同工作了（见[图 7-12](#FIG0712)）。
+- en: '![rur2 0712](Images/rur2_0712.png)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0712](Images/rur2_0712.png)'
+- en: Figure 7-12\. Form elements
+  id: totrans-180
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-12\. 表单元素
+- en: 'The form component should be reusable, so there shouldn’t be anything hardcoded
+    about the wine rating app. (To take it one step further, nothing about wine is
+    to be hardcoded, so the app can be repurposed to *whine* about anything.) The
+    `<Form>` component can be configured via an array of `fields`, where each field
+    is defined by:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表单组件应该是可重用的，因此关于葡萄酒评级应该没有任何硬编码的内容。（再进一步说，关于葡萄酒的任何内容也不应该被硬编码，这样应用程序可以被重新用于*抱怨*任何事情。）`<Form>`组件可以通过一个`fields`数组进行配置，其中每个字段由以下内容定义：
+- en: '`type`'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`'
+- en: The default is “input.”
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认是“input”。
+- en: '`id`'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`id`'
+- en: This is used so that the input can be found later.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是为了稍后可以找到输入。
+- en: '`label`'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`label`'
+- en: This is placed next to the input.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 放置在输入框旁边。
+- en: '`options`'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`options`'
+- en: These are passed to the auto-suggest input.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些被传递到自动建议输入框。
+- en: The `<Form>` also takes a map of default values and is capable of rendering
+    read-only, so the user cannot edit the fields.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<Form>` 还接受默认值映射，并能够渲染为只读，以便用户无法编辑字段。'
+- en: 'Starting with the boilerplate:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从样板开始：
+- en: '[PRE37]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Before moving on, let’s review a few new things in this code.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在继续之前，让我们回顾一下这段代码中的一些新内容。
+- en: 'Types: shape, objectOf, arrayOf'
+  id: totrans-194
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 类型：shape、objectOf、arrayOf
+- en: 'Note the use of `PropTypes.shape` in the prop types. It lets you be specific
+    in what you expect in a map/object. It’s more strict than just generalizing like
+    `PropTypes.object` and is certain to catch more errors before they occur as other
+    developers start using your components. Also note the use of the `PropTypes.objectOf`.
+    It’s similar to `arrayOf`, which lets you define that you expect an array containing
+    certain types of data. Here `objectOf` means that the component expects a `fields`
+    prop that is an object. And for every key-value pair in `fields`, the value is
+    expected to be another object that has `label`, `type`, and `options` properties,
+    something similar to:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 prop types 中注意使用 `PropTypes.shape`。它让你能够精确地定义期望的 map/object 结构。这比像 `PropTypes.object`
+    这样的泛化更加严格，并且可以在其他开发者开始使用你的组件之前捕获更多错误。另外，请注意使用 `PropTypes.objectOf`。它类似于 `arrayOf`，让你定义期望包含特定数据类型的数组。这里的
+    `objectOf` 意味着组件期望一个 `fields` prop，它是一个对象。对于 `fields` 中的每对键值对，值期望是另一个对象，该对象具有
+    `label`、`type` 和 `options` 属性，类似于：
+- en: '[PRE38]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'To summarize: `PropTypes.object` is any object, `PropTypes.shape` is an object
+    with predefined key (property) names, and `PropTypes.objectOf` is an object with
+    unknown keys but known types of values.'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下：`PropTypes.object` 是任何对象，`PropTypes.shape` 是一个具有预定义键名（属性）的对象，`PropTypes.objectOf`
+    是一个具有未知键名但已知值类型的对象。
+- en: Refs
+  id: totrans-198
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: Refs
+- en: 'And what about that `ref` business? Ref (short for reference) allows you to
+    access the underlying DOM element from React. It’s not recommended to overuse
+    this where you can rely on React. However, in this case we want to allow code
+    outside the form to do a generic loop over form inputs and collect the form data.
+    And there’s a bit of chain (or parents/children) to get there. For example, we
+    want the `<Discovery>` component to collect the form data. So the chain looks
+    like:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那个 `ref` 是怎么回事？Ref（引用）允许你从 React 中访问底层 DOM 元素。不建议在可以依赖 React 的地方滥用它。然而，在这种情况下，我们希望允许表单外的代码对表单输入进行通用循环和收集表单数据。还有一点要注意的是链式（或父/子级）关系。例如，我们希望
+    `<Discovery>` 组件收集表单数据。因此链条看起来像这样：
+- en: '[PRE39]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'Refs allows `Discovery` to get the input’s `value` in this way:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Refs 允许 `Discovery` 以这种方式获取输入的 `value`：
+- en: A ref object is created in `<Discovery>` using the hook `useRef()`.
+  id: totrans-202
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在 `<Discovery>` 中使用钩子 `useRef()` 创建一个 ref 对象。
+- en: The ref is passed to `<Form>` which grabs it thanks to the `forwardRef()` hook.
+  id: totrans-203
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: Ref 被传递给 `<Form>`，后者通过 `forwardRef()` 钩子抓取它。
+- en: The ref is *forwarded* to the HTML/DOM `<form>` element.
+  id: totrans-204
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将这个 ref *转发* 给 HTML/DOM `<form>` 元素。
+- en: '`<Discovery>` now has access to the underlying form DOM element via the `.current`
+    property of the ref object.'
+  id: totrans-205
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`<Discovery>` 现在通过 ref 对象的 `.current` 属性访问底层表单 DOM 元素。'
+- en: 'Here’s an example of using `<Form>` in the discovery tool:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是在探索工具中使用 `<Form>` 的示例：
+- en: '[PRE40]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: Now you can add a button that collects the data in the form using the `form`
+    ref and its property `form.current`. Because `form.current` gives you access to
+    the native form DOM node and native forms contain an array-like collection of
+    inputs, this means you can convert the form to an array (with `Array.from()`)
+    and iterate over this array. Each element in the array is a native DOM input element
+    and you can grab the value of the inputs using their `value` property. That was
+    also the reason why even “fancy” form inputs such as `Rating` also contain (and
+    update the value of) a hidden input element.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以添加一个按钮，使用 `form` ref 及其属性 `form.current` 收集表单中的数据。因为 `form.current` 给你访问原生表单
+    DOM 节点的能力，而原生表单包含一个类似数组的输入集合，这意味着你可以将表单转换为数组（使用 `Array.from()`）并遍历该数组。数组中的每个元素是一个原生
+    DOM 输入元素，你可以使用它们的 `value` 属性获取输入的值。这也是为什么即使是“高级”表单输入如 `Rating` 也包含（并更新）一个隐藏的输入元素。
+- en: '[PRE41]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: Clicking the button shows a message with a JSON string like `{"rateme":"4","freetext":"Hello"}`.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 点击按钮会显示一个类似 `{"rateme":"4","freetext":"Hello"}` 的 JSON 字符串的消息。
+- en: Wrapping up <Form>
+  id: totrans-211
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 封装 <Form>
+- en: 'Now back to the rendering part of the `<Form>`. It’s a loop over the `fields`
+    prop and renders either a read-only version of the `initialData` prop or a working
+    form by passing each field info to `<FormInput>`:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在回到 `<Form>` 的渲染部分。它是对 `fields` prop 的循环，并通过将每个字段信息传递给 `<FormInput>`，渲染出初始数据的只读版本或可工作的表单：
+- en: '[PRE42]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: You can see it’s relatively simple; the only complexity comes from rendering
+    the read-only rating widget instead of a simple value.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以看到这相对简单；唯一的复杂性来自于渲染只读评分小部件而不是简单的数值。
+- en: <Actions>
+  id: totrans-215
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: <操作>
+- en: 'Next to each row in the data table there should be actions (see [Figure 7-13](#FIG0713))
+    you can take on each row: delete, edit, and view (when not all the information
+    can fit in a row).'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在数据表格中的每一行旁边应该有操作（见[图 7-13](#FIG0713)），您可以对每一行执行：删除、编辑和查看（当所有信息无法适合一行时）。
+- en: '![rur2 0713](Images/rur2_0713.png)'
+  id: totrans-217
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0713](Images/rur2_0713.png)'
+- en: Figure 7-13\. Actions
+  id: totrans-218
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-13\. 操作
+- en: 'Here’s the `<Actions>` component being tested in the discovery tool:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是在发现工具中测试`<操作>`组件的情况：
+- en: '[PRE43]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'And the component in its entirety:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以及整个组件：
+- en: '[PRE44]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'As you can see, the actions are implemented as buttons. The component takes
+    a callback function as its `onAction` prop. When the user clicks a button, the
+    callback is invoked, passing a string identifying which button was clicked: `''info''`,
+    `''edit''`, or `''delete''`. This is a simple pattern for a child to inform its
+    parent of a change within the component. As you see, custom events (like `onAction`,
+    `onAlienAttack`, etc.) are just that simple.'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，操作是作为按钮实现的。该组件以`onAction`属性接受回调函数。当用户点击按钮时，将调用回调函数，传递标识哪个按钮被点击的字符串：`'info'`、`'edit'`或`'delete'`。这是子组件通知其父组件组件内部变化的简单模式。正如您所见，自定义事件（如`onAction`、`onAlienAttack`等）就是这么简单。
+- en: 'Next chapter is all about the data flow in your React app, but you already
+    know two ways to exchange data between parents and children: callback properties
+    (like `onAction`) and refs.'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一章将全面讨论React应用程序中的数据流，但您已经了解了两种在父组件和子组件之间交换数据的方法：回调属性（如`onAction`）和引用。
+- en: Dialogs
+  id: totrans-225
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 对话框
+- en: Next, let’s build a generic dialog component to be used for any sort of messages
+    (instead of `alert()`) or pop-ups (as depicted in [Figure 7-14](#FIG0714)). For
+    example, all add/edit forms could be presented in a modal dialog on top of the
+    data table.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们构建一个通用的对话框组件，用于显示任何类型的消息（而不是`alert()`）或弹出窗口（如[图 7-14](#FIG0714)所示）。例如，所有添加/编辑表单可以显示在数据表格的模态对话框中。
+- en: '![rur2 0714](Images/rur2_0714.png)'
+  id: totrans-227
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0714](Images/rur2_0714.png)'
+- en: Figure 7-14\. Dialogs
+  id: totrans-228
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-14\. 对话框
+- en: 'To test the dialogs in the `Discovery` component, just a bit of state is required
+    to manage if they are open or closed:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在`Discovery`组件中测试对话框，只需稍微修改状态以管理它们的打开或关闭：
+- en: '[PRE45]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'The implementation of a dialog doesn’t need to be too complicated, but let’s
+    make it interesting and add a few nice-to-have features:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对话框的实现并不需要太复杂，但让我们使其变得有趣，并添加一些不错的功能：
+- en: There’s a header with a title string coming from the the `header` prop.
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 有一个标题字符串的头部来自`header`属性。
+- en: There’s a body that is simply the children passed to `<Dialog>`.
+  id: totrans-233
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 有一个仅仅是传递给`<Dialog>`的子元素的主体。
+- en: 'The footer has *OK*/*Cancel* buttons: let’s call them `confirm` and `dismiss`.
+    Sometimes a dialog is merely an info message and you need only one button. The
+    prop `hasCancel` can define this. If it’s `false`, only the OK button is shown.'
+  id: totrans-234
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 底部有*确定*/*取消*按钮：让我们称它们为`confirm`和`dismiss`。有时对话框仅仅是一个信息提示，你只需要一个按钮。属性`hasCancel`可以定义这一点。如果它是`false`，则只显示确定按钮。
+- en: The `confirm` button can change the label via the `confirmLabel` prop. The `dismiss`
+    button always reads “Cancel.”
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`confirm`按钮可以通过`confirmLabel`属性更改标签。`dismiss`按钮始终显示“取消”。'
+- en: The dialog may be “modal,” meaning it takes over the whole app and nothing really
+    happens until it’s dismissed.
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对话框可以是“模态”的，意味着它占据整个应用程序，直到关闭为止。
+- en: An `onAction` prop (similar to the `<Actions>` component) can pass the user’s
+    action to the parent component.
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个`onAction`属性（类似于`<操作>`组件）可以将用户的操作传递给父组件。
+- en: The user can dismiss the dialog by hitting Escape or clicking outside the dialog.
+    This is a nice and expected feature but sometimes may not be desirable. For example,
+    what if you type extensively in a dialog, producing some of your best prose, and
+    suddenly you hit Escape? All is lost! The decision about the behavior of the dialog
+    should be left to the developer using the component. The `Dialog` can merely enable
+    this *extended* behavior (hitting Escape or clicking outside) if requested by
+    the developer via the `extendedDismiss` prop.
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户可以通过按下Escape键或点击对话框外部来关闭对话框。这是一个不错且预期的功能，但有时可能不可取。例如，如果在对话框中大量输入，写出了一些你最好的散文，然后突然按下Escape键？一切都丢失了！对话框行为的决定应留给使用该组件的开发人员。`Dialog`可以仅在通过`extendedDismiss`属性请求时启用这种*扩展*行为（按下Escape或点击外部）。
+- en: 'The `import`/`export`/`props` setup could look like so:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`import`/`export`/`props`设置可以如下所示：'
+- en: '[PRE46]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'The rendering is not too complicated; it’s a conditional CSS when the dialog
+    is modal and some conditional buttons display:'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染并不复杂；它是一个条件性的CSS，当对话框是模态时显示一些条件性按钮：
+- en: '[PRE47]'
+  id: totrans-242
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Finally, the *extended* functionality where the user can interact with the
+    Escape key or click outside the dialog body is implemented in a `useEffect()`
+    hook. This hook will be executed only once, when the dialog renders, and is responsible
+    for setting up (and cleaning up) DOM event listeners. As you already know, the
+    general `useEffect()` template is:'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，用户可以通过`Escape`键或点击对话框体外部与其交互的*扩展*功能是在`useEffect()`钩子中实现的。这个钩子将仅在对话框渲染时执行一次，并负责设置（和清理）DOM事件侦听器。如您已经知道的那样，一般的`useEffect()`模板是：
+- en: '[PRE48]'
+  id: totrans-244
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Armed with this template, the implementation could be something like:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 带有此模板，实现可能如下：
+- en: '[PRE49]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Here are a couple of alternative ideas:'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一些替代想法：
+- en: Instead of a single `onAction`, another option is to provide `onConfirm` (user
+    clicks OK) and `onDismiss`.
+  id: totrans-248
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 与单个`onAction`不同，另一个选项是提供`onConfirm`（用户单击确定）和`onDismiss`。
+- en: The wrapper `div` has a conditional and a non-conditional class name. The component
+    could possibly benefit from the `classnames` module, as follows.
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包装的`div`具有条件和非条件类名。组件可能受益于`classnames`模块，如下所示。
+- en: 'Before:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前：
+- en: '[PRE50]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'After:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '之后:'
+- en: '[PRE51]'
+  id: totrans-253
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Header
+  id: totrans-254
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 标题
+- en: 'At this point, all the lowest-level components are done. Before tackling the
+    big one, `Excel`, let’s add a convenient `Header` component made up of logo, search
+    box, and an “Add” button to add new records to the data table:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一点上，所有最底层的组件都已完成。在着手处理大组件`Excel`之前，让我们添加一个方便的`Header`组件，由标志、搜索框和“添加”按钮组成，用于向数据表格添加新记录：
+- en: '[PRE52]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: As you can see, the header doesn’t do any searching or adding to the data, but
+    it offers callbacks for its parent to do the data management.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，标题不执行任何搜索或添加数据的操作，但为其父组件提供回调以进行数据管理。
+- en: App Config
+  id: totrans-258
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 应用配置
+- en: It would be a good idea to divorce the Whinepad app from the wine-specific subject
+    matter and make it a reusable CRUD way of managing any sort of data. There should
+    be no hardcoded data fields. Instead, a `schema` object can be a description of
+    the type of data you want to deal with in the app.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最好将Whinepad应用程序与特定于葡萄酒的主题分离，并使其成为管理任何类型数据的可重用CRUD方法。不应该有硬编码的数据字段。而是，`schema`对象可以是您想在应用程序中处理的数据类型的描述。
+- en: 'Here’s an example (*src/config/schema.js*) to get you off the ground with a
+    wine-oriented app:'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个例子（*src/config/schema.js*），可以帮助您启动一个面向葡萄酒的应用程序：
+- en: '[PRE53]'
+  id: totrans-261
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'This is an example of one of the simplest ECMAScript modules you can imagine—one
+    that exports a single variable. It also imports another simple module that contains
+    some lengthy options to prefill in the forms (*src/config/classification.js*).
+    Just to keep the `schema` shorter and easier to read:'
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是您可以想象的最简单的ECMAScript模块之一，它导出一个变量。它还导入了另一个简单的模块，其中包含一些用于在表单中预填的选项（*src/config/classification.js*）。只是为了保持`schema`更短并更易读：
+- en: '[PRE54]'
+  id: totrans-263
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: With the help of the `schema` module, you can now configure what type of data
+    you want to manage in the app.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助`schema`模块的帮助，您现在可以配置您想在应用程序中管理的数据类型。
+- en: '<Excel>: New and Improved'
+  id: totrans-265
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '`<Excel>：新版`'
+- en: 'And now comes the meat of the app, the data table that does most of the work:
+    everything in CRUD, except the C (create).'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是应用程序的主要部分，数据表格负责大部分工作：CRUD 操作中的一切，除了创建（C）。
+- en: 'Using the new `<Excel>` in `<Discovery>` so it can be tested independently
+    of the whole app:'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`<Discovery>`中使用新的`<Excel>`，以便可以独立于整个应用程序进行测试：
+- en: '[PRE55]'
+  id: totrans-268
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: As you can see, all the data configuration comes from the `schema`, including
+    three samples of the data being passed as the `initialData` prop to be used for
+    testing. And then there’s the `onDataChange` callback prop, which enables the
+    parent of the component to manage the data as a whole and perform tasks such as
+    writing it to a database or `localStorage`. For the purposes of discovery and
+    testing, `console.log()` is enough.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，所有数据配置都来自`schema`，包括作为`initialData`属性传递用于测试的三个数据样本。然后是`onDataChange`回调属性，使得组件的父组件能够管理整体数据并执行诸如将其写入数据库或`localStorage`的任务。对于发现和测试的目的，`console.log()`已足够。
+- en: Figures [7-15](#FIG0715) through [7-18](#FIG0718) show how `Excel` looks and
+    behaves in the discovery tool.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图 [7-15](#FIG0715) 到 [7-18](#FIG0718) 展示了`Excel`在发现工具中的外观和行为。
+- en: '![rur2 0715](Images/rur2_0715.png)'
+  id: totrans-271
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0715](Images/rur2_0715.png)'
+- en: Figure 7-15\. `Excel` component rendered in `Discovery` with sample data coming
+    from `schema`
+  id: totrans-272
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图7-15. `Excel`组件在`Discovery`中呈现，样本数据来自`schema`
+- en: '![rur2 0716](Images/rur2_0716.png)'
+  id: totrans-273
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0716](Images/rur2_0716.png)'
+- en: Figure 7-16\. Editing an item using `Form` in a `Dialog`
+  id: totrans-274
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-16. 在 `Dialog` 中使用 `Form` 编辑项目
+- en: '![rur2 0717](Images/rur2_0717.png)'
+  id: totrans-275
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0717](Images/rur2_0717.png)'
+- en: 'Figure 7-17\. Viewing details for an item: same `Form` but rendered read-only'
+  id: totrans-276
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-17. 查看项目详细信息：相同的 `Form` 但以只读方式呈现
+- en: '![rur2 0718](Images/rur2_0718.png)'
+  id: totrans-277
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0718](Images/rur2_0718.png)'
+- en: Figure 7-18\. Confirmation when clicking the delete `Action`
+  id: totrans-278
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-18. 点击删除 `Action` 时的确认
+- en: The Overall Structure
+  id: totrans-279
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 整体结构
+- en: 'The familiar structure is imports at the top, export at the end, and an `Excel`
+    function for the rendering. Additionally, the component manages a bit of state:'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 熟悉的结构是顶部的导入，底部的导出以及用于渲染的 `Excel` 函数。此外，组件管理了一些状态：
+- en: Is the data sorted? How?
+  id: totrans-281
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数据是否已排序？如何排序？
+- en: Is there a dialog open? What’s in it?
+  id: totrans-282
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 是否有打开的对话框？里面有什么？
+- en: Is the user editing inline in the table?
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户是否在表格内联编辑？
+- en: The data!
+  id: totrans-284
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数据！
+- en: 'The data state is managed by a reducer and for everything else, there’s `useState()`.
+    Inline in the `Excel` function there are a few helper functions to isolate some
+    of the state handling code:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据状态由 reducer 管理，对于其他一切，使用 `useState()`。在 `Excel` 函数内联中，有一些辅助函数用于隔离一些状态处理代码。
+- en: '[PRE56]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: Rendering
+  id: totrans-287
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 渲染
+- en: 'Let’s start with the rendering portion of the component. There’s an overall
+    `div` to help with the styling and in it there’s a `table` and (optionally) a
+    dialog, the content of which comes from the `dialog` state. This means that when
+    calling `setDialog()` (given by `useState()`), you pass the content of the dialog
+    to be rendered (e.g., `setDialog(<Dialog />)`):'
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从组件的渲染部分开始。有一个总体的 `div` 用于帮助样式化，在其中有一个 `table` 和（可选的）对话框，其内容来自 `dialog` 状态。这意味着在调用
+    `setDialog()`（由 `useState()` 提供）时，您传递要呈现的对话框内容（例如 `setDialog(<Dialog />)`）：
+- en: '[PRE57]'
+  id: totrans-289
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: Rendering the table head
+  id: totrans-290
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 渲染表头
+- en: 'The table head is similar to what you’ve seen in previous chapters except now
+    the header labels come from `schema` passed as a prop to `Excel`:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表头与前几章节类似，不同之处在于表头标签现在来自于作为属性传递给 `Excel` 的 `schema`：
+- en: '[PRE58]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'The `sorting` variable comes from the state and affects which headers get a
+    sorting arrow and in which direction. The whole header (`<thead>`) has an `onClick`
+    handler that calls the `sort()` helper function:'
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`sorting` 变量来自状态，并影响哪些标题获得排序箭头以及排序方向。整个表头 (`<thead>`) 有一个 `onClick` 处理程序，调用
+    `sort()` 辅助函数：'
+- en: '[PRE59]'
+  id: totrans-294
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: Rendering the table body
+  id: totrans-295
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 渲染表体
+- en: The table body (`<tbody>`) consists of table rows (`<tr>`) with table cells
+    within them (`<td>`). The last cell in each row is reserved for `<Actions>`. You
+    need two loops, one for rows and one for cells (columns) within the row.
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表体 (`<tbody>`) 包含了表行 (`<tr>`)，每行内有表格单元 (`<td>`)。每行的最后一个单元格保留给 `<Actions>`。您需要两个循环，一个用于行，另一个用于行内的单元格（列）。
+- en: 'After some tweaking of the content of each cell (you’ll see it in the next
+    section), you’re ready to define the `<td>`:'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调整每个单元格的内容之后（您将在下一节中看到），您可以定义 `<td>`：
+- en: '[PRE60]'
+  id: totrans-298
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: Most of the effort goes to defining CSS class names. They are conditional on
+    the `schema`, for example how the various data is aligned in the cells (left of
+    center).
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大部分工作用于定义 CSS 类名。它们根据 `schema` 条件而定，例如各种数据在单元格中的对齐方式（左边或居中）。
+- en: The oddest-looking class name definition is the `schema-${cell}`. This is optional
+    but a nice touch that provides an extra CSS class name for each data type in case
+    the developer needs something specific. The syntax may look odd, but it’s the
+    ECMAScript way of defining dynamic (*computed*) object property names using the
+    `[]` in combination with a template string.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最奇怪的类名定义是 `schema-${cell}`。这是可选的，但是对于开发者来说，它提供了一个额外的 CSS 类名，用于每种数据类型，以防需要特定的内容。语法可能看起来奇怪，但这是
+    ECMAScript 的一种定义动态（计算）对象属性名称的方式，使用 `[]` 与模板字符串结合。
+- en: 'In the end, the resulting DOM of an example cell would look something like
+    this:'
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，示例单元格的结果 DOM 看起来大致如下：
+- en: '[PRE61]'
+  id: totrans-302
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: All the cells are editable except the hard-coded actions and the ratings because
+    you don’t want accidental clicks to change the rating.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有单元格都是可编辑的，除了硬编码的操作和评分，因为您不希望意外点击更改评分。
+- en: Tweaking and filtering of content
+  id: totrans-304
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 调整和过滤内容
+- en: 'Let’s address the two `TODO` comments in the table rendering. First the tweaking
+    of content, which happens in the inner loop:'
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们解决表格渲染中的两个 `TODO` 注释。首先是内容调整，发生在内部循环中：
+- en: '[PRE62]'
+  id: totrans-306
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: You have a boolean `show` config coming from the schema. It’s helpful when you
+    have too many columns to show in a single table. In this case, the comments for
+    each item in the table may be too long and make the table hard to parse by the
+    user. So it’s not shown in the table, though it’s still available (in the View
+    Details action) and editable via the Edit action.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您有一个来自模式的布尔值`show`配置。当您有太多列要在单个表格中显示时，这将很有帮助。在这种情况下，表格中每个项目的注释可能太长，使得用户很难解析该表格。因此，它不会显示在表格中，但仍可通过“查看详细信息”操作进行查看和通过“编辑”操作进行编辑。
+- en: Next, if the user has double-clicked to edit the data inline (bringing the table
+    into an edit state), you show a form. Otherwise, just the text content, unless
+    it’s the rating cell. It’s friendlier to show the “star” rating component, rather
+    than simple text (e.g., “5” or “2”) like all other cells.
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，如果用户双击以内联编辑数据（将表格置于编辑状态），则会显示一个表单。否则，只显示文本内容，除非是评级单元格。显示“星级”评分组件更友好，而不是像其他所有单元格一样简单的文本（例如，“5”或“2”）。
+- en: As for the second `TODO`, it’s the filtering of the data as a result of the
+    user’s search string. In the previous chapter there were separate input fields
+    for filtering per column. In the real app, let’s have a single search input in
+    the header and pass what the user types to the data table. The implementation
+    is about going through each column in a row and attempting to match with the search
+    string passed as a `filter` prop. If no match is found, the whole row is removed
+    from the table.
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 至于第二个`TODO`，它是用户搜索字符串的结果数据过滤。在前一章节中，每列有单独的输入字段用于过滤。在真实应用程序中，让我们在标题中只有一个单一的搜索输入，并将用户输入的内容传递给数据表。实现是关于遍历每行中的每列，并尝试与作为`filter`属性传递的搜索字符串匹配。如果没有找到匹配项，则整行将从表中移除。
+- en: '[PRE63]'
+  id: totrans-310
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: And why is this filtering done here, as opposed to in the reducer function?
+    It’s a personal choice dictated to an extent by the double-calling of the reducer,
+    which React does in “strict” mode.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么这个过滤在这里完成，而不是在 reducer 函数中？这是一个个人选择，在某种程度上是由于 reducer 的双调用，React 在“严格”模式下会这样做。
+- en: React.Strict and Reducers
+  id: totrans-312
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: React.Strict 和 Reducers
+- en: '`Excel` uses a `reducer()` for various data manipulations. At the end of every
+    manipulation, it invokes the `onDataChange` callback passed to the component.
+    That’s how parents of `Excel` can be notified about data changes.'
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Excel`使用`reducer()`进行各种数据操作。在每次操作结束时，它会调用传递给组件的`onDataChange`回调函数。这就是`Excel`的父级如何被通知数据变化的方式。'
+- en: '[PRE64]'
+  id: totrans-314
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'And this is what was in `<Discovery>`:'
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 `<Discovery>` 中的内容：
+- en: '[PRE65]'
+  id: totrans-316
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: If you test the component with the console open, you’ll see that for every change
+    there are two identical entries in the log (see [Figure 7-19](#FIG0719) for an
+    example).
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在打开控制台的情况下测试组件，您会发现每次更改都会有两个相同的条目记录（参见[图 7-19](#FIG0719)的示例）。
+- en: '![rur2 0719](Images/rur2_0719.png)'
+  id: totrans-318
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0719](Images/rur2_0719.png)'
+- en: Figure 7-19\. Two console messages after changing “$2 Chuck” to “$2 Chucks”
+  id: totrans-319
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-19\. 在将“$2 Chuck”更改为“$2 Chucks”后的两条控制台消息
+- en: 'This happens because in strict mode while in development, React calls your
+    reducer twice. If you look back to *index.js* generated by CRA, the whole app
+    is wrapped in `<React.StrictMode>`:'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是因为在开发时的严格模式下，React 会将您的 reducer 调用两次。如果您回顾由 CRA 生成的 *index.js*，整个应用程序都包裹在
+    `<React.StrictMode>`中：
+- en: '[PRE66]'
+  id: totrans-321
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'You can remove the wrapper:'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以移除包装器：
+- en: '[PRE67]'
+  id: totrans-323
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: Now the console will have only one log message.
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在控制台只会有一条日志消息。
+- en: 'This double invocation is React helping you uncover impurities in your reducer.
+    The reducer must be *pure*: given the same data, it should return the same results.
+    This is a great (again, development-only) feature and you should be on the lookout
+    for impurities. Once you build your app, there’s no more double-calling.'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种双调用是 React 帮助您发现 reducer 中的杂质。reducer 必须是*纯粹*的：对于相同的数据，它应该返回相同的结果。这是一个很棒的（再次强调，仅在开发时）功能，您应该警惕其中的杂质。一旦构建您的应用程序，就不会再有双调用了。
+- en: In this case (logging changes) the impurity is tolerable. But in other cases,
+    it may not be. For example, let’s say you pass an array to the reducer and it
+    removes the last array element before returning the array. The returned array
+    is the same object in memory and if you pass it again to the reducer, it will
+    remove yet another element. This is not the expected behavior.
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下（记录更改），杂质是可以容忍的。但在其他情况下，可能不行。例如，假设您将一个数组传递给 reducer 并在返回数组之前移除了最后一个数组元素。返回的数组在内存中是相同的对象，如果再次将其传递给
+    reducer，则会再次移除另一个元素。这不是预期的行为。
+- en: In the next chapter you’ll see a different way (using *contexts*) to communicate
+    between parent and child components, beyond the callback props you’ve seen so
+    far in the book. This will help avoid the double-calling problem. Still, for education
+    purposes and for simple callbacks (e.g., `<Dialog onAction...>`), using props
+    is fine, so let’s continue with them for just a bit longer.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，您将看到一种不同的方式（使用*contexts*）在父子组件之间进行通信，超出了您在本书中到目前为止看到的回调props。这将有助于避免双重调用问题。不过，出于教育目的和简单的回调（例如，`<Dialog
+    onAction...>`），暂时继续使用props是可以的。
+- en: Note
+  id: totrans-328
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: “What’s with the timeout?” you may ask. Whenever there is a `setTimeout` with
+    no 0 milliseconds actual timeout, chances are there’s a bit of a workaround going
+    on. This code is no exception and it has to do, again, with the parent-child communication.
+    We will discuss and fix this in Chapter 8.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “超时是怎么回事？”你可能会问。每当有一个不带0毫秒实际超时的`setTimeout`时，很可能存在一些变通方法。这段代码也不例外，它再次涉及到父子通信。我们将在第8章讨论并解决这个问题。
+- en: As you can see, we uncovered the interesting problem that comes with reducers
+    and strict mode. And in the future you’ll know where to look for potential reducer
+    problems in your apps. If you see something off and it looks like something is
+    happening twice, a quick debug exercise is to remove `<React.StrictMode>` and
+    see if the problem goes away. If so, time for another look at your reducers.
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，我们揭示了在reducers和strict mode下出现的有趣问题。在未来，您将知道在应用程序中查找reducers问题的可能位置。如果发现有什么异常，看起来某些事情发生了两次，一个快速的调试练习就是删除`<React.StrictMode>`，看看问题是否消失。如果是这样，就是时候再次审视您的reducers了。
+- en: Excel’s Little Helpers
+  id: totrans-331
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Excel的小帮手
+- en: Now back to `Excel`. At this point the rendering is done. It’s time to take
+    a look at a few functions that you saw commented out in the initial code listing,
+    namely the `reducer()` function and the helpers `sort()`, `showEditor()`, `save()`,
+    and `handleAction()`.
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在回到`Excel`。在这一点上，渲染已经完成。现在是时候看看在初始代码清单中注释掉的几个函数了，即`reducer()`函数和帮助函数`sort()`、`showEditor()`、`save()`和`handleAction()`。
+- en: sort()
+  id: totrans-333
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '`sort()`'
+- en: 'In fact, there was already a discussion of `sort()`. It’s a callback for clicking
+    on table headers:'
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，已经讨论过`sort()`的问题。它是点击表头时的回调函数：
+- en: '[PRE68]'
+  id: totrans-335
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: The general task is to figure out what happened (user clicked a header, which
+    one?), then update the state (call `setSorting()` provided by `useState()` to
+    draw the sorting arrows) and `dispatch()` an event to be handled by the reducer.
+    The reducer’s task is to do the actual sorting.
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体任务是弄清发生了什么（用户点击了表头，哪一个？），然后更新状态（调用由`useState()`提供的`setSorting()`以绘制排序箭头），并`dispatch()`一个事件以供`reducer`处理。`reducer`的任务是执行实际的排序。
+- en: showEditor()
+  id: totrans-337
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '`showEditor()`'
+- en: 'Another short helper function is `showEditor()`. It’s called when the user
+    double-clicks a cell and changes the state so an inline input field is shown:'
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个短小的辅助函数是`showEditor()`。当用户双击单元格并更改状态时，会调用它，以显示内联输入字段：
+- en: '[PRE69]'
+  id: totrans-339
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: Because this function is called for all clicks anywhere in the table (`<tbody
+    onDoubleClick={showEditor}>`) you need to filter out cases where no inline form
+    is desirable, namely, the rating (no inline rating of items) and anywhere in the
+    action column. Action columns don’t have associated schema configuration so `!config`
+    takes care of this case. For all other cells, `setEdit()` is called, which updates
+    the state identifying which cell is to be edited. Since this is a rendering-only
+    change, the reducer doesn’t get involved and so no `dispatch()` is necessary.
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于此函数适用于表格中任何位置的所有点击事件（`<tbody onDoubleClick={showEditor}>`），您需要过滤出不希望显示内联表单的情况，即评分（不对项目进行内联评分）和操作列中的任何位置。操作列没有关联的模式配置，所以`!config`处理了这种情况。对于所有其他单元格，将调用`setEdit()`，该函数更新标识要编辑哪个单元格的状态。由于这只是渲染层面的变化，所以不涉及到`reducer`，因此不需要调用`dispatch()`。
+- en: save()
+  id: totrans-341
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '`save()`'
+- en: 'Next, the `save()` helper. It’s invoked when the user is done with inline editing
+    and submits the inline form by hitting Enter (`<form onSubmit={save}>`). Similarly
+    to `sort()`, `save()` needs to know what happened (what was submitted) and then
+    update the state (`setEdit()`) and `dispatch()` an event for the reducer to update
+    the data:'
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是`save()`辅助函数。当用户完成内联编辑并通过按Enter键提交内联表单时调用它（`<form onSubmit={save}>`）。类似于`sort()`，`save()`也需要知道发生了什么（提交了什么），然后更新状态（`setEdit()`）并`dispatch()`一个事件给`reducer`来更新数据：
+- en: '[PRE70]'
+  id: totrans-343
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: Figuring out the `valueType` helps the reducer write integers versus strings
+    in the data, since all form values come as strings from the DOM.
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 弄清`valueType`有助于`reducer`在数据中写入整数与字符串，因为所有表单值都作为字符串从DOM中获取。
+- en: handleAction()
+  id: totrans-345
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: '`handleAction()`'
+- en: 'Next, the `handleAction()` method. It is the longest, but it’s not too complex.
+    It needs to deal with three types of actions: delete, edit, and view info. Edit
+    and info are close in implementation as the info is a read-only form. Let’s start
+    with deleting:'
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是`handleAction()`方法。它是最长的，但并不太复杂。它需要处理三种类型的动作：删除、编辑和查看信息。编辑和信息在实现上很接近，因为信息是一个只读表单。我们先从删除开始：
+- en: '[PRE71]'
+  id: totrans-347
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: Clicking the Delete action brings up a `<Dialog>` saying “Are you sure?” by
+    updating the state with `setDialog()` and passing a `<Dialog>` component as the
+    dialog state. Regardless of the answer (the dialog’s `onAction`) the dialog is
+    dismissed by passing a `null` dialog (`setDialog(null)`). But if the action was
+    “confirm,” then an event is dispatched to the reducer.
+  id: totrans-348
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单击删除动作会弹出一个`<Dialog>`，显示“确定吗？”通过更新状态并通过`setDialog()`传递`<Dialog>`组件作为对话状态。无论答案如何（对话框的`onAction`），都可以通过传递`null`对话框来关闭对话框（`setDialog(null)`）。但如果操作是“确认”，则会向减少器发送一个事件。
+- en: If the user’s action is for editing or viewing a data row, a new `<Dialog>`
+    is created, one that has a form for editing. The form is read-only when simply
+    viewing the data. The user can then dismiss the dialog, abandoning any changes
+    (which is the only option when viewing) or saving the changes. Saving means another
+    dispatch, which includes a `ref` to the form, so the reducer can harvest the form
+    data.
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户的操作是编辑或查看数据行，会创建一个新的`<Dialog>`，其中包含一个编辑表单。当仅查看数据时，表单是只读的。用户可以关闭对话框，放弃任何更改（这是查看时的唯一选项），或保存更改。保存意味着另一个调度，其中包括对表单的`ref`，以便于减少器收集表单数据。
+- en: '[PRE72]'
+  id: totrans-350
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: reducer()
+  id: totrans-351
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 减少器（reducer）
+- en: 'Finally, the almighty reducer. It’s similar to what you already saw toward
+    the end of [Chapter 4](ch04.xhtml#ch4). The sorting and inline editing parts are
+    pretty much the same, the filtering is gone and moved to the rendering of the
+    table, and there’s now a way to delete rows and to save the editing form:'
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，全能的减少器。它与你已经在[第四章](ch04.xhtml#ch4)末尾看到的内容相似。排序和内联编辑部分基本相同，过滤已经移动到表格的呈现中，并且现在有一种删除行和保存编辑表单的方法：
+- en: '[PRE73]'
+  id: totrans-353
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: The last two lines were already discussed above. The rest is all about array
+    manipulation. The reducer is called with the current data and some payload describing
+    what happened, and it acts on that information.
+  id: totrans-354
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后两行已经在上面讨论过了。其余内容都与数组操作有关。减少器被调用时，使用当前数据和一些描述发生情况的有效载荷，并根据该信息执行操作。
+- en: One thing to note is how the *delete* action is the only one doing the cloning
+    of the original array. This goes back to the discussion above about the double-calling
+    of the reducer. All other actions can get away with modifying the array as they
+    have an exact row/column to modify. Or, in the case of sorting, no data pieces
+    are being modified. So asking twice, “Please update column 1, row 2, with value
+    2018” has the same effect every time. However, all the rows are just zero-indexed
+    array elements. When you have elements 0, 1, and 2 and you delete 1, then you
+    have 0, 1\. And so deleting `id` 1 twice deletes two elements. Cloning the array
+    before deletion solves this by producing a new array object. The double-calling
+    happens both times with the original `data`, not with the `data` returned by the
+    first call, so removing `id` 1 from 0, 1, 2 and again from 0, 1, 2\. Tiny details
+    like this when it’s a combination of React strict and the way objects (and arrays
+    are objects too) work in JavaScript may cause trouble. So be extra diligent when
+    modifying with arrays and objects in your reducers.
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的一点是*删除*操作是唯一执行原始数组克隆的操作。这回到了上面关于减少器双调用的讨论。所有其他操作都可以修改数组，因为它们有一个精确的行/列要修改。或者在排序的情况下，不修改任何数据片段。因此，两次询问“请更新列1，行2，值为2018”的结果每次都一样。然而，所有行只是零索引数组元素。当你有元素0、1和2，删除1后，你有0、1。因此，两次删除`id`为1的操作会删除两个元素。通过在删除之前克隆数组来解决这个问题，从而生成一个新的数组对象。双调用发生在原始的`data`上，而不是第一次调用返回的`data`上，因此从0、1、2中删除`id`为1，再次从0、1、2中删除`id`为1。这类微小的细节，当它是React严格模式与JavaScript中对象（数组也是对象）工作方式的结合时，可能会带来麻烦。因此，在修改减少器中的数组和对象时，务必格外小心。
+- en: And with this, the last component in the app is done and it’s time to put them
+    all together to create a working app.
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这一步，应用程序中的最后一个组件完成了，现在是时候将它们全部放在一起创建一个可工作的应用程序了。

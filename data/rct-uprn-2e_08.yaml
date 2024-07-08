@@ -1,0 +1,1670 @@
+- en: Chapter 8\. The Finished App
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章。完成的应用程序
+- en: All the components of the new app are done and testable in the discovery tool
+    (*http://localhost:3000/discovery*). Now it’s time to put them all together into
+    a working application (available in the browser as *http://localhost:3000/*).
+    [Figure 8-1](#FIG0801) shows the desired result when the user loads the app for
+    the first time. There is a single row of default data coming from schema’s samples
+    to demonstrate the purpose of the app to the user.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新应用程序的所有组件都已完成并可以在发现工具中进行测试（*http://localhost:3000/discovery*）。现在是时候将它们集成到一个工作应用程序中（在浏览器中可用作
+    *http://localhost:3000/*）。[图 8-1](#FIG0801) 显示了用户首次加载应用程序时的期望结果。从模式示例中获取的默认数据的单行用于向用户展示应用程序的目的。
+- en: '![rur2 0801](Images/rur2_0801.png)'
+  id: totrans-2
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0801](Images/rur2_0801.png)'
+- en: Figure 8-1\. Loading the finished app for the first time
+  id: totrans-3
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. 首次加载完成的应用程序
+- en: '[Figure 8-2](#FIG0802) shows the dialog that pops up when the user clicks the
+    + ADD WHINE button.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 8-2](#FIG0802) 显示了当用户单击 + 添加红葡萄酒按钮时弹出的对话框。'
+- en: '![rur2 0802](Images/rur2_0802.png)'
+  id: totrans-5
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0802](Images/rur2_0802.png)'
+- en: Figure 8-2\. Adding a new record
+  id: totrans-6
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2\. 添加新记录
+- en: '[Figure 8-3](#FIG0803) shows the state of the app after the user has added
+    one more row.'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 8-3](#FIG0803) 显示了用户添加了一行后应用程序的状态。'
+- en: '![rur2 0803](Images/rur2_0803.png)'
+  id: totrans-8
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0803](Images/rur2_0803.png)'
+- en: Figure 8-3\. Two records in the table
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. 表中的两条记录
+- en: 'Since you already have the header, body, the table component `Excel`, and the
+    dialog component, the rendering is merely a question of assembling them, like
+    so:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于你已经有了头部、主体、表格组件 `Excel` 和对话框组件，所以渲染只是简单地组装它们，如下所示：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Then the main task is providing the correct props to these components and taking
+    care of the data flow between them. Let’s create a component called `DataFlow`
+    to take care of all this. `DataFlow` should have all the data and can pass it
+    to `<Excel>` and to `<Header>` (which needs to know the number of records for
+    the search field’s placeholder). When the user changes the data in the table,
+    `Excel` notifies the parent `DataFlow` via the `onDataChange` prop. When the user
+    adds a new record using the `Dialog` in `DataFlow`, then the updated data is passed
+    to `Excel` thanks to the `onAction` callback. [Figure 8-4](#FIG0804) shows this
+    flow of data as a diagram.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主要任务是为这些组件提供正确的属性，并处理它们之间的数据流。让我们创建一个名为 `DataFlow` 的组件来处理所有这些。`DataFlow` 应该包含所有数据，并可以将其传递给
+    `<Excel>` 和 `<Header>`（后者需要知道搜索字段的占位符的记录数）。当用户在表格中更改数据时，`Excel` 通过 `onDataChange`
+    属性通知父级 `DataFlow`。当用户在 `DataFlow` 中使用 `Dialog` 添加新记录时，通过 `onAction` 回调将更新后的数据传递给
+    `Excel`。[图 8-4](#FIG0804) 将此数据流程展示为图表。
+- en: '![rur2 0804](Images/rur2_0804.png)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0804](Images/rur2_0804.png)'
+- en: Figure 8-4\. Flow of data
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-4\. 数据流
+- en: Another bit of information to be passed around by `DataFlow` is the search (filter)
+    string typed in the header’s search box. `DataFlow` takes it from the `Header`’s
+    `onSearch` callback and passes it to `Excel` as the `filter` property, which is
+    shown in [Figure 8-5](#FIG0805).
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`DataFlow`还需要传递由头部搜索框中输入的搜索（过滤）字符串。`DataFlow`从头部的`onSearch`回调中获取它，并将其作为`Excel`的`filter`属性传递，如[图 8-5](#FIG0805)所示。'
+- en: '![rur2 0805](Images/rur2_0805.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![rur2 0805](Images/rur2_0805.png)'
+- en: Figure 8-5\. Passing the search (filter) string
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-5\. 传递搜索（过滤）字符串
+- en: Finally, `DataFlow` is also responsible for updating the `localStorage`, which
+    should always have the latest data.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，`DataFlow`还负责更新`localStorage`，以始终包含最新数据。
+- en: Updated App.js
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 更新的 App.js
+- en: 'The `<App>` component needs a bit of an update. It imports the `schema`, then
+    looks for data in `localStorage`. If there is none, it takes the first sample
+    from the `schema` and uses it as initial data. Then it renders the new component-to-be
+    `DataFlow` passing the data and the schema:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<App>` 组件需要进行一些更新。它导入`schema`，然后在`localStorage`中查找数据。如果没有数据，它就从`schema`中取第一个样本作为初始数据。然后渲染新的组件`DataFlow`，传递数据和`schema`：'
+- en: '[PRE1]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: DataFlow Component
+  id: totrans-22
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: DataFlow 组件
+- en: Now that the goals of the `<DataFlow>` component are clear and you see how it’s
+    been used in the `<App>` component, let’s see how to go about implementing it.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在 `<DataFlow>` 组件的目标已经明确，并且你看到它是如何在 `<App>` 组件中使用的，让我们看看如何实现它。
+- en: 'The overall structure, as you’d expect, is about import/export and prop types:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体结构，正如你所期望的那样，涉及导入/导出和属性类型：
+- en: '[PRE2]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Now let’s see about these `TODO` comments.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们来看看这些 `TODO` 注释。
+- en: 'The first one is a just a one-liner that takes whatever is passed to it (the
+    latest `data`, the whole point of the app) and writes it to `localStorage` to
+    be used in the next session in case the user closes the browser tab:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个只是一个一行代码，它接受传递给它的任何内容（最新的 `data`，这个应用程序的核心）并将其写入 `localStorage`，以便在用户关闭浏览器选项卡后在下一个会话中使用：
+- en: '[PRE3]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Next, the reducer. It’s responsible for only two types of events (actions):'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是 reducer。它只负责两种类型的事件（动作）：
+- en: '`save`'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`save`'
+- en: This will create a new record in `data` when the user clicks the + ADD WHINE
+    button.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击 + ADD WHINE 按钮时，这将在 `data` 中创建一条新记录。
+- en: '`excelchange`'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`excelchange`'
+- en: 'This handles any data change coming from `Excel`. This action doesn’t modify
+    the data, just commits it to storage and returns it as-is:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理来自 `Excel` 的任何数据变化。此操作不修改数据，只是将其提交到存储并原样返回：
+- en: '[PRE4]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Why is it necessary to clone the data before adding to it (via array’s `unshift()`)?
+    It’s because the reducer is called twice in development (see [Chapter 7](ch07.xhtml#ch7))
+    and the same record would be added twice otherwise.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么在添加到数组的 `unshift()` 中之前需要克隆数据？因为在开发中 reducer 会被调用两次（见 [第7章](ch07.xhtml#ch7)），否则同一条记录会被添加两次。
+- en: Note
+  id: totrans-36
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: With such a simple reducer, is it really a good idea to opt for a reducer as
+    opposed to state when it comes to `data` management? Probably not. In fact, an
+    alternative implementation using only state is available in the book’s code repo
+    as *DataFlow1.js* and it’s a bit shorter in terms of lines of code. The potential
+    benefit of using a reducer is that it’s simpler to expand on if future new actions
+    are expected.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这样一个简单的 reducer，是否真的应该选择 reducer 而不是状态来管理 `data`？可能不是。事实上，书中的代码库中提供了一种只使用状态的替代实现
+    *DataFlow1.js*，代码行数较短。使用 reducer 的潜在好处是，如果预期将来有新的操作，扩展起来更简单。
+- en: Let’s dive into the body of the function that defines the `DataFlow` component.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们深入了解定义 `DataFlow` 组件的函数主体。
+- en: DataFlow Body
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 数据流体
+- en: 'Similarly to how `Excel` manages its state, let’s try a combination of `useState()`
+    and `useReducer()`. Let’s have a reducer for `data` since it’s potentially more
+    involved and for everything else, stick with state. The `addNew` state is a toggle
+    whether or not to show an Add dialog, and `filter` is for the string the user
+    types in the search box:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 `Excel` 管理其状态的方式，让我们尝试结合 `useState()` 和 `useReducer()`。让我们为 `data` 设计一个
+    reducer，因为它可能涉及更多操作，其他方面均使用状态。`addNew` 状态用于切换是否显示添加对话框，`filter` 用于用户在搜索框中输入的字符串：
+- en: '[PRE5]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The `form` ref is used similarly to `Excel` in [Chapter 7](ch07.xhtml#ch7) to
+    harvest the data from the form shown in the Add dialog.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`form` 引用类似于 [第7章](ch07.xhtml#ch7) 中的 `Excel`，用于从显示在添加对话框中的表单中获取数据。'
+- en: Next, let’s address the rendering `TODO`. Its task is to combine all the main
+    components (`<Header>`, `<Excel>`, etc.) and pass around the `data` and callbacks.
+    Conditionally, if the user clicks the Add button, a `<Dialog>` is constructed
+    too.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们解决渲染 `TODO`。其任务是组合所有主要组件（`<Header>`、`<Excel>` 等），并传递 `data` 和回调函数。条件是，如果用户点击添加按钮，还会构造一个
+    `<Dialog>`。
+- en: '[PRE6]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The other three `TODO` comments are about the inline helper function, none of
+    which should look complicated at this point.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外三个 `TODO` 注释是关于内联辅助函数的，此时应看起来都不复杂。
+- en: '`onSearch()` takes the search string from the header and updates the `filter`
+    state, which (by way of rerendering) is passed to `Excel`, where it’s used to
+    show only matching data records:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onSearch()` 从标题中获取搜索字符串并更新 `filter` 状态，通过重新渲染将其传递给 `Excel`，在那里用于仅显示匹配的数据记录：'
+- en: '[PRE7]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: '`onExcelDataChange()` is another one-liner. It’s a callback that takes any
+    data updates from `Excel` and dispatches an action to be handled by the reducer:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onExcelDataChange()` 是另一个一行代码。这是一个回调函数，接收来自 `Excel` 的任何数据更新，并分发一个由 reducer
+    处理的动作：'
+- en: '[PRE8]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Finally, the `saveNew()` helper that handles dialog actions. It closes the dialog
+    unconditionally (by setting the `addNew` state) and if the dialog wasn’t simply
+    dismissed, it collects the form data from the dialog and dispatches the appropriate
+    `save` action for the reducer to handle.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，处理对话框操作的 `saveNew()` 辅助函数。它无条件关闭对话框（通过设置 `addNew` 状态），并且如果对话框不仅仅是被解散，它还会从对话框中收集表单数据，并分派适当的
+    `save` 动作给 reducer 处理。
+- en: '[PRE9]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Job Done
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 任务完成
+- en: And with that, the app is complete. You can build it, deploy it to a server
+    near you, and make it available to the world.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，应用程序已经完成。您可以构建它，部署到您附近的服务器，并使其对世界可用。
+- en: As you can see, the task was to create all necessary components ([Chapter 7](ch07.xhtml#ch7)),
+    keeping them as small and general-purpose as possible and then making them all
+    work together by rendering the top-level ones (`Header`, `Body`, `Excel`) and
+    making sure the data flows between children and parents.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你所见，任务是创建所有必要的组件（[第7章](ch07.xhtml#ch7)），尽可能使它们小而通用，并通过渲染顶层组件（`Header`、`Body`、`Excel`）使它们一起工作，并确保数据在子组件和父组件之间流动。
+- en: 'So far you’ve learned about one way of passing data around using props and
+    callbacks. This is a valid way but it can reach a point of becoming difficult
+    to maintain for two main reasons:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，你已经学习了一种通过props和回调传递数据的方法。这是一种有效的方式，但它可能会变得难以维护，主要有两个原因：
+- en: Children can become deeply nested, resulting in long, clumsy chains of passing
+    props and callbacks.
+  id: totrans-56
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 子组件可能会嵌套很深，导致传递props和回调函数的长而笨拙的链条。
+- en: When you pass several callbacks to a component (when a lot happens in this component),
+    defining all these callbacks soon loses its elegance.
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当你将多个回调传递给一个组件（当这个组件中发生很多事情时），定义所有这些回调很快就会失去其优雅性。
+- en: Props and callbacks were the original way of communication between components
+    in earlier React applications and it’s still a valid way for many cases. As React
+    matured, developers started thinking of ways to fix the resulting complexity.
+    One popular approach is using a more global storage of data and then providing
+    an API for components to read and write the data.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在早期的React应用程序中，props和回调函数是组件之间通信的原始方式，对许多情况仍然有效。随着React的发展，开发人员开始考虑如何解决由此带来的复杂性。其中一种流行的方法是使用全局数据存储，然后为组件提供读写数据的API。
+- en: 'Consider this example (from earlier ways of understanding how we build apps
+    with React) of a deeply nested child using callback for communication:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑这个例子（早期了解我们如何使用React构建应用程序的方法）：一个深度嵌套的子组件使用回调进行通信：
+- en: '[PRE10]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Now, with some sort of `Storage` module, you can do the following:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，通过某种形式的`Storage`模块，你可以做以下事情：
+- en: '[PRE11]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: You can agree that the second option looks much cleaner and more succinct.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以同意第二个选项看起来更干净、更简洁。
+- en: Initially, this idea of global storage was called *Flux* and a lot of implementations
+    appeared in the open-source world. One of the implementations, a library called
+    *Redux*, won a significant developer mind-share. A different implementation was
+    part of the first edition of this book. Today, the same idea is part of React’s
+    core, implemented as *context*.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最初，这种全局存储的想法被称为*Flux*，并且在开源世界中出现了许多实现。其中一种实现，一个叫做*Redux*的库，赢得了大量开发者的青睐。另一种实现是这本书的第一版的一部分。今天，同样的想法已经成为React核心的一部分，被实现为*context*。
+- en: Let’s see how the Whinepad app can transition to its version 2 and move away
+    from callbacks in favor of context.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看Whinepad应用程序如何转向其第二个版本，并摆脱回调函数，改用上下文。
+- en: Whinepad v2
+  id: totrans-66
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Whinepad v2
+- en: 'To start with v2, you need a copy of the *whinepad* directory without the *node_​mod⁠ules/*
+    directory (where all npm-downloaded dependencies are stored) and without the *package-lock.json*:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要启动v2版本，你需要一个*whinepad*目录的副本，不包括*node_modules/*目录（其中存储了所有通过npm下载的依赖项）和*package-lock.json*文件：
+- en: '[PRE12]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: These two are artifacts of installing your app, so when you distribute the app
+    (e.g., sharing with others on GitHub or just putting it in source control) you
+    don’t need them.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个是安装应用程序时的附带产物，所以当你分发应用程序（例如，在GitHub上与他人分享或者只是将其放入源代码控制中）时，你不需要它们。
+- en: 'Copy the *whinepad* (v1) and you’re ready for v2:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复制*whinepad*（v1）版本，准备好进入v2：
+- en: '[PRE13]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Install the dependencies in the new location:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在新位置安装依赖项：
+- en: '[PRE14]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Start the CRA for development:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启动CRA进行开发：
+- en: '[PRE15]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Now, let’s rewrite the app so it uses contexts.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们重写这个应用程序，使其使用上下文。
+- en: Context
+  id: totrans-77
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 上下文
+- en: The first step is to create a context. That’s best done in a separate module
+    so it can be shared between components. And since chances are you may have more
+    than one context, you can store them in a separate directory, sibling to */components*
+    and */modules*.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一步是创建一个上下文。最好在一个单独的模块中完成，以便它可以在组件之间共享。而且由于很可能会有多个上下文，你可以将它们存储在一个独立的目录中，与*/components*和*/modules*同级。
+- en: '[PRE16]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Not much is happening in *DataContext.js*, just a call to create the context:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*DataContext.js*中没有太多事情发生，只是调用了创建上下文的函数：'
+- en: '[PRE17]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'The call to `createContext()` accepts a default value. Its purpose is mostly
+    for testing, documentation, and type safety. Let’s provide the default value:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用`createContext()`接受一个默认值。它的目的主要是用于测试、文档和类型安全性。让我们提供默认值：
+- en: '[PRE18]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'You can have any value stored in a context, but a common pattern is to have
+    an object with two properties: a piece of data and a function that can update
+    the data.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在上下文中存储任何值，但一个常见的模式是使用一个对象，该对象有两个属性：一个数据片段和一个可以更新数据的函数。
+- en: Next Steps
+  id: totrans-85
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 下一步
+- en: Now that a context is created, the next steps are to use the context where required
+    in the components. The `data` is used in `Excel` and in `Header`, so these two
+    components need an update. Also passing the data around was done in `DataFlow`
+    and that’s where the most changes are to be done.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在已经创建了一个上下文，下一步是在组件中需要的地方使用这个上下文。`data`被用在`Excel`和`Header`中，所以这两个组件需要更新。同时在`DataFlow`中传递数据，并且那里的变动最为显著。
+- en: 'But first, an update and simplification to *App.js* is in order. In v1, that’s
+    where the initial (or default) data was being figured out and then passed as props
+    to `<DataFlow>`. In v2, let’s have any and all data management happen in `<DataFlow>`.
+    The updated *App.js* looks a little bare-bones:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但首先，需要对*App.js*进行更新和简化。在v1中，这是在其中确定初始（或默认）数据并将其作为props传递给`<DataFlow>`的地方。在v2中，让我们将所有数据管理都发生在`<DataFlow>`中。更新后的*App.js*看起来有点简单：
+- en: '[PRE19]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The job of `DataFlow` is to figure out the initial data when the app is loaded,
+    update that data in the context, and make sure the children `<Excel>` and `<Header>`
+    can get the data from the context. The children should also be able to update
+    the data. That’s surprisingly uncomplicated as you’ll see shortly, but first,
+    a word on how the data flow in v2 is going to be different than v1.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`DataFlow`的工作是在应用程序加载时确定初始数据，在上下文中更新该数据，并确保子组件`<Excel>`和`<Header>`可以从上下文获取数据。子组件也应能够更新数据。正如您即将看到的那样，这实际上并不复杂，但首先，我们来谈谈v2中数据流程与v1有何不同。'
+- en: Circular Data
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 循环数据
+- en: In v1 (also see [Figure 8-4](#FIG0804)), `Excel` manages the `data` in its state.
+    This is a great way to build standalone components that can be dropped anywhere
+    in any app. But the parent `DataFlow` also keeps the data in its state because
+    the data needs to be shared between `Header` and `Excel`. So there are two “sources
+    of truth” that need to be synchronized. This was done by passing the `data` prop
+    from `DataFlow` to `Excel` and by using the `onDataChange` callback to communicate
+    from the child `Excel` to the parent `DataFlow`. That creates a circular flow
+    of data, which may lead to an infinite rendering loop. The `data` changes in `Excel`,
+    which means it’s rerendered. `DataFlow` receives the new data via `onDataChange`
+    and updates its state, which means it’s rerendered, which causes a new render
+    of `Excel` (it’s a child).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在v1中（还可以参见[图 8-4](#FIG0804)），`Excel`在其状态中管理着`data`。这是构建可以在任何应用程序中任何地方使用的独立组件的一个很好的方法。但是父组件`DataFlow`也在其状态中保持数据，因为数据需要在`Header`和`Excel`之间共享。因此存在两个“事实来源”，需要进行同步。通过将`data`属性从`DataFlow`传递到`Excel`，并使用`onDataChange`回调从子组件`Excel`到父组件`DataFlow`进行通信来完成此操作。这创建了一个数据的循环流动，可能导致无限渲染循环。`Excel`中的`data`发生变化，因此重新渲染。`DataFlow`通过`onDataChange`接收到新数据并更新其状态，这导致了`DataFlow`的重新渲染，从而导致了`Excel`的新渲染（它是一个子组件）。
+- en: 'React prevents this by refusing to update state during a rendering phase. That’s
+    why the `setTimeout` hack was required in `Excel` when invoking the `onDataChange`
+    callback in the reducer:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React通过拒绝在渲染阶段更新状态来防止这种情况发生。这就是在`Excel`中调用`onDataChange`回调时需要`setTimeout`黑科技的原因：
+- en: '[PRE20]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: This works just fine. The timeout allows React to finish rendering before updating
+    the state again. This hack is the price paid to have a completely standalone `Excel`
+    that manages its own data.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做效果很好。超时允许React在再次更新状态之前完成渲染。这个黑科技是为了拥有一个完全独立的`Excel`来管理自己的数据而付出的代价。
+- en: Let’s change this in v2 and have a single source of truth (`data` in `DataFlow`).
+    This avoids the hack but comes with the drawback that `Excel` now needs someone
+    else to manage the data. That’s not difficult, but it is a change and it requires
+    the test area `<Discovery>` to be a bit more involved.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在v2中进行更改，使用`DataFlow`中的一个单一事实来源（`data`）。这避免了黑科技，但带来的缺点是`Excel`现在需要其他人来管理数据。这并不难，但这是一个变化，并且需要测试区域`<Discovery>`更为深入参与。
+- en: Providing Context
+  id: totrans-96
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 提供上下文
+- en: Let’s see how the context `DataContext` created by `React.createContext()` can
+    be used. The heavy lifting enabling this happens in `DataFlow`, so let’s examine
+    its v2.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 看看由`React.createContext()`创建的`DataContext`上下文如何使用。实现这一功能的重要工作发生在`DataFlow`中，所以让我们来看看它的v2版本。
+- en: 'Requiring the context in *DataFlow.js*:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*DataFlow.js*中要求上下文：
+- en: '[PRE21]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Figuring out the initial state of the world, either from the storage or from
+    `schema` samples, can happen at the top of the module, not even in the body of
+    the `DataFlow` function:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 弄清楚世界的初始状态，可以从存储或`schema`样本中进行，可以在模块的顶部完成，甚至不需要在`DataFlow`函数的体内完成：
+- en: '[PRE22]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'The `data` is kept in the state just like before:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`像以前一样保存在状态中：'
+- en: '[PRE23]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'The `data` is going to be a part of the context. The context also needs a function
+    to update the data. This function is defined inline in `DataFlow`:'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`将成为上下文的一部分。上下文还需要一个函数来更新数据。此函数在`DataFlow`中内联定义：'
+- en: '[PRE24]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'The three steps of updating the data are:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新数据的三个步骤是：
+- en: Clone the data so it’s always immutable.
+  id: totrans-107
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 克隆数据，以便始终是不可变的。
+- en: Save it to `localStorage` for the next time the app is loaded.
+  id: totrans-108
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将其保存到`localStorage`，以便下次加载应用程序时使用。
+- en: Update the state.
+  id: totrans-109
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 更新状态。
+- en: 'Armed with `data` and `updateData`, the last step is to wrap any children (`Excel`
+    and `Header`) that require the context in a *provider* component:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用`data`和`updateData`，最后一步是将需要上下文的子项（`Excel`和`Header`）包裹在*provider*组件中：
+- en: '[PRE25]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'The provider component `<DataContext.Provider>` is available thanks to the
+    call to `createContext()`, which created the `DataContext`:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于调用了`createContext()`创建了`DataContext`，因此提供者组件`<DataContext.Provider>`可用：
+- en: '[PRE26]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'The provider must set a `value` prop, which could be anything. Here the value
+    is the common pattern: “data plus a way to change the data.”'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供者必须设置一个`value`属性，这可以是任何东西。这里的值是常见的模式：“数据加上改变数据的方式。”
+- en: Now any child of `<DataContext.Provider>` such as `<Excel>` or `<Header>` can
+    be a *consumer* of the context value set by the *provider*. The way to consume
+    is either via a `<DataContext.Consumer>` component or via a `useContext()` hook.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，任何`<DataContext.Provider>`的子组件，如`<Excel>`或`<Header>`，都可以成为上下文值的*consumer*。消费的方式可以是通过`<DataContext.Consumer>`组件或通过`useContext()`钩子。
+- en: Before taking a look at consuming the context, the following is a complete listing
+    of the new *DataFlow.js*. For the complete code of the v2 of Whinepad, consult
+    the *whinepad2* directory in the book’s repo.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在查看消费上下文之前，以下是新*DataFlow.js*的完整列表。有关Whinepad v2的完整代码，请参阅书本存储库中的*whinepad2*目录。
+- en: '[PRE27]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: As you can see, `filter` is still passed as a prop to `<Excel>`. Even though
+    you’re using a context, prop passing is still an option. It could be the preferred
+    approach for many scenarios when components need to communicate.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，`filter`仍然作为一个属性传递给`<Excel>`。即使您使用了上下文，传递属性仍然是一种选择。在许多情况下，组件需要进行通信时，这可能是首选方法。
+- en: Consuming Context
+  id: totrans-119
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用上下文
+- en: If you consult the v1 of `DataFlow` from earlier in this chapter, you may notice
+    that the `reducer()` is gone in v2\. The reducer’s job was to handle data changes
+    from `Excel` and adding new records from the header. These tasks can now be performed
+    in each responsible child. `Excel` can handle any changes and then update the
+    context using the provided `updateData()`. And `Header` can handle adding new
+    records and use the same function to update the data in the context. Let’s see
+    how.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您查看本章前面的`DataFlow`的v1版本，您可能会注意到在v2中，`reducer()`已经消失了。Reducer的任务是处理来自`Excel`的数据更改并从头部添加新记录。这些任务现在可以在各自的子项中执行。`Excel`可以处理任何更改，然后使用提供的`updateData()`更新上下文。`Header`可以处理添加新记录，并使用相同的函数更新上下文中的数据。让我们看看如何做到这一点。
+- en: Context in the Header
+  id: totrans-121
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 标题中的上下文
+- en: 'The new header is going to be responsible for more of the UI, namely the `Form`
+    in a `Dialog` to add new records, so the list of imports is a little longer. Note
+    that the new `DataContext` is imported too:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新标题将负责更多的UI，即在`Dialog`中的`Form`来添加新记录，因此导入的列表稍长。请注意，还导入了新的`DataContext`：
+- en: '[PRE28]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'The pieces of data needed to render the header are:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染标题所需的数据包括：
+- en: '`data` coming from the context'
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 来自上下文的`data`
+- en: '`addNew` flag whether or not the Add dialog is shown (when the user clicks
+    the Add button)'
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`addNew`标志是否显示添加对话框（用户点击添加按钮时）'
+- en: '[PRE29]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: The `addNew` state is copied verbatim from v1 of `DataFlow`. The new code is
+    the consumption of the `DataContext`. You can see how using the hook `useContext()`
+    you get access to the `value` prop passed by the `<DataContext.Provider>`. It’s
+    an object that has a `data` property and a function `updateData()`.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`addNew`状态直接从`DataFlow`的v1版本复制。新代码是使用`DataContext`的消费。可以看到，通过使用`useContext()`钩子，您可以访问由`<DataContext.Provider>`传递的`value`属性。它是一个对象，具有`data`属性和`updateData()`函数。'
+- en: 'In v1 there was a `count` prop passed to the `<Header>`. Now the header can
+    access all of the data and get the count from there (`data.length`). Now that
+    all the pieces required for rendering are available, it’s time to work on the
+    rendering:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在v1中，`count`属性传递给`<Header>`。现在，头部可以访问所有数据并从中获取计数（`data.length`）。现在，所有用于渲染的组件都已经准备好了，是时候开始工作了：
+- en: '[PRE30]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: The main difference from the previous version is that now the `Dialog` and the
+    `Form` it contains are implemented here in the header.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与上一个版本的主要区别在于，现在在头部实现了`Dialog`和它包含的`Form`。
+- en: 'The last two things to take a look at are the helper functions `onAdd()` and
+    `saveNew()`. The first one merely updates the `addNew` state:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后需要查看的两个功能函数是`onAdd()`和`saveNew()`。第一个函数仅更新`addNew`状态：
+- en: '[PRE31]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'The job of `saveNew()` is to gather the new record from the form and add it
+    to `data`. Then comes the key moment: invoking `updateData()` with the updated
+    `data`. This is the function that comes from the `<DataContext.Provider>` and
+    was defined in `DataFlow` as:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`saveNew()`的工作是从表单中收集新记录并添加到`data`中。然后关键时刻来了：使用更新后的`data`调用`updateData()`。这个函数来自于`<DataContext.Provider>`，在`DataFlow`中定义为：'
+- en: '[PRE32]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: What happens here is the parent `DataFlow` receives the new data and updates
+    the state (with `setData()`), and this causes React to rerender. This means `Excel`
+    and `Header` are going rerender but this time with the latest data. So the new
+    record appears in the `Excel` table and the search box in the header has an accurate
+    count of the records.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里发生的是父组件`DataFlow`接收到新数据并更新状态（通过`setData()`），这导致React重新渲染。这意味着`Excel`和`Header`会重新渲染，但这次使用最新的数据。因此，新记录会出现在`Excel`表中，头部的搜索框中也会准确显示记录数量。
+- en: 'Here’s the *Header.js* file in its entirety:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是*Header.js*文件的完整内容：
+- en: '[PRE33]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Context in the Data Table
+  id: totrans-139
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 数据表中的上下文
+- en: The last thing before v2 is fully operational is to update `Excel` so it doesn’t
+    maintain its own state but uses the data from the `<DataContext.Provider>`. There
+    are no rendering changes required, only the data management.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在v2完全运行之前的最后一件事是更新`Excel`，这样它就不再维护自己的状态，而是使用来自`<DataContext.Provider>`的数据。不需要渲染更改，只需管理数据。
+- en: Since there’s no need for a `data` state in `Excel` anymore, the `reducer()`
+    is no longer required. However, the idea of all data manipulation happening in
+    a central place is too appealing not to adopt. So let’s just rename `reducer()`
+    to `dataMangler()`.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`Excel`中不再需要`data`状态，因此不再需要`reducer()`。然而，所有数据操作发生在一个中心位置的想法太吸引人了，所以我们将`reducer()`简单重命名为`dataMangler()`。
+- en: 'Here is the before state:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是之前的状态：
+- en: '[PRE34]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'Here it is after the changes:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是变更后的结果：
+- en: '[PRE35]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'As you can see, `dataMangler()` doesn’t need to follow the reducer API, so
+    the `action` can now be a string and the payload can be a separate argument to
+    the function. This is just a little less typing and also hopefully avoids any
+    confusion: `dataMangler()` is *not* a reducer, just a convenient helper function.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你所见，`dataMangler()`不需要遵循reducer API，因此`action`现在可以是一个字符串，而payload可以作为函数的一个单独参数。这只是少打点字，也希望避免任何混淆：`dataMangler()`并*不是*一个reducer，只是一个方便的辅助函数。
+- en: 'The complete `dataMangler()` is as follows:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`dataMangler()`的完整代码如下：'
+- en: '[PRE36]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: Note the missing `setTimeout(() => action.payload.onDataChange(data)` at the
+    end of the function. There’s no need for `onDataChange` prop anymore, nor for
+    the `setTimeout` hack.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意函数末尾不再有`setTimeout(() => action.payload.onDataChange(data)`。不再需要`onDataChange`属性，也不再需要`setTimeout`的hack。
+- en: 'When using a reducer, returning `data` was enough to cause a rerendering of
+    `Excel`. Now you need the `updateData()` from the provider, so the parent `DataFlow`
+    can be responsible for rerendering. Additionally, there are no more calls to `dispatch()`
+    which magically call the reducer. All the `dispatch()` callsites now have two
+    tasks: call the `dataMangler()` and then pass its return value to `updateData()`.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用reducer时，只返回`data`就足以重新渲染`Excel`。现在你需要来自provider的`updateData()`，这样父组件`DataFlow`就可以负责重新渲染。此外，不再有自动调用reducer的`dispatch()`。现在所有的`dispatch()`调用点都有两个任务：调用`dataMangler()`，然后将其返回值传递给`updateData()`。
+- en: 'Here it is before:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是变更前的状态：
+- en: '[PRE37]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'Here is the updated version:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是更新后的版本：
+- en: '[PRE38]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Alternatively, a one-liner:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，一个简单的一行代码：
+- en: '[PRE39]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Replace the 4 `dispatch()` callsites, and v2 of Whinepad is complete and operational.
+    For a full code listing, consult the book’s code repo.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 替换4个`dispatch()`调用点，Whinepad的v2版本就完成并且运行正常了。要获取完整的代码清单，请参阅书籍的代码存储库。
+- en: Updating Discovery
+  id: totrans-158
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 更新发现
+- en: At this point the changes to `Excel` and `Header` have affected the discovery
+    tool too. While not technically broken, it’s a little muddled. For example, the
+    data table is empty and the search input doesn’t show a count. To use `Discovery`
+    to its full potential, you need to set up the environment where `Excel` and `Header`
+    live. Here, “environment” means a `<DataConsumer.Provider>` wrapper around the
+    examples.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时对`Excel`和`Header`的更改也影响了发现工具。虽然技术上没有问题，但有些混乱。例如，数据表为空，搜索输入框不显示计数。要充分利用`Discovery`，您需要设置环境，其中`Excel`和`Header`生存。在这里，“环境”意味着在示例周围包装一个`<DataConsumer.Provider>`。
+- en: 'Here is the code before (inline example and sample data coming from the schema
+    and passed as a prop):'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是代码转换之前的情况（内联示例和样本数据来自模式并作为属性传递）：
+- en: '[PRE40]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'Here it is after the transformation (into a whole new example component):'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 转换后如下（变成一个全新的示例组件）：
+- en: '[PRE41]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'The example component gets the sample data from the `schema` too and uses it
+    to maintain state. A simpler `updateData()` is created and passed as part of the
+    context in the context provider:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例组件也从`schema`获取样本数据，并用于维护状态。一个更简单的`updateData()`被创建，并作为上下文提供程序的一部分传递：
+- en: '[PRE42]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Now the `Excel` example is fully operational in the discovery tool. Without
+    this update, when `Excel` tries to use the context, it gets the default `data`
+    and `updateData()` as defined in `createContext()`:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，`Excel`示例在发现工具中完全可操作。如果不进行此更新，当`Excel`尝试使用上下文时，它会得到`createContext()`中定义的默认`data`和`updateData()`：
+- en: '[PRE43]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: Updating the `<Header>` example in `<Discovery>` can be simpler since you know
+    that `Header` only worries about the `data.length` count.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新`<Discovery>`中的`<Header>`示例可以更简单，因为您知道`Header`只关心`data.length`计数。
+- en: 'Here it is before:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是转换之前：
+- en: '[PRE44]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'And here it is for v2:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是v2的展示：
+- en: '[PRE45]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'Wrapping the `Header` in a provider now causes the `value` to be used in the
+    context and not the defaults from `createContext()`. As a result, if you test
+    the “Add” button in the header, you’ll get an error because `updateData()` doesn’t
+    exist. To fix the error and make the button testable, a no-op `updateData()` is
+    sufficient:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，将`Header`包装在提供程序中会导致上下文中使用`value`而不是来自`createContext()`的默认值。因此，如果测试标题中的“添加”按钮，您将收到错误，因为`updateData()`不存在。要修复错误并使按钮可测试，一个空操作的`updateData()`就足够了：
+- en: '[PRE46]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: Now you have a working v2 of Whinepad as well as a working discovery area for
+    playing with the components individually.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您还可以使用Whinepad的v2版本以及用于单独操作组件的发现区域。
+- en: Routing
+  id: totrans-176
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 路由
+- en: It’s time to wrap up the chapter and the book by implementing one more feature—bookmarkable
+    URLs—and along the way learn about multiple contexts and the `useCallback()` hook.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是时候通过实现一项额外的功能——可书签URL——来结束这一章节和这本书，并在此过程中了解多个上下文和`useCallback()`钩子。
+- en: Single-page applications (SPAs) such as Whinepad do not refresh the page, so
+    the URLs to different states of the app don’t need to change. But it’s nice when
+    they do, as this allows users to share links and have the app already in a certain
+    state. For example, it’s friendlier to send your coworker a URL such as *https://whinepad.com/filter/merlot*
+    rather than instructions like “Go to *https://whinepad.com/* and type *merlot*
+    in the search box at the top.”
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 诸如Whinepad之类的单页面应用程序（SPA）不会刷新页面，因此应用程序的不同状态的URL无需更改。但是，当它们这样做时，这很好，因为这使用户可以共享链接并已将应用程序置于某个状态。例如，向同事发送类似*https://whinepad.com/filter/merlot*这样的URL比发送“转到*https://whinepad.com/*并在顶部搜索框中输入*merlot*”这样的说明更友好。
+- en: The ability of an app to recreate a state from a URL is often called *routing*
+    and there are a number of third-party libraries that can offer you routing in
+    one way or another. But let’s take a do-it-yourself approach one more time and
+    come up with a custom solution.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序能够从URL中重新创建状态通常被称为*路由*，而有许多第三方库可以以某种方式为您提供路由。但让我们再次采用自助方式，并提出一个定制解决方案。
+- en: 'Let’s offer 4 types of bookmarkable URLs:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们提供4种类型的可书签化URL：
+- en: '*/filter/merlot* to bookmark searches for “merlot”'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/filter/merlot* 用于标记搜索“merlot”'
+- en: '*/add* to have an open “Add” dialog for adding records'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/add* 以打开添加记录的“添加”对话框'
+- en: '*/info/1* to show the info (non-editable) dialog for record with ID 1'
+  id: totrans-183
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/info/1* 用于显示ID为1的记录的信息（不可编辑）对话框'
+- en: '*/edit/1* for an editable version'
+  id: totrans-184
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/edit/1* 以获取可编辑版本'
+- en: The first URL is to be handled in `DataFlow` since this is where the filtering
+    is passed around; the second in `Header`; and the last two in `Excel`. Since various
+    components need to know the URL, a new context seems appropriate.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个 URL 的处理应位于 `DataFlow`，因为这是传递过滤器的位置；第二个在 `Header` 中；最后两个在 `Excel` 中。由于各个组件都需要知道
+    URL，似乎需要一个新的上下文。
+- en: Route Context
+  id: totrans-186
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 路由上下文
+- en: 'The new context lives in *contexts/RouteContext.js*:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新上下文位于 *contexts/RouteContext.js* 中：
+- en: '[PRE47]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: Again you see a familiar pattern—the context consists of a piece of data (`route`)
+    and a way to update it (`updateRoute`).
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次看到一个熟悉的模式——上下文包括一个数据片段（`route`）和更新它的方法（`updateRoute`）。
+- en: 'As before, the job of replacing the context defaults with working values falls
+    to the parent component `DataFlow`. It requires the new context and attempts to
+    read the routing information from the URL (`window.location.pathname`):'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前所述，将上下文默认值替换为工作值的工作由父组件 `DataFlow` 执行。它需要新上下文，并尝试从 URL (`window.location.pathname`)
+    中读取路由信息：
+- en: '[PRE48]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Now, if the app is loaded with the URL */filter/merlot*, then `route` becomes:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果应用加载的 URL 是 */filter/merlot*，那么 `route` 将变成：
+- en: '[PRE49]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'If the app is loaded with the URL */edit/1*, `route` becomes:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果应用加载的是 */edit/1* 这个 URL，`route` 将变成：
+- en: '[PRE50]'
+  id: totrans-195
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'It’s also up to `DataFlow` to define a function that updates the route:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`DataFlow` 也需要定义一个更新路由的函数：'
+- en: '[PRE51]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: In the [`History` API](https://developer.mozilla.org/en-US/docs/Web/API/History),
+    using `replaceState()` is an alternative to `pushState()` that doesn’t create
+    history entries (for the use with the browser’s Back button). This is preferable
+    in this case as the URL is going to be updated frequently and has the potential
+    to pollute the history stack. For example, having six history entries (/filter/m,
+    /filter/me, /filter/mer, etc.) as the user types “merlot” renders the Back button
+    unusable.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [`History` API](https://developer.mozilla.org/en-US/docs/Web/API/History)
+    中，使用 `replaceState()` 是 `pushState()` 的一个替代方法，它不会创建历史记录条目（用于与浏览器的后退按钮一起使用）。在这种情况下，这是首选，因为
+    URL 将频繁更新，并有可能污染历史记录堆栈。例如，当用户输入“merlot”时，会产生六个历史记录条目（/filter/m, /filter/me, /filter/mer
+    等），使得后退按钮无法使用。
+- en: Using the Filter URL
+  id: totrans-199
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用过滤器 URL
+- en: The next step is to wrap any consumers of the new context in a provider component
+    (`<RouteContext.Provider>` in this case). But for the purposes of the filtering,
+    it’s not yet necessary, because all filtering happens in `DataFlow`.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一步是将新上下文的任何消费者包装在提供程序组件中（在此情况下为 `<RouteContext.Provider>`）。但是，出于过滤目的，目前还不是必需，因为所有过滤都发生在
+    `DataFlow` 中。
+- en: To use the new routing functionality, only two changes are necessary. One is
+    in the `onSearch` callback, which is invoked whenever the user types in the search
+    box.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用新的路由功能，只需要进行两个更改。一个是在 `onSearch` 回调中，每当用户在搜索框中键入时调用。
+- en: 'Before:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前：
+- en: '[PRE52]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'After:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后：
+- en: '[PRE53]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: Now when the user types “m” in the search box, the URL changes to */filter/m*.
+    When the user deletes the search string, the URL goes back to */*.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当用户在搜索框中键入“m”时，URL 将变为 */filter/m*。当用户删除搜索字符串时，URL 将返回到 */*。
+- en: Updating the URL is half the job. The other half is prefilling the search box
+    *and* doing the searching when the app is loaded. Doing the searching means making
+    sure the correct `filter` prop is passed to `Excel`. Luckily, this is trivial.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新 URL 只完成了一半工作。另一半是在应用加载时预填充搜索框 *并* 在加载时进行搜索。进行搜索意味着确保正确的 `filter` 属性传递给 `Excel`。幸运的是，这很简单。
+- en: 'Before:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前：
+- en: '[PRE54]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'After:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后：
+- en: '[PRE55]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: This is sufficient. Now, whenever `DataFlow` renders, it’s passing `<Excel filter=​{fil⁠ter}>`
+    where the filter value comes from the `route`. And as a result, `Excel` shows
+    only the matching rows. If there’s no filter in the `route` object then the `filter`
+    prop is `null` and `Excel` shows everything.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这已经足够了。现在，每当 `DataFlow` 渲染时，它都传递 `<Excel filter=​{fil⁠ter}>`，其中过滤器值来自 `route`。因此，`Excel`
+    只显示匹配的行。如果 `route` 对象中没有过滤器，则 `filter` 属性为 `null`，`Excel` 将显示所有内容。
+- en: To also prefill the search box (which is found in the `Header`), you need to
+    wrap the header in a route context provider. This happens in the `DataFlow` rendering.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 若要预填充搜索框（位于 `Header` 中），需要将头部包裹在路由上下文提供程序中。这发生在 `DataFlow` 渲染时。
+- en: 'Before:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前：
+- en: '[PRE56]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'After:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后：
+- en: '[PRE57]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: As you can see, it’s OK to have as many context provider wrappers as you need.
+    They can be nested as you see above, or they can wrap different components, only
+    where they are needed.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，可以拥有任意数量的上下文提供程序包装器。它们可以像上面看到的那样嵌套，或者可以仅在需要时包装不同的组件。
+- en: Consuming the Route Context in the Header
+  id: totrans-219
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在头部使用路由上下文
+- en: The `Header` component can gain access to the route via the `RouteContext`.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Header` 组件可以通过 `RouteContext` 获得路由访问权限。'
+- en: 'Before:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前：
+- en: '[PRE58]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'And after:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后：
+- en: '[PRE59]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: Note how passing `route.add` as a default to the `addNew` state makes the */add*
+    URL work automatically. Setting `addNew` to `true` makes the rendering part of
+    the component show a `Dialog`.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意将 `route.add` 作为 `addNew` 状态的默认值传递给组件使 */add* URL 自动工作。将 `addNew` 设置为 `true`
+    会导致组件的渲染部分显示一个 `Dialog`。
+- en: Making sure the search box has a prefilled value coming from the route is also
+    a one-liner.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保搜索框具有来自路由的预填充值也是一行代码。
+- en: 'Before:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Before:'
+- en: '[PRE60]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'After:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'After:'
+- en: '[PRE61]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: The other thing the header needs to do is update the routing context whenever
+    a user makes an appropriate action. When the user clicks the “Add” button, the
+    URL should change to */add*. This is done by calling the `updateRoute()` from
+    the context.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 头部需要做的另一件事是在用户执行适当的操作时更新路由上下文。当用户点击“添加”按钮时，URL 应更改为 */add*。这通过从上下文调用 `updateRoute()`
+    来完成。
+- en: 'Before:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Before:'
+- en: '[PRE62]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'After:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'After:'
+- en: '[PRE63]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: And when the user dismisses the dialog (or submits the form and the dialog disappears),
+    the */add* should be removed from the URL.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户关闭对话框（或提交表单并使对话框消失）时，*/add* 应从 URL 中移除。
+- en: 'Before:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Before:'
+- en: '[PRE64]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'After:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'After:'
+- en: '[PRE65]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: Consuming the Route Context in the Data Table
+  id: totrans-241
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在数据表格中使用路由上下文
+- en: 'Using the routing context in `Excel` looks familiar:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `Excel` 中使用路由上下文看起来很熟悉：
+- en: '[PRE66]'
+  id: totrans-243
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: A lot in this component happens in the `handleAction()` helper (see [Chapter 7](ch07.xhtml#ch7)).
+    It’s responsible for opening and closing dialogs as well as for the content of
+    the dialogs. This helper can be used for the purposes of routing as long as it’s
+    invoked with the correct arguments.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个组件中，`handleAction()` 辅助函数发挥了重要作用（参见 [第 7 章](ch07.xhtml#ch7)）。它负责打开和关闭对话框以及对话框内容。只要调用它时传递正确的参数，此辅助程序就可以用于路由的目的。
+- en: 'With the help of `useEffect()`, this helper can be called when the data table
+    renders and the result is opening a dialog whenever the URL is */edit/[ID]* or
+    */info/[ID]*. The following code shows how to accomplish this:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助 `useEffect()` 的帮助，当数据表格渲染并且结果是打开 */edit/[ID]* 或 */info/[ID]* 的对话框时，可以调用此辅助程序。以下代码展示了如何实现这一点：
+- en: '[PRE67]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: Here `route`, `handleAction`, and `data` are the effect’s dependencies, so it’s
+    not invoked too often. A quick check for `data.length` prevents opening the dialog
+    with IDs that are out of range (e.g., you cannot edit ID 5 when only 3 records
+    exist). Then `handleAction()` is invoked, for example `handleAction(2, 'info')`
+    when the URL is */info/2*.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里的`route`、`handleAction`和`data`是该效果的依赖项，因此不会经常调用。快速检查`data.length`可以防止打开具有超出范围的
+    ID 的对话框（例如，当只有 3 条记录时，无法编辑 ID 5）。然后当 URL 是 */info/2* 时调用 `handleAction()`，例如 `handleAction(2,
+    'info')`。
+- en: So `handleAction()` is responsible for reading the routing info and creating
+    the correct dialog. But it’s also responsible for updating the URL on user actions.
+    This part is simple.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，`handleAction()` 负责读取路由信息并创建正确的对话框。但它还负责在用户操作时更新 URL。这一部分很简单。
+- en: 'Closing the dialog before:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Closing the dialog before:'
+- en: '[PRE68]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'And after:'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'And after:'
+- en: '[PRE69]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'Opening the dialog before:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 打开对话框之前：
+- en: '[PRE70]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: 'And after:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'And after:'
+- en: '[PRE71]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: With that, the functionality is complete; there’s just one more step.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，功能就完成了；只剩最后一步了。
+- en: useCallback()
+  id: totrans-258
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: useCallback()
+- en: 'When setting up `useEffect`, `handleAction()` was passed as a dependency:'
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置 `useEffect` 时，`handleAction()` 被作为一个依赖项传递：
+- en: '[PRE72]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: But since `handleAction()` is an inline function inside `Excel()`, this means
+    every time `Excel()` is invoked to rerender, a new `handleAction()` is created.
+    And `useEffect()` sees the updated dependency. This is not efficient. There’s
+    no point in having a function dependency that changes every time even though the
+    function does the same thing.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但由于 `handleAction()` 是在 `Excel()` 内部的内联函数，这意味着每次调用 `Excel()` 进行重新渲染时都会创建一个新的
+    `handleAction()`。而 `useEffect()` 则会看到更新的依赖项。这是不高效的。尽管函数执行的内容相同，但每次更改函数依赖项都是没有意义的。
+- en: React provides a `useCallback()` hook to help with just that. It *memoizes*
+    a callback function with its dependencies. So if a new `handleAction()` is created
+    on a rerender of `Excel`, but its dependencies have not changed, then there’s
+    no need for `use​Ef⁠fect()` to see a new dependency. The old memoized `handleAction`
+    should do the trick.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 提供了 `useCallback()` 钩子来帮助处理这种情况。它会使用其依赖项*记忆化*回调函数。因此，如果在 `Excel` 重新渲染时创建了一个新的
+    `handleAction()`，但其依赖项没有更改，则 `useEffect()` 不需要查看新的依赖项。旧的记忆化的 `handleAction` 应该可以解决问题。
+- en: 'Wrapping the `handleAction` with a `useCallback()` should look somewhat familiar
+    to `useEffect()` where the pattern is: first argument is a function, the second
+    is an array of dependencies.'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `useCallback()` 将 `handleAction` 包装起来应该看起来有些熟悉，就像 `useEffect()` 一样，模式是：第一个参数是一个函数，第二个是一个依赖项数组。
+- en: 'Before:'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'Before:'
+- en: '[PRE73]'
+  id: totrans-265
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: 'After:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'After:'
+- en: '[PRE74]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'The dependencies `data`, `updateData`, and `updateRoute` are the only external
+    pieces of info that `handleAction` requires to work properly. So if these do not
+    change between rerenders, an older memoized `handleAction` is sufficient. Here’s
+    the complete and final version of `handleAction()` after all the routing changes:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`、`updateData` 和 `updateRoute` 这些依赖是 `handleAction` 正常工作所需的唯一外部信息。因此，如果这些信息在重新渲染之间没有改变，旧的记忆化
+    `handleAction` 就足够了。以下是经过所有路由更改后的完整和最终版本的 `handleAction()`：'
+- en: '[PRE75]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: The End
+  id: totrans-270
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结束
+- en: I’m happy you got this far, dear reader. I hope you’re a more confident programmer
+    now, someone who knows how to get a new React project off the ground or join an
+    existing one and take it into the future.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 亲爱的读者，我很高兴你读到这里。希望你现在是一个更自信的程序员，知道如何启动一个新的React项目或加入现有项目并将其推向未来。
+- en: A programming book is like a snapshot in time. Technologies change and evolve
+    while the book remains the same. I did my best to focus on evergreen content and
+    let the evolution take its place. But it is my goal to attempt to bring new additions
+    to this book (in the form of PDF appendixes) before a new edition is due. If you’d
+    like to keep up with the new content, please join the [mailing list](https://react.stoyanstefanov.com).
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编程书籍就像是时间的快照。技术在变化和演进，而书籍始终如一。我尽力专注于常青内容，让演进自然发生。但我希望在新版出版之前，尝试通过PDF附件给本书增加新内容。如果你希望了解新内容，请加入[邮件列表](https://react.stoyanstefanov.com)。

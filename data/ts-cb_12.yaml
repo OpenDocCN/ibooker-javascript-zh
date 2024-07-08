@@ -1,0 +1,2179 @@
+- en: Chapter 11\. Classes
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 11 章。类
+- en: When TypeScript was released for the very first time in 2012, the JavaScript
+    ecosystem and the features of the JavaScript language were not comparable to what
+    we have today. TypeScript introduced many features not only in the form of a type
+    system but also syntax, enriching an already existing language with possibilities
+    to abstract parts of your code across modules, namespaces, and types.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 TypeScript 在 2012 年首次发布时，JavaScript 生态系统和 JavaScript 语言的特性与今天的情况无法相提并论。TypeScript
+    不仅引入了类型系统，还通过语法丰富了已有语言，使您能够在模块、命名空间和类型之间抽象代码的部分。
+- en: One of these features was classes, a staple in object-oriented programming.
+    TypeScript’s classes originally drew a lot of influence from C#, which is not
+    surprising if you know the people behind both programming languages.^([1](ch11.html#id917))
+    But they are also designed based on concepts from the abandoned ECMAScript 4 proposals.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的一个特性是类（classes），在面向对象编程中是一个基本要素。TypeScript 的类最初受到了 C# 的很大影响，如果你了解这两种编程语言背后的人物，这一点并不奇怪。^([1](ch11.html#id917))
+    但它们也是基于被废弃的 ECMAScript 4 提案中的概念设计的。
+- en: Over time, JavaScript gained much of the language features pioneered by TypeScript
+    and others; classes, along with private fields, static blocks, and decorators,
+    are now part of the ECMAScript standard and have been shipped to language runtimes
+    in the browser and the server.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着时间的推移，JavaScript 获得了 TypeScript 和其他语言先驱创造的许多语言特性；类似私有字段、静态块和装饰器的类现在已经成为 ECMAScript
+    标准的一部分，并已经被部署到浏览器和服务器的语言运行时中。
+- en: This leaves TypeScript in a sweet spot between the innovation it brought to
+    the language in the early days and standards, which is what the TypeScript team
+    sees as a baseline for all upcoming features of the type system. While the original
+    design is close to what JavaScript ended up with, there are some differences worth
+    mentioning.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使得 TypeScript 处于一个甜蜜点，既保留了它在语言早期引入的创新，又符合 TypeScript 团队对类型系统所有未来功能的基线标准。尽管原始设计接近
+    JavaScript 的最终形式，但也有一些值得一提的差异。
+- en: In this chapter, we look at how classes behave in TypeScript and JavaScript,
+    the possibilities we have to express ourselves, and the differences between the
+    standard and the original design. We look at keywords, types, and generics, and
+    we train an eye to spot what’s being added by TypeScript to JavaScript, and what
+    JavaScript brings to the table on its own.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨 TypeScript 和 JavaScript 中类的行为方式，我们表达自己的可能性，以及标准设计和原始设计之间的差异。我们将研究关键字、类型和泛型，并着眼于
+    TypeScript 在 JavaScript 中添加的内容，以及 JavaScript 自身带来的内容。
+- en: 11.1 Choosing the Right Visibility Modifier
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.1 选择正确的可见性修饰符
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'There are two flavors in TypeScript for property visibility and access: one
+    through special keyword syntax—`public`, `protected`, `private`—and another one
+    through actual JavaScript syntax, when properties start with a hash character.
+    Which one should you choose?'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 中有两种属性可见性和访问的风格：一种是通过特殊的关键字语法 — `public`、`protected`、`private` —
+    另一种是通过实际的 JavaScript 语法，当属性以井号字符开头时。你应该选择哪一种呢？
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Prefer JavaScript-native syntax as it has some implications at runtime that
+    you don’t want to miss. If you rely on a complex setup that involves variations
+    of visibility modifiers, stay with the TypeScript ones. They won’t go away.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最好选择 JavaScript 原生语法，因为它在运行时有一些影响，你不希望错过。如果你依赖于涉及可见性修饰符变体的复杂设置，请使用 TypeScript
+    的修饰符。它们不会消失。
+- en: Discussion
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: TypeScript’s classes have been around for quite a while, and while they draw
+    huge inspiration from ECMAScript classes that followed a few years after, the
+    TypeScript team also decided to introduce features that were useful and popular
+    in traditional class-based object-oriented programming at the time.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的类已经存在了相当长的时间，虽然它们受到了随后几年的 ECMAScript 类的巨大启发，但 TypeScript 团队还决定引入当时传统基于类的面向对象编程中有用和流行的特性。
+- en: One of those features is *property visibility modifiers*, also referred to as
+    *access modifiers*. Visibility modifiers are special keywords you can put in front
+    of members—properties and methods—to tell the compiler how they can be seen and
+    accessed from other parts of your software.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中之一就是*属性可见性修饰符*，也称为*访问修饰符*。可见性修饰符是您可以放在成员（属性和方法）前面的特殊关键字，用来告诉编译器它们如何从软件的其他部分看到和访问。
+- en: Note
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: All visibility modifiers, as well as JavaScript private fields, work on methods
+    as well as properties.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有的可见性修饰符以及 JavaScript 的私有字段，都可以作用于方法和属性。
+- en: 'The default visibility modifier is `public`, which can be written explicitly
+    or just omitted:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认的可见性修饰符是 `public`，可以显式地写出来，也可以省略不写：
+- en: '[PRE0]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Another modifier is `protected`, limiting visibility to classes and subclasses:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个修饰符是 `protected`，限制了对类和子类的可见性：
+- en: '[PRE1]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '`protected` access can be overwritten in derived classes to be `public` instead.
+    `protected` access also prohibits accessing members from class references that
+    are not from the same subclass. So while this works:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`protected` 访问可以在派生类中被重写为 `public`。`protected` 访问还禁止从不同子类的类引用中访问成员。因此，尽管这样做是有效的：'
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'using the base class or a different subclass won’t work:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用基类或不同的子类是行不通的：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'The last visibility modifier is `private`, which allows access only from within
+    the same class:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个可见性修饰符是 `private`，它只允许在同一类内部访问：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Visibility modifiers also can be used in constructors as a shortcut to define
+    properties and initialize them:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构造函数中也可以使用可见性修饰符作为定义属性并初始化它们的快捷方式：
+- en: '[PRE5]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: With all the features described here, it should be noted that TypeScript’s visibility
+    modifiers are compile-time annotations that get erased after the compilation step.
+    Often, entire property declarations get removed if they are not initialized via
+    the class description but in the constructor, as we saw in the last example.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这里描述的所有功能，应该注意的是 TypeScript 的可见性修饰符是编译时的注释，在编译步骤后会被擦除。通常，如果它们不是通过类描述而是在构造函数中初始化，整个属性声明可能会被移除，就像我们在最后一个示例中看到的那样。
+- en: 'They are also valid only during compile-time checks, meaning that a `private`
+    property in TypeScript will be fully accessible in JavaScript afterward; thus,
+    you can bypass the `private` access check by asserting your instances `as any`,
+    or access them directly once your code has been compiled. They are also *enumerable*,
+    which means that their names and values become visible when being serialized via
+    `JSON.stringify` or `Object.getOwnPropertyNames`. In short: the moment they leave
+    the boundaries of the type system they behave like regular JavaScript class members.'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它们在编译时检查期间也是有效的，这意味着 TypeScript 中的 `private` 属性在转换为 JavaScript 后将完全可访问；因此，您可以通过断言实例
+    `as any` 来绕过 `private` 访问检查，或者在编译后直接访问它们。它们也是*可枚举的*，这意味着它们的名称和值在通过 `JSON.stringify`
+    或 `Object.getOwnPropertyNames` 序列化时变得可见。简而言之：一旦它们离开类型系统的边界，它们就会像常规的 JavaScript
+    类成员一样行事。
+- en: Note
+  id: totrans-30
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Next to visibility modifiers, it’s also possible to add `readonly` modifiers
+    to class properties.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了可见性修饰符，还可以将`readonly`修饰符添加到类属性中。
+- en: Since limited access to properties is a feature that is reasonable not only
+    within a type system, ECMAScript has adopted a similar concept called *private
+    fields* for regular JavaScript classes.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于对属性的有限访问是一种不仅在类型系统内合理的特性，ECMAScript 还为常规的 JavaScript 类采用了类似的称为*私有字段*的概念。
+- en: Instead of a visibility modifier, private fields actually introduce new syntax
+    in the form of a pound sign or *hash* in front of the member’s name.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是能见度修饰符，私有字段实际上通过在成员名称前面添加井号或*哈希*的形式引入了新的语法。
+- en: Tip
+  id: totrans-34
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Introducing a new syntax for private fields has resulted in heated debate within
+    the community on the pleasance and aesthetics of the pound sign. Some participants
+    even called them abominable. If this addition irritates you as well, it might
+    help to think of the pound sign as a little fence that you put in front of the
+    things you don’t want everybody to have access to. Suddenly, the pound sign syntax
+    becomes a lot more pleasant.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 引入私有字段的新语法在社区内引发了关于井号的美感和审美的激烈争论。一些参与者甚至称其为可恶的。如果这个增加也让你感到不快，也许将井号看作是一种小围栏，用来保护你不希望所有人都能访问的东西，会让井号语法变得更加令人愉悦。
+- en: 'The pound sign becomes a part of the property’s name, meaning that it also
+    needs to be accessed with the sign in front of it:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 井号成为属性名称的一部分，这意味着访问时也需要在前面加上这个符号：
+- en: '[PRE6]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Private fields are JavaScript through and through; there is nothing the TypeScript
+    compiler will remove, and they retain their functionality—hiding information inside
+    the class—even after the compilation step. The transpiled result, with the latest
+    ECMAScript version as a target, looks almost identical to the TypeScript version,
+    just without type annotations:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 私有字段完全是JavaScript；TypeScript 编译器不会删除任何内容，并且它们保持其功能——在类内部隐藏信息——即使在编译步骤之后。使用最新的
+    ECMAScript 版本作为目标进行转译后，其结果看起来几乎与 TypeScript 版本相同，只是没有类型注解：
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Private fields can’t be accessed in runtime code, and they are also not enumerable,
+    meaning that no information of their contents will be leaked in any way.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 私有字段在运行时代码中无法访问，它们也不可枚举，这意味着它们的内容不会以任何方式泄漏。
+- en: The problem is now that both private visibility modifiers and private fields
+    exist in TypeScript. Visibility modifiers have been there forever and have more
+    variety combined with `protected` members. Private fields, on the other hand,
+    are as close to JavaScript as they can get, and with TypeScript’s goal to be a
+    “JavaScript syntax for types,” they pretty much hit the mark when it comes to
+    the long-term plans of the language. So which one should you choose?
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在的问题是 TypeScript 中存在私有可见性修饰符和私有字段。可见性修饰符一直存在，并且与 `protected` 成员结合使用具有更多的多样性。另一方面，私有字段尽可能接近
+    JavaScript，并且在 TypeScript 的目标是“JavaScript 语法类型化”时基本命中该标记。那么你应该选择哪一个？
+- en: First, no matter which modifier you choose, they both fulfill their goal of
+    telling you at compile time when there’s property access where it shouldn’t be.
+    This is the first feedback you get informing you that something might be wrong,
+    and this is what we’re aiming for when we use TypeScript. So if you need to hide
+    information from the outside, every tool does its job.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，无论你选择哪种修饰符，它们都完成了在编译时告知属性访问是否不应该的目标。这是你得到的第一个反馈，告诉你可能有问题，这也是我们在使用 TypeScript
+    时的目标。因此，如果需要隐藏外部信息，每个工具都会发挥其作用。
+- en: But when you look further, it again depends on your setting. If you already
+    set up a project with elaborate visibility rules, you might not be able to migrate
+    them to the native JavaScript version immediately. Also, the lack of `protected`
+    visibility in JavaScript might be problematic for your goals. There is no need
+    to change something if what you have already works.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是当你进一步查看时，这又取决于你的设置。如果你已经设置了具有精细可见性规则的项目，可能无法立即将它们迁移到原生 JavaScript 版本中。此外，JavaScript
+    中缺少 `protected` 可见性可能对你的目标造成问题。如果已有的东西运作正常，就没必要进行更改。
+- en: 'If you run into problems with the runtime visibility showing details you want
+    to hide: if you depend on others using your code as a library and they should
+    not be able to access all the internal information, then private fields are the
+    way to go. They are well-supported in browsers and other language runtimes, and
+    TypeScript comes with polyfills for older platforms.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在运行时可见性出现问题，显示了你想要隐藏的细节：如果你依赖于其他人使用你的代码作为库，他们不应能够访问所有内部信息，则私有字段是正确的选择。它们在浏览器和其他语言运行时中得到了很好的支持，并且
+    TypeScript 针对较旧的平台提供了 polyfill。
+- en: 11.2 Explicitly Defining Method Overrides
+  id: totrans-45
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.2 显式定义方法重写
+- en: Problem
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: In your class hierarchy, you extend from base classes and override specific
+    methods in subclasses. When you refactor the base class, you might end up carrying
+    around old, unused methods because nothing tells you that the base class has changed.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你的类层次结构中，你从基类扩展并在子类中重写特定方法。当你重构基类时，你可能会携带旧的、未使用的方法，因为没有任何东西告诉你基类已经改变。
+- en: Solution
+  id: totrans-48
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Switch on the `noImplicitOverride` flag and use the `override` keyword to signal
+    overrides.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 打开 `noImplicitOverride` 标志，并使用 `override` 关键字来标志重写。
+- en: Discussion
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You want to draw shapes on a canvas. Your software is able to take a collection
+    of points with `x` and `y` coordinates, and based on a specific render function,
+    it will draw either polygons, rectangles, or other elements on an HTML canvas.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望在画布上绘制形状。你的软件能够接收具有 `x` 和 `y` 坐标的点集合，并根据特定的渲染函数，在 HTML 画布上绘制多边形、矩形或其他元素。
+- en: 'You decide to go for a class hierarchy, where the base class `Shape` takes
+    an arbitrary list of `Point` elements and draws lines between them. This class
+    takes care of housekeeping through setters and getters but also implements the
+    `render` function itself:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你决定使用一个类层次结构，其中基类 `Shape` 接受一个任意列表的 `Point` 元素，并在它们之间绘制线条。这个类通过设置器和获取器来处理内务管理，同时也实现了
+    `render` 函数本身：
+- en: '[PRE8]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'To use it, create a 2D context from an HTML canvas element, create a new instance
+    of `Shape`, and pass the context to the `render` function:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用它，从 HTML 画布元素创建一个二维上下文，创建一个 `Shape` 的新实例，并将上下文传递给 `render` 函数：
+- en: '[PRE9]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Now we want to use the established base class and derive subclasses for specific
+    shapes, like rectangles. We keep the housekeeping methods and specifically override
+    the `constructor`, as well as the `render` method:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们想要使用已建立的基类，并为特定形状（如矩形）派生子类。我们保留内务管理方法，并特别重写 `constructor` 和 `render` 方法：
+- en: '[PRE10]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'The usage of `Rectangle` is pretty much the same:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Rectangle`的方式几乎相同：
+- en: '[PRE11]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'As our software evolves, we inevitably change classes, methods, and functions,
+    and somebody in our codebase will rename the `render` method to `draw`:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着软件的演变，我们不可避免地会改变类、方法和函数，我们代码库中的某人会将`render`方法重命名为`draw`：
+- en: '[PRE12]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This is not a problem per se, but if we are not using the `render` method of
+    `Rectangle` anywhere in our code, perhaps because we publish this software as
+    a library and didn’t use it in our tests, nothing tells us that the `render` method
+    in `Rectangle` still exists, with no connection to the original class whatsoever.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事实上，这并不是一个问题，但如果我们在代码中没有使用`Rectangle`的`render`方法，也许是因为我们将这个软件发布为库，并没有在我们的测试中使用它，没有任何东西告诉我们`Rectangle`中的`render`方法仍然存在，并且与原始类没有任何连接。
+- en: This is why TypeScript allows you to annotate methods you want to override with
+    the `override` keyword. This is a syntax extension from TypeScript and will be
+    removed the moment TypeScript transpiles your code to JavaScript.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么TypeScript允许你用`override`关键字注释你想要覆盖的方法。这是一种来自TypeScript的语法扩展，将在TypeScript将你的代码转译为JavaScript时被移除。
+- en: 'When a method is marked with the `override` keyword, TypeScript will make sure
+    that a method of the same name and signature exists in the base class. If you
+    rename `render` to `draw`, TypeScript will tell you that the method `render` wasn’t
+    declared in the base class `Shape`:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当一个方法标记为`override`关键字时，TypeScript会确保基类中存在相同名称和签名的方法。如果你将`render`重命名为`draw`，TypeScript会告诉你在基类`Shape`中没有声明`render`方法：
+- en: '[PRE13]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This error is a great safeguard to ensure that renames and refactors don’t break
+    your existing contracts.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个错误是一个很好的保护措施，确保重命名和重构不会破坏你现有的合约。
+- en: Note
+  id: totrans-67
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Even though a `constructor` could be seen as an overridden method, its semantics
+    are different and handled through other rules (for example, making sure that you
+    call `super` when instantiating a subclass).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使`constructor`可以被视为一个被覆盖的方法，它的语义是不同的，并且通过其他规则处理（例如，在实例化子类时确保调用`super`）。
+- en: 'By switching on the `noImplicitOverrides` flag in your *tsconfig.json*, you
+    can further ensure that you need to mark functions with the `override` keyword.
+    Otherwise, TypeScript will throw another error:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过在你的*tsconfig.json*中打开`noImplicitOverrides`标志，你可以进一步确保需要用`override`关键字标记函数。否则，TypeScript会抛出另一个错误：
+- en: '[PRE14]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Note
+  id: totrans-71
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Techniques like implementing interfaces that define the basic shape of a class
+    already provide a solid baseline to prevent you from running into problems like
+    this. So, it’s good to see the `override` keyword and `noImplictOverrides` as
+    additional safeguards when creating class hierarchies.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像实现定义类基本形状的接口这样的技术已经提供了一个坚实的基线，可以防止你遇到这类问题。因此，在创建类层次结构时，将`override`关键字和`noImplictOverrides`视为额外的保护措施是很好的。
+- en: When your software needs to rely on class hierarchies to work, using `override`
+    together with `noImplicitAny` is a good way to ensure that you don’t forget anything.
+    Class hierarchies, like any hierarchies, tend to grow complicated over time, so
+    take any safeguard you can get.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你的软件需要依赖类层次结构工作时，使用`override`与`noImplicitAny`一起是确保你不会忘记任何事情的好方法。类层次结构，像任何层次结构一样，随着时间的推移往往变得复杂，因此尽可能采取任何保障措施。
+- en: 11.3 Describing Constructors and Prototypes
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.3 描述构造函数和原型
+- en: Problem
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to instantiate subclasses of a specific abstract class dynamically,
+    but TypeScript won’t allow you to instantiate abstract classes.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想动态实例化特定抽象类的子类，但TypeScript不允许你实例化抽象类。
+- en: Solution
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Describe your classes with the *constructor interface* pattern.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用*constructor interface*模式描述你的类。
+- en: Discussion
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'If you use class hierarchies with TypeScript, the structural features of TypeScript
+    sometimes get in your way. Look at the following class hierarchy for instance,
+    where we want to filter a set of elements based on different rules:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在TypeScript中使用类层次结构，TypeScript的结构特性有时会妨碍你。例如，看看下面的类层次结构，我们想要根据不同的规则过滤一组元素：
+- en: '[PRE15]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'The `FilterItem` abstract class needs to be implemented by other classes. In
+    this example `AFilter` and `BFilter`, both concretizations of `FilterItem`, serve
+    as a baseline for filters:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FilterItem`抽象类需要被其他类实现。在这个例子中，`AFilter`和`BFilter`，都是`FilterItem`的具体化，作为过滤器的基线：'
+- en: '[PRE16]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Things get interesting when we are not working with instances right off the
+    bat. Let’s say we want to instantiate new filters based on a token we get from
+    an AJAX call. To make it easier for us to select the filter, we store all possible
+    filters in a map:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们不是直接使用实例时，情况变得有趣。假设我们希望根据从 AJAX 调用获取的令牌实例化新的过滤器。为了方便我们选择过滤器，我们将所有可能的过滤器存储在映射中：
+- en: '[PRE17]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The map’s generics are set to a `string` (for the token from the backend) and
+    everything that complements the type signature of `FilterItem`. We use the `typeof`
+    keyword here to be able to add classes to the map, not objects. We want to instantiate
+    them afterward, after all.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 映射的泛型被设置为一个`string`（用于从后端获取的令牌）以及与`FilterItem`类型签名相补充的一切内容。我们在这里使用`typeof`关键字，以便能够将类添加到映射中，而不是对象。毕竟，我们之后要对它们进行实例化。
+- en: 'So far everything works as you would expect. The problem occurs when you want
+    to fetch a class from the map and create a new object with it:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，一切都按预期进行。问题出现在当你想从映射中获取一个类并创建一个新对象时：
+- en: '[PRE18]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'This is a problem! TypeScript only knows at this point that we get a `FilterItem`
+    back and we can’t instantiate `FilterItem`. Abstract classes mix type information
+    (*type namespace*) with an actual implementation (*value namespace*). As a first
+    step, let’s just look at the types: what are we expecting to get back from `filterMap`?
+    Let’s create an interface (or type alias) that defines how the *shape* of `FilterItem`
+    should look:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个问题！在这一点上，TypeScript 只知道我们从`filterMap`获取了一个`FilterItem`，我们无法实例化`FilterItem`。抽象类混合了类型信息（*类型命名空间*）和实际实现（*值命名空间*）。首先，让我们看看类型：我们期望从`filterMap`获取什么？让我们创建一个接口（或类型别名），定义`FilterItem`的*形状*应该是什么：
+- en: '[PRE19]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Note the `new` keyword. This is a way for TypeScript to define the type signature
+    of a constructor function. If we substitute the abstract class for an actual interface,
+    lots of errors start appearing. No matter where you put the `implements IFilter`
+    command, no implementation seems to satisfy our contract:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意`new`关键字。这是 TypeScript 定义构造函数类型签名的一种方式。如果我们用实际接口替换抽象类，将会出现大量错误。无论将`implements
+    IFilter`命令放在哪里，似乎都没有任何实现能够满足我们的合同：
+- en: '[PRE20]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: What’s happening here? It seems like neither the implementation nor the class
+    itself can get all the properties and functions we’ve defined in our interface
+    declaration. Why?
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里发生了什么？看起来既不是实现也不是类本身能够获取我们在接口声明中定义的所有属性和函数。为什么？
+- en: 'JavaScript classes are special; they have not just one type we could easily
+    define but two: the type of the static side and the type of the instance side.
+    It might be clearer if we transpile our class to what it was before ES6, a constructor
+    function and a prototype:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 类很特殊；它们不仅有我们可以轻松定义的一种类型，而是两种：静态侧的类型和实例侧的类型。如果我们将我们的类转译到 ES6 之前的形式，一个构造函数和一个原型，这可能会更清晰：
+- en: '[PRE21]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'One type to create the object. One type for the object itself. So let’s split
+    it up and create two type declarations for it:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个用来创建对象的类型。一个用来描述对象本身的类型。因此，让我们拆分它，并为它创建两个类型声明：
+- en: '[PRE22]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'The first type, `FilterConstructor`, is the *constructor interface*. Here are
+    all static properties and the constructor function itself. The constructor function
+    returns an instance: `IFilter`. `IFilter` contains type information of the instance
+    side. All the functions we declare.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个类型，`FilterConstructor`，是*构造函数接口*。这里列出了所有静态属性和构造函数本身。构造函数返回一个实例：`IFilter`。`IFilter`包含了实例侧的类型信息。我们声明的所有函数。
+- en: 'By splitting this up, our subsequent typings also become a lot clearer:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过拆分这些内容，我们的后续类型定义也变得更加清晰：
+- en: '[PRE23]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: We add instances of type `FilterConstructor` to our map. This means we only
+    can add classes that produce the desired objects.
+  id: totrans-101
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们将`FilterConstructor`类型的实例添加到映射中。这意味着我们只能添加能够产生所需对象的类。
+- en: What we want in the end is an instance of `IFilter`. This is what the constructor
+    function returns when being called with `new`.
+  id: totrans-102
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 最终我们想要的是一个`IFilter`的实例。当使用`new`调用构造函数时，这就是构造函数返回的内容。
+- en: 'Our code compiles again, and we get all the autocompletion and tooling we desire.
+    Even better, we are not able to add abstract classes to the map because they don’t
+    produce a valid instance:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的代码再次编译通过，并且我们得到了所有的自动完成和工具支持。更好的是，我们不能将抽象类添加到映射中，因为它们不会产生有效的实例：
+- en: '[PRE24]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: The constructor interface pattern is used throughout TypeScript and the standard
+    library. To get an idea, look at the `ObjectContructor` interface from *lib.es5.d.ts*.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构造函数接口模式在整个 TypeScript 和标准库中广泛使用。要有一个概念，请查看*lib.es5.d.ts*中的`ObjectContructor`接口。
+- en: 11.4 Using Generics in Classes
+  id: totrans-106
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.4 在类中使用泛型
+- en: Problem
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: TypeScript generics are designed to be inferred a lot, but in classes, this
+    doesn’t always work.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的泛型通常设计用于大量推断，但在类中，这并不总是有效。
+- en: Solution
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Explicitly annotate generics at instantiation if you can’t infer them from your
+    parameters; otherwise, they default to `unknown` and accept a broad range of values.
+    Use generic constraints and default parameters for extra safety.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果无法从参数中推断出泛型类型，请在实例化时显式注释泛型类型；否则，它们默认为 `unknown` 并接受广泛的值。使用泛型约束和默认参数可以提供额外的安全性。
+- en: Discussion
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Classes also allow for generics. Instead of only being able to add generic type
+    parameters to functions, we can also add generic type parameters to classes. While
+    generic type parameters at class methods are valid only in function scope, generic
+    type parameters for classes are valid for the entirety of a class.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类还允许使用泛型。我们不仅可以将泛型类型参数添加到函数中，还可以将泛型类型参数添加到类中。虽然类方法中的泛型类型参数仅在函数范围内有效，但类的泛型类型参数则在整个类中有效。
+- en: 'Let’s create a collection, a simple wrapper around an array with a restricted
+    set of convenience functions. We can add `T` to the class definition of `Collection`
+    and reuse this type parameter throughout the entire class:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个集合，这是一个简单的数组包装器，带有一组有限的便利函数。我们可以在 `Collection` 类定义中添加 `T`，并在整个类中重复使用这个类型参数：
+- en: '[PRE25]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'With that, we are able to explicitly substitute `T` with a generic type annotation,
+    for example, allowing a collection of only numbers or only strings:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，我们可以明确地用泛型类型注释替换 `T`，例如，允许一个仅包含数字或仅包含字符串的集合：
+- en: '[PRE26]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'We as developers are not required to explicitly annotate generic type parameters.
+    TypeScript usually tries to infer generic types from usage. If we *forget* to
+    add a generic type parameter, TypeScript falls back to `unknown`, allowing us
+    to add everything:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为开发者，我们并不需要显式地注释泛型类型参数。TypeScript 通常尝试从使用中推断泛型类型。如果我们*忘记*添加泛型类型参数，TypeScript
+    会回退到 `unknown`，允许我们添加任何内容：
+- en: '[PRE27]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Let’s stay at this point for a second. TypeScript is very honest with us. The
+    moment we construct a new instance of `Collection`, we don’t know what the type
+    of our items is. `unknown` is the most accurate depiction of the collection’s
+    state. And it comes with all the downsides: we can add anything, and we need to
+    do type-checks every time we retrieve a value. While TypeScript does the only
+    thing possible at this point, we might want to do better. A concrete type for
+    `T` is mandatory for `Collection` to properly work.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们暂且停留在这一点上。TypeScript 对我们非常诚实。我们构造一个新的 `Collection` 实例时，我们不知道项目的类型是什么。`unknown`
+    是对集合状态最准确的描述。它伴随着所有的缺点：我们可以添加任何内容，并且每次检索值时都需要进行类型检查。尽管 TypeScript 在这一点上只能做出唯一可能的事情，但我们可能希望做得更好。为
+    `Collection` 指定一个具体的 `T` 类型对其正确运行是必不可少的。
+- en: 'Let’s see if we can rely on inference. TypeScript’s inference on classes works
+    just like it does on functions. If there is a parameter of a certain type, TypeScript
+    will take this type and substitute the generic type parameter. Classes are designed
+    to keep state, and state changes throughout their use. The state also defines
+    our generic type parameter `T`. To correctly infer `T`, we need to require a parameter
+    at construction, maybe an initial value:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看是否可以依赖推断。TypeScript 对类的推断与对函数的推断完全相同。如果有某种类型的参数，TypeScript 将采用这种类型并替换泛型类型参数。类被设计用于保持状态，并且状态在其使用过程中发生变化。状态还定义了我们的泛型类型参数
+    `T`。为了正确推断 `T`，我们需要在构造时要求一个参数，也许是一个初始值：
+- en: '[PRE28]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This works, but it leaves a lot to be desired for our API design. What if we
+    don’t have initial values? While other classes might have parameters that can
+    be used for inference, this might not make a lot of sense for a collection of
+    various items.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做虽然可行，但在 API 设计方面还有很多不足之处。如果我们没有初始值会怎么样？虽然其他类可能有可以用于推断的参数，但对于包含各种项目的集合来说，这可能并没有太多意义。
+- en: 'For `Collection`, it is absolutely essential to provide a type through annotation.
+    The only way left is to ensure we don’t forget to add an annotation. To achieve
+    this, we can make sure of TypeScript’s generic default parameters and the bottom
+    type `never`:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于 `Collection`，通过注释提供类型是非常重要的。唯一剩下的方法是确保我们不要忘记添加注释。为此，我们可以利用 TypeScript 的泛型默认参数和底部类型
+    `never`：
+- en: '[PRE29]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'We set the generic type parameter `T` to default to `never`, which adds some
+    very interesting behavior to our class. `T` still can be explicitly substituted
+    with every type through annotation, working just as before, but the moment we
+    forget an annotation the type is not `unknown`, it’s `never`. Meaning that no
+    value is compatible with our collection, resulting in many errors the moment we
+    try to add something:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将通用类型参数 `T` 默认设置为 `never`，这为我们的类添加了一些非常有趣的行为。`T` 仍然可以通过注释显式地替换为每一种类型，正如以前一样，但一旦我们忘记注释，类型就不是
+    `unknown`，而是 `never`。这意味着我们的集合不兼容任何值，一旦我们尝试添加某些内容就会出现许多错误：
+- en: '[PRE30]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: This fallback makes the use of our generic classes a lot safer.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种后备方法使我们的通用类的使用更加安全。
+- en: 11.5 Deciding When to Use Classes or Namespaces
+  id: totrans-128
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.5 决定何时使用类或命名空间
+- en: Problem
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: TypeScript offers a lot of syntax for object-oriented concepts like namespaces,
+    or static and abstract classes. Those features don’t exist in JavaScript, so what
+    should you do?
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 提供了许多面向对象概念的语法，比如命名空间、静态类和抽象类。这些特性在 JavaScript 中并不存在，那么你该怎么办呢？
+- en: Solution
+  id: totrans-131
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Stick with namespace declarations for additional type declarations, avoid abstract
+    classes when possible, and prefer ECMAScript modules instead of static classes.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 坚持使用命名空间声明进行额外类型声明，尽可能避免抽象类，并优先使用 ECMAScript 模块而不是静态类。
+- en: Discussion
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'One thing we see from people who worked a lot with traditional object-oriented
+    programming languages like Java or C# is their urge to wrap everything inside
+    a class. In Java, you don’t have any other options as classes are the only way
+    to structure code. In JavaScript (and thus TypeScript), plenty of other possibilities
+    do what you want without any extra steps. One of those is static classes or classes
+    with static methods:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从那些在传统面向对象编程语言（如 Java 或 C#）中工作过的人们那里看到的一件事是，他们倾向于将所有东西包装在一个类中。在 Java 中，因为类是结构化代码的唯一方式，你别无选择。在
+    JavaScript（因此也是 TypeScript）中，有很多其他可能性可以做到你想要的，而无需任何额外步骤。其中之一是静态类或具有静态方法的类：
+- en: '[PRE31]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'While this works and is even—sans type annotations—valid JavaScript, it’s way
+    too much ceremony for something that can easily be just plain, boring functions:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这样做有效且（去掉类型注解的话）是有效的 JavaScript，但这对于可以轻松地只是简单、无聊的函数的事情来说太过仪式化了：
+- en: '[PRE32]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: The interface for your users is exactly the same. You can access module scope
+    variables just the way you would access static properties in a class, but you
+    have them module scoped automatically. You decide what to export and what to make
+    visible, not some TypeScript field modifiers. Also, you don’t end up creating
+    an `Environment` instance that doesn’t do anything.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于用户的接口来说完全一样。您可以访问模块作用域变量，就像您访问类中的静态属性一样，但它们会自动在模块作用域内。您决定导出什么内容和使什么内容可见，而不是一些
+    TypeScript 字段修饰符。此外，您不会创建一个无用的 `Environment` 实例。
+- en: 'Even the implementation becomes easier. Check out the class version of `variables()`:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使实现变得更简单了。查看 `variables()` 的类版本：
+- en: '[PRE33]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'as opposed to the module version:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与模块版本相比：
+- en: '[PRE34]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'No `this` means less to think about. As an added benefit, your bundlers have
+    an easier time doing tree shaking, so you end up with only the things you actually
+    use:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有 `this` 意味着少考虑。作为附加好处，您的捆绑器在做树摇时更容易，因此最终只会保留您实际使用的东西：
+- en: '[PRE35]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: That’s why a proper module is always preferred to a class with static fields
+    and methods. That’s just an added boilerplate with no extra benefit.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么始终优先选择正确的模块而不是具有静态字段和方法的类。那只是增加了一些样板，没有额外的好处。
+- en: 'As with static classes, people with a Java or C# background cling to namespaces,
+    a feature that TypeScript introduced to organize code long before ECMAScript modules
+    were standardized. They allowed you to split things across files, merging them
+    again with reference markers:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像静态类一样，具有 Java 或 C# 背景的人们依恋命名空间，这是 TypeScript 在 ECMAScript 模块标准化之前引入的一个特性，用于组织代码。它们允许你在文件之间分割东西，并用参考标记器将它们合并：
+- en: '[PRE36]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: Back then, TypeScript even had a bundling feature. It should still work. But
+    as noted, this was before ECMAScript introduced modules. Now with modules, we
+    have a way to organize and structure code that is compatible with the rest of
+    the JavaScript ecosystem. And that’s a plus.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当时，TypeScript 甚至有一个捆绑功能。它应该仍然有效。但正如注意到的那样，这是在 ECMAScript 引入模块之前。现在有了模块，我们有了一种方法来组织和结构化代码，与
+    JavaScript 生态系统的其他部分兼容。这是一个优点。
+- en: 'So why do we need namespaces? Namespaces are still valid if you want to extend
+    definitions from a third-party dependency, for example, that lives inside node
+    modules. Say you want to extend the global `JSX` namespace and make sure `img`
+    elements feature alt texts:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么我们为什么需要命名空间呢？如果你想要扩展来自第三方依赖项的定义，例如存在于node模块中的定义，命名空间仍然是有效的。比如说，你想要扩展全局的`JSX`命名空间，并确保`img`元素包含alt文本：
+- en: '[PRE37]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Or you want to write elaborate type definitions in ambient modules. But other
+    than that? There is not much use for it anymore.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者你想要在环境模块中编写复杂的类型定义。但除此之外呢？它的用处就不多了。
+- en: 'Namespaces wrap your definitions into an object, writing something like this:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间将你的定义封装到一个对象中，写起来像这样：
+- en: '[PRE38]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'This emits something very elaborate:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会生成一些非常复杂的内容：
+- en: '[PRE39]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'This not only adds cruft but also keeps your bundlers from tree shaking properly!
+    Using them also becomes a bit wordier:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这不仅会增加冗余代码，还会妨碍你的捆绑器正常摇树！使用它们也会变得有些啰嗦：
+- en: '[PRE40]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: Dropping them makes things a lot easier. Stick to what JavaScript offers. Not
+    using namespaces outside of declaration files makes your code clear, simple, and
+    tidy.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 放弃它们会使事情变得简单得多。坚持使用JavaScript提供的功能。在声明文件之外不使用命名空间使你的代码清晰、简洁和整洁。
+- en: 'Last but not least, there are abstract classes. Abstract classes are a way
+    to structure a more complex class hierarchy where you predefine a behavior but
+    leave the actual implementation of some features to classes that *extend* from
+    your abstract class:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后但并非最不重要的，还有抽象类。抽象类是结构化更复杂的类层次结构的一种方式，你可以预定义一些行为，但将一些特性的实际实现留给继承自你的抽象类的类：
+- en: '[PRE41]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'It’s for all subclasses of `Lifeform` to implement `move`. This is a concept
+    that exists in basically every class-based programming language. The problem is
+    that JavaScript isn’t traditionally class based. For example, an abstract class
+    like the following generates a valid JavaScript class but is not allowed to be
+    instantiated in TypeScript:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有`Lifeform`的子类都要实现`move`方法。这是基本上每种基于类的编程语言中都存在的概念。问题在于，JavaScript并非传统的基于类的语言。例如，像下面这样的抽象类生成了一个有效的JavaScript类，但在TypeScript中却不允许实例化：
+- en: '[PRE42]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'This can lead to some unwanted situations if you’re writing regular JavaScript
+    but rely on TypeScript to provide the information in the form of implicit documentation,
+    such as if a function definition looks like this:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你写普通的JavaScript但依赖于TypeScript来提供隐式文档形式的信息，比如函数定义看起来像这样，那么这可能会导致一些不需要的情况：
+- en: '[PRE43]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: You or your users might read this as an invitation to pass a `Lifeform` object
+    to `moveLifeform`. Internally, it calls `lifeform.move()`.
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你或者你的用户可能会将其视为将`Lifeform`对象传递给`moveLifeform`的邀请。在内部，它调用`lifeform.move()`。
+- en: '`Lifeform` can be instantiated in JavaScript, as it is a valid class.'
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Lifeform`可以在JavaScript中被实例化，因为它是一个有效的类。'
+- en: The method `move` does not exist in `Lifeform`, thus breaking your application!
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 方法`move`在`Lifeform`中不存在，因此破坏了你的应用程序！
+- en: 'This is due to a false sense of security. What you actually want is to put
+    some pre-defined implementation in the prototype chain and have a contract that
+    tells you what to expect:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是由于一种错误的安全感。实际上你想要的是将一些预定义的实现放在原型链中，并且有一个合同告诉你应该期望什么：
+- en: '[PRE44]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: The moment you look up `Lifeform`, you can see the interface and everything
+    it expects, but you seldom run into a situation where you instantiate the wrong
+    class by accident.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你查找`Lifeform`时，你可以看到它的接口和它所期望的一切，但你很少会遇到意外实例化错误类的情况。
+- en: With everything said about when *not* to use classes and namespaces, when should
+    you use them? Every time you need multiple instances of the same object, where
+    the internal state is paramount to the functionality of the object.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说了这么多关于何时*不*使用类和命名空间，那么何时应该使用它们呢？每当你需要同一个对象的多个实例，其中内部状态对对象功能至关重要时。
+- en: 11.6 Writing Static Classes
+  id: totrans-172
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.6 编写静态类
+- en: Problem
+  id: totrans-173
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Class-based object-oriented programming taught you to use static classes for
+    certain features, but you wonder how those principles are supported in TypeScript.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于类的面向对象编程教导你使用静态类来实现某些功能，但你想知道这些原则在TypeScript中是如何支持的。
+- en: Solution
+  id: totrans-175
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Traditional static classes don’t exist in TypeScript, but TypeScript has static
+    modifiers for class members for several purposes.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在TypeScript中传统的静态类不存在，但TypeScript对类成员有多种目的的静态修饰符。
+- en: Discussion
+  id: totrans-177
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Static classes are classes that can’t be instantiated into concrete objects.
+    Their purpose is to contain methods and other members that exist once and are
+    the same when being accessed from various points in your code. Static classes
+    are necessary for programming languages that have only classes as their means
+    of abstraction, like Java or C#. In JavaScript, and subsequently TypeScript, there
+    are many more ways to express ourselves.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态类是不能实例化为具体对象的类。它们的目的是包含方法和其他成员，在代码的各个点访问时是相同的。静态类在只有类作为抽象手段的编程语言中是必需的，例如Java或C#。在JavaScript以及随后的TypeScript中，有更多表达自己的方式。
+- en: 'In TypeScript, we can’t declare classes to be `static`, but we can define `static`
+    members on classes. The behavior is what you’d expect: the method or property
+    is not part of an object but can be accessed from the class itself.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在TypeScript中，我们不能声明类为 `static`，但可以在类上定义 `static` 成员。行为如预期：方法或属性不是对象的一部分，但可以从类本身访问。
+- en: 'As we saw in [Recipe 11.5](#ch11_when_to_use_classes), classes with only static
+    members are an antipattern in TypeScript. Functions exist; you can keep state
+    per module. A combination of exported functions and module-scoped entries is usually
+    the way to go:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们在 [Recipe 11.5](#ch11_when_to_use_classes) 中看到的，只有静态成员的类在TypeScript中是一个反模式。函数存在；您可以每个模块保持状态。导出函数和模块范围的条目的组合通常是最佳选择：
+- en: '[PRE45]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: But there is still a use for `static` parts of a class. We established in [Recipe
+    11.3](#ch11_constructor_interfaace) that a class consists of static members and
+    dynamic members.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但类的 `static` 部分仍然有用。我们在 [Recipe 11.3](#ch11_constructor_interfaace) 中建立了一个类由静态成员和动态成员组成的观点。
+- en: The `constructor` is part of the static features of a class, and properties
+    and methods are part of the dynamic features of a class. With the `static` keyword
+    we can add to those static features.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`constructor` 是类的静态特征的一部分，而属性和方法是类的动态特征的一部分。通过 `static` 关键字，我们可以添加这些静态特征。'
+- en: 'Let’s think of a class called `Point` that describes a point in a two-dimensional
+    space. It has `x` and `y` coordinates, and we create a method that calculates
+    the distance between this point and another one:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们想象一个名为 `Point` 的类，描述二维空间中的一个点。它有 `x` 和 `y` 坐标，并且我们创建一个方法来计算此点与另一个点之间的距离：
+- en: '[PRE46]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This is good behavior, but the API might feel a bit weird if we choose a starting
+    point and end point, especially since the distance is the same no matter which
+    one is first. A static method on `Point` gets rid of the order, and we have a
+    nice `distance` method that takes two arguments:'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个良好的行为，但是如果我们选择一个起点和终点可能会感觉有点奇怪，尤其是因为距离无论哪一个先都是相同的。`Point` 上的静态方法消除了顺序问题，我们有一个漂亮的
+    `distance` 方法，接受两个参数：
+- en: '[PRE47]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'A similar version using the constructor function/prototype pattern that was
+    used pre-ECMAScript classes in JavaScript would look like this:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript的ECMAScript类之前使用构造函数/原型模式的类似版本如下所示：
+- en: '[PRE48]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: As in [Recipe 11.3](#ch11_constructor_interfaace), we can easily see which parts
+    are static and which parts are dynamic. Everything that is in the *prototype*
+    belongs to the dynamic parts. Everything else is *static*.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像在 [Recipe 11.3](#ch11_constructor_interfaace) 中一样，我们可以轻松看到哪些部分是静态的，哪些部分是动态的。所有在
+    *原型* 中的东西属于动态部分。其他一切都是 *静态* 的。
+- en: But classes are not only syntactic sugar to the constructor function/prototype
+    pattern. With the inclusion of private fields, which are absent in regular objects,
+    we can do something that is actually related to classes and their instances.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但类不仅仅是构造函数/原型模式的语法糖。通过包含私有字段（在常规对象中不存在），我们可以做一些实际与类及其实例相关的事情。
+- en: 'If we want to, for example, hide the `distanceTo` method because it might be
+    confusing and we’d prefer our users to use the static method instead, a simple
+    private modifier in front of `distanceTo` makes it inaccessible from the outside
+    but still keeps it accessible from within static members:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们希望隐藏 `distanceTo` 方法，因为它可能会令人困惑，我们更希望用户使用静态方法，只需在 `distanceTo` 前加上简单的私有修饰符，即可使其从外部无法访问，但仍然可以从静态成员中访问：
+- en: '[PRE49]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: The visibility also goes in the other direction. Let’s say you have a class
+    that represents a certain `Task` in your system, and you want to limit the number
+    of existing tasks.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可见性也是反过来的。假设您有一个表示系统中某个 `Task` 的类，并且希望限制现有任务的数量。
+- en: 'We use a static private field called `nextId` that we start at `0`, and we
+    increase this private field with every constructed instance `Task`. If we reach
+    `100`, we throw an error:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用一个名为`nextId`的静态私有字段，我们从`0`开始，并且我们增加这个私有字段以每个构造的实例`Task`。如果达到`100`，我们会抛出一个错误：
+- en: '[PRE50]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'If we want to limit the number of instances by a dynamic value from a backend,
+    we can use a `static` instantiation block that fetches this data and updates the
+    static private fields accordingly:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们希望通过后端的动态值来限制实例的数量，我们可以使用一个`static`实例化块来获取这些数据，并相应地更新静态私有字段：
+- en: '[PRE51]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Other than fields in instances, TypeScript at the time of writing does not check
+    if static fields are instantiated. If we, for example, load the number of available
+    slots from a backend asynchronously, we have a certain time frame during which
+    we can construct instances but have no check if we reached our maximum.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与实例中的字段不同，在写作时，TypeScript不会检查静态字段是否已被实例化。例如，如果我们从后端异步加载可用槽的数量，则在此期间我们可以构造实例，但不能检查是否达到了最大值。
+- en: So, even if there is no construct of a static class in TypeScript and static-only
+    classes are considered an antipattern, there might be a good use for static members
+    in many situations.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，即使在TypeScript中没有静态类的构造，并且静态类仅被认为是反模式，但在许多情况下静态成员可能会有良好的用途。
+- en: 11.7 Working with Strict Property Initialization
+  id: totrans-201
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.7 使用严格属性初始化
+- en: Problem
+  id: totrans-202
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Classes keep state, but nothing tells you if this state is being initialized.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类保留状态，但没有任何信息告诉你这个状态是否已被初始化。
+- en: Solution
+  id: totrans-204
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Activate strict property initialization by setting `strictPropertyInitialization`
+    to `true` in your *tsconfig*.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过在*tsconfig*中将`strictPropertyInitialization`设置为`true`来激活严格属性初始化。
+- en: Discussion
+  id: totrans-206
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Classes can be seen as code templates for creating objects. You define properties
+    and methods, and only through instantiation do actual values get assigned. TypeScript
+    classes take basic JavaScript classes and enhance them with more syntax to define
+    types. For example, TypeScript allows you to define the properties of the instance
+    in a type- or interface-like manner:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类可以被视为用于创建对象的代码模板。您定义属性和方法，只有通过实例化才会分配实际的值。TypeScript类将基本的JavaScript类与更多用于定义类型的语法相结合。例如，TypeScript允许您以类似类型或接口的方式定义实例的属性：
+- en: '[PRE52]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'However, this notation only defines the shape: it doesn’t set any concrete
+    values, yet. When being transpiled to regular JavaScript, all those properties
+    are erased; they exist only in the *type namespace*.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这种标注只是定义了结构：它并没有设置任何具体的值。当被转译成常规JavaScript时，所有这些属性都会被擦除；它们只存在于*类型命名空间*中。
+- en: This notation is arguably very readable and gives the developer a good idea
+    of what properties to expect. But there is no guarantee that these properties
+    actually exist. If we don’t initialize them, everything is either missing or `undefined`.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种标注显然非常易读，并给开发者一个很好的想法，可以期望哪些属性。但不能保证这些属性实际存在。如果我们不初始化它们，一切都是缺失的或`undefined`。
+- en: TypeScript has safeguards for this. With the `strictPropertyInitialization`
+    flag set to `true` in your *tsconfig.json*, TypeScript will make sure that all
+    properties you’d expect are actually initialized when creating a new object from
+    your class.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript对此有保护措施。通过在*tsconfig.json*中将`strictPropertyInitialization`标志设置为`true`，TypeScript将确保在从类创建新对象时，所有你期望的属性都被初始化。
+- en: Note
+  id: totrans-212
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`strictPropertyInitialization` is part of TypeScript’s `strict` mode. If you
+    set `strict` to `true` in your *tsconfig*—which you should—you also activate strict
+    property initialization.'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`strictPropertyInitialization`是TypeScript的`strict`模式的一部分。如果你在*tsconfig*中将`strict`设置为`true`——这是推荐的做法——你也会激活严格属性初始化。'
+- en: 'Once this is activated, TypeScript will greet you with many red squiggly lines:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦激活了这个选项，TypeScript将在许多地方用红色波浪线向你打招呼：
+- en: '[PRE53]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'Beautiful! Now it’s up to us to make sure that every property will receive
+    a value. There are multiple ways to do this. If we look at the `Account` example,
+    we can define some constraints or rules, if our application’s domain allows us
+    to do so:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！现在我们要确保每个属性都能收到一个值。有多种方法可以做到这一点。如果我们看一下`Account`示例，我们可以定义一些约束或规则，如果我们的应用程序域允许的话：
+- en: '`id` and `userName` need to be set; they control the communication to our backend
+    and are necessary for display.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 需要设置`id`和`userName`；它们控制与我们的后端通信并且在显示时是必需的。
+- en: '`state` also needs to be set, but it has a default value of `active`. Usually,
+    accounts in our software are active, unless they are set intentionally to `inactive`.'
+  id: totrans-218
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`state`也需要设置，但其默认值为`active`。通常情况下，我们软件中的账户是活跃的，除非有意将其设置为`inactive`。'
+- en: '`orders` is an array that contains order IDs, but what if we haven’t ordered
+    anything? An empty array works just as well, or maybe we set `orders` to not be
+    defined yet.'
+  id: totrans-219
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`orders`是一个包含订单 ID 的数组，但如果我们什么都没订购怎么办？一个空数组同样有效，或者也许我们将`orders`设置为尚未定义。'
+- en: 'Given those constraints, we already can rule out two errors. We set `state`
+    to be `active` by default, and we make `orders` optional. There’s also the possibility
+    to set `orders` to be of type `number[] | undefined`, which is the same thing
+    as optional:'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于这些限制，我们已经可以排除两个错误。我们将`state`默认设置为`active`，并且我们使`orders`变为可选。还有可能将`orders`设置为`number[]
+    | undefined`类型，这与可选相同：
+- en: '[PRE54]'
+  id: totrans-221
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'The other two properties still throw errors. By adding a `constructor` and
+    initializing these properties, we rule out the other errors as well:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外两个属性仍然会报错。通过添加一个`constructor`并初始化这些属性，我们也排除了其他错误：
+- en: '[PRE55]'
+  id: totrans-223
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'That’s it, a proper TypeScript class! TypeScript also allows for a constructor
+    shorthand, where you can turn constructor parameters into class properties with
+    the same name and value by adding a visibility modifier like `public`, `private`,
+    or `protected`. It’s a convenient feature that gets rid of a lot of boilerplate
+    code. It’s important that you don’t define the same property in the class shape:'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是一个合适的 TypeScript 类！TypeScript 还允许使用构造函数的简写形式，通过添加`public`、`private`或`protected`等可见性修饰符，你可以将构造函数参数转换为具有相同名称和值的类属性。这是一个方便的功能，可以消除大量样板代码。重要的是不要在类形状中重新定义相同的属性：
+- en: '[PRE56]'
+  id: totrans-225
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'If you look at the class right now, you see that we rely only on TypeScript
+    features. The transpiled class, the JavaScript equivalent, looks a lot different:'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你现在查看这个类，你会发现我们仅依赖于 TypeScript 的特性。转译后的类，即 JavaScript 等效物，看起来大不相同：
+- en: '[PRE57]'
+  id: totrans-227
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: Everything is in the `constructor`, because the `constructor` defines an instance.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一切都在`constructor`里面，因为`constructor`定义了一个实例。
+- en: Warning
+  id: totrans-229
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: While TypeScript shortcuts and syntax for classes seem nice, be careful how
+    much you buy into them. TypeScript switched gears in recent years to be mostly
+    a syntax extension for types on top of regular JavaScript, but their class features
+    that have existed for many years now are still available and add different semantics
+    to your code than you’d expect. If you lean toward your code being “JavaScript
+    with types,” be careful when you venture into the depths of TypeScript class features.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 TypeScript 的类快捷方式和语法看起来不错，但要小心不要过度依赖它们。最近几年，TypeScript 转变成了主要是在常规 JavaScript
+    上的类型语法扩展，但它们多年来存在的类特性仍然可用，并为您的代码添加了与您期望的不同的语义。如果你倾向于你的代码是“带有类型的 JavaScript”，那么当你进入
+    TypeScript 类特性的深处时要小心。
+- en: Strict property initialization also understands complex scenarios, like setting
+    the property within a function that is being called via the `constructor`. It
+    also understands that an async class might leave your class with a potentially
+    uninitialized state.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 严格的属性初始化还理解复杂的情况，比如在通过`constructor`调用的函数内部设置属性。它还理解，异步类可能会使你的类处于潜在的未初始化状态。
+- en: 'Let’s say you just want to initialize your class via an `id` property and fetch
+    the `userName` from a backend. If you do the async call within your constructor
+    and set `userName` after the `fetch` call is complete, you still get strict property
+    initialization errors:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你只需通过一个`id`属性初始化你的类，并从后端获取`userName`。如果你在构造函数内部进行异步调用，并在`fetch`调用完成后设置`userName`，你仍然会得到严格的属性初始化错误：
+- en: '[PRE58]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: And it’s true! Nothing tells you that the `fetch` call will be successful, and
+    even if you `catch` errors and make sure that the property will be initialized
+    with a fallback value, there is a certain amount of time when your object has
+    an uninitialized `userName` state.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而这是真的！没有什么能告诉你`fetch`调用会成功，即使你捕获错误并确保属性会被初始化为一个备用值，你的对象在未初始化`userName`状态时也有一定时间的未初始化状态。
+- en: 'You can do a few things to get around this. One nice pattern is having a static
+    factory function that works asynchronously, where you get the data first and then
+    call a constructor that expects both properties:'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以做一些事情来解决这个问题。一个好的模式是有一个静态工厂函数，它异步工作，首先获取数据，然后调用期望两个属性的构造函数：
+- en: '[PRE59]'
+  id: totrans-236
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: This allows both objects to be instantiated in a non-async context if you have
+    access to both properties, or within an async context if you have only `id` available.
+    We switch responsibilities and remove `async` from the constructor entirely.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这允许在非异步上下文中实例化两个对象，如果你可以访问这两个属性，或者在异步上下文中如果只有`id`可用。我们转换职责并完全从构造函数中删除`async`。
+- en: 'Another technique is to simply ignore the uninitialized state. What if the
+    state of `userName` is totally irrelevant to your application, and you want to
+    access it only when needed? Use the *definite assignment assertion* (an exclamation
+    mark) to tell TypeScript you will treat this property as initialized:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种技术是简单地忽略未初始化的状态。如果`userName`的状态对你的应用程序完全不相关，并且你只在需要时访问它，使用*definite assignment
+    assertion*（感叹号）告诉TypeScript你将把这个属性视为已初始化：
+- en: '[PRE60]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: The responsibility is now in your hands, and with the exclamation mark you have
+    TypeScript-specific syntax you can qualify as unsafe operation, runtime errors
+    included.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在责任在你手上，有了感叹号你可以把TypeScript特定的语法称为不安全操作，包括运行时错误。
+- en: 11.8 Working with this Types in Classes
+  id: totrans-241
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.8 在类中使用这些类型
+- en: Problem
+  id: totrans-242
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You extend from base classes to reuse functionality, and your methods have signatures
+    that refer to an instance of the same class. You want to make sure that no other
+    subclasses are getting mixed in your interfaces, but you don’t want to override
+    methods just to change the type.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你从基类扩展以重用功能，并且你的方法具有引用相同类实例的签名。你希望确保没有其他子类混入你的接口，但是你不想重写方法只是为了改变类型。
+- en: Solution
+  id: totrans-244
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `this` as type instead of the actual class type.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`this`作为类型而不是实际的类类型。
+- en: Discussion
+  id: totrans-246
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In this example, we want to model a bulletin board software’s different user
+    roles using classes. We start with a general `User` class that is identified by
+    its user ID and has the ability to open threads:'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们想使用类来模拟公告板软件中不同用户角色。我们从一个通用的`User`类开始，它通过用户ID进行标识，并具有打开主题的能力：
+- en: '[PRE61]'
+  id: totrans-248
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: This class also contains an `equals` method. Somewhere in our codebase, we need
+    to make sure that two references to users are the same, and since we identify
+    users by their ID, we can easily compare numbers.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个类还包含一个`equals`方法。在我们的代码库中的某个地方，我们需要确保两个用户引用是相同的，由于我们通过他们的ID来标识用户，我们可以轻松地比较数字。
+- en: '`User` is the base class of all users, so if we add roles with more privileges,
+    we can easily inherit from the base `User` class. For example, `Admin` has the
+    ability to close threads, and it stores a set of other privileges that we might
+    use in other methods.'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`User`是所有用户的基类，因此如果我们添加具有更多特权的角色，我们可以轻松地继承基础`User`类。例如，`Admin`具有关闭主题的能力，并且它存储了一组其他我们可能在其他方法中使用的权限。'
+- en: Note
+  id: totrans-251
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: There is much debate in the programming community if inheritance is a technique
+    better to ignore since its benefits hardly outweigh its pitfalls. Nevertheless,
+    some parts of JavaScript rely on inheritance, such as Web Components.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编程社区对继承是否是一种更好的技术存在很多争论，因为它的好处很少超过其缺点。尽管如此，JavaScript的某些部分依赖于继承，比如Web组件。
+- en: 'Since we inherit from `User`, we don’t need to write another `openThread` method,
+    and we can reuse the same `equals` method since all administrators are also users:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们从`User`继承，我们无需编写另一个`openThread`方法，我们可以重用相同的`equals`方法，因为所有管理员也是用户：
+- en: '[PRE62]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'After setting up our classes, we can create new objects of type `User` and
+    `Admin` by instantiating the right classes. We can also call the `equals` method
+    to compare if two users might be the same:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置完我们的类之后，我们可以通过实例化正确的类来创建`User`和`Admin`类型的新对象。我们还可以调用`equals`方法来比较两个用户是否可能相同：
+- en: '[PRE63]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'One thing is bothersome, though: the direction of comparison. Of course, comparing
+    two numbers is commutative; it shouldn’t matter if we compare a `user` to an `admin`,
+    but if we think about the surrounding classes and subtypes, there is some room
+    for improvement:'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一件事令人困扰：比较的方向。当然，比较两个数字是可交换的；如果我们比较一个`user`和一个`admin`，这应该没问题，但是如果我们考虑周围的类和子类型，还是有改进的空间：
+- en: It’s OK to check if a `user` equals an `admin`, because it might gain privileges.
+  id: totrans-258
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们检查一个`user`是否等于一个`admin`，这是可以的，因为它可能获得特权。
+- en: It’s doubtful if we want an `admin` to equal a `user`, because the broader supertype
+    has less information.
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们希望一个`admin`等于一个`user`，这是令人怀疑的，因为更广泛的超类型具有更少的信息。
+- en: If we have another subclass of `Moderator` adjacent to `Admin`, we definitely
+    don’t want to be able to compare them as they don’t share properties outside the
+    base class.
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们有`Admin`相邻的另一个`Moderator`子类，我们绝对不希望能够将它们作为它们在基类之外不共享属性的比较。
+- en: 'Still, in the way `equals` is developed now, all comparisons would work. We
+    can work around this by changing the type of what we want to compare. We annotated
+    the input parameter with `User` first, but in reality we want to compare *with
+    another instance of the same type*. There is a type for that, and it is called
+    `this`:'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仍然，在当前`equals`的开发方式下，所有比较都可以工作。我们可以通过改变我们想要比较的类型来解决这个问题。我们首先用`User`标注了输入参数，但实际上我们想要比较*同类型的另一个实例*。有一个类型可以做到这一点，那就是`this`：
+- en: '[PRE64]'
+  id: totrans-262
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'This is different from the erasable `this` parameter we know from functions,
+    which we learned about in [Recipe 2.7](ch02.html#ch02_item_this_types), as the
+    `this` parameter type allows us to set a concrete type for the `this` global variable
+    within the scope of a function. The `this` type is a reference to the class where
+    the method is located. And it changes depending on the implementation. So if we
+    annotate a `user` with `this` in `User`, it becomes an `Admin` in the class that
+    inherits from `User`, or a `Moderator`, and so on. With that, `admin.equals` expects
+    another `Admin` class to be compared to; otherwise, we get an error:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与我们从函数中了解到的可以擦除的`this`参数不同，我们在[Recipe 2.7](ch02.html#ch02_item_this_types)中学习过，因为`this`参数类型允许我们在函数范围内设置`this`全局变量的具体类型。`this`类型是对方法所在类的引用。并且随着实现的变化而变化。因此，如果我们在`User`中用`this`注释一个`user`，它在从`User`继承的类中变成一个`Admin`，或者一个`Moderator`，等等。因此，`admin.equals`期望与之比较的是另一个`Admin`类；否则，我们会得到一个错误：
+- en: '[PRE65]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: The other way around still works. Since `Admin` contains all properties from
+    `User` (it’s a subclass, after all), we can easily compare `user.equals(admin)`.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反过来也可以工作。因为`Admin`包含了所有`User`的属性（毕竟它是一个子类），我们可以轻松地比较`user.equals(admin)`。
+- en: '`this` types can also be used as return types. Take a look at this `OptionBuilder`,
+    which implements the *builder pattern*:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this`类型也可以用作返回类型。看看这个实现*构建器模式*的`OptionBuilder`：'
+- en: '[PRE66]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'It’s a soft wrapper around a `Map`, which allows us to set key/value pairs.
+    It has a chainable interface, which means that after each `add` call, we get the
+    current instance back, allowing us to do `add` call after `add` call. Note that
+    we annotated the return type with `OptionBuilder<T>`:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它是`Map`的一个轻量包装，允许我们设置键值对。它具有链式接口，这意味着在每个`add`调用之后，我们都会得到当前实例的返回，允许我们在`add`调用之后进行另一个`add`调用。注意我们用`OptionBuilder<T>`标注了返回类型：
+- en: '[PRE67]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'We are now creating a `StringOptionBuilder` that inherits from `OptionBuilder`
+    and sets the type of possible elements to `string`. We also add a `safeAdd` method
+    with checks if a certain value is already set before it is written, so we don’t
+    override previous settings:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们正在创建一个继承自`OptionBuilder`并将可能元素类型设置为`string`的`StringOptionBuilder`。我们还添加了一个`safeAdd`方法，用于在写入之前检查是否已经设置了某个特定值，以避免覆盖先前的设置：
+- en: '[PRE68]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'When we start using the new builder, we see that we can’t reasonably use `safeAdd`
+    if we have an `add` as the first step:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们开始使用新的构建器时，我们发现如果作为第一步有`add`，我们就不能合理地使用`safeAdd`：
+- en: '[PRE69]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'TypeScript tells us that `safeAdd` does not exist on type `OptionBuilder<string>`.
+    Where has this function gone? The problem is that `add` has a very broad annotation.
+    Of course `StringOptionBuilder` is a subtype of `OptionBuilder<string>`, but with
+    the annotation, we lose the information on the narrower type. The solution? Use
+    `this` as return type:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript告诉我们，在类型为`OptionBuilder<string>`的情况下，`safeAdd`不存在。这个函数去哪了？问题在于`add`有一个非常宽泛的注释。当然，`StringOptionBuilder`是`OptionBuilder<string>`的子类型，但是有了注释，我们失去了更窄类型的信息。解决方案？使用`this`作为返回类型：
+- en: '[PRE70]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: The same effect happens as with the previous example. In `OptionBuilder<T>`,
+    `this` becomes `OptionBuilder<T>`. In `StringBuilder`, `this` becomes `StringBuilder`.
+    If you return `this` and leave out the return type annotation, `this` becomes
+    the *inferred* return type. So using `this` explicitly depends on your preference
+    (see [Recipe 2.1](ch02.html#ch02_item_annotation)).
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与前面的例子效果相同。在`OptionBuilder<T>`中，`this`变成了`OptionBuilder<T>`。在`StringBuilder`中，`this`变成了`StringBuilder`。如果你返回`this`并省略返回类型注释，`this`就成为了*推断*的返回类型。因此，明确使用`this`取决于你的偏好（参见[Recipe
+    2.1](ch02.html#ch02_item_annotation)）。
+- en: 11.9 Writing Decorators
+  id: totrans-277
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 11.9 编写装饰器
+- en: Problem
+  id: totrans-278
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to log the execution of your methods for your telemetry, but adding
+    manual logs to every method is cumbersome.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望记录你的方法执行情况以进行遥测，但是对每个方法手动添加日志很麻烦。
+- en: Solution
+  id: totrans-280
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Write a class method decorator called `log` to annotate your methods.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写一个名为 `log` 的类方法装饰器来注解您的方法。
+- en: Discussion
+  id: totrans-282
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The *decorator* design pattern has been described in the renowned book *Design
+    Patterns: Elements of Reusable Object-Oriented Software* by Erich Gamma et al.
+    (Addison-Wesley) and describes a technique that can *decorate* classes and methods
+    to dynamically add or overwrite certain behavior.'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*装饰器*设计模式在埃里克·伽马等人（Addison-Wesley）的著名书籍《设计模式：可复用面向对象软件的元素》中有所描述，并描述了一种可以动态添加或覆盖某些行为的技术。'
+- en: What began as a naturally emerging design pattern in object-oriented programming
+    has become so popular that programming languages that feature object-oriented
+    aspects have added decorators as a language feature with a special syntax. You
+    can see forms of it in Java (called *annotations*) or C# (called *attributes*)
+    and in JavaScript.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初作为面向对象编程中自然出现的设计模式，如今变得如此流行，以至于支持面向对象特性的编程语言都添加了装饰器作为一种语言特性，并使用了特殊的语法。在 Java（称为*注解*）或
+    C#（称为*属性*）以及 JavaScript 中都可以看到其形式。
+- en: The ECMAScript proposal for decorators has been in proposal hell for quite a
+    while but reached stage 3 (ready for implementation) in 2022\. And with all features
+    reaching stage 3, TypeScript is one of the first tools to pick up the new specification.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ECMAScript 关于装饰器的提案已经在提案阶段 3（准备实施阶段）中停留了相当长的时间，但在 2022 年达到了阶段 3，并且随着所有功能达到阶段
+    3，TypeScript 是第一个采纳新规范的工具之一。
+- en: Warning
+  id: totrans-286
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Decorators have existed in TypeScript for a long time under the `experimentalDecorators`
+    compiler flag. With TypeScript 5.0, the native ECMAScript decorator proposal is
+    fully implemented and available without a flag. The actual ECMAScript implementation
+    differs fundamentally from the original design, and if you developed decorators
+    prior to TypeScript 5.0, they won’t work with the new specification. Note that
+    a switched-on `experimentalDecorators` flag turns off the ECMAScript native decorators.
+    Also, in regard to types, *lib.decorators.d.ts* contains all type information
+    for the ECMAScript native decorators, while types in *lib.decorators.legacy.d.ts*
+    contain old type information. Make sure your settings are correct and that you
+    don’t consume types from the wrong definition file.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 TypeScript 中，装饰器已经存在很长时间，使用 `experimentalDecorators` 编译器标志。随着 TypeScript 5.0
+    的推出，原生的 ECMAScript 装饰器提案完全实现并且无需标志。实际的 ECMAScript 实现与原始设计在根本上有所不同，如果您在 TypeScript
+    5.0 之前开发过装饰器，它们将无法与新规范一起使用。请注意，打开 `experimentalDecorators` 标志会关闭 ECMAScript 原生装饰器。此外，关于类型，*lib.decorators.d.ts*
+    包含 ECMAScript 原生装饰器的所有类型信息，而 *lib.decorators.legacy.d.ts* 中的类型包含旧的类型信息。确保您的设置正确，并且不要从错误的定义文件中使用类型。
+- en: Decorators allow us to decorate almost anything in a class. For this example,
+    we want to start with a method decorator that allows us to log the execution of
+    method calls.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 装饰器允许我们在类中几乎任何地方进行装饰。对于这个例子，我们希望从一个方法装饰器开始，允许我们记录方法调用的执行。
+- en: Decorators are described as functions with a *value* and a *context*, both depending
+    on the type of class element you want to decorate. Those decorator functions return
+    another function that will be executed before your own method (or before field
+    initialization, or before an accessor call, etc.).
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 装饰器被描述为具有 *value* 和 *context* 的函数，这两者都取决于您想装饰的类元素的类型。这些装饰器函数返回另一个函数，在您自己的方法之前执行（或在字段初始化之前，或在访问器调用之前等）。
+- en: 'A simple `log` decorator for methods could look like this:'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法的一个简单的 `log` 装饰器可能如下所示：
+- en: '[PRE71]'
+  id: totrans-291
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'The `log` function follows a `ClassMethodDecorator` type defined in the original
+    [decorator proposal](https://oreil.ly/76JuE):'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`log` 函数遵循原始[装饰器提案](https://oreil.ly/76JuE)中定义的 `ClassMethodDecorator` 类型：'
+- en: '[PRE72]'
+  id: totrans-293
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: 'Many decorator context types are available. *lib.decorator.d.ts* defines the
+    following decorators:'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多装饰器上下文类型可用。*lib.decorator.d.ts* 定义了以下装饰器：
+- en: '[PRE73]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: You can read from the names exactly which part of a class they target.
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从名称中准确地看出它们目标类的哪个部分。
+- en: 'Note that we haven’t written detailed types yet. We resort to a lot of `any`,
+    mostly because the types can get very complex. If we want to add types for all
+    parameters, we need to resort to a lot of generics:'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们还没有编写详细的类型。我们大多数时候使用 `any`，主要是因为类型可能变得非常复杂。如果我们想为所有参数添加类型，我们需要大量使用泛型：
+- en: '[PRE74]'
+  id: totrans-298
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'The generic type parameters are necessary to describe the method we are passing
+    in. We want to catch the following types:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 泛型类型参数对于描述我们要传递的方法是必要的。我们想捕捉以下类型：
+- en: '`This` is a generic type parameter for the `this` parameter type (see [Recipe
+    2.7](ch02.html#ch02_item_this_types)). We need to set `this` as decorators are
+    run in the context of an object instance.'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`This`是`this`参数类型的通用类型参数（参见[Recipe 2.7](ch02.html#ch02_item_this_types)）。我们需要将`this`设置为在对象实例上下文中运行装饰器。'
+- en: Then we have the method’s arguments as `Args`. As we learned in [Recipe 2.4](ch02.html#ch02_item_tuple_types),
+    a method or function’s arguments can be described as a tuple.
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 然后我们有方法的参数作为`Args`。正如我们在[Recipe 2.4](ch02.html#ch02_item_tuple_types)中学到的那样，一个方法或函数的参数可以描述为一个元组。
+- en: Last, but not least, the `Return` type parameter. The method needs to return
+    a value of a certain type, and we want to specify this.
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 最后但同样重要的是`Return`类型参数。该方法需要返回特定类型的值，我们需要指定这一点。
+- en: With all three, we are able to describe the input method as well as the output
+    method in the most generic way, for all classes. We can use generic constraints
+    to make sure that our decorator works only in certain cases, but for `log`, we
+    want to be able to log every method call.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这三者，我们能够以最通用的方式描述输入方法和输出方法，适用于所有类。我们可以使用泛型约束来确保我们的装饰器只在某些情况下工作，但对于`log`，我们希望能够记录每个方法调用。
+- en: Note
+  id: totrans-304
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: At the time of writing, ECMAScript decorators in TypeScript are fairly new.
+    Types get better over time, so the type information you get may already be much
+    better.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在撰写本文时，TypeScript中的ECMAScript装饰器还比较新。随着时间的推移，类型信息会变得更好，因此您获取的类型信息可能已经好得多。
+- en: 'We also want to log our class fields and their initial value before the `constructor`
+    method is called:'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还想要在`constructor`方法被调用之前记录我们的类字段及其初始值：
+- en: '[PRE75]'
+  id: totrans-307
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'For that, we create another decorator called `logField`, which works on a `ClassFieldDecoratorContext`.
+    The [decorator proposal](https://oreil.ly/76JuE) describes the decorator for class
+    fields as follows:'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们创建另一个名为`logField`的装饰器，它作用于`ClassFieldDecoratorContext`。[装饰器提案](https://oreil.ly/76JuE)如下描述了用于类字段的装饰器：
+- en: '[PRE76]'
+  id: totrans-309
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'Note that the *value* is `undefined`. The initial value is being passed to
+    the replacement method:'
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意*value*是`undefined`。初始值被传递给替换方法：
+- en: '[PRE77]'
+  id: totrans-311
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: There’s one thing that feels off. Why would we need different decorators for
+    different kinds of members? Shouldn’t our `log` decorator be capable of handling
+    it all? Our decorator is called in a specific *decorator context*, and we can
+    identify the right context via the `kind` property (a pattern we saw in [Recipe
+    3.2](ch03.html#ch03_item_discriminated_unions)). So there’s nothing easier than
+    writing a `log` function that does different decorator calls depending on the
+    context, right?
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一件事感觉不对劲。为什么我们需要为不同类型的成员使用不同的装饰器？我们的`log`装饰器难道不能处理所有情况吗？我们的装饰器在特定*装饰器上下文*中被调用，我们可以通过`kind`属性（我们在[Recipe
+    3.2](ch03.html#ch03_item_discriminated_unions)中看到的模式）来识别正确的上下文，因此编写一个根据上下文进行不同装饰器调用的`log`函数是非常简单的，对吧？
+- en: 'Well, yes and no. Of course, having a wrapper function that branches correctly
+    is the way to go, but the type definitions, as we’ve seen, are pretty complex.
+    Finding *one* function signature that can handle them all is close to impossible
+    without defaulting to `any` everywhere. And remember: we need the right function
+    signature typings; otherwise, the decorators won’t work with class members.'
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 嗯，是的也不是。当然，有一个正确分支的包装器函数是正确的方法，但是正如我们所见，类型定义非常复杂。要找到能处理它们所有的*一个*函数签名几乎是不可能的，除非到处都用`any`。请记住：我们需要正确的函数签名类型；否则，装饰器将无法与类成员一起工作。
+- en: 'Multiple different function signatures just scream *function overloads*. So
+    instead of finding one function signature for all possible decorators, we create
+    overloads for *field decorators*, *method decorators*, and so on. Here, we can
+    type them just as we would type the single decorators. The function signature
+    for the implementation takes `any` for `value` and brings all required decorator
+    context types in a union, so we can do proper discrimination checks afterward:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多个不同的函数签名只会引起*函数重载*。因此，我们不是为所有可能的装饰器找到一个函数签名，而是为*字段装饰器*、*方法装饰器*等创建重载。在这里，我们可以像单个装饰器一样对它们进行类型化。实现的函数签名采用`any`作为`value`，并将所有必需的装饰器上下文类型汇总到一个联合中，以便我们之后进行适当的区分检查：
+- en: '[PRE78]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: Instead of fumbling all the actual code into the `if` branches, we’d rather
+    call the original methods. If you don’t want to have your `logMethod` or `logField`
+    functions exposed, then you can put them in a module and only export `log`.
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是把所有实际代码都弄到`if`分支中，我们宁愿调用原始方法。如果您不想将`logMethod`或`logField`函数暴露出来，那么可以将它们放在一个模块中，只导出`log`。
+- en: Tip
+  id: totrans-317
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: There are a lot of different decorator types, and they all have various fields
+    that differ slightly. The type definitions in *lib.decorators.d.ts* are excellent,
+    but if you need a bit more information, check out [the original decorator proposal
+    at TC39](https://oreil.ly/76JuE). Not only does it include extensive information
+    on all types of decorators, but it also contains additional TypeScript typings
+    that complete the picture.
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有很多不同类型的装饰器，它们都有些许不同的各种字段。*lib.decorators.d.ts*中的类型定义非常好，但如果您需要更多信息，请查看[TC39提案中的原始装饰器提案](https://oreil.ly/76JuE)。它不仅包含所有类型装饰器的广泛信息，还包含完整的TypeScript类型定义，从而完整地展示了整个画面。
+- en: 'There is one last thing we want to do: adapt `logMethod` to log both *before*
+    and *after* the call. For normal methods, it’s as easy as temporarily storing
+    the return value:'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还想做最后一件事：调整`logMethod`以在调用之前和之后都记录日志。对于普通方法来说，暂时存储返回值就很容易：
+- en: '[PRE79]'
+  id: totrans-320
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: But for asynchronous methods, things get a little more interesting. Calling
+    an asynchronous method yields a `Promise`. The `Promise` itself might already
+    have been executed, or the execution is deferred to later. This means if we stick
+    with the implementation from before, the *called* log message might appear before
+    the method actually yields a value.
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但对于异步方法，事情变得更加有趣。调用异步方法会产生一个`Promise`。`Promise`本身可能已经执行完毕，或者执行被推迟到以后。这意味着如果我们继续使用之前的实现，*called*日志消息可能会在方法实际产生值之前出现。
+- en: 'As a workaround, we need to chain the log message as the next step after the
+    `Promise` yields a result. To do so, we need to check if the method is actually
+    a `Promise`. JavaScript Promises are interesting because all they need to be awaited
+    is having a `then` method. This is something we can check in a helper method:'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为一种解决方法，我们需要将日志消息链式化为`Promise`产生结果后的下一步。为此，我们需要检查方法是否实际上是一个`Promise`。JavaScript的Promises很有趣，因为它们只需具有`then`方法就可以被等待。这是我们可以在辅助方法中检查的内容：
+- en: '[PRE80]'
+  id: totrans-323
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: 'And with that, we decide whether to log directly or deferred based on if we
+    have a `Promise`:'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，我们根据是否有`Promise`来决定是直接记录日志还是延迟记录：
+- en: '[PRE81]'
+  id: totrans-325
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: Decorators can get very complex but are ultimately a useful tool to make classes
+    in JavaScript and TypeScript more expressive.
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修饰器可以变得非常复杂，但最终它们是使JavaScript和TypeScript中的类更具表现力的有用工具。
+- en: ^([1](ch11.html#id917-marker)) C# and TypeScript are made by Microsoft, and
+    Anders Hejlsberg has been heavily involved in both programming languages.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch11.html#id917-marker)) C#和TypeScript都由Microsoft制作，Anders Hejlsberg在这两种编程语言中都有很大的参与。

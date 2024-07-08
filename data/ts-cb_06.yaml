@@ -1,0 +1,1414 @@
+- en: Chapter 5\. Conditional Types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第五章. 条件类型
+- en: 'In this chapter, we will take a good look at a feature that is unique to TypeScript:
+    *conditional types*. Conditional types allow us to select types based on subtype
+    checks, allowing us to move around in the type space and get even more flexibility
+    in how we want to design interfaces and function signatures.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将仔细研究一种TypeScript独有的特性：*条件类型*。条件类型允许我们根据子类型检查来选择类型，使我们能够在类型空间中移动，并在设计接口和函数签名时获得更大的灵活性。
+- en: Conditional types are a powerful tool that allows you to make up types on the
+    fly. It makes TypeScript’s type system turing complete, as shown in [this GitHub
+    issue](https://oreil.ly/igPhB), which is both outstanding but also a bit frightening.
+    With so much power in your hands, it’s easy to lose focus on which types you actually
+    need, leading you into dead ends or crafting types that are too hard to read.
+    Throughout this book, we will discuss the usage of conditional types thoroughly,
+    always reassessing that what we do actually leads to our desired goal.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 条件类型是一个强大的工具，允许您动态生成类型。正如在[此GitHub问题](https://oreil.ly/igPhB)中展示的那样，它使得TypeScript的类型系统变得完备，这既令人印象深刻，也有些可怕。当您手中有这么强大的功能时，很容易失去对实际需要的类型的关注，从而陷入死胡同或制作过于难以阅读的类型。在本书中，我们将彻底讨论条件类型的使用，始终重新评估我们所做的是否确实达到了我们的预期目标。
+- en: 'Note that this chapter is much shorter than others. This is not because there’s
+    not a lot to say about conditional types: quite the contrary. It’s more because
+    we will see good use of conditional types in the subsequent chapters. Here, we
+    want to focus on the fundamentals and establish terminology that you can use and
+    refer to whenever you need some type magic.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，本章比其他章节要短得多。这不是因为条件类型没有多少值得说的：恰恰相反。这更多是因为我们将在随后的章节中看到条件类型的良好使用。在这里，我们希望专注于基础知识，并建立您可以在需要时使用和参考的术语。
+- en: 5.1 Managing Complex Function Signatures
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 5.1 管理复杂的函数签名
+- en: Problem
+  id: totrans-5
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You are creating a function with varying parameters and return types. Managing
+    all variations using function overloads gets increasingly complex.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在创建一个具有不同参数和返回类型的函数。使用函数重载来管理所有变化变得越来越复杂。
+- en: Solution
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use conditional types to define a set of rules for parameter and return types.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用条件类型来定义一组规则，用于参数和返回类型。
+- en: Discussion
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'You create software that presents certain attributes as labels based on user-defined
+    input. You distinguish between `StringLabel` and `NumberLabel` to allow for different
+    kinds of filter operations and searches:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您创建软件，根据用户定义的输入将某些属性显示为标签。您区分`StringLabel`和`NumberLabel`以允许不同类型的过滤操作和搜索：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'User input is either a string or a number. The `createLabel` function takes
+    the input as a primitive type and produces either a `StringLabel` or `NumberLabel`
+    object:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户输入可以是字符串或数字。`createLabel`函数将输入作为原始类型，并生成`StringLabel`或`NumberLabel`对象：
+- en: '[PRE1]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'With the basic functionality done, you see that your types are way too broad.
+    If you enter a `number`, the return type of `createLabel` is still `NumberLabel
+    | StringLabel`, when it can only be `NumberLabel`. The solution? Adding function
+    overloads to explicitly define type relationships, like we learned in [Recipe
+    2.6](ch02.html#ch02_item_function_overloads):'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基本功能完成后，您会发现您的类型太过广泛。如果输入一个`number`，`createLabel`的返回类型仍然是`NumberLabel | StringLabel`，但它只能是`NumberLabel`。解决方案？添加函数重载以明确定义类型关系，就像我们在[第2章第6节](ch02.html#ch02_item_function_overloads)中学到的那样：
+- en: '[PRE2]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: The way function overloads work is that the overloads themselves define types
+    for usage, whereas the last function declaration defines the types for the implementation
+    of the function body. With `createLabel`, we are able to pass in a `string` and
+    get a `StringLabel` or pass in a `number` and get a `NumberLabel`, as those are
+    the types available to the outside.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数重载的工作方式是，重载本身定义了用法的类型，而最后一个函数声明定义了函数体实现的类型。使用`createLabel`，我们可以传入一个`string`并获得`StringLabel`，或传入一个`number`并获得`NumberLabel`，因为这些是外部可用的类型。
+- en: 'This is problematic in cases where we couldn’t narrow the input type beforehand.
+    We lack a function type to the outside that allows us to pass in input that is
+    either `number` or `string`:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在我们无法事先缩小输入类型的情况下是个问题。我们缺少一个向外界传递允许输入为`number`或`string`的函数类型：
+- en: '[PRE3]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'To circumvent this, we add another overload that mirrors the implementation
+    function signature for very broad input types:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了规避这种情况，我们添加另一个重载，以匹配非常广泛的输入类型的实现函数签名：
+- en: '[PRE4]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: What we see here is that we already need three overloads and four function signature
+    declarations total to describe the most basic behavior for this functionality.
+    And from there on, it just gets worse.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这里看到，我们已经需要三个重载和四个函数签名声明，以描述此功能的最基本行为。从这里开始，情况只会变得更糟。
+- en: 'We want to extend our function to be able to copy existing `StringLabel` and
+    `NumberLabel` objects. This ultimately means more overloads:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望扩展我们的函数，以能够复制现有的`StringLabel`和`NumberLabel`对象。这最终意味着需要更多的重载：
+- en: '[PRE5]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Truth be told, depending on how expressive we want our type hints to be, we
+    can write fewer but also a lot more function overloads. The problem is still apparent:
+    more variety results in more complex function signatures.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 坦率地说，根据我们希望类型提示有多么表达，我们可以编写较少但也更多的函数重载。问题仍然显而易见：更多的多样性导致更复杂的函数签名。
+- en: 'One tool in TypeScript’s toolbelt can help with situations like this: conditional
+    types. Conditional types allow us to select a type based on certain subtype checks.
+    We ask if a generic type parameter is of a certain subtype and, if so, return
+    the type from the `true` branch, or otherwise return the type from the `false`
+    branch.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 工具包中的一个工具可以帮助解决这种情况：条件类型。条件类型允许我们根据某些子类型检查选择类型。我们询问泛型类型参数是否属于某个子类型，如果是，则从`true`分支返回类型，否则从`false`分支返回类型。
+- en: 'For example, the following type returns the input parameter if `T` is a subtype
+    of `string` (which means all strings or very specific ones). Otherwise, it returns
+    `never`:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果`T`是`string`的子类型（即所有字符串或非常具体的字符串），则以下类型返回输入参数。否则，返回`never`：
+- en: '[PRE6]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: TypeScript borrows this syntax from JavaScript’s ternary operator. And just
+    like JavaScript’s ternary operator, it checks if certain conditions are valid.
+    But instead of having the typical set of conditions you know from a programming
+    language, TypeScript’s type system checks only if the values of the input type
+    are included in the set of values we check against.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript从JavaScript的三元运算符中借用了这种语法。就像JavaScript的三元运算符一样，它检查某些条件是否有效。但与编程语言中通常的一套条件不同，TypeScript
+    的类型系统仅检查输入类型的值是否包含在我们检查的值集合中。
+- en: 'With that tool, we are able to write a conditional type called `GetLabel<T>`.
+    We check if the input is either of `string` or `StringLabel`. If so, we return
+    `StringLabel`; else, we know that it must be a `NumberLabel`:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助这个工具，我们能够编写一个名为`GetLabel<T>`的条件类型。我们检查输入是否为`string`或`StringLabel`。如果是，则返回`StringLabel`；否则，我们知道它必须是`NumberLabel`：
+- en: '[PRE7]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'This type only checks if the inputs `string`, `StringLabel`, `number`, and
+    `NumberLabel` are in the `else` branch. If we want to be on the safe side, we
+    would also include a check against possible inputs that produce a `NumberLabel`
+    by nesting conditional types:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此类型仅检查输入`string`、`StringLabel`、`number`和`NumberLabel`是否位于`else`分支中。如果我们希望安全，还应包括对可能产生`NumberLabel`的输入进行检查，通过嵌套条件类型：
+- en: '[PRE8]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now it’s time to wire up our generics. We add a new generic type parameter
+    `T` to `cr⁠ea⁠te​Lab⁠el` that is constrained to all possible input types. This
+    `T` parameter serves as input for `GetLabel<T>`, where it will produce the respective
+    return type:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是连接泛型的时候了。我们在`cr⁠ea⁠te​Lab⁠el`中添加一个新的泛型类型参数`T`，它受到所有可能输入类型的限制。这个`T`参数作为`GetLabel<T>`的输入，将产生相应的返回类型：
+- en: '[PRE9]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Now we are ready to handle all possible type combinations and will still get
+    the correct return type from `getLabel`, all in just one line of code.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经准备好处理所有可能的类型组合，并且仍然可以从`getLabel`中获取正确的返回类型，所有这些只需一行代码即可完成。
+- en: If you look closely, you will see that we needed to work around type-checks
+    for the return type. Unfortunately, TypeScript is not able to do proper control
+    flow analysis when working with generics and conditional types. A little type
+    assertion tells TypeScript that we are dealing with the right return type.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你仔细观察，你会发现我们需要解决返回类型的类型检查问题。不幸的是，TypeScript 在处理泛型和条件类型时无法进行适当的控制流分析。通过少量类型断言告诉
+    TypeScript 我们正在处理正确的返回类型。
+- en: 'Another workaround would be to think of the function signature with conditional
+    types as an overload to the original broadly typed function:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个解决方法是将具有条件类型的函数签名视为对原始广泛类型函数的重载：
+- en: '[PRE10]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: This way, we have a flexible type for the outside world that tells exactly what
+    output we get based on our input. And for implementation, you have the full flexibility
+    you know from a broad set of types.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，我们为外部世界提供了一个灵活的类型，准确告诉我们基于输入能得到什么输出。而对于实现来说，你可以享有来自各种类型广泛集合的全面灵活性。
+- en: Does this mean you should prefer conditional types over function overloads in
+    all scenarios? Not necessarily. In [Recipe 12.7](ch12.html#ch12_overloads_vs_conditionals)
+    we look at situations where function overloads are the better choice.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是否意味着在所有情况下你应该优先选择条件类型而不是函数重载？未必。在 [Recipe 12.7](ch12.html#ch12_overloads_vs_conditionals)
+    中，我们会看到在某些情况下函数重载是更好的选择。
+- en: 5.2 Filtering with never
+  id: totrans-41
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 5.2 使用 `never` 进行过滤
+- en: Problem
+  id: totrans-42
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a union of various types but you just want to have all subtypes of
+    string.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你有各种类型的联合体，但你只想要所有字符串的子类型。
+- en: Solution
+  id: totrans-44
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a distributive conditional type to filter for the right type.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用分布式条件类型来过滤正确的类型。
+- en: Discussion
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Let’s say you have some legacy code in your application where you tried to re-create
+    frameworks like *jQuery*. You have your own kind of `ElementList` that has helper
+    functions to add and remove class names to objects of type `HTMLElement`, or to
+    bind event listeners to events.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你的应用程序中有一些遗留代码，尝试重新创建类似 *jQuery* 的框架。你有自己的 `ElementList` 类型，其中有帮助函数用于向 `HTMLElement`
+    对象添加或删除类名，或者绑定事件监听器到事件上。
+- en: 'Additionally, you can access each element of your list through index access.
+    A type for such an `ElementList` can be described using an index access type for
+    number index access, together with regular string property keys:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，你还可以通过索引访问来访问列表中的每个元素。这种 `ElementList` 的类型可以使用数字索引访问类型以及常规字符串属性键来描述：
+- en: '[PRE11]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This data structure has been designed to have a fluent interface. Meaning that
+    if you call methods like `addClass` or `removeClass`, you get the same object
+    back so you can chain your method calls.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个数据结构被设计成具有流畅的接口。这意味着如果你调用 `addClass` 或 `removeClass` 等方法，你会得到相同的对象返回，因此可以链式调用你的方法。
+- en: 'A sample implementation of these methods could look like this:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些方法的示例实现可能如下所示：
+- en: '[PRE12]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'As an extension of a built-in collection like `Array` or `NodeList`, changing
+    things on a set of `HTMLElement` objects becomes really convenient:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为内置集合（如 `Array` 或 `NodeList`）的扩展，更改 `HTMLElement` 对象集上的东西变得非常方便：
+- en: '[PRE13]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Let’s say you need to maintain your *jQuery* substitute and figure out that
+    direct element access has proven to be somewhat unsafe. When parts of your application
+    can change things directly, it becomes harder for you to figure out where changes
+    come from, if not from your carefully designed `ElementList` data structure:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你需要维护你的 *jQuery* 替代品，并发现直接元素访问在某种程度上是不安全的。当你的应用程序的某些部分可以直接更改事物时，你将更难弄清楚变化来自何处，如果不是来自你精心设计的
+    `ElementList` 数据结构：
+- en: '[PRE14]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Since you can’t change the original library code (too many departments depend
+    on it), you decide to wrap the original `ElementList` in a `Proxy`.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于你不能改变原始的库代码（太多部门依赖它），你决定在一个`Proxy`中封装原始的`ElementList`。
+- en: '`Proxy` objects take an original target object and a handler object that defines
+    how to handle access. The following implementation shows a `Proxy` that allows
+    only read access, and only if the property key is of type `string` and not a string
+    that is a string representation of a number:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Proxy` 对象接受一个原始目标对象和一个处理程序对象，定义如何处理访问。以下实现展示了一个 `Proxy`，只允许读取访问，并且只有当属性键的类型为
+    `string` 而不是表示数字的字符串时：'
+- en: '[PRE15]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Note
+  id: totrans-60
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Handler objects in `Proxy` objects receive only string or symbol properties.
+    If you do index access with a number—for example, `0`—JavaScript converts this
+    to the string `"0"`.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `Proxy` 对象中，处理程序对象只接收字符串或符号属性。如果你使用数字进行索引访问，例如 `0`，JavaScript 会将其转换为字符串 `"0"`。
+- en: 'This works great in JavaScript, but our types don’t match anymore. The return
+    type of the `Proxy` constructor is `ElementList` again, which means that the number
+    index access is still intact:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在 JavaScript 中效果很好，但我们的类型不再匹配。`Proxy` 构造函数的返回类型再次是 `ElementList`，这意味着数字索引访问仍然保持完整：
+- en: '[PRE16]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: We need to tell TypeScript that we are now dealing with an object with no number
+    index access by defining a new type.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要告诉 TypeScript，我们现在处理的是一个没有数字索引访问的对象，通过定义一个新类型来实现。
+- en: 'Let’s look at the keys of `ElementList`. If we use the `keyof` operator, we
+    get a union type of all possible access methods for objects of type `ElementList`:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看 `ElementList` 的键。如果我们使用 `keyof` 操作符，我们会得到一个 `ElementList` 类型对象所有可能访问方法的联合类型：
+- en: '[PRE17]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'It contains four strings as well as all possible numbers. Now that we have
+    this union, we can create a conditional type that gets rid of everything that
+    isn’t a string:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它包含四个字符串以及所有可能的数字。现在我们有了这个联合类型，我们可以创建一个条件类型，来过滤掉不是字符串的一切：
+- en: '[PRE18]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '`JustStrings<T>` is what we call a *distributive conditional type*. Since `T`
+    is on its own in the condition—not wrapped in an object or array—TypeScript will
+    treat a conditional type of a union as a union of conditional types. Effectively,
+    TypeScript does the same conditional check for every member of the union `T`.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`JustStrings<T>`就是我们所谓的*分布条件类型*。由于条件中的`T`单独存在于条件中—而不是包裹在对象或数组中—TypeScript将一个联合类型的条件类型视为条件类型的联合。事实上，TypeScript对联合`T`的每个成员进行相同的条件检查。'
+- en: 'In our case, it goes through all members of `keyof ElementList`:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的案例中，它穿过了`keyof ElementList`的所有成员：
+- en: '[PRE19]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'The only condition that hops into the `false` branch is the last one, where
+    we check if `number` is a subtype of `string`, which it isn’t. If we resolve every
+    condition, we end up with a new union type:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 唯一进入`false`分支的条件是最后一个条件，我们检查`number`是否是`string`的子类型，它不是。如果我们解决每个条件，我们最终得到一个新的联合类型：
+- en: '[PRE20]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'A union with `never` effectively drops `never`. If you have a set with no possible
+    value and you join it with a set of values, the values remain:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具有`never`的联合有效地删除了`never`。如果您有一个没有可能值的集合，并将其与值集合合并，那么这些值将保留下来：
+- en: '[PRE21]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'This is exactly the list of keys we consider safe to access! By using the `Pick`
+    helper type, we can create a type that is effectively a supertype of `ElementList`
+    by picking all keys that are of type `string`:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这确切是我们考虑安全访问的键列表！通过使用`Pick`辅助类型，我们可以创建一个类型，通过挑选所有类型为`string`的键来有效地创建一个`ElementList`的超类型：
+- en: '[PRE22]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'If we hover over it, we see that the resulting type is exactly what we were
+    looking for:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们悬停在上面，我们看到结果类型正是我们所期望的：
+- en: '[PRE23]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Let’s add the type as an annotation to `safeAccessCollection`. Since it’s possible
+    to assign to a supertype, TypeScript will treat `safeAccessCollection` as a type
+    with no number index access from that moment on:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将类型作为注释添加到`safeAccessCollection`。由于可以分配给超类型，TypeScript将从那一刻起将`safeAccessCollection`视为无法从数字索引访问的类型：
+- en: '[PRE24]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'When we now try to access elements from `safeAccessCollection`, TypeScript
+    will greet us with an error:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当我们尝试从`safeAccessCollection`访问元素时，TypeScript将向我们报错：
+- en: '[PRE25]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: And that’s exactly what we need. The power of distributive conditional types
+    is that we change members of a union. We will see another example in [Recipe 5.3](#ch05_grouping_elements),
+    where we work with built-in helper types.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们所需要的。分布条件类型的威力在于我们可以更改联合的成员。我们将在[配方 5.3](#ch05_grouping_elements)中看到另一个示例，我们将使用内置的辅助类型。
+- en: 5.3 Grouping Elements by Kind
+  id: totrans-85
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 5.3 按种类分组元素
+- en: Problem
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Your `Group` type from [Recipe 4.5](ch04.html#ch04_new_object_types) works fine,
+    but the type for each entry of the group is too broad.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自[配方 4.5](ch04.html#ch04_new_object_types)的您的`Group`类型运行良好，但组的每个条目的类型过于宽泛。
+- en: Solution
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `Extract` helper type to pick the right member from a union type.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Extract`辅助类型从联合类型中选择正确的成员。
+- en: Discussion
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Let’s go back to the toy shop example from Recipes [3.1](ch03.html#ch03_item_modelling_data)
+    and [4.5](ch04.html#ch04_new_object_types). We started with a thoughtfully crafted
+    model, with discriminated union types allowing us to get exact information about
+    every possible value:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到[3.1](ch03.html#ch03_item_modelling_data)和[4.5](ch04.html#ch04_new_object_types)章节中来自玩具店示例。我们开始用精心制作的模型，通过辨别联合类型，我们可以获得有关每个可能值的精确信息：
+- en: '[PRE26]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'We then found a way to *derive* another type called `GroupedToys` from `Toy`,
+    where we take the union type members of the `kind` property as property keys for
+    a mapped type, where each property is of type `Toy[]`:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们找到了一种方法*派生*另一种名为`GroupedToys`的类型，该类型从`Toy`派生，我们从`kind`属性的联合类型成员作为映射类型的属性键，每个属性的类型为`Toy[]`：
+- en: '[PRE27]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Thanks to generics, we were able to define a helper type `Group<Collection,
+    Selector>` to reuse the same pattern for different scenarios:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多亏了泛型，我们能够定义一个辅助类型`Group<Collection, Selector>`以便在不同情境下重复使用相同的模式：
+- en: '[PRE28]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'The helper type works great, but there’s one caveat. If we hover over the generated
+    type, we see that while `Group<Collection, Selector>` is able to pick the discriminant
+    of the `Toy` union type correctly, all properties point to a very broad `Toy[]`:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辅助类型运行良好，但有一个注意事项。如果我们悬停在生成的类型上，我们会看到，尽管`Group<Collection, Selector>`能够正确地选择`Toy`联合类型的辨别，但所有属性指向非常宽泛的`Toy[]`：
+- en: '[PRE29]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'But shouldn’t we know more? For example, why does `boardgame` point to a `Toy[]`
+    when the only realistic type should be `BoardGame[]`. Same for puzzles and dolls,
+    and all the subsequent toys we want to add to our collection. The type we are
+    expecting should look more like this:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们难道不应该了解更多吗？例如，为什么`boardgame`指向`Toy[]`，当唯一现实的类型应该是`BoardGame[]`。同样适用于puzzle和dolls，以及我们希望添加到收藏中的所有后续玩具。我们期望的类型应该更像这样：
+- en: '[PRE30]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'We can achieve this type by *extracting* the respective member from the `Collection`
+    union type. Thankfully, there is a helper type for that: `Extract<T, U>`, where
+    `T` is the collection, `U` is part of `T`.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过*从*`Collection`联合类型中提取相应成员来实现这种类型。幸运的是，有一个辅助类型可以做到这一点：`Extract<T, U>`，其中`T`是集合，`U`是`T`的一部分。
+- en: '`Extract<T, U>` is defined as:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Extract<T, U>` 的定义如下：'
+- en: '[PRE31]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: As `T` in the condition is a naked type, `T` is a *distributive conditional
+    type*, which means TypeScript checks if each member of `T` is a subtype of `U`,
+    and if this is the case, it keeps this member in the union type. How would this
+    work for picking the right group of toys from `Toy`?
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为条件中的`T`是一个裸类型，`T`是一个*分布条件类型*，这意味着TypeScript检查`T`的每个成员是否是`U`的子类型，如果是，它将在联合类型中保留此成员。这对于从`Toy`中挑选正确的玩具组会如何工作呢？
+- en: 'Let’s say we want to pick `Doll` from `Toy`. `Doll` has a couple of properties,
+    but the `kind` property separates distinctly from the rest. So for a type to look
+    only for `Doll` would mean that we extract *from* `Toy` every type where `{ kind:
+    "doll" }`:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '假设我们想从`Toy`中挑选`Doll`。`Doll`有一些属性，但`kind`属性明显与其余部分不同。因此，要使类型只查找`Doll`意味着我们从`Toy`中提取每种类型，其中`{
+    kind: "doll" }`：'
+- en: '[PRE32]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'With distributive conditional types, a conditional type of a union is a union
+    of conditional types, so each member of `T` is checked against `U`:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用分布条件类型，联合的条件类型是条件类型的联合，因此会检查`T`的每个成员是否符合`U`：
+- en: '[PRE33]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Both `BoardGame` and `Puzzle` are not subtypes of `{ kind: "doll" }`, so they
+    resolve to `never`. But `Doll` *is* a subtype of `{ kind: "doll" }`, so it resolves
+    to `Doll`:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`BoardGame`和`Puzzle`都不是`{ kind: "doll" }`的子类型，因此它们解析为`never`。但是`Doll` *是* `{
+    kind: "doll" }`的子类型，所以解析为`Doll`：'
+- en: '[PRE34]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'In a union with `never`, `never` just disappears. So the resulting type is
+    `Doll`:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在与`never`的联合中，`never`会直接消失。因此结果类型是`Doll`：
+- en: '[PRE35]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'This is exactly what we are looking for. Let’s get that check into our `Group`
+    helper type. Thankfully, we have all parts available to extract a specific type
+    from a group’s collection:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们所需要的。让我们把这个检查加入我们的`Group`辅助类型中。幸运的是，我们已经拥有所有的部件来从组的集合中提取特定类型：
+- en: The `Collection` itself, a placeholder that eventually is substituted with `Toy`
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Collection`本身，最终用`Toy`替换。'
+- en: The discriminant property in `Selector`, which eventually is substituted with
+    `"kind"`
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在`Selector`中的鉴别特性，最终用`"kind"`替换。
+- en: 'The discriminant type we want to extract, which is a string type and coincidentally
+    also the property key we map out in `Group`: `K`'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们想要提取的鉴别类型是一个字符串类型，巧合的是也是我们在`Group`中映射出的属性键：`K`
+- en: 'So the generic version of `Extract<Toy, { kind: "doll" }>` within `Group<Collection,
+    Selector>` is this:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '因此，在`Group<Collection, Selector>`中`Extract<Toy, { kind: "doll" }>`的泛型版本如下：'
+- en: '[PRE36]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'If we substitute `Collection` with `Toy` and `Selector` with `"kind"`, the
+    type reads as follows:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们用`Toy`替换`Collection`，用`"kind"`替换`Selector`，那么类型读起来如下：
+- en: '`[K in Collection[Selector]]`'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`[K in Collection[Selector]]`'
+- en: Take each member of `Toy["kind"]`—in that case, `"boardgame"`, `"puzzle"`, and
+    `"doll"`—as a property key for a new object type.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于`Toy["kind"]`的每个成员——在这种情况下，是`"boardgame"`，`"puzzle"`和`"doll"`——作为新对象类型的属性键。
+- en: '`Extract<Collection, …​>`'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Extract<Collection, …​>`'
+- en: Extract from the `Collection`, the union type `Toy`, each member that is a subtype
+    of…​
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从`Collection`中提取，联合类型`Toy`，每个成员都是`...​`的子类型
+- en: '`{ [P in Selector]: K }`'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`{ [P in Selector]: K }`'
+- en: Go through each member of `Selector`—in our case, it’s just `"kind"`—and create
+    an object type that points to `"boardgame"` when the property key is `"boardgame"`,
+    `"puzzle"` when the property key is `"puzzle"`, and so on.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 遍历`Selector`的每个成员——在我们的案例中，它只是`"kind"`——并创建一个对象类型，当属性键为`"boardgame"`时指向`"boardgame"`，为`"puzzle"`时指向`"puzzle"`，依此类推。
+- en: 'That’s how we pick for each property key the right member of `Toy`. The result
+    is as expected:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们为每个属性键选择`Toy`的方式。结果正如预期的那样：
+- en: '[PRE37]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Fantastic! The type is now a lot clearer, and we can make sure that we don’t
+    need to deal with puzzles when we selected board games. But some new problems
+    have popped up.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！类型现在清晰多了，我们可以确保在选择棋盘游戏时不必处理拼图。但是一些新问题已经出现。
+- en: 'Since the types of each property are much more refined and don’t point to the
+    very broad `Toy` type, TypeScript struggles a bit with resolving each collection
+    in our group correctly:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于每个属性的类型都更加精细，并且不指向非常广泛的 `Toy` 类型，TypeScript 在正确解析组内每个集合时有些困难：
+- en: '[PRE38]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: The problem is that TypeScript still thinks of `toy` as potentially being all
+    toys, whereas each property of `group` points to some very specific ones. There
+    are three ways to solve this issue.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于 TypeScript 仍然认为 `toy` 可能是所有玩具，而 `group` 的每个属性指向一些非常具体的玩具。有三种方法来解决这个问题。
+- en: 'First, we could again check for each member individually. Since TypeScript
+    thinks of `toy` as a very broad type, narrowing makes the relationship clear again:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们可以再次检查每个成员。由于 TypeScript 认为 `toy` 是一个非常广泛的类型，缩小范围可以再次明确关系：
+- en: '[PRE39]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: That works, but there’s lots of duplication and repetition we want to avoid.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做是有效的，但是我们要避免大量的重复和重复。
+- en: 'Second, we can use a type assertion to widen the type of `groups[toy.kind]`
+    so TypeScript can ensure index access:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其次，我们可以使用类型断言来扩展 `groups[toy.kind]` 的类型，以便 TypeScript 可以确保索引访问：
+- en: '[PRE40]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: This effectively works like before our change to `GroupedToys`, and the type
+    assertion tells us that we intentionally changed the type here to get rid of type
+    errors.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这实际上就像我们对 `GroupedToys` 进行更改之前一样有效，并且类型断言告诉我们，我们在这里有意改变了类型以摆脱类型错误。
+- en: 'Third, we can work with a little indirection. Instead of adding `toy` directly
+    to a group, we use a helper function `assign` where we work with generics:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三，我们可以进行一些间接操作。我们不直接将 `toy` 添加到组中，而是使用一个帮助函数 `assign`，在其中使用泛型：
+- en: '[PRE41]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Here, we narrow the right member of the `Toy` union by using TypeScript’s generic
+    substitution:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们通过使用 TypeScript 的泛型替换来缩小 `Toy` 联合的正确成员：
+- en: '`groups` is `T`, a `Record<string, K[]`>. `K[]` can be potentially broad.'
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`groups` 是 `T`，一个 `Record<string, K[]>`。`K[]` 可能会非常广泛。'
+- en: '`key` is in relation to `T`: a property key of `T`.'
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`key` 与 `T` 相关：`T` 的属性键。'
+- en: '`value` is of type `K`.'
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`value` 的类型是 `K`。'
+- en: All three function parameters are in relation to one another, and the way we
+    designed the type relations allows us to safely access `groups[key]` and push
+    `value` to the array.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用 `assign` 时，所有三个函数参数都与彼此相关，并且我们设计的类型关系方式使我们可以安全地访问 `groups[key]` 并将 `value`
+    推入数组。
+- en: Also, the types of each parameter when we call `assign` fulfill the generic
+    type constraints we just set. If you want to know more about this technique, check
+    out [Recipe 12.6](ch12.html#ch12_unexpected_intersections).
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，当我们调用 `assign` 时，每个参数的类型都符合我们刚刚设置的泛型类型约束。如果您想了解更多关于这种技术的信息，请查看 [Recipe 12.6](ch12.html#ch12_unexpected_intersections)。
+- en: 5.4 Removing Specific Object Properties
+  id: totrans-146
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 5.4 移除特定对象属性
+- en: Problem
+  id: totrans-147
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a generic helper type for objects, where you select properties
+    based on their type rather than the property’s name.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望创建一个通用的帮助对象类型，根据其类型而不是属性名称选择属性。
+- en: Solution
+  id: totrans-149
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Filter with conditional types and type assertions when mapping property keys.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在映射属性键时，使用条件类型和类型断言进行过滤。
+- en: Discussion
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'TypeScript allows you to create types based on other types, so you can keep
+    them up to date without maintaining every one of their derivates. We’ve seen examples
+    in earlier items, like [Recipe 4.5](ch04.html#ch04_new_object_types). In the following
+    scenario, we want to adapt an existing object type based on the types of its properties.
+    Let’s look at a type for `Person`:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 允许您基于其他类型创建类型，因此您可以保持它们更新，而不必维护每一个派生类型。我们已经在早期的示例中看到了一些例子，比如 [Recipe
+    4.5](ch04.html#ch04_new_object_types)。在以下场景中，我们想根据其属性的类型调整现有对象类型。让我们看一个 `Person`
+    类型：
+- en: '[PRE42]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'It consists of two strings—`profession` and `name`—and a number: `age`. We
+    want to create a type that consists only of string type properties:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它由两个字符串组成 — `profession` 和 `name` — 以及一个数字：`age`。我们想创建一个仅包含字符串类型属性的类型：
+- en: '[PRE43]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'TypeScript already has certain helper types to deal with filtering property
+    names. For example, the mapped type `Pick<T>` takes a subset of an object’s keys
+    to create a new object that contains only those keys:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 已经有一些辅助类型来处理过滤属性名。例如，映射类型 `Pick<T>` 获取对象的一部分键，以创建一个仅包含这些键的新对象：
+- en: '[PRE44]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'If we want to remove certain properties, we can use `Omit<T>`, which works
+    just like `Pick<T>` with the small difference that we map through a slightly altered
+    set of properties, one where we remove property names that we don’t want to include:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要移除某些属性，我们可以使用 `Omit<T>`，它与 `Pick<T>` 类似，只是我们通过一个稍微改变的属性集进行映射，其中我们移除不想包括的属性名称：
+- en: '[PRE45]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: To select the right properties based on their type, rather than their name,
+    we would need to create a similar helper type, one where we map a dynamically
+    generated set of property names that point only to the types we are looking for.
+    We know from [Recipe 5.2](#ch05_filtering_never) that when using conditional types
+    over a union type, we can use `never` to filter elements from this union.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要基于它们的类型而不是名称选择正确的属性，我们需要创建一个类似的辅助类型，其中我们映射一个动态生成的属性名集，该集仅指向我们正在寻找的类型。我们从[第5.2节](#ch05_filtering_never)知道，当在联合类型上使用条件类型时，我们可以使用`never`来过滤这个联合中的元素。
+- en: 'So a first possibility could be that we map all property keys of `Person` and
+    check if `Person[K]` is a subset of our desired type. If so, we return the type;
+    otherwise, we return `never`:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，第一种可能性是我们映射`Person`的所有属性键，并检查`Person[K]`是否是我们期望类型的子集。如果是，则返回该类型；否则返回`never`：
+- en: '[PRE46]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This is good, but it comes with a caveat: the types we are checking are not
+    in a union but are types from a mapped type. So instead of filtering property
+    keys, we would get properties that point to type `never`, meaning that we would
+    forbid certain properties to be set at all.'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这很好，但要注意：我们检查的类型不是联合类型，而是映射类型的类型。因此，与过滤属性键不同，我们将获得指向类型`never`的属性，这意味着我们将禁止设置某些属性。
+- en: Another idea would be to set the type to `undefined`, treating the property
+    as sort of optional but, as we learned in [Recipe 3.11](ch03.html#ch03_item_missing_vs_undefined),
+    missing properties and undefined values are not the same.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个想法是将类型设置为`undefined`，将属性视为可选的，但正如我们在[第3.11节](ch03.html#ch03_item_missing_vs_undefined)中学到的那样，缺失的属性和`undefined`值并不相同。
+- en: What we actually want to do is drop the property keys that point to a certain
+    type. This can be achieved by putting the condition not on the righthand side
+    of the object but on the lefthand side, where the properties are created.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们实际想要做的是删除指向特定类型的属性键。这可以通过将条件放在对象的左侧而不是右侧来实现，属性是在左侧创建的。
+- en: 'Just like with the `Omit` type, we need to make sure that we map over a specific
+    set of properties. When mapping `keyof Person`, it is possible to change the type
+    of the property key with a type assertion. Just like with regular type assertions,
+    there is a sort of fail-safe mechanism, meaning you just can’t assert it to be
+    anything: it has to be within the boundaries of a property key.'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像`Omit`类型一样，我们需要确保映射特定的属性集。当映射`Person`的`keyof`时，可以通过类型断言改变属性键的类型。与常规类型断言一样，有一种故障安全机制，这意味着您不能断言它为任何东西：它必须在属性键的边界内。
+- en: 'We want to assert that `K` part of the set if `Person[K]` is of type `string`.
+    If this is true, we keep `K`; otherwise, we filter the element of the set with
+    `never`. With `never` being on the lefthand side of the object, the property gets
+    dropped:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们想要断言`K`是集合的一部分，如果`Person[K]`是`string`类型。如果是这样，我们保留`K`；否则，我们用`never`过滤集合中的元素。由于`never`位于对象的左侧，属性将被删除：
+- en: '[PRE47]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'And with that, we select only property keys that point to string values. There
+    is one catch: optional string properties have a broader type than regular strings,
+    as `undefined` is also included as a possible value. Using a union type ensures
+    that optional properties are also kept:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们只选择指向字符串值的属性键。有一个要注意的地方：可选的字符串属性比普通字符串具有更广泛的类型，因为`undefined`也可能是其可能的值之一。使用联合类型可以确保可选属性也被保留：
+- en: '[PRE48]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'The next step is making this type generic. We create a type `Select<O, T>`
+    by replacing `Person` with `O` and `string` with `T`:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一步是使这种类型泛化。我们通过用`O`替换`Person`，用`T`替换`string`来创建类型`Select<O, T>`：
+- en: '[PRE49]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'This new helper type is versatile. We can use it to select properties of a
+    certain type from our own object types:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种新的辅助类型非常灵活。我们可以用它来从我们自己的对象类型中选择特定类型的属性：
+- en: '[PRE50]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'But we can also figure out, for example, which functions in the string prototype
+    return a number:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是我们也可以找出，例如，字符串原型中返回数字的函数：
+- en: '[PRE51]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'An inverse helper type `Remove<O, T>`, where we want to remove property keys
+    of a certain type, is very similar to `Select<O, T>`. The only difference is to
+    switch the condition and return `never` in the `true` branch:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个反向的辅助类型`Remove<O, T>`，我们希望删除特定类型的属性键，与`Select<O, T>`非常相似。唯一的区别在于切换条件并在`true`分支中返回`never`：
+- en: '[PRE52]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'This is especially helpful if you create a serializable version of your object
+    types:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您创建对象类型的可序列化版本，这尤其有帮助：
+- en: '[PRE53]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: By knowing that you can do conditional types while mapping out keys, you suddenly
+    have access to a wide range of potential helper types. More about that in [Chapter 8](ch08.html#ch08).
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过了解在映射键时可以使用条件类型，您突然就可以访问各种潜在的辅助类型。关于这一点的更多信息，请参阅 [第8章](ch08.html#ch08)。
+- en: 5.5 Inferring Types in Conditionals
+  id: totrans-182
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 5.5 条件中的类型推断
+- en: Problem
+  id: totrans-183
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a class for object serialization, which removes all unserializable
+    properties of an object like functions. If your object has a `serialize` function,
+    the serializer takes the return value of the function instead of serializing the
+    object on its own. How can you type that?
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望创建一个对象序列化的类，它会删除对象的所有不可序列化属性，如函数。如果您的对象具有 `serialize` 函数，则序列化器将使用该函数的返回值，而不是自行序列化对象。如何定义这种类型？
+- en: Solution
+  id: totrans-185
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a recursive conditional type to modify the existing object type. For objects
+    that implement `serialize`, use the `infer` keyword to pin the generic return
+    type to a concrete type.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用递归条件类型来修改现有的对象类型。对于实现了 `serialize` 的对象，使用 `infer` 关键字将通用返回类型固定到一个具体类型。
+- en: Discussion
+  id: totrans-187
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Serialization is the process of converting data structures and objects into
+    a format that can be stored or transferred. Think of taking a JavaScript object
+    and storing its data on disk, just to pick it up later by deserializing it again
+    into JavaScript.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 序列化是将数据结构和对象转换为可以存储或传输的格式的过程。想象一下，将 JavaScript 对象的数据存储在磁盘上，然后通过再次反序列化它将其取回到
+    JavaScript 中。
+- en: 'JavaScript objects can hold any type of data: primitive types like strings
+    or numbers, as well as compound types like objects, and even functions. Functions
+    are interesting as they don’t contain data but behavior: something that can’t
+    be serialized well. One approach to serializing JavaScript objects is to get rid
+    of functions entirely. And this is what we want to implement in this lesson.'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 对象可以包含任何类型的数据：像字符串或数字这样的原始类型，以及对象和甚至函数这样的复合类型。函数很有趣，因为它们不包含数据，而是行为：这是一些无法很好地序列化的内容。序列化
+    JavaScript 对象的一种方法是完全摒弃函数。这正是我们想在本课程中实现的内容。
+- en: 'We start with a simple object type `Person`, which contains the usual subjects
+    of data we want to store: a person’s name and age. It also has a `hello` method,
+    which produces a string:'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从一个简单的对象类型 `Person` 开始，其中包含我们想要存储的数据的常规主题：人的姓名和年龄。它还有一个 `hello` 方法，生成一个字符串：
+- en: '[PRE54]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'We want to serialize objects of this type. A `Serializer` class contains an
+    empty constructor and a generic function `serialize`. Note that we add the generic
+    type parameter to `serialize` and not to the class. That way, we can reuse `serialize`
+    for different object types. The return type points to a generic type `Serialize<T>`,
+    which will be the result of the serialization process:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望序列化这种类型的对象。一个 `Serializer` 类包含一个空的构造函数和一个通用函数 `serialize`。注意，我们将通用类型参数添加到
+    `serialize` 而不是类本身。这样，我们可以为不同的对象类型重复使用 `serialize`。返回类型指向一个通用类型 `Serialize<T>`，这将是序列化过程的结果：
+- en: '[PRE55]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'We will take care of the implementation later. For now let’s focus on the `Serialize<T>`
+    type. The first idea that comes to mind is to just drop properties that are functions.
+    We already defined a `Remove<O, T>` type in [Recipe 5.4](#ch05_removing_object_properties)
+    that comes in handy, as it does exactly that—removes properties that are of a
+    certain type:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们稍后会处理具体的实现。现在让我们专注于 `Serialize<T>` 类型。首先想到的一个想法是仅丢弃函数属性。我们已经在 [5.4 节](#ch05_removing_object_properties)
+    中定义了一个 `Remove<O, T>` 类型，它非常方便，因为它正是做这件事——删除特定类型的属性：
+- en: '[PRE56]'
+  id: totrans-195
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'The first iteration is done, and it works for simple, one-level-deep objects.
+    Objects can be complex, however. For example, `Person` could nest other objects,
+    which in turn also could have functions:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一次迭代已经完成，并且适用于简单的一级深度对象。然而，对象可以很复杂。例如，`Person` 可以嵌套其他对象，这些对象本身也可能具有函数：
+- en: '[PRE57]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'To solve this, we need to check each property if it is another object, and
+    if so, use the `Serialize<T>` type again. A mapped type called `NestSerialization`
+    checks in a conditional type if each property is of type `object` and returns
+    a serialized version of that type in the `true` branch and the type itself in
+    the `false` branch:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要解决这个问题，我们需要检查每个属性是否是另一个对象，如果是，则再次使用 `Serialize<T>` 类型。名为 `NestSerialization`
+    的映射类型在条件类型中检查每个属性是否为 `object` 类型，在 `true` 分支中返回该类型的序列化版本，在 `false` 分支中返回该类型本身：
+- en: '[PRE58]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'We redefine `Serialize<T>` by wrapping the original `Remove<T, Function>` type
+    of `Serialize<T>` in `NestSerialization`, effectively creating a *recursive type*:
+    `Serialize<T>` uses `NestSerialization<T>` uses `Serialize<T>`, and so on:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过在`NestSerialization`中包装原始的`Remove<T, Function>`类型来重新定义`Serialize<T>`，从而有效地创建了一个*递归类型*：`Serialize<T>`使用`NestSerialization<T>`使用`Serialize<T>`，依此类推：
+- en: '[PRE59]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: TypeScript can handle type recursion to a certain degree. In this case, it can
+    see that there is literally a condition to break out of type recursion in `NestSerialization`.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript可以在一定程度上处理类型递归。在这种情况下，它可以看到在`NestSerialization`中确实存在一种条件来打破类型递归。
+- en: 'And that’s serialization type! Now for the implementation of the function,
+    which is curiously a straight translation of our type declaration in JavaScript.
+    We check for every property if it’s an object. If so, we call `serialize` again.
+    If not, we carry over the property only if it isn’t a function:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是序列化类型！现在来实现这个函数，这个函数奇怪地直接翻译了我们在JavaScript中的类型声明。我们检查每个属性，如果是对象，我们再次调用`serialize`。如果不是，则只转移该属性，但前提是它不是一个函数：
+- en: '[PRE60]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: Note that since we are generating a new object within `serialize`, we start
+    out with a very broad `Record<string, any>`, which allows us to set any string
+    property key to basically anything, and assert at the end that we created an object
+    that fits our return type. This pattern is common when you create new objects,
+    but it ultimately requires you to be 100% sure that you did everything right.
+    Please test this function extensively.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，由于我们在`serialize`中生成了一个新对象，我们从一个非常广泛的`Record<string, any>`开始，这允许我们将任何字符串属性键设置为基本任何内容，并在最后断言我们创建了一个符合返回类型的对象。当您创建新对象时，这种模式很常见，但最终需要您确保百分之百正确。请广泛测试此函数。
+- en: 'With the first implementation done, we can create a new object of type `Person`
+    and pass it to our newly generated serializer:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一次实现完成后，我们可以创建一个新的`Person`类型对象，并将其传递给我们新生成的序列化程序：
+- en: '[PRE61]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'The result is as expected: the type of `serializedPerson` lacks all information
+    on methods and functions. And if we log `serializedPerson`, we also see that all
+    methods and functions are gone. The type matches the implementation result:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如预期：`serializedPerson`的类型缺少所有方法和函数的信息。如果我们记录`serializedPerson`，我们还会看到所有方法和函数都已经消失了。类型与实现结果匹配：
+- en: '[PRE62]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'But we are not done yet. The serializer has a special feature. Objects can
+    implement a `serialize` method, and if they do, the serializer takes the output
+    of this method instead of serializing the object on its own. Let’s extend the
+    `Person` type to feature a `serialize` method:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们还没有完成。序列化程序有一个特殊功能。对象可以实现`serialize`方法，如果是这样，序列化程序将获取此方法的输出，而不是自行序列化对象。让我们扩展`Person`类型，以包含一个`serialize`方法：
+- en: '[PRE63]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: We need to adapt the `Serialize<T>` type. Before running `NestSerialization`,
+    we check in a conditional type if the object implements a `serialize` method.
+    We do so by asking if `T` is a subtype of a type that contains a `serialize` method.
+    If so, we need to get to the return type, because that’s the result of serialization.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要调整`Serialize<T>`类型。在运行`NestSerialization`之前，我们在条件类型中检查对象是否实现了`serialize`方法。我们通过询问`T`是否是包含`serialize`方法的类型的子类型来做到这一点。如果是这样，我们需要获取返回类型，因为那就是序列化的结果。
+- en: 'This is where the `infer` keyword comes into play. It allows us to take a type
+    from a condition and use it as a type parameter in the `true` branch. We tell
+    TypeScript, if this condition is true, take the type that you found there and
+    make it available to us:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是`infer`关键字发挥作用的地方。它允许我们从条件中获取一个类型，并在`true`分支中将其用作类型参数。我们告诉TypeScript，如果这个条件为真，则取出你在那里找到的类型并使其对我们可用：
+- en: '[PRE64]'
+  id: totrans-214
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'Think of `R` as being `any` at first. If we check `Person` against `{ serialize():
+    any }` we hop into the `true` branch, as `Person` has a `serialize` function,
+    making it a valid sub-type. But `any` is broad, and we are interested in the specific
+    type at the position of `any`. The `infer` keyword can pick that exact type. So
+    `Serialize<T>` now reads:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '把`R`想象成一开始是`any`。如果我们将`Person`与`{ serialize(): any }`进行比较，我们就进入了`true`分支，因为`Person`有一个`serialize`函数，使其成为有效的子类型。但是`any`是广泛的，我们感兴趣的是在`any`位置的具体类型。`infer`关键字可以选择确切的类型。因此，`Serialize<T>`现在读取：'
+- en: If `T` contains a `serialize` method, get its return type and return it.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果`T`包含一个`serialize`方法，则获取其返回类型并返回它。
+- en: Otherwise, start serialization by deeply removing all properties that are of
+    type `Function`.
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 否则，通过深度移除所有类型为`Function`的属性来开始序列化。
+- en: 'We want to mirror that type’s behavior in our JavaScript implementation as
+    well. We do a couple of type-checks (checking if `serialize` is available and
+    if it’s a function) and ultimately call it. TypeScript requires us to be explicit
+    with type guards, to be absolutely sure that this function exists:'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们也希望在我们的 JavaScript 实现中反映该类型的行为。我们进行了一些类型检查（检查`serialize`是否可用以及它是否是一个函数），最终调用它。TypeScript
+    要求我们使用类型守卫明确表示，以确保这个函数确实存在：
+- en: '[PRE65]'
+  id: totrans-219
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'With this change, the type of `serializedPerson` is `string`, and the result
+    is as expected:'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个改变，`serializedPerson` 的类型是`string`，而结果也如预期的那样：
+- en: '[PRE66]'
+  id: totrans-221
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: This powerful tool helps greatly with object generation. And there’s beauty
+    in the fact that we create a type using a declarative metalanguage that is TypeScript’s
+    type system, to ultimately see the same process imperatively written in JavaScript.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个强大的工具在对象生成方面提供了很大帮助。并且，我们用 TypeScript 的类型系统作为声明性元语言来创建类型，最终以 JavaScript 的命令式写法看到相同的过程，这其中蕴含着美感。

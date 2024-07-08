@@ -1,0 +1,3111 @@
+- en: Chapter 8\. Testing
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第8章 测试
+- en: 'In this chapter, we’ll look at various techniques for testing your React applications.
+    In general, we’ve found that it is a bad idea to be too prescriptive about the
+    precise mix of tests you should have. A good guiding principle is to follow these
+    two rules:'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨测试React应用程序的各种技术。总的来说，我们发现对于应该具有的确切测试组合，过于具体的建议并不是一个好主意。一个好的指导原则是遵循以下两条规则：
+- en: Never write code unless you have a failing test.
+  id: totrans-2
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 除非你有一个失败的测试，否则不要编写代码。
+- en: If a test passes the first time you run it, delete it.
+  id: totrans-3
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果一次性运行测试通过，请将其删除。
+- en: These two rules will help you build code that works while avoiding creating
+    redundant tests that provide little value.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两条规则将帮助你构建能够工作的代码，同时避免创建提供较少价值的冗余测试。
+- en: We have found that early in a project, it is easier to write more browser-based
+    tests. These tests tend to be higher-level and help capture the principal business
+    requirements for an application. Later, when the application’s architecture starts
+    to emerge and stabilize, it becomes easier to write more unit tests of individual
+    components. They are faster to write and quicker to run, and once you have a stable
+    structure to your code, you will not need to update them continuously.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们发现，在项目初期，编写基于浏览器的测试更容易一些。这些测试往往是高级别的，并有助于捕捉应用程序的主要业务需求。稍后，当应用程序的架构开始出现和稳定下来时，编写单元测试变得更容易一些。它们编写速度更快，运行速度更快，一旦你的代码结构稳定，你就不需要不断更新它们了。
+- en: Sometimes it’s worth loosening the definition of what a test *is*. When you
+    are working on layout code, whose primary value is visual, you might consider
+    a Storybook story to be a “test.” The assertion is done by your eye, looking at
+    the component as you create. Of course, this kind of test will not automatically
+    pick up regression failures, but we present a technique in a recipe that will
+    allow you to turn these visual checks into actual automated tests.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时候值得放宽对测试的定义。当你在处理主要价值在于视觉的布局代码时，你可能会认为Storybook故事是一种“测试”。断言是通过你的眼睛完成的，你在创建时查看组件。当然，这种类型的测试不会自动检测到回归失败，但我们在一篇食谱中提出了一种技术，可以将这些视觉检查转化为实际的自动化测试。
+- en: If you write tests *before* you write code, you will find that tests are tools
+    for design. They will become executable examples of how you would like your application
+    to work.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在编写代码之前编写测试，你会发现测试是设计工具。它们将成为你希望应用程序如何工作的可执行示例。
+- en: Instead, if you write tests *after* you write the code, they will be simply
+    artifacts. Pieces of code that you must slavishly create because they feel like
+    the sorts of things a professional developer should write.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，如果你在编写代码之后编写测试，它们将只是一种工件。这些代码片段你必须机械地创建，因为它们感觉像是专业开发者应该写的东西。
+- en: 'We focus on four tools in this chapter: the React Testing Library, Storybook,
+    the Selenium library, and Cypress.'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在本章中关注四种工具：React Testing Library、Storybook、Selenium库和Cypress。
+- en: The React Testing Library is an excellent way of creating very detailed unit
+    tests.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Testing Library是创建非常详细的单元测试的一个很好的方式。
+- en: Storybook is a gallery tool that we have looked at previously. We include it
+    in this chapter because a gallery is a set of code examples, which is also what
+    tests are. You will find ways of using Storybook as part of your testing/development
+    process.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Storybook是一个我们之前介绍过的展示工具。我们将其包括在本章中是因为一个展示是一组代码示例，这也是测试的一种形式。您将找到使用Storybook作为您测试/开发过程的一部分的方法。
+- en: Selenium is one of the most established libraries for testing your application
+    in a real browser.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Selenium是用于在真实浏览器中测试应用程序的最成熟的库之一。
+- en: 'Finally, what is quickly becoming our favorite tool for testing: Cypress. Cypress
+    is similar to Selenium in that it runs inside a browser. But it includes a whole
+    host of additional features, such as test replays, generated videos of test runnings,
+    and a significantly simpler programming model. If you use only one tool from this
+    chapter, let it be Cypress.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们快速了解目前我们最喜欢的测试工具：Cypress。Cypress类似于Selenium，因为它在浏览器内运行。但它包含了许多额外的功能，比如测试重放、生成测试运行视频以及更简单的编程模型。如果你只想使用本章的一个工具，那就选择Cypress吧。
+- en: Use the React Testing Library
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用React Testing Library
+- en: Problem
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: There are many ways that you can test a React application. Early on in a project,
+    when you are still defining an application’s essential purpose and function, you
+    might choose to create tests in some very high-level form, such as [Cucumber tests](https://cucumber.io).
+    If you are looking at some isolated piece of the system (such as creating and
+    maintaining a data item), you might want to create functional tests using a tool
+    like Cypress.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多方法可以测试 React 应用程序。在项目的早期阶段，当您仍在定义应用程序的基本目的和功能时，您可能会选择以某种非常高级的形式创建测试，例如[Cucumber
+    tests](https://cucumber.io)。如果您正在查看系统的某个隔离部分（例如创建和维护数据项），您可能希望使用类似 Cypress 的工具创建功能测试。
+- en: But if you are deep into the detail of creating a single component, then you
+    will probably want to create unit tests. *Unit tests* are so-called because they
+    attempt to test a single piece of code as an isolated unit. While it’s debatable
+    whether *unit test* is the correct term for testing components (which often contain
+    subcomponents and so are not isolated), it’s the name usually applied to tests
+    of components that you can test outside of a browser.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果您深入到创建单个组件的详细信息中，那么您可能希望创建单元测试。*单元测试*之所以被称为单元测试，是因为它们试图测试作为独立单元的单个代码片段。尽管是否*单元测试*是正确的术语来测试组件（通常包含子组件，因此不是隔离的）仍有争议，但通常用于测试可以在浏览器之外测试的组件的名称。
+- en: 'But how do you unit test React components? There have historically been several
+    approaches. Early unit tests relied on rendering the component into an HTML string,
+    which required minimal testing infrastructure, but there were multiple downsides:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，如何对 React 组件进行单元测试呢？历史上存在几种方法。早期的单元测试依赖将组件渲染为 HTML 字符串，这需要最小的测试基础设施，但存在多个缺点：
+- en: Handling re-renders when the component state changed.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 处理组件状态变化时的重新渲染。
+- en: Making assertions on HTML elements that the test must parse from the string.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对必须从字符串中解析的 HTML 元素进行断言。
+- en: To test UI interactions, you need to mock the event model.
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要测试 UI 交互，你需要模拟事件模型。
+- en: It was not long before developers created libraries to take care of the details
+    of each of these problems.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不久之后，开发人员创建了库来解决这些问题的每一个细节。
+- en: However, tests created in this way lacked the reality of tests created in browsers.
+    The subtleties of the interaction between the virtual *Document Object Model*
+    (DOM) and the browser DOM were lost. Often subcomponents were not rendered to
+    reduce the complexity of the tests.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，通过这种方式创建的测试缺乏浏览器中测试的真实性。虚拟文档对象模型（DOM）与浏览器 DOM 之间的交互细微差别被忽略了。通常，为了减少测试的复杂性，子组件未被渲染。
+- en: The result was that React applications often had few unit tests. Developers
+    would refactor their code to move complex logic into easily testable JavaScript
+    functions. Developers would have to test anything more complex with a real browser,
+    leading to slower tests. Because they were slow, developers would be discouraged
+    from testing too many scenarios.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果是，React 应用程序通常只有少数单元测试。开发人员会重构其代码，将复杂逻辑移至易于测试的 JavaScript 函数中。开发人员必须使用真实浏览器测试更复杂的任何内容，导致测试速度变慢。由于速度慢，开发人员可能会被
+    discouraged 不测试太多场景。
+- en: So how can you unit test React components realistically without the overhead
+    of launching the entire app and running the tests in a real browser?
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么如何可以在不启动整个应用程序和在真实浏览器中运行测试的情况下，现实地对 React 组件进行单元测试呢？
+- en: Solution
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The Testing Library by Kent C. Dodds attempts to avoid the issues with previous
+    unit testing libraries by providing a standalone implementation of the DOM. As
+    a result, tests can render a React component to a virtual DOM, which can then
+    be synchronized with the Testing Library’s DOM and create a tree of HTML elements
+    that behave like they would in a real browser.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kent C. Dodds 的测试库试图避免先前单元测试库存在的问题，通过提供 DOM 的独立实现来实现此目标。因此，测试可以将 React 组件渲染到虚拟
+    DOM 中，然后与 Testing Library 的 DOM 同步，并创建一个行为类似于真实浏览器的 HTML 元素树。
+- en: You can inspect the elements in the same way that you would within a browser.
+    They have the same attributes and properties. You can even pass keystrokes to
+    `input` fields and have them behave the same way as fields in the browser.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以像在浏览器中一样检查元素。它们具有相同的属性和属性。您甚至可以将按键传递给 `input` 字段，并使它们像浏览器中的字段一样工作。
+- en: 'If you created your application with `create-react-app`, you should already
+    have the Testing Library installed. If not, you can install it from the command
+    line:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用 `create-react-app` 创建应用程序，则应已安装 Testing Library。如果没有，您可以从命令行安装它：
+- en: '[PRE0]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: These three libraries will allow us to unit test components.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这三个库将允许我们对组件进行单元测试。
+- en: The Testing Library allows us to render components using the DOM implementation
+    in `@testing-library/jest-dom`. The User Event library (`@testing-library/user-event`)
+    simplifies interacting with the generated DOM elements. This User Event library
+    allows us to click the buttons and type into the fields of our components.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Testing Library允许我们使用`@testing-library/jest-dom`中的DOM实现来渲染组件。User Event库（`@testing-library/user-event`）简化了与生成的DOM元素交互的过程。这个User
+    Event库允许我们点击按钮和在组件的字段中输入内容。
+- en: To show how to unit test components, we will need an application to test. We’ll
+    be using the same application through much of this chapter. When the application
+    opens, it asks the user to perform a simple calculation. The application will
+    say if the user’s answer is right or wrong (see [Figure 8-1](ch08_split_000.xhtml#ch08_image_1)).
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了展示如何对组件进行单元测试，我们需要一个要测试的应用程序。我们将在本章的大部分内容中使用相同的应用程序。应用程序打开时，会要求用户进行简单的计算。应用程序将告诉用户的答案是否正确（参见[图8-1](ch08_split_000.xhtml#ch08_image_1)）。
+- en: '![](Images/recb_0801.png)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0801.png)'
+- en: Figure 8-1\. The application under test
+  id: totrans-35
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图8-1\. 在测试中的应用程序
+- en: 'The main component of the application is called `App`. We can create a unit
+    test for this component by writing a new file called *App.test.js*:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序的主要组件称为`App`。我们可以通过编写一个名为*App.test.js*的新文件为这个组件创建一个单元测试：
+- en: '[PRE1]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The preceding code is a Jest test, with a single scenario that tests that the
+    `App` component will tell us we’ve won if we enter the correct answer. We’ve put
+    placeholder comments for the structure of the test.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上述代码是一个Jest测试，测试`App`组件在我们输入正确答案时是否告诉我们已经赢了。我们已经为测试结构放置了占位符注释。
+- en: 'We will begin by rendering the `App` component. We can do this by importing
+    the component and passing it to the Testing Library’s `render` function:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将通过将组件导入并将其传递给Testing Library的`render`函数来开始渲染`App`组件：
+- en: '[PRE2]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Notice that we pass actual *JSX* to the `render` function, which means that
+    we could, if we wanted, test the component’s behavior when passed different sets
+    of properties.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们将实际的*JSX*传递给`render`函数，这意味着我们可以在需要时测试组件在传递不同属性集时的行为。
+- en: For the next part of the test, we’ll need to enter the correct answer. To do
+    that, we must first know what the correct answer is. The puzzle is always a randomly
+    generated multiplication, so we can capture the numbers from the page and then
+    type the product into the `Guess` field.^([1](ch08_split_001.xhtml#idm46634397841208))
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在测试的下一部分中，我们需要输入正确的答案。为此，我们必须首先知道正确的答案是什么。这个谜题总是随机生成的乘法，所以我们可以从页面上捕捉数字，然后将乘积输入到`Guess`字段中。^([1](ch08_split_001.xhtml#idm46634397841208))
+- en: We will need to look at the elements generated by the `App` component. The `render`
+    function returns an object that contains the elements and a set of functions for
+    filtering them. Instead of using this returned value, we’ll instead use the Testing
+    Library’s `screen` object.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将需要查看`App`组件生成的元素。`render`函数返回一个包含元素和一组用于过滤它们的函数的对象。与使用此返回值不同，我们将使用Testing
+    Library的`screen`对象。
+- en: 'You can think of the `screen` object as the contents of the browser window.
+    It allows us to find elements within the page so that we can interact with them.
+    For example, if we want to find the input field labeled `Guess`, we can do it
+    like this:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以把`screen`对象看作是浏览器窗口的内容。它允许我们在页面内查找元素，以便我们可以与它们交互。例如，如果我们想要找到标记为`Guess`的输入字段，我们可以这样做：
+- en: '[PRE3]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'The filter methods in the `screen` object typically begin with:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`screen`对象中的过滤方法通常以以下方式开头：'
+- en: '`getBy...`'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getBy...`'
+- en: If you know that the DOM contains a single instance of the matching element
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你知道DOM只包含匹配元素的单个实例
+- en: '`queryBy...`'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`queryBy...`'
+- en: If you know there are zero or one elements that match
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你知道匹配的元素数为零或一个
+- en: '`getAllBy...`'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getAllBy...`'
+- en: If you know there are one or more matching elements (returns an array)
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你知道匹配的元素数至少为一个（返回一个数组）
+- en: '`queryAllBy...`'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`queryAllBy...`'
+- en: To find zero or more elements (returns an array)
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查找零个或多个元素（返回一个数组）
+- en: These methods will throw an exception if they find more or fewer elements than
+    they were expecting. There are also `findBy...` and `findAllBy...` methods that
+    are asynchronous versions of `getBy...` and `getAllBy...` that return promises.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这些方法发现的元素数量与期望的不符，它们将抛出异常。还有`findBy...`和`findAllBy...`方法，它们是`getBy...`和`getAllBy...`的异步版本，返回Promise。
+- en: 'For each of these filter method types, you can search the following:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每一种这样的过滤方法类型，你可以搜索以下内容：
+- en: '| Function name ends | Description |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| 函数名称结尾 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `...ByLabelText` | Finds field by label |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByLabelText` | 根据标签查找字段 |'
+- en: '| `...ByPlaceHolderText` | Finds field with placeholder text |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByPlaceHolderText` | 查找具有占位符文本的字段 |'
+- en: '| `...ByText` | With matching text content |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByText` | 匹配文本内容 |'
+- en: '| `...ByDisplayValue` | Finds by value |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByDisplayValue` | 根据值查找 |'
+- en: '| `...ByAltText` | Matching the alt attribute |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByAltText` | 匹配 alt 属性 |'
+- en: '| `...ByTitle` | Matching the title attribute |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByTitle` | 匹配标题属性 |'
+- en: '| `...ByRole` | Finds by aria role |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByRole` | 根据 ARIA 角色查找 |'
+- en: '| `...ByTestId` | Finds by data-testid attribute |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| `...ByTestId` | 根据 `data-testid` 属性查找 |'
+- en: There are nearly 50 ways to find elements within the page. However, you might
+    have noticed that *none* of them use a CSS selector to track an element down,
+    which is deliberate. The Testing Library restricts the number of ways that you
+    can find elements within the DOM. It doesn’t allow you to, for example, find elements
+    by class name to reduce the fragility of the test. Class names are frequently
+    used for cosmetic styling and are subject to frequent change.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在页面中有近50种查找元素的方法。然而，你可能已经注意到 *none* 一词没有使用CSS选择器来追踪元素，这是有意的。Testing Library
+    限制了在DOM中查找元素的方式数量。例如，它不允许你通过类名查找元素，以减少测试的脆弱性。类名经常用于样式美化，并且经常会发生变化。
+- en: 'It is still possible to track down elements with selectors, by using the `container`
+    returned by the render method:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仍然可以通过使用 render 方法返回的 `container` 来使用选择器追踪元素：
+- en: '[PRE4]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: But this approach is considered poor practice. If you use the Testing Library,
+    it’s probably best to follow the standard approach and find elements based upon
+    their content or role.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是这种方法被认为是不良实践。如果你使用 Testing Library，最好遵循标准方法，根据内容或角色查找元素。
+- en: 'There is one small concession to this approach made by the filter functions:
+    the `...ByTestId` functions. If you have no practical way of finding an element
+    by its content, you can always add a `data-testid` attribute to the relevant tag.
+    That is useful for the test we are currently writing because we need to find two
+    numbers displayed on the page. And these numbers are randomly generated, so we
+    don’t know their content ([Figure 8-2](ch08_split_000.xhtml#ch08_image_2)).'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法在筛选函数中有一个小的让步：`...ByTestId` 函数。如果你没有实际的方法通过内容查找元素，你可以随时向相关标签添加 `data-testid`
+    属性。这在我们当前正在编写的测试中非常有用，因为我们需要找到页面上显示的两个随机生成的数字。这些数字的内容是不知道的（[图 8-2](ch08_split_000.xhtml#ch08_image_2)）。
+- en: '![](Images/recb_0802.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0802.png)'
+- en: Figure 8-2\. We cannot find the numbers by content because we won’t know what
+    they are
+  id: totrans-73
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2。我们不能通过内容找到数字，因为我们不知道它们是什么
+- en: 'So, we make a small amendment to the code and add test IDs:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以，我们对代码进行了小修改，并添加了测试ID：
+- en: '[PRE5]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'This means we can start to implement the next part of our test:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们可以开始实现测试的下一部分：
+- en: '[PRE6]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'We have the text for each of the numbers, and we have the `input` element.
+    We now need to type the correct number into the field and then submit the answer.
+    We’ll do this with the `@testing-library/user-event` library. The User Event library
+    simplifies the process of generating JavaScript events for HTML elements. You
+    will often see the User Event library imported with the alias `user`, which is
+    because you can think of the calls to the User Event library as the actions a
+    user is making:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经有每个数字的文本，也有 `input` 元素。现在我们需要在字段中输入正确的数字，然后提交答案。我们将使用 `@testing-library/user-event`
+    库完成这个操作。User Event 库简化了为HTML元素生成JavaScript事件的过程。通常会看到 User Event 库被导入为别名 `user`，这是因为可以将对
+    User Event 库的调用视为用户所执行的操作：
+- en: '[PRE7]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Finally, we need to assert that we have won. We can write this simply by looking
+    for some element containing the word *won*:^([2](ch08_split_001.xhtml#idm46634397514504))
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们需要断言我们已经获胜了。我们可以通过查找包含单词 *won* 的某个元素来简单地编写这个：^([2](ch08_split_001.xhtml#idm46634397514504))
+- en: '[PRE8]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: This assertion will work because `getByText` throws an exception if it does
+    not find precisely one matching element.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果找不到精确匹配的元素，`getByText` 断言将失败。
+- en: If you are unsure about the current HTML state at some point in a test, try
+    adding `screen.getByTestId('NONEXISTENT')` into the code. The exception that’s
+    thrown will show you the current HTML.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你对测试中某一时刻的当前HTML状态感到不确定，请尝试在代码中添加 `screen.getByTestId('NONEXISTENT')`。抛出的异常将显示当前的HTML。
+- en: However, the test is liable to break if your application is running slowly.
+    This is because the `get...` and `query...` functions look at the existing state
+    of the DOM. If the result takes a couple of seconds to appear, the assertion will
+    fail. For this reason, it’s a good idea to make some assertions asynchronous.
+    It makes the code a little more complex, but the test will be more stable when
+    running against slow-moving code.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，如果您的应用程序运行缓慢，测试很可能会失败。这是因为`get...`和`query...`函数查看DOM的现有状态。如果结果需要几秒钟才能出现，断言将失败。因此，将一些断言设置为异步是个好主意。这会使代码变得稍微复杂，但在运行速度慢的代码上运行时，测试会更加稳定。
+- en: 'The `find...` methods are asynchronous versions of the `get...` methods, and
+    the Testing Library’s `waitFor` will allow you to rerun code for a period of time.
+    By combining the two functions, we can create the final part of our test:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`find...`方法是`get...`方法的异步版本，Testing Library的`waitFor`函数将允许您在一段时间内重新运行代码。通过结合这两个函数，我们可以创建我们测试的最后一部分：'
+- en: '[PRE9]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Unit tests should run quickly, but if for some reason your test takes longer
+    than five seconds, you will need to pass a second `timeout` value in milliseconds
+    to the `it` function.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单元测试应该快速运行，但如果由于某些原因您的测试需要超过五秒钟的时间，您将需要将第二个`timeout`值以毫秒传递给`it`函数。
+- en: Discussion
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Working with different teams, we found that early on in a project, the developers
+    would write unit tests for each component. But over time, they would write fewer
+    and fewer unit tests. Eventually, they might even delete unit tests if they required
+    too much maintenance.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在与不同团队合作时，我们发现在项目的早期阶段，开发人员会为每个组件编写单元测试。但随着时间的推移，他们会减少甚至删除太需要维护的单元测试。
+- en: This happens partly because unit tests are more abstract than browser tests.
+    They are doing the same kinds of things as browser tests, but they do them invisibly.
+    When they are interacting with components, you don’t *see* them.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部分原因是单元测试比浏览器测试更抽象。它们正在执行与浏览器测试相同类型的操作，但是这些操作是不可见的。当它们与组件交互时，您不会*看见*它们。
+- en: A second reason is that teams often see tests as deliverable artifacts within
+    a project. The team might even have builds that fail if unit tests don’t cover
+    a certain percentage of the code.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个原因是团队经常将测试视为项目中的可交付工件。如果单元测试未覆盖代码的某个百分比，团队甚至可能会有构建失败的情况。
+- en: These issues generally disappear if developers write tests *before* they write
+    code. If you write the tests first, a line at a time, you will have a much better
+    grasp of the current state of HTML. If you stop seeing tests as development artifacts
+    and start to look at them as tools for designing your code, they stop becoming
+    a time-consuming burden and become tools that make your work easier.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果开发人员在编写代码之前编写测试，这些问题通常会消失。如果您逐行编写测试，您将更好地掌握HTML的当前状态。如果您停止将测试视为开发工件，并开始将其视为设计代码的工具，它们将不再是耗时的负担，而是使您工作更轻松的工具。
+- en: The important thing when writing code is that you begin with a failing test.
+    In the early days of a project, that might be a failing browser test. As the project
+    matures and the architecture stabilizes, you should create more and more unit
+    tests.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写代码时的重要一点是从一个失败的测试开始。在项目的早期阶段，这可能是一个失败的浏览器测试。随着项目的成熟和架构的稳定，您应该创建越来越多的单元测试。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/P1Tqj)下载此配方的源代码。
+- en: Use Storybook for Render Tests
+  id: totrans-95
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Storybook进行渲染测试
+- en: Problem
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Tests are simply examples that you can execute. Consequently, tests have a lot
+    in common with component gallery systems like Storybook. Both tests and galleries
+    are examples of components running in particular circumstances. Whereas a test
+    will make assertions with code, a developer will make an *assertion* of a library
+    example by looking at it and checking that it appears as expected. In both galleries
+    and tests, exceptions will be easily visible.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试只是您可以执行的简单示例。因此，测试与组件库系统（例如Storybook）有很多共同之处。测试和图库都是在特定情况下运行的组件示例。而测试会用代码做出断言，开发人员会通过查看示例并检查其是否符合预期来对库示例进行*断言*。在图库和测试中，异常将非常明显。
+- en: There are differences. Tests can automatically interact with components; gallery
+    components require a person to press buttons and type text. Developers can run
+    tests with a single command; galleries have to be manually viewed, one example
+    at a time. Gallery components are visual and easy to understand; tests are abstract
+    and less fun to create.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存在一些差异。测试可以自动与组件交互；画廊组件需要人工按按钮和输入文本。开发人员可以用单一命令运行测试；画廊必须一次查看一个示例。画廊组件是视觉化的，易于理解；而测试则是抽象的，不那么有趣。
+- en: Is there some way to combine galleries like Storybook with automated tests to
+    get the best of both worlds?
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有没有办法将像 Storybook 这样的画廊与自动化测试结合起来，以兼得两者的优点？
+- en: Solution
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We’re going to look at how you can reuse your Storybook stories inside tests.
+    You can install Storybook into your application with this command:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将看看如何在测试中重用您的 Storybook 故事。您可以使用以下命令将 Storybook 安装到您的应用中：
+- en: '[PRE10]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: The example application in this chapter is a simple mathematical game in which
+    the user needs to calculate the answer to a multiplication problem (see [Figure 8-3](ch08_split_001.xhtml#ch08_image_3)).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章的示例应用是一个简单的数学游戏，用户需要计算乘法问题的答案（参见[图 8-3](ch08_split_001.xhtml#ch08_image_3)）。
+- en: '![](Images/recb_0802.png)'
+  id: totrans-104
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0802.png)'
+- en: Figure 8-3\. The example application
+  id: totrans-105
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. 示例应用
+- en: One of the components in the game is called `Question`, and it displays a randomly
+    generated multiplication question ([Figure 8-4](ch08_split_001.xhtml#ch08_image_4)).
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 游戏中的一个组件称为 `Question`，它显示一个随机生成的乘法问题（参见[图 8-4](ch08_split_001.xhtml#ch08_image_4)）。
+- en: '![](Images/recb_0804.png)'
+  id: totrans-107
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0804.png)'
+- en: Figure 8-4\. The Question component
+  id: totrans-108
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-4\. 问题组件
+- en: 'Let’s say we don’t worry too much about tests for this component. Let’s just
+    build it by creating some Storybook stories. We’ll write a new *Question.stories.js*
+    file:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以不用太担心这个组件的测试。只需通过创建一些 Storybook 故事来构建它。我们将编写一个新的 *Question.stories.js* 文件：
+- en: '[PRE11]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'And then we’ll create an initial version of the component that we can look
+    at in Storybook and be happy with:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将创建一个初始版本的组件，在 Storybook 中查看并且满意：
+- en: '[PRE12]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This component displays a randomly generated question if the user clicks the
+    Refresh button or if a parent component passes in a new `refreshTime` value.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户点击刷新按钮或者父组件传入新的 `refreshTime` 值，该组件会显示一个随机生成的问题。
+- en: We display the component in Storybook, and it looks like it works fine. We can
+    click the Refresh button, and it refreshes. So at that point, we start to use
+    the component in the main application. After a while, we add a few extra features,
+    but none of them are visual changes, so we don’t look at the Storybook stories
+    for it again. After all, it will still look the same. Right?
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Storybook 中显示组件，看起来它工作正常。我们可以点击刷新按钮，它就会刷新。因此，在这一点上，我们开始在主应用中使用这个组件。过了一段时间，我们添加了一些额外的功能，但它们都不是视觉上的改变，所以我们不再查看它的
+    Storybook 故事。毕竟，它看起来还是一样的。对吧？
+- en: 'This is a modified version of the component, after we’ve wired it into the
+    rest of the application:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个修改后的组件版本，我们将其连接到应用的其余部分之后：
+- en: '[PRE13]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This version is only *slightly* longer than before. We’ve added an `onAnswer`
+    callback function that will return the correct answer to the parent component
+    each time the application generates a new question.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个版本只比之前略长一点点。我们添加了一个 `onAnswer` 回调函数，每次应用生成新问题时，它都会向父组件返回正确答案。
+- en: The new component appears to work well in the application, but then an odd thing
+    occurs. The next time someone looks at Storybook, they notice an error, as shown
+    in [Figure 8-5](ch08_split_001.xhtml#ch08_image_5).
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个新组件在应用中表现良好，但接着发生了一件奇怪的事情。下次有人查看 Storybook 时，他们会注意到一个错误，如[图 8-5](ch08_split_001.xhtml#ch08_image_5)所示。
+- en: '![](Images/recb_0805.png)'
+  id: totrans-119
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0805.png)'
+- en: Figure 8-5\. An error occurs when we look at the new version of the component
+  id: totrans-120
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-5\. 查看组件新版本时发生错误
+- en: 'What happened? We’ve added an implicit assumption into the code that the parent
+    component will always pass an `onAnswer` callback into the component. Because
+    the Storybook stories rendered `Basic` story without an `onAnswer`, we got the
+    error:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发生了什么？我们在代码中添加了一个隐含的假设，即父组件将始终向组件传递一个 `onAnswer` 回调函数。因为 Storybook 故事渲染 `Basic`
+    故事时没有 `onAnswer`，所以我们遇到了错误：
+- en: '[PRE14]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Does this matter? Not for a simple component like this. After all, the application
+    itself still worked. But failure to cope with missing properties, such as the
+    missing callback here or, more frequently, missing data, is one of the most typical
+    causes of errors in React.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这重要吗？对于像这样的简单组件来说，可能不重要。毕竟，应用本身仍在工作。但是，未能处理丢失的属性，例如这里缺少的回调或更常见的缺少数据，是React中错误的最典型原因之一。
+- en: Applications frequently generate React properties using data from the network,
+    and that means the initial properties you pass to components will often be null
+    or undefined. It’s generally a good idea to either use a type-safe language, like
+    TypeScript, to avoid these issues or write tests that check that your components
+    can cope with missing properties.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序经常使用来自网络的数据生成React属性，这意味着您传递给组件的初始属性通常会是null或undefined。通常建议要么使用类型安全的语言，如TypeScript，以避免这些问题，要么编写测试以检查您的组件是否能够处理丢失的属性。
+- en: We created this component without any tests, but we did create it with a Storybook
+    story—and that story *did* catch the issue. So is there some way to write a test
+    that will automatically check that Storybook can render all the stories?
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们创建了这个组件而没有任何测试，但我们确实用Storybook的故事创建了它，并且该故事确实捕捉到了问题。那么有没有办法编写一个测试来自动检查Storybook是否可以渲染所有故事？
+- en: We’re going to create a test for this component in a file called *Question.test.js*.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在名为*Question.test.js*的文件中为此组件创建一个测试。
+- en: Consider creating a folder for each component. Instead of simply having a file
+    called *Question.js* in the *src* directory, create a folder called *src/Question*,
+    and inside there you can place *Question.js*, *Question.stories.js*, and *Question.test.js*.
+    If you then add an *src/Question/index.js* file, which does a default export of
+    the `Question` component, the rest of your code will be unaffected, and you will
+    reduce the number of files other developers have to deal with.^([3](ch08_split_001.xhtml#idm46634396575256))
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑为每个组件创建一个文件夹。而不是在*src*目录中简单地放置一个名为*Question.js*的文件，创建一个名为*src/Question*的文件夹，在其中放置*Question.js*、*Question.stories.js*和*Question.test.js*。然后，如果添加一个*src/Question/index.js*文件，它默认导出`Question`组件，那么您的其余代码将不受影响，并且可以减少其他开发人员需要处理的文件数量。^([3](ch08_split_001.xhtml#idm46634396575256))
+- en: In the test file, we can then create a Jest test that loads each of the stories
+    and then passes them to the Testing Library’s `render` function:^([4](ch08_split_001.xhtml#idm46634396570056))
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在测试文件中，我们可以创建一个Jest测试，加载每个故事，然后将它们传递给Testing Library的`render`函数：^([4](ch08_split_001.xhtml#idm46634396570056))
+- en: '[PRE15]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: If your stories are using *decorators* to provide such things as routers or
+    styling, this technique will not pick them up automatically. You should add them
+    into the `render` method within the test.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的故事使用*装饰器*来提供诸如路由器或样式之类的内容，则此技术将无法自动获取它们。您应该在测试中的`render`方法中添加它们。
+- en: 'When you run this test, you will get a failure:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行此测试时，您将会收到一个失败：
+- en: '[PRE16]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'We can fix the error by checking if there is a callback before calling it:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过在调用之前检查是否有回调来修复错误：
+- en: '[PRE17]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: This technique allows you to create some elementary tests for a component with
+    minimal effort. It’s worth creating a story for the component, which includes
+    no properties whatsoever. Then, before you add a new property, create a story
+    that uses it and think about how you will expect the component to behave.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种技术允许您以最小的工作量为组件创建一些基本测试。值得为组件创建一个不包含任何属性的故事。然后，在添加新属性之前，创建一个使用它的故事，并考虑您期望组件如何行为。
+- en: 'Even though the test will perform only a simple render of each story, there
+    is no reason why you can’t import a single story and create a test using that
+    story:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使测试只执行每个故事的简单渲染，也没有理由您不能导入单个故事并创建一个使用该故事的测试：
+- en: '[PRE18]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Discussion
+  id: totrans-138
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Storybook render tests introduce rudimentary unit testing into your application,
+    and it can find a surprising number of regression bugs. It also helps you think
+    of tests as examples, which are there to help you design your code rather than
+    coding artifacts that you must create to keep the team lead happy. Creating render
+    tests for stories is also helpful if you have a team that is new to unit testing.
+    By creating visual examples, it avoids the problems that can arise from nonvisual
+    tests feeling abstract. It can also get developers into the habit of having a
+    test file for each component in the system. When you need to make a minor change
+    to the component, it will then be much easier to add a small unit test function
+    before adding the change.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Storybook渲染测试将基础单元测试引入到您的应用程序中，它可以发现大量的回归错误。它还帮助您将测试视为示例，这些示例有助于您设计代码，而不是必须为了让团队领导满意而创建的编码工件。为故事创建渲染测试还有助于如果您的团队对单元测试还不熟悉的话。通过创建视觉示例，它可以避免非视觉测试感觉抽象所带来的问题。它还可以让开发人员养成为系统中的每个组件编写测试文件的习惯。当您需要对组件进行微小更改时，添加一个小的单元测试函数就会变得更加容易。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub网站](https://oreil.ly/P1Tqj)下载这个配方的源代码。
+- en: Test Without a Server Using Cypress
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Cypress在没有服务器的情况下进行测试
+- en: Problem
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'One of the principal features of high-quality code is the way it responds to
+    errors. The first of Peter Deutsch’s [Eight Fallacies of Distributed Computing](https://oreil.ly/eDtKG)
+    is: *the network is reliable*. Not only is the network *not* reliable, but neither
+    are the servers or databases that connect to it. At some point, your application
+    is going to have to deal with some network failure. It might be that the phone
+    loses its connection, or the server goes down, or the database crashes, or someone
+    else has deleted the data you are trying to update. Whatever the causes, you will
+    need to decide what your application will do when terrible things happen.'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 高质量代码的主要特征之一是其对错误的响应方式。Peter Deutsch的[分布式计算的八个谬论](https://oreil.ly/eDtKG)中的第一个是：“网络是可靠的”。不仅网络*不*可靠，连接到它的服务器或数据库也不可靠。在某些时候，您的应用程序将不得不处理某些网络故障。可能是手机失去连接，服务器宕机，数据库崩溃，或者其他人已经删除了您尝试更新的数据。无论原因是什么，您都需要决定在发生严重问题时应用程序应该做什么。
+- en: Network issues can be challenging to simulate in testing environments. If you
+    write code that puts the server into some error state, that is likely to cause
+    problems for other tests or users who connect to the server.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在测试环境中模拟网络问题可能是具有挑战性的。如果您编写的代码使服务器进入某种错误状态，这可能会对其他测试或连接到服务器的用户造成问题。
+- en: How can you create automated tests for network failure cases?
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您如何为网络故障情况创建自动化测试？
+- en: Solution
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: For this recipe, we are going to use Cypress. We mentioned the Cypress testing
+    system in [Chapter 1](ch01_split_000.xhtml#chapter01). It’s a genuinely remarkable
+    testing system that is rapidly becoming our go-to tool in many development projects.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个配方，我们将使用Cypress。我们在[第1章](ch01_split_000.xhtml#chapter01)中提到了Cypress测试系统。这是一个真正卓越的测试系统，在许多开发项目中迅速成为我们的首选工具。
+- en: 'To install Cypress into your project, type the following:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要将Cypress安装到您的项目中，请输入以下命令：
+- en: '[PRE19]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Cypress works by automating a web browser. In that sense, it is similar to other
+    systems like Selenium. Still, the difference is that Cypress does not require
+    you to install a separate driver, and it can both control the browser remotely
+    and inject itself into the browser’s JavaScript engine.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cypress通过自动化Web浏览器来工作。从这个意义上说，它类似于其他系统如Selenium。不过，Cypress的区别在于它不需要你安装单独的驱动程序，它可以远程控制浏览器，并将自己注入到浏览器的JavaScript引擎中。
+- en: Cypress can therefore actively replace core parts of the JavaScript infrastructure
+    with faked versions that it can control. For example, Cypress can replace the
+    JavaScript `fetch` function used to make network calls to the server.^([5](ch08_split_001.xhtml#idm46634396204872))
+    Cypress tests can therefore spoof the behavior of a network server and allow a
+    client-side developer to artificially craft responses from the server.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，Cypress可以积极地用虚拟版本替换JavaScript基础设施的核心部分，以便控制它们。例如，Cypress可以替换用于向服务器发出网络调用的JavaScript
+    `fetch` 函数。^([5](ch08_split_001.xhtml#idm46634396204872)) 因此，Cypress测试可以伪造网络服务器的行为，并允许客户端开发人员从服务器上人工制作响应。
+- en: We will use the example game application that we use for other recipes in this
+    chapter. We will add a network call to store the result each time a user answers
+    a question. We can do this without creating the actual server code by faking the
+    responses in Cypress.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用本章其他配方中使用的示例游戏应用程序。每当用户回答问题时，我们将添加一个网络调用来存储结果。在 Cypress 中，我们可以通过伪造响应而无需创建实际的服务器代码来实现这一点。
+- en: To show how this works, we will first create a test that simulates the server
+    responding correctly. Then we will create a test to simulate a server failure.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了展示其工作原理，我们首先将创建一个模拟服务器正确响应的测试。然后我们将创建一个模拟服务器失败的测试。
+- en: Once Cypress is installed, create a file in *cypress/integration/* called *0001-basic-game-functions.js*:^([6](ch08_split_001.xhtml#idm46634396201256))
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装 Cypress 后，在 *cypress/integration/* 目录下创建一个名为 *0001-basic-game-functions.js*
+    的文件:^([6](ch08_split_001.xhtml#idm46634396201256))
+- en: '[PRE20]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: We’ve put placeholder comments for each of the steps we will need to write.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已为需要编写的每个步骤放置了占位符注释。
+- en: 'Each command and assertion in Cypress begins with `cy`. If we want to open
+    the browser at location *http://localhost:3000*, we can do it with the following:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cypress 中的每个命令和断言都以 `cy` 开头。如果我们想在浏览器中打开位置为 *http://localhost:3000* 的页面，可以使用以下命令：
+- en: '[PRE21]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'To run the test, we can type:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行测试，我们可以输入：
+- en: '[PRE22]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'That command will run all tests without showing the browser.^([7](ch08_split_001.xhtml#idm46634396063368))
+    We can also type the following:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那个命令将运行所有测试而不显示浏览器。^([7](ch08_split_001.xhtml#idm46634396063368)) 我们还可以输入以下内容：
+- en: '[PRE23]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: This command will open the Cypress application window (as you can see in [Figure 8-6](ch08_split_001.xhtml#ch08_image_6)).
+    If we double-click the test file, the test will open in a browser (as you can
+    see in [Figure 8-7](ch08_split_001.xhtml#ch08_image_7)).
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令将打开 Cypress 应用程序窗口（如您在 [图 8-6](ch08_split_001.xhtml#ch08_image_6) 中所见）。如果我们双击测试文件，测试将在浏览器中打开（如您在
+    [图 8-7](ch08_split_001.xhtml#ch08_image_7) 中所见）。
+- en: '![](Images/recb_0806.png)'
+  id: totrans-164
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0806.png)'
+- en: Figure 8-6\. The test will appear in the Cypress window when you type `**npx
+    cypress open**`
+  id: totrans-165
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-6\. 当您输入`**npx cypress open**`时，测试将显示在 Cypress 窗口中。
+- en: '![](Images/recb_0807.png)'
+  id: totrans-166
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0807.png)'
+- en: Figure 8-7\. A Cypress test running in a browser
+  id: totrans-167
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-7\. 在浏览器中运行的 Cypress 测试
+- en: The example application asks the user to multiply two random numbers (see [Figure 8-8](ch08_split_001.xhtml#ch08_image_8)).
+    The numbers will be in the range 1–10, so if we enter the value **`101`**, we
+    can be sure that the answer will be incorrect.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例应用程序要求用户计算两个随机数的乘积（参见 [图 8-8](ch08_split_001.xhtml#ch08_image_8)）。这些数字的范围是
+    1–10，因此，如果我们输入 **`101`**，我们可以确定答案是错误的。
+- en: Cypress does not allow you to capture textual content from the screen directly.
+    So we cannot simply read the values of the two numbers and store them in variables
+    because the commands in Cypress don’t immediately perform the actions in the browser.
+    Instead, when you run a command, Cypress adds it to a *chain* of instructions,
+    which it performs at the end of the test. This approach might seem a little odd,
+    but these *chainable* instructions allow Cypress to cope with most of the problems
+    caused by asynchronous interfaces.^([8](ch08_split_001.xhtml#idm46634396079192))
+    The downside is that no command can return the page’s contents as the page will
+    not exist when the command runs.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cypress 不允许直接从屏幕捕获文本内容。因此，我们无法简单地读取两个数字的值并将其存储在变量中，因为 Cypress 命令不会立即在浏览器中执行操作。相反，当您运行命令时，Cypress
+    将其添加到一系列指令中，并在测试结束时执行它们。这种方法可能有些奇怪，但这些可链式操作的指令允许 Cypress 处理大多数由异步接口引起的问题。^([8](ch08_split_001.xhtml#idm46634396079192))
+    不利之处在于，没有命令能够返回页面内容，因为命令运行时页面尚不存在。
+- en: We will see elsewhere in this chapter how we can remove randomness in test scenarios
+    and make this test deterministic, which will remove the need to capture data from
+    the page.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在本章其他地方看到如何在测试场景中去除随机性，并使此测试具有确定性，这将消除从页面获取数据的需求。
+- en: '![](Images/recb_0802.png)'
+  id: totrans-171
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0802.png)'
+- en: Figure 8-8\. The application asks the user to calculate the product of two random
+    numbers
+  id: totrans-172
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-8\. 应用程序要求用户计算两个随机数的乘积
+- en: 'We can use the `cy.get` command to find the input field by a CSS selector.
+    We can also use the `cy.contains` command to find the Submit button:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `cy.get` 命令通过 CSS 选择器找到输入字段。我们还可以使用 `cy.contains` 命令找到提交按钮：
+- en: '[PRE24]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Now we just need to test that the application contacts the server with the result
+    of the game.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们只需测试应用程序是否将游戏结果传递给服务器。
+- en: 'We will use the `cy.intercept()` command to do this. The `cy.intercept()` command
+    will change the behavior of network requests in the application so that we can
+    fake responses for a given request. If the result is going to be POSTed to the
+    endpoint */api/result*, we generate a faked response like this:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用 `cy.intercept()` 命令来做到这一点。`cy.intercept()` 命令将改变应用程序中网络请求的行为，以便我们可以为特定请求伪造响应。如果结果将被
+    POST 到端点 */api/result*，我们可以生成如下的伪造响应：
+- en: '[PRE25]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Once this command takes effect, network requests to */api/result* will receive
+    the faked response. That means we need to run the command *before* the network
+    request is made. We will do it at the start of the test:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦这个命令生效，对 */api/result* 的网络请求将收到伪造的响应。这意味着我们需要在进行网络请求之前运行该命令。我们将在测试开始时执行它：
+- en: '[PRE26]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: We’ve now specified the network response. But how do we assert that the application
+    has made the network call, and how do we know that it has sent the correct data
+    to the */api/result* endpoint?
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经指定了网络响应。但是如何断言应用程序已经进行了网络调用，并且如何知道它已经将正确的数据发送到了 */api/result* 端点呢？
+- en: We will need to give the network request an *alias*. This will allow us to refer
+    to the request later in the test:^([9](ch08_split_001.xhtml#idm46634395808488))
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要为网络请求指定一个 *别名*。这样可以让我们稍后在测试中引用该请求:^([9](ch08_split_001.xhtml#idm46634395808488))
+- en: '[PRE27]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'We can then make an assertion at the end of the test, which will wait for the
+    network call to be made and will check the contents of the data sent in the request
+    body:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们可以在测试结束时进行断言，等待网络调用完成，并检查发送到请求体中的数据内容：
+- en: '[PRE28]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This assertion is checking two of the attributes of the request body for the
+    expected values.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此断言检查请求体的两个属性是否具有预期值。
+- en: If we run the test now, it will pass (as you can see in [Figure 8-9](ch08_split_001.xhtml#ch08_image_9)).
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们现在运行测试，它将通过（如您在 [图 8-9](ch08_split_001.xhtml#ch08_image_9) 中所见）。
+- en: '![](Images/recb_0809.png)'
+  id: totrans-187
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0809.png)'
+- en: Figure 8-9\. The completed test passes
+  id: totrans-188
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-9\. 完成的测试通过
+- en: 'Now that we’ve created a test for the successful case, we can write a test
+    for the failure case. The application should display a message on-screen if the
+    network call fails. We don’t actually care what details are sent to the server
+    in this test, but we still need to wait for the network request to complete before
+    checking for the existence of the error message:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经为成功情况创建了一个测试，我们可以为失败情况编写测试。如果网络调用失败，应用程序应在屏幕上显示一条消息。在这个测试中，我们实际上并不关心发送到服务器的详细信息，但我们仍然需要等待网络请求完成，然后检查错误消息的存在：
+- en: '[PRE29]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Notice that we check for the error message *not* existing before we make the
+    network call to ensure that the network call *causes* the error.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在进行网络调用之前，我们检查错误消息 *不存在*，以确保网络调用 *导致* 错误。
+- en: In addition to generating stubbed responses and status codes, `cy.intercept`
+    can perform other tricks, such as slowing response times, throttling network speed,
+    or generating responses from test functions. For further details, see the [`cy.intercept`
+    documentation](https://oreil.ly/tcZR8).
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了生成存根响应和状态码外，`cy.intercept` 还可以执行其他技巧，如减慢响应时间、限制网络速度或从测试函数生成响应。更多详细信息，请参阅 [`cy.intercept`
+    文档](https://oreil.ly/tcZR8)。
+- en: Discussion
+  id: totrans-193
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Cypress testing can transform how a development team works, specifically in
+    its ability to mock network calls. Teams frequently develop APIs at a different
+    cadence than frontend code. Also, some teams have developers who specialize in
+    frontend or server code. Cypress can help in these situations because it allows
+    frontend developers to write code against endpoints that don’t currently exist.
+    Cypress can also simulate all of the pathological failure cases.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cypress 测试可以改变开发团队的工作方式，特别是在模拟网络调用方面。团队通常以不同的节奏开发 API 和前端代码。此外，一些团队有专门从事前端或服务器代码的开发人员。Cypress
+    在这些情况下很有帮助，因为它允许前端开发人员编写针对尚不存在的端点的代码。Cypress 还可以模拟所有病理性失败情况。
+- en: Network performance can introduce intermittent bugs. Development environments
+    use local servers with little or no data, which means that API performance is
+    far better at development time than in a production environment. It is straightforward
+    to write code that assumes that data is immediately available, but this code will
+    break in a production environment where the data may take a second or so to arrive.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网络性能可能会引入间歇性的错误。开发环境使用本地服务器，数据很少或没有，这意味着开发时的 API 性能比生产环境好得多。编写假设数据立即可用的代码很简单，但是在生产环境中，数据可能需要一两秒才能到达，这种代码就会出问题。
+- en: 'It is therefore worth having at least one test for each API call where the
+    response is slowed by a second or so:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，值得至少为每个 API 调用运行一次测试，其中响应时间延迟约一秒钟：
+- en: '[PRE30]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Simulating slow network responses will often flush out a whole plethora of asynchronous
+    bugs that might otherwise creep into your code.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模拟缓慢的网络响应通常会暴露出许多可能会潜入代码中的异步错误。
+- en: Almost as importantly, creating artificially slow network responses will give
+    you a sense of the overall impact of each API call on performance.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 几乎同样重要的是，创建人工缓慢的网络响应将让您了解每个 API 调用对性能的总体影响。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 站点](https://oreil.ly/P1Tqj)下载此配方的源代码。
+- en: Use Cypress for Offline Testing
+  id: totrans-201
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Cypress 进行离线测试
+- en: Problem
+  id: totrans-202
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: This recipe uses a custom Cypress command invented by [Etienne Bruines](https://oreil.ly/oOMHP).
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配方使用了由[Etienne Bruines](https://oreil.ly/oOMHP)发明的自定义 Cypress 命令。
+- en: Applications need to cope with being disconnected from the network. We’ve seen
+    elsewhere how to create a hook to detect if we are currently offline.^([10](ch08_split_001.xhtml#idm46634395450040))
+    But how are we test for offline behavior?
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序需要处理与网络断开连接的情况。我们在其他地方已经看到如何创建钩子以检测当前是否离线。^([10](ch08_split_001.xhtml#idm46634395450040))
+    但是我们如何测试离线行为呢？
+- en: Solution
+  id: totrans-205
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We can simulate offline working using Cypress. Cypress tests can inject code
+    that modifies the internal behavior of the browser under test. We should therefore
+    be able to modify the network code to simulate offline conditions.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 Cypress 模拟离线工作。Cypress 测试可以注入修改浏览器测试的内部行为的代码。因此，我们应该能够修改网络代码以模拟离线条件。
+- en: 'For this recipe, you will need to install Cypress in your application. If you
+    don’t already have Cypress, you can install it by running this command in your
+    application directory:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此配方，您需要在应用程序中安装 Cypress。如果尚未安装 Cypress，则可以在应用程序目录中运行以下命令进行安装：
+- en: '[PRE31]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'You can then add a *0002-offline-working.js* file to the *cypress/integration*
+    directory:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以然后在 *cypress/integration* 目录中添加一个 *0002-offline-working.js* 文件：
+- en: '[PRE32]'
+  id: totrans-210
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: We will ignore this test on Firefox. The offline simulation code relies upon
+    the Chrome DevTools remote debugging protocol, which is not currently available
+    in the Firefox browser.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在 Firefox 上忽略此测试。离线模拟代码依赖于 Chrome DevTools 远程调试协议，而该协议目前在 Firefox 浏览器中不可用。
+- en: 'We have marked out the structure of the test as a series of comments. Cypress
+    commands all begin with `cy`, so we can open the application like this:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经将测试结构标记为一系列注释。所有 Cypress 命令都以 `cy` 开头，因此我们可以像这样打开应用程序：
+- en: '[PRE33]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: The question is, how do we force the browser to simulate offline working?
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何强制浏览器模拟离线工作呢？
+- en: 'We can do it because Cypress is designed to be extensible. We can add a custom
+    Cypress command that will allow us to go offline and back online:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以这样做，因为 Cypress 设计为可扩展的。我们可以添加一个自定义 Cypress 命令，允许我们切换到离线状态然后再切换回在线状态：
+- en: '[PRE34]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'To add a custom command, open the *cypress/support/commands.js* file, and add
+    the following code:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要添加自定义命令，请打开 *cypress/support/commands.js* 文件，并添加以下代码：
+- en: '[PRE35]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'This command uses the remote debugging protocol in DevTools to emulate offline
+    network conditions. Once you have saved this file, you can then implement the
+    rest of the test:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令使用 DevTools 中的远程调试协议来模拟离线网络条件。保存此文件后，您可以实现其余的测试：
+- en: '[PRE36]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: If you run the test now, in Electron, it will pass (see [Figure 8-10](ch08_split_001.xhtml#ch08_image_10)).
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在在 Electron 中运行测试，它将通过（见[Figure 8-10](ch08_split_001.xhtml#ch08_image_10)）。
+- en: '![](Images/recb_0810.png)'
+  id: totrans-222
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0810.png)'
+- en: Figure 8-10\. You can view each stage of the online/offline test by clicking
+    on the left panel
+  id: totrans-223
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-10\. 您可以通过单击左侧面板查看在线/离线测试的每个阶段
+- en: Discussion
+  id: totrans-224
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It should be possible to create similar commands that simulate various network
+    conditions and speeds.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应该可以创建类似的命令来模拟各种网络条件和速度。
+- en: For more information on how the network command works, see [this blog post from
+    Cypress.io](https://oreil.ly/PB4zO).
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关网络命令工作原理的更多信息，请参阅[Cypress.io 的此篇博文](https://oreil.ly/PB4zO)。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 站点](https://oreil.ly/P1Tqj)下载此配方的源代码。
+- en: Test in a Browser with Selenium
+  id: totrans-228
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Selenium 在浏览器中进行测试
+- en: Problem
+  id: totrans-229
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Nothing beats running your code inside a real browser, and the most common way
+    of writing automated browser-based tests is by using a *web driver*. You can control
+    most browsers by sending a command to a network port. Different browsers have
+    different commands, and a web driver is a command-line tool that simplifies controlling
+    the browser.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有什么比在真实浏览器中运行代码更好，编写自动化基于浏览器的测试的最常见方法是使用*Web驱动程序*。你可以通过向网络端口发送命令来控制大多数浏览器。不同的浏览器有不同的命令，而Web驱动程序是一个命令行工具，它简化了控制浏览器的过程。
+- en: But how can we write a test for a React application that uses a web driver?
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，我们如何为使用Web驱动程序的React应用程序编写测试呢？
+- en: Solution
+  id: totrans-232
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We are going to use the Selenium library. Selenium is a framework that provides
+    a consistent API for a whole set of different web drivers, which means that you
+    can write a test for Firefox and the same code should work in the same way for
+    Chrome, Safari, and Edge.^([11](ch08_split_001.xhtml#idm46634394974248))
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用Selenium库。Selenium是一个为各种Web驱动程序提供一致API的框架，这意味着你可以为Firefox编写测试，同样的代码应该在Chrome、Safari和Edge中同样有效。^([11](ch08_split_001.xhtml#idm46634394974248))
+- en: We will use the same example application that we are using for all recipes in
+    this chapter. It’s a game that asks the user for the answer to a simple multiplication
+    problem.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用本章中的所有示例应用程序相同的示例应用程序。这是一个询问用户简单乘法问题答案的游戏。
+- en: 'The Selenium library is available for a whole set of different languages, such
+    as Python, Java, and C#. We will be using the JavaScript version: Selenium WebDriver.'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Selenium库支持多种不同的编程语言，如Python、Java和C#。我们将使用JavaScript版本：Selenium WebDriver。
+- en: 'We’ll begin by installing Selenium:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从安装Selenium开始：
+- en: '[PRE37]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'We will also need to install at least one web driver. You can install web drivers
+    globally, but it is more manageable to install them in your application. We could
+    install a driver like `geckodriver` for Firefox, but for now, we will install
+    `chromedriver` for Chrome:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要安装至少一个Web驱动程序。你可以全局安装Web驱动程序，但更可管理的方式是将它们安装在你的应用程序中。我们可以为Firefox安装像`geckodriver`这样的驱动程序，但现在我们将为Chrome安装`chromedriver`：
+- en: '[PRE38]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: We can now start to create a test. It’s useful to include Selenium tests inside
+    the *src* folder of the application, because it will make it easier to use an
+    IDE to run the tests manually. So we’ll create a folder called *src/selenium*
+    and then add a file inside it called *0001-basic-game-functions.spec.js*:^([12](ch08_split_001.xhtml#idm46634394947128))
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在可以开始创建一个测试。将Selenium测试包含在应用程序的*src*文件夹内是很有用的，因为这样可以更轻松地使用IDE手动运行测试。因此，我们将创建一个名为*src/selenium*的文件夹，并在其中添加一个名为*0001-basic-game-functions.spec.js*的文件:^([12](ch08_split_001.xhtml#idm46634394947128))
+- en: '[PRE39]'
+  id: totrans-241
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: We have outlined the test in the comments.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在注释中概述了测试。
+- en: While it’s convenient to include Selenium tests in the *src* tree, it can mean
+    that a tool like Jest will run it as if it were a unit test, which is a problem
+    if you run unit tests continually in the background. For example, if you created
+    your application with `create-react-app` and leave an `npm run test` command running,
+    you will find that a browser will suddenly appear on your screen each time you
+    save the Selenium test. To avoid this, adopt some naming convention to distinguish
+    between Selenium and unit tests. If you name all your Selenium tests **.spec.js*,
+    you can modify your test script to avoid them by setting it to *react-scripts
+    test ‘.*.test.js’*.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管将Selenium测试包含在*src*树中很方便，但这可能导致像Jest这样的工具将其视为单元测试来运行，如果你在后台持续运行单元测试，这就是个问题。例如，如果你使用`create-react-app`创建应用程序并保持`npm
+    run test`命令运行，你会发现每次保存Selenium测试时浏览器突然出现在屏幕上。为了避免这种情况，请采用某种命名约定来区分Selenium和单元测试。如果你将所有的Selenium测试命名为**.spec.js*，你可以通过修改测试脚本来避免它们，设置为*react-scripts
+    test ‘.*.test.js’*。
+- en: 'Selenium uses a web driver to automate the web browser. We can create an instance
+    of the driver at the start of each test:'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Selenium使用Web驱动程序来自动化Web浏览器。我们可以在每个测试开始时创建一个驱动程序的实例：
+- en: '[PRE40]'
+  id: totrans-245
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: In this example, we are creating a Chrome driver.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，我们正在创建一个Chrome驱动程序。
+- en: By creating a driver for each test, we will also create a fresh instance of
+    the browser for each test, ensuring that no browser state is carried between tests.
+    If we carry no state between tests, it will allow us to run the tests in any order.
+    We have no such guarantee on shared server state. If your tests are reliant upon,
+    for example, database data, you should ensure that each test initializes the server
+    correctly when it starts.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过为每个测试创建一个驱动程序，我们还将为每个测试创建一个全新的浏览器实例，确保没有浏览器状态在测试之间传递。 如果我们在测试之间不保留状态，那么我们可以以任何顺序运行测试。
+    我们在共享服务器状态上没有这样的保证。 例如，如果您的测试依赖于数据库数据，您应确保每个测试在启动时正确初始化服务器。
+- en: 'For Selenium to create an instance of the driver, we should also explicitly
+    *require* the driver:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要让 Selenium 创建驱动程序的实例，我们还应该明确*require*驱动程序：
+- en: '[PRE41]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: We can now start to fill out the test. The JavaScript version of Selenium is
+    highly asynchronous. Virtually all commands return promises, which means that
+    it is very efficient, but it is also far too easy to introduce testing bugs.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以开始填写测试。 Selenium 的 JavaScript 版本是高度异步的。 几乎所有命令都返回承诺，这意味着它非常高效，但也很容易引入测试错误。
+- en: 'Let’s begin our test by opening the application:'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过打开应用程序来开始我们的测试：
+- en: '[PRE42]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: The `driver.get` command tells the browser to open the given URL. For this to
+    work, we’ve also had to make two other changes. First, we’ve had to mark the test
+    function with `async`, which will allow us to `await` the promise returned by
+    `driver.get`.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`driver.get`命令告诉浏览器打开给定的URL。为了使其工作，我们还必须进行其他两个更改。首先，我们必须使用`async`标记测试函数，这将允许我们`await`通过`driver.get`返回的承诺。'
+- en: Second, we’ve added a timeout value of 60,000 milliseconds to the test, overriding
+    the implicit five-second limit of Jest tests. If you don’t increase the default
+    timeout, you will find your test fails before the browser starts. We’ve set it
+    to 60,000 milliseconds here to ensure the test works on any machine. You should
+    adjust this value to match your expected hardware.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其次，我们向测试添加了一个60,000毫秒的超时值，覆盖了Jest测试的隐式五秒限制。如果您不增加默认超时时间，则会发现您的测试在浏览器启动之前失败。我们在这里将其设置为60,000毫秒，以确保测试在任何机器上都能正常工作。您应根据您的预期硬件调整此值。
+- en: To enter the correct value into the game, we will need to read the two numbers
+    that appear in the question (as shown in [Figure 8-11](ch08_split_001.xhtml#ch08_image_11)).
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要输入正确的值到游戏中，我们需要读取问题中显示的两个数字（如[图 8-11](ch08_split_001.xhtml#ch08_image_11)所示）。
+- en: '![](Images/recb_0802.png)'
+  id: totrans-256
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0802.png)'
+- en: Figure 8-11\. The game asks the user to calculate a random product
+  id: totrans-257
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-11\. 游戏要求用户计算一个随机乘积
+- en: 'We can find the two numbers on the page and the `input` and `submit` buttons
+    using a command called `findElement`:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用名为`findElement`的命令找到页面上的两个数字以及`input`和`submit`按钮：
+- en: '[PRE43]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'If you are ever reading a set of elements from the page and don’t care about
+    resolving them in a strict order, you can use the `Promise.all` function to combine
+    them into a single promise that you can then await:'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您从页面中读取一组元素，并且不关心按严格顺序解析它们，您可以使用`Promise.all`函数将它们组合成一个单一的承诺，然后等待它们：
+- en: '[PRE44]'
+  id: totrans-261
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: In the example application, this optimization will save virtually no time, but
+    if you have a page that renders different components in uncertain orders, combining
+    the promises can improve test performance.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在示例应用程序中，这种优化几乎不会节省时间，但如果页面以不确定的顺序渲染不同的组件，那么结合承诺可能会提高测试性能。
+- en: 'This means we can now complete the next part of our test:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们现在可以完成我们测试的下一部分：
+- en: '[PRE45]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Notice that we are not combining the promises returned by `sendKeys` and `click`
+    because we care that the test enters the answer into the input field *before*
+    we submit it.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们没有将`sendKeys`和`click`返回的承诺合并，因为我们在意测试在提交之前*将答案输入到输入字段中*。
+- en: Finally, we want to assert that a *You have won!* message appears on the screen
+    (see [Figure 8-12](ch08_split_001.xhtml#ch08_image_12)).
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们希望断言屏幕上出现一个*你赢了！*的消息（参见[图 8-12](ch08_split_001.xhtml#ch08_image_12)）。
+- en: '![](Images/recb_0801.png)'
+  id: totrans-267
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0801.png)'
+- en: Figure 8-12\. The app tells the user they got the correct answer
+  id: totrans-268
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-12\. 应用程序告诉用户他们得到了正确的答案
+- en: 'Now we could write our assertion like this:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以这样写我们的断言：
+- en: '[PRE46]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This code will almost certainly work because the result is displayed quickly
+    after the user submits an answer. React applications will often display dynamic
+    results slowly, particularly if they rely upon data from the network. If we modify
+    the application code to simulate a two-second delay before the result appears,^([13](ch08_split_001.xhtml#idm46634394193224))
+    our test will produce the following error:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码几乎肯定会成功，因为在用户提交答案后结果会迅速显示。React 应用程序通常会显示动态结果，特别是如果它们依赖于网络数据。如果我们修改应用程序代码以模拟结果出现前的两秒延迟^([13](ch08_split_001.xhtml#idm46634394193224))，我们的测试将产生以下错误：
+- en: '[PRE47]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'We can avoid this problem by waiting until the element appears on the screen
+    and then waiting until the text matches the expected result. We can do both of
+    those things with the `driver.wait` function:'
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过等待元素出现在屏幕上，然后等待文本匹配预期结果来避免这个问题。我们可以使用`driver.wait`函数来完成这两件事情：
+- en: '[PRE48]'
+  id: totrans-274
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'This gives us the final version of our test:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这给了我们测试的最终版本：
+- en: '[PRE49]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: Discussion
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: In our experience, web driver tests are the most popular form of automated tests
+    for web applications—*popular* that is, in the sense of *frequently used*. They
+    are inevitably dependent upon matching versions of browsers and web drivers, and
+    they do have a reputation for failing intermittently. Timing issues usually cause
+    these failures, and those timing issues occur more in Single-Page Applications,
+    which can update their contents asynchronously.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我们的经验，Web 驱动程序测试是 Web 应用程序的自动化测试中最流行的形式——*流行*，即*经常使用的*。它们不可避免地依赖于匹配的浏览器和 Web
+    驱动程序版本，并且因时序问题而偶尔会失败。这些时序问题通常在单页面应用程序中更为常见，因为它们可以异步更新内容。
+- en: Although it is possible to avoid these problems by carefully adding timing delays
+    and retries into the code, this can make your tests sensitive to environmental
+    changes, such as running your application on a different testing server. Another
+    option, if you experience a lot of intermittent failures, is to move more of your
+    tests to a system like Cypress, which is generally more [tolerant](https://oreil.ly/IZJ2T)
+    of timing failures.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管可以通过在代码中小心添加时序延迟和重试来避免这些问题，但这可能会使您的测试对环境变化敏感，例如在不同的测试服务器上运行应用程序。如果您经常遇到间歇性失败的问题，另一个选择是将更多的测试移至像
+    Cypress 这样的系统，它通常更 [容忍](https://oreil.ly/IZJ2T) 时序失败。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 站点](https://oreil.ly/P1Tqj) 下载此配方的源代码。
+- en: Test Cross-Browser Visuals with ImageMagick
+  id: totrans-281
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 ImageMagick 测试跨浏览器视觉
+- en: Problem
+  id: totrans-282
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Applications can look very different when viewed on different browsers. Applications
+    can even look different if viewed on the same browser but on a different operating
+    system. One example of this would be Chrome, which tends to hide scrollbars when
+    viewed on a Mac but display them on Windows. Thankfully, old browsers like Internet
+    Explorer are finally disappearing, but even modern browsers can apply CSS in subtly
+    different ways, radically changing the appearance of a page.
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序在不同浏览器上查看时可能会有很大差异。甚至在同一浏览器但不同操作系统上查看时，应用程序的外观也可能不同。一个例子是 Chrome，在 Mac 上查看时往往隐藏滚动条，但在
+    Windows 上显示它们。值得庆幸的是，像 Internet Explorer 这样的旧浏览器终于在逐渐消失，但即使是现代浏览器也可能以微妙不同的方式应用
+    CSS，从而根本改变页面的外观。
+- en: It can be time-consuming to constantly check an application manually across
+    a range of browsers and platforms.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在多种浏览器和平台上手动持续检查应用程序可能会耗费大量时间。
+- en: What can we do to automate this compatibility process?
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以做什么来自动化这个兼容性过程？
+- en: Solution
+  id: totrans-286
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'In this recipe, we’re going to combine three tools to check for visual consistency
+    across different browsers and platforms:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个配方中，我们将结合三种工具来检查不同浏览器和平台上的视觉一致性：
+- en: Storybook
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Storybook
+- en: This will give us a basic gallery of all of the components, in all relevant
+    configurations, that we need to check.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将为我们提供一个所有相关配置中所有组件的基本画廊，我们需要检查这些组件。
+- en: Selenium
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Selenium
+- en: This will allow us to capture the visual appearance of all of the components
+    in Storybook. The Selenium Grid will also allow us to remotely connect to browsers
+    on different operating systems to make comparisons between operating systems.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将允许我们捕获 Storybook 中所有组件的视觉外观。Selenium Grid 还将允许我们远程连接到不同操作系统上的浏览器，以进行操作系统之间的比较。
+- en: ImageMagick
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ImageMagick
+- en: Specifically, we’ll use ImageMagick’s `compare` tool to generate visual differences
+    between two screenshots and provide a numerical measure of how far apart the two
+    images are.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体来说，我们将使用ImageMagick的`compare`工具生成两个屏幕截图之间的视觉差异，并提供两幅图像有多远的数值度量。
+- en: 'We’ll begin by installing Storybook. You can do this in your application with
+    this command:'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从安装Storybook开始。您可以使用以下命令在您的应用程序中执行此操作：
+- en: '[PRE50]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: You will then need to create *stories* for each of the components and configurations
+    you are interested in tracking. You can find out how to do this from other recipes
+    in this book or the [Storybook tutorials](https://oreil.ly/ak7VW).
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您需要为您感兴趣跟踪的每个组件和配置创建*stories*。您可以从本书的其他章节或[Storybook教程](https://oreil.ly/ak7VW)中了解如何操作。
+- en: 'Next, we will need Selenium to automate the capture of screenshots. You can
+    install Selenium with this command:'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将需要Selenium来自动化截取屏幕截图。您可以使用以下命令安装Selenium：
+- en: '[PRE51]'
+  id: totrans-298
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'You will also need to install the relevant web drivers. For example, to automate
+    Firefox and Chrome, you will need the following:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要安装相关的Web驱动程序。例如，要自动化Firefox和Chrome，您需要以下内容：
+- en: '[PRE52]'
+  id: totrans-300
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: Finally, you will need to install ImageMagick, a set of command-line image manipulation
+    tools. For details on how to install ImageMagick, see the [ImageMagick download
+    page](https://oreil.ly/NIQ0A).
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，您需要安装ImageMagick，一组命令行图像处理工具。有关如何安装ImageMagick的详细信息，请参阅[ImageMagick下载页面](https://oreil.ly/NIQ0A)。
+- en: We are going to use the same example game application that we’ve used previously
+    in this chapter. You can see the components from the application displayed in
+    Storybook in [Figure 8-13](ch08_split_001.xhtml#ch08_image_13).
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用本章之前用过的同一个示例游戏应用程序。您可以在Storybook中查看应用程序中显示的组件，如[图 8-13](ch08_split_001.xhtml#ch08_image_13)所示。
+- en: '![](Images/recb_0813.png)'
+  id: totrans-303
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0813.png)'
+- en: Figure 8-13\. Components from the application displayed in Storybook
+  id: totrans-304
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-13\. Storybook中显示的应用程序组件
+- en: 'You can run the Storybook server on your application by typing:'
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '您可以通过输入以下内容来运行您的应用程序上的Storybook服务器： '
+- en: '[PRE53]'
+  id: totrans-306
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: Next, we will create a test that will just be a script for capturing screenshots
+    of each of the components inside Storybook. In a folder called *src/selenium*,
+    create a script called *shots.spec.js*:^([14](ch08_split_001.xhtml#idm46634393644856))
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将创建一个测试，这个测试将只是一个脚本，用于捕获Storybook中每个组件的屏幕截图。在名为*src/selenium*的文件夹中，创建一个名为*shots.spec.js*的脚本：^([14](ch08_split_001.xhtml#idm46634393644856))
+- en: '[PRE54]'
+  id: totrans-308
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: This script opens a browser to the Storybook server, opens each of the components,
+    and takes a screenshot of each story, which it stores in a subdirectory within
+    *screenshots*.
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该脚本打开一个浏览器到Storybook服务器，打开每个组件，并对每个story进行截图，然后将其存储在*screenshots*子目录中。
+- en: We could use a different testing system to take screenshots of each component,
+    such as Cypress. The advantage of using Selenium is that we can remotely open
+    a browser session on a remote machine.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用不同的测试系统来截取每个组件的屏幕截图，比如Cypress。使用Selenium的优势在于我们可以在远程机器上打开浏览器会话。
+- en: By default, the *shots.spec.js* test will take screenshots of Storybook at address
+    *http://localhost:6006* using the Chrome browser. Let’s say we are running the
+    *shots* test on a Mac. If we have a Windows machine on the same network, we can
+    install a Selenium Grid server, which is a [proxy server](https://oreil.ly/gYLds)
+    that allows remote machines to start a web driver session.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，*shots.spec.js*测试将使用Chrome浏览器在*http://localhost:6006*地址上的Storybook进行屏幕截图。假设我们在Mac上运行*shots*测试。如果我们有一个在同一网络上的Windows机器，我们可以安装Selenium
+    Grid服务器，这是一个[代理服务器](https://oreil.ly/gYLds)，允许远程机器启动Web驱动程序会话。
+- en: 'If the Windows machine has address `192.168.1.16`, we can set this environment
+    variable on the command line before running the *shots.spec.js* test:'
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果Windows机器的地址是`192.168.1.16`，我们可以在运行*shots.spec.js*测试之前在命令行中设置这个环境变量：
+- en: '[PRE55]'
+  id: totrans-313
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'Because the Windows machine will be accessing the Storybook server back on
+    the Mac, for example, with an IP address of `192.168.1.14`, we will also need
+    to set an environment variable for that on the command line:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为Windows机器将访问位于Mac上的Storybook服务器，例如，其IP地址为`192.168.1.14`，我们还需要在命令行中为其设置一个环境变量：
+- en: '[PRE56]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: We can also choose which browser we want the Windows machine to use:^([15](ch08_split_001.xhtml#idm46634393280696))
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以选择Windows机器要使用的浏览器：^([15](ch08_split_001.xhtml#idm46634393280696))
+- en: '[PRE57]'
+  id: totrans-317
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'If we create a script to run *shots.spec.js* in *package.json*:'
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们创建一个脚本在*package.json*中运行*shots.spec.js*：
+- en: '[PRE58]'
+  id: totrans-319
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'we can run the test and capture the screenshots of each component:'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以运行测试并捕获每个组件的屏幕截图：
+- en: '[PRE59]'
+  id: totrans-321
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: The test will use the environment variables we created to contact the Selenium
+    Grid server on the remote machine. It will ask Selenium Grid to open a Firefox
+    browser to our local Storybook server. It will then send a screenshot of each
+    of the components over the network, where the test will store them in a folder
+    called *screenshots/firefox*.
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试将使用我们创建的环境变量联系远程机器上的 Selenium Grid 服务器。它将要求 Selenium Grid 打开一个 Firefox 浏览器到我们本地的
+    Storybook 服务器。然后它将通过网络发送每个组件的屏幕截图，在测试中将它们存储在名为 *screenshots/firefox* 的文件夹中。
+- en: 'Once we’ve run it for Firefox, we can then run it for Chrome:'
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行完 Firefox 后，我们可以继续运行 Chrome：
+- en: '[PRE60]'
+  id: totrans-324
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: The test will write the Chrome screenshots to *screenshots/chrome*.
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试将把 Chrome 的屏幕截图写入 *screenshots/chrome* 文件夹。
+- en: A fuller implementation of this technique would also record the operating system
+    and type of client (e.g., screen size) used.
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种技术的更全面实现还会记录操作系统和客户端类型（例如，屏幕大小）。
+- en: We now need to check for visual differences between the screenshots from Chrome
+    and the screenshots from Firefox, and this is where ImageMagick is useful. The
+    `compare` command in ImageMagick can generate an image that highlights the visual
+    differences between two other images. For example, consider the two screenshots
+    from Firefox and Chrome in [Figure 8-14](ch08_split_001.xhtml#ch08_image_14).
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要检查 Chrome 和 Firefox 屏幕截图之间的视觉差异，这就是 ImageMagick 发挥作用的地方。ImageMagick 中的
+    `compare` 命令可以生成一个突出显示两个其他图像之间视觉差异的图像。例如，考虑 [图 8-14](ch08_split_001.xhtml#ch08_image_14)
+    中的 Firefox 和 Chrome 两个屏幕截图。
+- en: '![](Images/recb_0814.png)'
+  id: totrans-328
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0814.png)'
+- en: Figure 8-14\. The same component in Chrome and Firefox
+  id: totrans-329
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-14\. Chrome 和 Firefox 中的同一组件
+- en: 'These two images appear to be identical. If we type in this command from the
+    application directory:'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个图像看起来是相同的。如果我们从应用程序目录中输入以下命令：
+- en: '[PRE61]'
+  id: totrans-331
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: we will generate a new image that shows the differences between the two screenshots,
+    which you can see in [Figure 8-15](ch08_split_001.xhtml#ch08_image_15).
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将生成一个新的图像，显示两个屏幕截图之间的差异，你可以在 [图 8-15](ch08_split_001.xhtml#ch08_image_15)
+    中看到。
+- en: '![](Images/recb_0815.png)'
+  id: totrans-333
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0815.png)'
+- en: Figure 8-15\. The generated image showing the differences between two screen
+    captures
+  id: totrans-334
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-15\. 显示两个屏幕截图差异的生成图像
+- en: The generated image shows pixels that are more than 15% visually different between
+    the two images. And you can see that the screenshots are virtually identical.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生成的图像显示两个图像之间超过 15% 的视觉差异的像素。你可以看到这些屏幕截图几乎是相同的。
+- en: That’s good, but it still requires a human being to look at the images and assess
+    whether the differences are significant. What else can we do?
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这很好，但仍需要一个人看图片并评估差异是否显著。我们还能做些什么？
+- en: 'The `compare` command also has the ability to display a numerical measure of
+    the difference between two images:'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`compare` 命令还能显示两个图像之间差异的数值度量：'
+- en: '[PRE62]'
+  id: totrans-338
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: The value `6774` is a numerical measure (based on the absolute error count,
+    or *AE*) of the visual difference between the two images. For another example,
+    consider the two screenshots in [Figure 8-16](ch08_split_001.xhtml#ch08_image_16),
+    which show the `Answer` component when given a `disabled` property.
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值 `6774` 是两个图像视觉差异的数值度量（基于绝对误差计数，或 *AE*）。举例来说，考虑 [图 8-16](ch08_split_001.xhtml#ch08_image_16)
+    中展示的当 `Answer` 组件被赋予 `disabled` 属性时的两个屏幕截图。
+- en: '![](Images/recb_0816.png)'
+  id: totrans-340
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0816.png)'
+- en: Figure 8-16\. Disabled form rendered by Chrome and Firefox
+  id: totrans-341
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-16\. Chrome 和 Firefox 渲染的禁用表单
+- en: 'Comparing these two images returns a much larger number:'
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 比较这两个图像会返回一个更大的数值：
+- en: '[PRE63]'
+  id: totrans-343
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'Indeed, the generated image (see [Figure 8-17](ch08_split_001.xhtml#ch08_image_17))
+    shows precisely where the difference lies: the disabled input field.'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，生成的图像（见 [图 8-17](ch08_split_001.xhtml#ch08_image_17)）清楚地显示了差异所在：禁用的输入字段。
+- en: '![](Images/recb_0817.png)'
+  id: totrans-345
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0817.png)'
+- en: Figure 8-17\. The visual difference between the Chrome and Firefox forms
+  id: totrans-346
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-17\. Chrome 和 Firefox 表单之间的视觉差异
+- en: '[Figure 8-18](ch08_split_001.xhtml#ch08_image_18) shows a similarly significant
+    difference (21,131) for a component that displays different font styling between
+    the browsers, resulting from some Mozilla-specific CSS attributes.'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 8-18](ch08_split_001.xhtml#ch08_image_18) 展示了在两个浏览器之间展示不同字体样式的组件的类似显著差异（21,131），这是由一些特定于
+    Mozilla 的 CSS 属性引起的。'
+- en: '![](Images/recb_0818.png)'
+  id: totrans-348
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0818.png)'
+- en: Figure 8-18\. A component with different text styling in Chrome and Firefox
+  id: totrans-349
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-18\. Chrome 和 Firefox 中文本样式不同的组件
+- en: 'In fact, it’s possible to write a shell script to run through each of the images
+    and generate a small web report showing the visual differences alongside their
+    metrics:'
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，可以编写一个shell脚本，通过每个图像并生成一个小的网页报告，显示其视觉差异和相关指标：
+- en: '[PRE64]'
+  id: totrans-351
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: This script creates the *screenshots/compare.html* report you can see in [Figure 8-19](ch08_split_001.xhtml#ch08_image_19).
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此脚本创建了*screenshots/compare.html*报告，可以在[图 8-19](ch08_split_001.xhtml#ch08_image_19)中看到。
+- en: '![](Images/recb_0819.png)'
+  id: totrans-353
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0819.png)'
+- en: Figure 8-19\. An example of the generated comparison report
+  id: totrans-354
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-19\. 生成的比较报告示例
+- en: Discussion
+  id: totrans-355
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: To save space, we have shown only a simplistic implementation of this technique.
+    It would be possible to create a ranked report that showed visual differences
+    from largest to smallest. Such a report would highlight the most significant visual
+    differences between platforms.
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了节省空间，我们仅展示了这种技术的简单实现。可以创建一个排名报告，按从大到小的顺序显示视觉差异。这样的报告将突出显示不同平台之间最显著的视觉差异。
+- en: You can also use automated visual tests to prevent regressions. You need to
+    avoid false positives caused by minor variations, such as anti-aliasing. A continuous
+    integration job could set some visual threshold between images and fail if any
+    components vary by more than that threshold.
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以使用自动化视觉测试来防止回归。您需要避免由于微小变化（如抗锯齿）引起的误报。持续集成作业可以设置一些图像之间的视觉阈值，并在任何组件超出该阈值时失败。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-358
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub站点](https://oreil.ly/P1Tqj)下载此技巧的源代码。
+- en: Add a Console to Mobile Browsers
+  id: totrans-359
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 给移动浏览器添加控制台
+- en: Problem
+  id: totrans-360
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: This recipe is slightly different from the others in this chapter because instead
+    of being about automated testing, it’s about manual testing—specifically manually
+    testing code on mobile devices.
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个技巧与本章其他技巧略有不同，因为它不是关于自动化测试，而是关于手动测试——特别是在移动设备上手动测试代码。
+- en: If you are testing an application on a mobile, you might stumble across a bug
+    that doesn’t appear in the desktop environment. Generally, if a bug appears, you’re
+    able to add debug messages into the JavaScript console. But mobile browsers tend
+    not to have a visible JavaScript console. It’s true that if you are using Mobile
+    Chrome, you can try debugging it remotely with a desktop version of Chrome. But
+    what if you discover the problem in another browser? Or if you simply don’t want
+    to go through the work of setting up a remote debug session?
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在移动设备上测试应用程序，可能会遇到在桌面环境中不存在的错误。通常，如果出现错误，可以在JavaScript控制台中添加调试消息。但移动浏览器通常没有可见的JavaScript控制台。如果你使用的是移动版Chrome，你可以尝试通过桌面版Chrome远程调试。但如果你在其他浏览器中发现问题怎么办？或者如果你根本不想设置远程调试会话怎么办？
+- en: Is there some way to access the JavaScript console, and other development tools,
+    from within a mobile browser?
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是否有办法从移动浏览器内部访问JavaScript控制台和其他开发工具？
+- en: Solution
+  id: totrans-364
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We are going to use a piece of software called [Eruda](https://oreil.ly/jCFSn).
+  id: totrans-365
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用一个名为[Eruda](https://oreil.ly/jCFSn)的软件。
+- en: Eruda is a lightweight implementation of a development tools panel, which will
+    allow you to view the JavaScript console, the structure of the page, and a whole
+    heap of other [plugins and extensions](https://oreil.ly/ZUQHw).
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Eruda是一个轻量级的开发工具面板实现，允许您查看JavaScript控制台、页面结构以及一系列其他[插件和扩展](https://oreil.ly/ZUQHw)。
+- en: To enable Eruda, you will need to install a small amount of reasonably rudimentary
+    JavaScript in the `head` section of your application. You can download Eruda from
+    a content distribution network. Still, because it can be pretty large, you should
+    enable it only if the person using the browser has indicated that they want to
+    access it.
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要启用Eruda，您需要在应用程序的`head`部分安装一小段相对基础的JavaScript。您可以从内容分发网络下载Eruda。但是，因为它可能相当大，应仅在浏览器的使用者表示希望访问时才启用它。
+- en: One way of doing this is by enabling Eruda only if *eruda=true* appears in the
+    URL. Here’s an example script that you can insert into your page container:^([16](ch08_split_001.xhtml#idm46634392955256))
+  id: totrans-368
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是仅当URL中出现*eruda=true*时才启用Eruda。以下是可以插入到页面容器中的示例脚本：^([16](ch08_split_001.xhtml#idm46634392955256))
+- en: '[PRE65]'
+  id: totrans-369
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: If you now open your application as *http://ipaddress/?eruda=true* or *http://ipaddress/#eruda=true*,
+    you will notice that an additional button has appeared in the interface, as shown
+    in [Figure 8-20](ch08_split_001.xhtml#ch08_image_20).
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你现在将你的应用程序打开为 *http://ipaddress/?eruda=true* 或 *http://ipaddress/#eruda=true*，你会注意到界面上出现了一个额外的按钮，如图
+    [8-20](ch08_split_001.xhtml#ch08_image_20) 所示。
+- en: '![](Images/recb_0820.png)'
+  id: totrans-371
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0820.png)'
+- en: Figure 8-20\. If you add ?eruda=true to the URL, a button will appear on the
+    right of the page
+  id: totrans-372
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-20\. 如果在 URL 中添加 ?eruda=true，页面右侧将会出现一个按钮。
+- en: If you are using the example application for this chapter, then try entering
+    a few answers into the game.^([17](ch08_split_001.xhtml#idm46634392840120)) Then,
+    click the Eruda button. The console will appear as shown in [Figure 8-21](ch08_split_001.xhtml#ch08_image_21).
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在本章中使用示例应用程序，请尝试输入一些游戏答案。^([17](ch08_split_001.xhtml#idm46634392840120))
+    然后点击 Eruda 按钮。控制台将如图 [8-21](ch08_split_001.xhtml#ch08_image_21) 所示出现。
+- en: '![](Images/recb_0821.png)'
+  id: totrans-374
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0821.png)'
+- en: Figure 8-21\. Clicking the button opens the Eruda tools
+  id: totrans-375
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-21\. 单击按钮打开 Eruda 工具
+- en: Because the endpoint the example application calls is missing, you should find
+    some errors and other logs recorded in the console. The console even supports
+    the much underused `console.table` function, which is a helpful way of displaying
+    an array of objects in tabular format.
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于示例应用程序调用的端点缺失，你应该在控制台中找到一些错误和其他记录。控制台还支持很少使用的 `console.table` 函数，这是一种有用的以表格形式显示对象数组的方式。
+- en: The Elements tab provides a fairly rudimentary view of the DOM (see [Figure 8-22](ch08_split_001.xhtml#ch08_image_22)).
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 元素标签提供了对 DOM 的相当基本的视图（见图 [8-22](ch08_split_001.xhtml#ch08_image_22)）。
+- en: '![](Images/recb_0822.png)'
+  id: totrans-378
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0822.png)'
+- en: Figure 8-22\. The Eruda elements view
+  id: totrans-379
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-22\. Eruda 元素视图
+- en: Meanwhile, the Settings tab has an extensive set of JavaScript features that
+    you can enable and disable while interacting with the web page (see [Figure 8-23](ch08_split_001.xhtml#ch08_image_23)).
+  id: totrans-380
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同时，设置选项卡具有广泛的 JavaScript 功能集，您可以在与网页交互时启用和禁用它们（见图 [8-23](ch08_split_001.xhtml#ch08_image_23)）。
+- en: '![](Images/recb_0823.png)'
+  id: totrans-381
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0823.png)'
+- en: Figure 8-23\. The Eruda settings view
+  id: totrans-382
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-23\. Eruda 设置视图
+- en: Discussion
+  id: totrans-383
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Eruda is a delightful tool that delivers a whole bucket of functionality, with
+    very little work required by the developer. In addition to the basic features,
+    it also has plugins that allow you to track performance, set the screen refresh
+    rate, generate fake geolocations, and even write and run JavaScript from inside
+    the browser. Once you start to use it, you probably find that it quickly becomes
+    a standard part of your manual testing process.
+  id: totrans-384
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Eruda 是一个令人愉快的工具，提供了一整套功能，开发者几乎不需要做任何工作。除了基本功能外，它还有插件，允许您跟踪性能、设置屏幕刷新率、生成虚假地理位置，甚至在浏览器内部编写和运行
+    JavaScript。一旦开始使用，您可能会发现它很快成为您手动测试过程的标准部分。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从 [GitHub 网站](https://oreil.ly/P1Tqj) 下载这个示例的源代码。
+- en: Remove Randomness from Tests
+  id: totrans-386
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从测试中去除随机性
+- en: Problem
+  id: totrans-387
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: In a perfect world, tests would always have a completely artificial environment.
+    Tests are examples of how you would like your application to work under explicitly
+    defined conditions. But tests often have to cope with uncertainties. For example,
+    they might run at different times of day. The example application that we have
+    used throughout this chapter has to deal with *randomness*.
+  id: totrans-388
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在理想的情况下，测试应该始终处于完全人工的环境中。测试是你希望应用程序在明确定义的条件下运行的示例。但是测试通常必须应对不确定性。例如，它们可能在不同的时间运行。本章中我们一直使用的示例应用程序需要处理*随机性*。
+- en: Our example application is a game that presents the user with a randomly generated
+    question that they must answer (see [Figure 8-24](ch08_split_001.xhtml#ch08_image_24)).
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用程序是一个游戏，向用户展示一个随机生成的问题，用户必须回答（见图 [8-24](ch08_split_001.xhtml#ch08_image_24)）。
+- en: '![](Images/recb_0802.png)'
+  id: totrans-390
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0802.png)'
+- en: Figure 8-24\. The game asks the user to calculate a random multiplication problem
+  id: totrans-391
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-24\. 游戏要求用户计算一个随机生成的乘法问题
+- en: Randomness might also appear in the generation of identifiers within the code
+    or random data sets. If you ask for a new username, your application might suggest
+    a randomly generated string.
+  id: totrans-392
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随机性还可能出现在代码内部标识符或随机数据集的生成中。如果你要求一个新的用户名，你的应用程序可能会建议一个随机生成的字符串。
+- en: 'But randomness creates a problem for tests. This is an example test that we
+    implemented earlier in this chapter:'
+  id: totrans-393
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是随机性为测试带来了问题。这是我们在本章前面实施的一个示例测试：
+- en: '[PRE66]'
+  id: totrans-394
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'There was actually a good reason why that test looked at the case where the
+    user entered an *incorrect* answer. The question asked is always to calculate
+    the product of two numbers between 1 and 10\. It’s therefore easy to think of
+    an incorrect answer: 101. It will *always* be wrong. But if we want to write a
+    test to show what happens when the user enters the *correct* answer, we have a
+    problem. The correct answer depends upon data that is randomly generated. We could
+    write some code that finds the two numbers that appear on the screen, as in this
+    example from the first Selenium recipe in this chapter:'
+  id: totrans-395
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其实有一个很好的理由，为什么那个测试看起来关注用户输入*不正确*的答案。问题始终要求计算1到10之间两个数的乘积。因此很容易想到一个不正确的答案：101。它将*始终*是错误的。但是，如果我们想编写一个测试来展示当用户输入*正确*答案时会发生什么，我们就会遇到问题。正确的答案取决于随机生成的数据。我们可以编写一些代码来找到屏幕上出现的两个数字，就像本章第一个
+    Selenium 配方中的示例一样：
+- en: '[PRE67]'
+  id: totrans-396
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: Sometimes this approach is not even possible. For example, Cypress does not
+    allow you to capture data from the page. If we wanted to write a Cypress test
+    to enter the correct answer to the multiplication problem, we would have great
+    difficulty. That’s because Cypress does not allow you to capture values from the
+    page and pass them to other steps in the test.
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时这种方法甚至是不可能的。例如，Cypress 不允许您从页面上捕获数据。如果我们想编写一个 Cypress 测试来输入乘法问题的正确答案，我们将会遇到很大困难。这是因为
+    Cypress 不允许您从页面上捕获值并将它们传递给测试中的其他步骤。
+- en: It would be much better if we could turn off the randomness during a test.
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在测试期间关闭随机性会更好。
+- en: But can we?
+  id: totrans-399
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是我们可以吗？
+- en: Solution
+  id: totrans-400
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We will look at how we can use the Sinon library to temporarily replace the
+    `Math.random` function with a faked one of our own making.
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将看看如何使用 Sinon 库来临时替换 `Math.random` 函数，以制作一个自己制作的虚假函数。
+- en: Let’s first consider how we can do this inside a unit test. We’ll create a new
+    test for the top-level `App` component, which will check that entering the correct
+    value results in a message saying that we won.
+  id: totrans-402
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先考虑如何在单元测试中做到这一点。我们将为顶级 `App` 组件创建一个新的测试，检查输入正确值是否会显示我们赢了的消息。
+- en: 'We’ll create a function that will fix the return value of `Math.random`:'
+  id: totrans-403
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个函数，用于修复 `Math.random` 的返回值：
+- en: '[PRE68]'
+  id: totrans-404
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'This function works by replacing the `random` method of the `Math` object with
+    a stubbed method that always returns the same value. We can now use this in a
+    test. The `Question` that appears on the page always generates random numbers
+    between 1 and 10, based upon the value of:'
+  id: totrans-405
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该函数通过替换 `Math` 对象的 `random` 方法为一个始终返回相同值的存根方法来工作。现在我们可以在测试中使用它。页面上显示的 `Question`
+    总是基于以下值生成1到10之间的随机数：
+- en: '[PRE69]'
+  id: totrans-406
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'If we fix `Math.random` so that it always produced the value 0.5, then the
+    “random” number will always be 6\. That means we can write a unit test like this:'
+  id: totrans-407
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们修复 `Math.random`，让它始终生成值为0.5，那么“随机”数将始终是6。这意味着我们可以编写一个单元测试如下：
+- en: '[PRE70]'
+  id: totrans-408
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: And this test will always pass because the application will always ask the question,
+    “What is 6 × 6?”
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并且这个测试将始终通过，因为应用程序将始终询问，“6 × 6 是多少？”
+- en: The real value of fixing `Math.random` is when we use a testing framework that
+    explicitly *prevents* us from capturing a randomly generated value such as Cypress,
+    as we saw earlier.
+  id: totrans-410
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复 `Math.random` 的真正价值在于我们使用显式*阻止*我们捕获像 Cypress 这样的随机生成值的测试框架，正如我们之前看到的。
+- en: 'Cypress allows us to add custom commands by adding them to the *cypress/support/commands.js*
+    script. If you edit that file and add this code:'
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Cypress 允许我们通过将它们添加到 *cypress/support/commands.js* 脚本中来添加自定义命令。如果你编辑该文件并添加以下代码：
+- en: '[PRE71]'
+  id: totrans-412
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: you will create a new command called `cy.random`. We can use this command to
+    create a test for the *winning* case that we discussed in the introduction:^([18](ch08_split_001.xhtml#idm46634392341560))
+  id: totrans-413
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将创建一个名为 `cy.random` 的新命令。我们可以使用这个命令来创建一个测试，展示我们在介绍中讨论的*获胜*情况：^([18](ch08_split_001.xhtml#idm46634392341560))
+- en: '[PRE72]'
+  id: totrans-414
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: After calling the `cy.random` command, we need to click the Refresh button in
+    case the application generated the random numbers before the `Math.random` function
+    was replaced.
+  id: totrans-415
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调用 `cy.random` 命令后，如果应用程序在替换 `Math.random` 函数之前生成了随机数，我们需要点击刷新按钮。
+- en: Discussion
+  id: totrans-416
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You can never remove all randomness from a test. For example, the machine’s
+    performance can significantly affect when and how often your components are re-rendered.
+    But removing uncertainty as much as we can is generally a good thing in a test.
+    The more we can do to remove external dependencies from our tests, the better.
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你永远无法从测试中完全消除所有的随机性。例如，机器的性能可以显著影响组件何时以及多频繁地重新渲染。但尽可能减少不确定性通常是测试中的一件好事。我们能够尽可能地从测试中去除外部依赖，这样做会更好。
+- en: We will also look at removing external dependencies in the following recipe.
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来的示例中，我们还将探讨如何消除外部依赖。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub站点](https://oreil.ly/P1Tqj)下载这个示例的源代码。
+- en: Time Travel
+  id: totrans-420
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 时间旅行
+- en: Problem
+  id: totrans-421
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Time can be the source of a tremendous number of bugs. If time were simply a
+    scientific measurement, it would be relatively straightforward. But it isn’t.
+    The representation of time is affected by national boundaries and by local laws.
+    Some countries have their own time zone. Others have multiple time zones. One
+    reassuring factor is that all countries have a time zone offset in whole hours,
+    except for places like India, where time is offset by +05:30 from UTC.
+  id: totrans-422
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 时间可能是引发大量bug的根源。如果时间只是一个科学上的测量，那么情况就相对简单。但实际情况并非如此。时间的表示受到国界和当地法律的影响。一些国家有自己的时区，其他国家则有多个时区。一个让人放心的因素是，所有国家的时区偏移都是整小时，除了像印度这样的地方，那里的时间偏移量是从UTC开始算的+05:30。
+- en: That’s why it is helpful to try to fix the time within a test. But how do we
+    do that?
+  id: totrans-423
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么在测试中尝试修复时间很有帮助。但我们该怎么做呢？
+- en: Solution
+  id: totrans-424
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We will look at how you can fix the time when testing your React application.
+    There are some issues that you need to consider when testing time-dependent code.
+    First, you should probably avoid changing the time on your server. In most cases,
+    it’s best to set your server to UTC and leave it that way.
+  id: totrans-425
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将看看在测试React应用程序时如何修复时间。在测试依赖于时间的代码时，需要考虑一些问题。首先，你应该避免在服务器上改变时间。在大多数情况下，最好将服务器设置为UTC时间并保持不变。
+- en: That does mean that if you want to fake date and time in your browser, you will
+    have problems as soon as the browser makes contact with the server. That means
+    you will either have to modify the server APIs to accept an *effective date* or
+    test time-dependent browser code in isolation from the server.^([19](ch08_split_001.xhtml#idm46634392149944))
+  id: totrans-426
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着，如果你想在浏览器中伪造日期和时间，当浏览器与服务器联系时就会出现问题。这意味着你必须修改服务器的API以接受*有效日期*或者在与服务器隔离时测试依赖于时间的浏览器代码。^([19](ch08_split_001.xhtml#idm46634392149944))
+- en: 'We will adopt the latter approach for this recipe: using the Cypress testing
+    system to fake any connections with the server.'
+  id: totrans-427
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个示例，我们将采用后一种方法：使用Cypress测试系统来伪造与服务器的任何连接。
+- en: We will use the same application we use for other recipes in this chapter. It’s
+    a simple game that asks the user to calculate the product of two numbers. We’re
+    going to test a feature of the game that gives the user 30 seconds to provide
+    an answer. After 30 seconds, they will see a message telling them they’ve run
+    out of time (see [Figure 8-25](ch08_split_001.xhtml#ch08_image_25)).
+  id: totrans-428
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用与本章其他示例相同的应用程序。这是一个简单的游戏，要求用户计算两个数字的乘积。我们将测试游戏的一个功能，即用户有30秒的时间来提供答案。30秒后，他们将看到一个消息，告诉他们时间已经用完（见[图 8-25](ch08_split_001.xhtml#ch08_image_25)）。
+- en: '![](Images/recb_0825.png)'
+  id: totrans-429
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0825.png)'
+- en: Figure 8-25\. The player will lose if they don’t answer within 30 seconds
+  id: totrans-430
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图8-25\. 如果玩家在30秒内没有答复，将会输掉比赛
+- en: We could try writing a test that somehow pauses for 30 seconds, but that has
+    two problems. First, it will slow your test down. You don’t need many 30-second
+    pauses before your tests will become unbearable to run. Second, adding a pause
+    is not a very precise way to test a feature. If you try to pause for 30 seconds,
+    you might pause for 30.5 seconds before looking for the message.
+  id: totrans-431
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以尝试编写一个测试，让其暂停30秒，但这有两个问题。首先，它会减慢你的测试速度。在测试中加入多个30秒的暂停会让测试变得难以忍受。其次，添加暂停并不是测试功能的一种精确方法。如果你试图暂停30秒，可能会暂停30.5秒然后再查看消息。
+- en: To get precision, we need to take control of time within the browser. As you
+    saw in the previous recipe, Cypress can inject code into the browser, replacing
+    critical pieces of code with stubbed functions, which we can control. Cypress
+    has a built-in command called `cy.clock`, which allows us to specify the current
+    time.
+  id: totrans-432
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要获得精确性，我们需要控制浏览器内的时间。如前一篇章中所示，Cypress 可以将代码注入浏览器，用存根函数替换关键代码片段，以便我们控制。Cypress
+    内置了一个名为 `cy.clock` 的命令，允许我们指定当前时间。
+- en: 'Let’s see how to use `cy.clock` by creating a test for the timeout feature.
+    This will be the structure of our test:'
+  id: totrans-433
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看如何通过创建一个超时功能的测试来使用 `cy.clock`。这将是我们测试的结构：
+- en: '[PRE73]'
+  id: totrans-434
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: 'We can start by opening the application and clicking the Refresh button:'
+  id: totrans-435
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以从打开应用并点击刷新按钮开始：
+- en: '[PRE74]'
+  id: totrans-436
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'Now we need to simulate 29 seconds of time passing. We can do this with the
+    `cy.clock` and `cy.tick` commands. The `cy.clock` command allows you to either
+    specify a new date and time; or, if you call `cy.clock` without parameters, it
+    will set the time and date back to 1970\. The `cy.tick()` command allows you to
+    add a set number of milliseconds to the current date and time:'
+  id: totrans-437
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要模拟经过的 29 秒时间。我们可以使用 `cy.clock` 和 `cy.tick` 命令来实现这一点。`cy.clock` 命令允许你指定一个新的日期和时间；或者，如果你不带参数调用
+    `cy.clock`，它将把时间和日期设置回 1970 年。`cy.tick()` 命令允许你向当前日期和时间添加一定数量的毫秒：
+- en: '[PRE75]'
+  id: totrans-438
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'We can now complete the other steps in the test. For details on the other Cypress
+    commands we’re using, see the [Cypress documentation](https://oreil.ly/vahMA):'
+  id: totrans-439
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以完成测试中的其他步骤。关于我们使用的其他 Cypress 命令的详细信息，请参阅 [Cypress 文档](https://oreil.ly/vahMA)：
+- en: '[PRE76]'
+  id: totrans-440
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: If we run the test in Cypress, it passes (as you can see in [Figure 8-26](ch08_split_001.xhtml#ch08_image_26)).
+  id: totrans-441
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们在 Cypress 中运行测试，它会通过（如你可以在 [图 8-26](ch08_split_001.xhtml#ch08_image_26)
+    中看到）。
+- en: '![](Images/recb_0825.png)'
+  id: totrans-442
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0825.png)'
+- en: Figure 8-26\. By controlling time, we can force a timeout in the test
+  id: totrans-443
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-26。通过控制时间，我们可以强制测试中的超时发生
+- en: That’s a relatively simple time-based test. But what if we wanted to test something
+    much more complex, like daylight saving time (DST)?
+  id: totrans-444
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个相对简单的基于时间的测试。但如果我们想测试更复杂的东西，比如夏令时（DST），怎么办呢？
+- en: DST bugs are the bane of most development teams. They sit in your codebase silently
+    for months and then suddenly appear in the spring and fall, in the early hours
+    of the morning.
+  id: totrans-445
+  prefs: []
+  type: TYPE_NORMAL
+  zh: DST（夏令时）的错误是大多数开发团队的梦魇。它们会悄无声息地停留在你的代码库中数月，然后突然在春秋交替之际，在清晨的早些时候出现。
+- en: When DST occurs depends upon your time zone. And that’s a particularly awful
+    thing to deal with in client code because JavaScript dates don’t work with time
+    zones. They can certainly handle offsets; for example, you can create a `Date`
+    object in a browser like Chrome that is set to five hours before Greenwich Mean
+    Time:^([20](ch08_split_001.xhtml#idm46634391785704))
+  id: totrans-446
+  prefs: []
+  type: TYPE_NORMAL
+  zh: DST 发生的时间取决于你所在的时区。对客户端代码来说，这是一个特别棘手的问题，因为 JavaScript 的日期处理不了时区。它们当然可以处理偏移量；例如，你可以在像
+    Chrome 这样的浏览器中创建一个设置为格林威治标准时间之前五小时的 `Date` 对象：^([20](ch08_split_001.xhtml#idm46634391785704))
+- en: '[PRE77]'
+  id: totrans-447
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: But JavaScript dates are all implicitly in the time zone of the browser. When
+    you create a date with a time zone name in it, the JavaScript engine will simply
+    shift it into the browser’s time zone.
+  id: totrans-448
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但 JavaScript 的日期都隐式地使用浏览器的时区。当你创建一个带有时区名称的日期时，JavaScript 引擎会将其简单地转换为浏览器的时区。
+- en: The browser’s time zone is fixed at the time that the browser opens. There’s
+    no way to say *Let’s pretend we’re in New York from now on*.
+  id: totrans-449
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器的时区在打开浏览器时就已固定。没有办法说“让我们从现在开始假装我们在纽约”。
+- en: If developers create tests for DST, the tests might work only in the developer’s
+    time zone. The tests might fail if run on an integration server set to UTC.
+  id: totrans-450
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果开发人员为 DST 创建测试，这些测试可能仅在开发者的时区下工作。如果在设置为 UTC 的集成服务器上运行，则可能导致测试失败。
+- en: There is, however, a way around this problem. On Linux and Mac computers (but
+    not Windows), you can specify the time zone when you launch a browser by setting
+    an environment variable called `TZ`. If we start the Cypress with the `TZ` variable
+    set, any browser that Cypress launches will inherit it, which means that while
+    we can’t set the time zone for a single test, we can set it for an entire test
+    run.
+  id: totrans-451
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，有一个解决这个问题的方法。在 Linux 和 Mac 计算机上（但不适用于 Windows），你可以在启动浏览器时通过设置名为 `TZ` 的环境变量来指定时区。如果我们启动
+    Cypress 时设置了 `TZ` 变量，Cypress 启动的任何浏览器都将继承它，这意味着虽然我们不能为单个测试设置时区，但可以为整个测试运行设置时区。
+- en: 'First, let’s launch Cypress with the time zone set to New York:'
+  id: totrans-452
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们使用设置为纽约时区的 Cypress 启动：
+- en: '[PRE78]'
+  id: totrans-453
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: The example application has a button that allows you to see the current time
+    (see [Figure 8-27](ch08_split_001.xhtml#ch08_image_27)).
+  id: totrans-454
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例应用程序有一个按钮，允许您查看当前时间（参见[图 8-27](ch08_split_001.xhtml#ch08_image_27)）。
+- en: '![](Images/recb_0827.png)'
+  id: totrans-455
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0827.png)'
+- en: Figure 8-27\. The current time is shown on the screen
+  id: totrans-456
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-27\. 屏幕上显示当前时间
+- en: 'We can create a test that checks that the time on the page correctly handles
+    the change to DST. This is the test we’ll create:'
+  id: totrans-457
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以创建一个测试，检查页面上的时间是否正确处理了夏令时的更改。这是我们将创建的测试：
+- en: '[PRE79]'
+  id: totrans-458
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: In this test, we are passing an explicit date to `cy.clock`. We need to convert
+    this to milliseconds by calling `getTime` as `cy.clock` accepts only numeric times.
+    We then check the initial time, and 30 seconds later, we check the time rolls
+    over to 3 a.m., instead of 2 a.m. (as shown in [Figure 8-28](ch08_split_001.xhtml#ch08_image_28)).
+  id: totrans-459
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个测试中，我们向 `cy.clock` 传递了一个显式的日期。我们需要通过调用 `getTime` 将其转换为毫秒，因为 `cy.clock` 仅接受数值时间。然后我们检查初始时间，30秒后，我们检查时间是否已经从上午2点转变为上午3点（如[图 8-28](ch08_split_001.xhtml#ch08_image_28)所示）。
+- en: '![](Images/recb_0828.png)'
+  id: totrans-460
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0828.png)'
+- en: Figure 8-28\. After 30 seconds, the time correctly changes from 01:59 to 03:00
+  id: totrans-461
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-28\. 30 秒后，时间从 01:59 正确地变为 03:00
+- en: Discussion
+  id: totrans-462
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'If you need to create tests that depend on the current time zone, consider
+    placing them into a subfolder so you can run them separately. If you want to format
+    dates into various time zones, you can use the `toLocaleString` date method:'
+  id: totrans-463
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您需要创建依赖于当前时区的测试，请考虑将它们放入子文件夹中，以便单独运行。如果您想要将日期格式化为不同的时区，可以使用 `toLocaleString`
+    日期方法：
+- en: '[PRE80]'
+  id: totrans-464
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/P1Tqj).
+  id: totrans-465
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/P1Tqj)下载此示例的源代码。
+- en: ^([1](ch08_split_000.xhtml#idm46634397841208-marker)) You will see in other
+    recipes in this chapter that it’s possible to dynamically remove the randomness
+    from a test and fix the correct answer without capturing the question from the
+    page.
+  id: totrans-466
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch08_split_000.xhtml#idm46634397841208-marker)) 在本章的其他示例中，您将看到可以动态地从测试中去除随机性，并且在不捕获页面上的问题的情况下修复正确的答案。
+- en: ^([2](ch08_split_000.xhtml#idm46634397514504-marker)) Notice that many tests
+    make text comparisons using regular expressions, which allows, as in this example,
+    for case-insensitive matches of substrings. Regular expressions can prevent tests
+    from breaking frequently.
+  id: totrans-467
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch08_split_000.xhtml#idm46634397514504-marker)) 注意，许多测试使用正则表达式进行文本比较，这允许像这个示例一样进行不区分大小写的子字符串匹配。正则表达式可以有效地防止测试经常性地中断。
+- en: ^([3](ch08_split_001.xhtml#idm46634396575256-marker)) See the source code in
+    the [GitHub repository](https://oreil.ly/P1Tqj) to see how we’ve structured the
+    code in the example application.
+  id: totrans-468
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch08_split_001.xhtml#idm46634396575256-marker)) 查看[GitHub 仓库](https://oreil.ly/P1Tqj)中的源代码，了解我们如何在示例应用程序中组织代码。
+- en: ^([4](ch08_split_001.xhtml#idm46634396570056-marker)) If you don’t have the
+    Testing Library installed, see [“Use the React Testing Library”](ch08_split_000.xhtml#ch08-01).
+  id: totrans-469
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch08_split_001.xhtml#idm46634396570056-marker)) 如果您尚未安装 Testing Library，请参阅[“使用
+    React Testing Library”](ch08_split_000.xhtml#ch08-01)。
+- en: ^([5](ch08_split_001.xhtml#idm46634396204872-marker)) Either directly or indirectly
+    via libraries such as Axios.
+  id: totrans-470
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch08_split_001.xhtml#idm46634396204872-marker)) 直接或间接地通过 Axios 等库。
+- en: ^([6](ch08_split_001.xhtml#idm46634396201256-marker)) It doesn’t matter what
+    you call the file, but we follow the convention of prefixing high-level tests
+    such as this with story numbers. Doing so reduces the likelihood of test merge
+    conflicts and makes it much easier to track the intent of individual changes.
+  id: totrans-471
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch08_split_001.xhtml#idm46634396201256-marker)) 无论你如何称呼这个文件，但我们遵循的惯例是在高级测试中加上故事编号。这样做可以减少测试合并冲突的可能性，并且更容易跟踪单个更改的意图。
+- en: ^([7](ch08_split_001.xhtml#idm46634396063368-marker)) This will run the tests
+    more quickly and record a video for each one, which is helpful if your tests run
+    on an integration server.
+  id: totrans-472
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch08_split_001.xhtml#idm46634396063368-marker)) 这将加快测试的运行速度，并为每个测试记录一个视频，这在您的测试运行在集成服务器上时非常有帮助。
+- en: ^([8](ch08_split_001.xhtml#idm46634396079192-marker)) Cypress commands are similar
+    in many ways to promises, although they are not promises. You can think of each
+    one as a “prom-ish.”
+  id: totrans-473
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch08_split_001.xhtml#idm46634396079192-marker)) Cypress 命令在许多方面类似于 promises，尽管它们不是
+    promises。您可以把每一个看作是一个“类 promise”。
+- en: ^([9](ch08_split_001.xhtml#idm46634395808488-marker)) The `cy.intercept` command
+    cannot simply return a reference to the faked network request because of the chainable
+    nature of Cypress commands.
+  id: totrans-474
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch08_split_001.xhtml#idm46634395808488-marker)) `cy.intercept` 命令不能简单地返回对伪造网络请求的引用，因为
+    Cypress 命令具有链式特性。
+- en: ^([10](ch08_split_001.xhtml#idm46634395450040-marker)) See [“Monitor Online
+    Status”](ch03.xhtml#ch03-05).
+  id: totrans-475
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([10](ch08_split_001.xhtml#idm46634395450040-marker)) 参见[“监控在线状态”](ch03.xhtml#ch03-05)。
+- en: ^([11](ch08_split_001.xhtml#idm46634394974248-marker)) This doesn’t mean that
+    the tests will work against every browser, just that they will all run across
+    every browser.
+  id: totrans-476
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([11](ch08_split_001.xhtml#idm46634394974248-marker)) 这并不意味着测试将在每个浏览器上都能工作，只是它们将在每个浏览器上运行。
+- en: ^([12](ch08_split_001.xhtml#idm46634394947128-marker)) We are following a convention
+    where we prefix the test with its associated story number. Selenium does not require
+    this.
+  id: totrans-477
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([12](ch08_split_001.xhtml#idm46634394947128-marker)) 我们遵循的约定是在测试前面加上其关联的故事编号。Selenium
+    不需要这样做。
+- en: ^([13](ch08_split_001.xhtml#idm46634394193224-marker)) You will find the code
+    to do this in the downloadable source for this chapter from [GitHub](https://oreil.ly/P1Tqj).
+  id: totrans-478
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([13](ch08_split_001.xhtml#idm46634394193224-marker)) 下载本章的源代码，您将找到执行此操作的代码，网址为[GitHub](https://oreil.ly/P1Tqj)。
+- en: ^([14](ch08_split_001.xhtml#idm46634393644856-marker)) You could put this script
+    anywhere, but this is the location we used in the example code on the GitHub site.
+  id: totrans-479
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([14](ch08_split_001.xhtml#idm46634393644856-marker)) 您可以将此脚本放在任何地方，但这是我们在
+    GitHub 网站上示例代码中使用的位置。
+- en: ^([15](ch08_split_001.xhtml#idm46634393280696-marker)) The remote machine must
+    have the appropriate browser and web driver installed for this to work.
+  id: totrans-480
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([15](ch08_split_001.xhtml#idm46634393280696-marker)) 远程机器必须安装适当的浏览器和 Web 驱动程序才能使其正常工作。
+- en: ^([16](ch08_split_001.xhtml#idm46634392955256-marker)) For `create-react-app`
+    applications, this should be added to *public/index.html*.
+  id: totrans-481
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([16](ch08_split_001.xhtml#idm46634392955256-marker)) 对于 `create-react-app`
+    应用程序，应将此添加到 *public/index.html* 文件中。
+- en: ^([17](ch08_split_001.xhtml#idm46634392840120-marker)) The code is available
+    in the [source code repository](https://oreil.ly/P1Tqj) for this book.
+  id: totrans-482
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([17](ch08_split_001.xhtml#idm46634392840120-marker)) 本书的源代码存储库中提供了这段代码的内容，网址为[source
+    code repository](https://oreil.ly/P1Tqj)。
+- en: ^([18](ch08_split_001.xhtml#idm46634392341560-marker)) You can find out more
+    about this test in [“Test Without a Server Using Cypress”](ch08_split_001.xhtml#ch08-03).
+  id: totrans-483
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([18](ch08_split_001.xhtml#idm46634392341560-marker)) 您可以在[“使用 Cypress 在没有服务器的情况下进行测试”](ch08_split_001.xhtml#ch08-03)中了解更多关于此测试的信息。
+- en: ^([19](ch08_split_001.xhtml#idm46634392149944-marker)) That is, allow the browser
+    to say to the server *Let’s pretend it’s Thursday, April 14*.
+  id: totrans-484
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([19](ch08_split_001.xhtml#idm46634392149944-marker)) 也就是说，允许浏览器对服务器说“让我们假装是四月十四日星期四”。
+- en: ^([20](ch08_split_001.xhtml#idm46634391785704-marker)) Firefox will not generally
+    accept this format.
+  id: totrans-485
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([20](ch08_split_001.xhtml#idm46634391785704-marker)) 通常情况下，Firefox 不会接受这种格式。

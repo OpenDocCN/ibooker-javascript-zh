@@ -1,0 +1,1358 @@
+- en: Chapter 6\. String Template Literal Types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第六章. 字符串模板字面类型
+- en: In TypeScript’s type system, every value is also a type. We call them literal
+    types, and in union with other literal types, you can define a type that is very
+    clear about which values it can accept. Let’s take subsets of `string` as an example.
+    You can define exactly which strings should be part of your set and rule out a
+    ton of errors. The other end of the spectrum would be the entire set of strings
+    again.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 TypeScript 的类型系统中，每个值也是一种类型。我们称之为字面类型，在与其他字面类型的联合中，您可以定义一个非常清晰的类型，指明它可以接受哪些值。让我们以`string`的子集为例。您可以确切地定义应包含在集合中的字符串，并排除大量错误。另一端的极端是字符串的整个集合。
+- en: But what if there is something between? What if we can define types that check
+    if certain string patterns are available, and let the rest be more flexible? *String
+    template literal types* do exactly that. They allow us to define types where certain
+    parts of a string are predefined; the rest is open and flexible for a variety
+    of uses.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果之间有什么呢？如果我们可以定义检查特定字符串模式是否可用的类型，并让其余部分更加灵活呢？*字符串模板字面类型*正是如此。它们允许我们定义类型，其中字符串的某些部分是预定义的；其余部分则是开放的，可以用于各种用途。
+- en: But even more, in conjunction with conditional types, it’s possible to split
+    strings into bits and pieces and reuse the same bits for new types. This is an
+    incredibly powerful tool, especially if you think about how much code in JavaScript
+    relies on patterns within strings.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但更重要的是，与条件类型结合使用时，可以将字符串分割为各个部分并将相同的部分重复使用，这是一种非常强大的工具，特别是当您考虑 JavaScript 中多少代码依赖于字符串内的模式时。
+- en: In this chapter, we look at a variety of use cases for *string template literal
+    types*. From following simple string patterns to extracting parameters and types
+    based on format strings, you will see the enabling power of parsing strings as
+    types.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一章中，我们将看到各种*字符串模板字面类型*的用例。从简单的字符串模式到根据格式字符串提取参数和类型，您将看到解析字符串作为类型的强大功能。
+- en: But we keep it real. Everything you see here comes from real-world examples.
+    What you can accomplish with string template literal types seems endless. People
+    push the usage of string template literal types to the extreme by writing [spell
+    checkers](https://oreil.ly/63z2Y) or implementing [SQL parsers](https://oreil.ly/foSvx);
+    there seems to be no limit to what you can do with this mind-blowing feature.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们保持现实。这里的一切都来自真实世界的例子。使用字符串模板字面类型可以实现的功能似乎是无穷无尽的。人们通过编写[拼写检查器](https://oreil.ly/63z2Y)或实现[SQL解析器](https://oreil.ly/foSvx)将字符串模板字面类型的用法推向极限；看起来这个令人惊叹的功能可以做的事情没有极限。
+- en: 6.1 Defining a Custom Event System
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.1 定义自定义事件系统
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You are creating a custom event system and want to make sure every event name
+    follows a convention and starts with `"on"`.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在创建一个自定义事件系统，并希望确保每个事件名称都遵循约定并以`"on"`开头。
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use string template literal types to describe string patterns.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用字符串模板字面类型描述字符串模式。
+- en: Discussion
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It’s common in JavaScript event systems to have some sort of prefix that indicates
+    a particular string is an event. Usually, event or event handler strings start
+    with `on`, but depending on the implementation, this can be different.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 事件系统通常具有指示特定字符串是事件的前缀。通常，事件或事件处理程序字符串以`on`开头，但具体实现可能有所不同。
+- en: You want to create your own event system and want to honor this convention.
+    With TypeScript’s string types it is possible to either accept all possible strings
+    or subset to a union type of string literal types. While one is too broad, the
+    other one is not flexible enough for our needs. We don’t want to define every
+    possible event name up front; we want to adhere to a pattern.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望创建自己的事件系统，并希望遵循这一约定。通过 TypeScript 的字符串类型，可以接受所有可能的字符串或子集作为字符串字面量类型的联合类型。尽管一个太广泛，另一个对我们的需求不够灵活。我们不想预先定义每个可能的事件名称；我们想遵循一种模式。
+- en: Thankfully, a type called *string template literal type* or just *template literal
+    type* is exactly what we are looking for. Template literal types allow us to define
+    string literals but leave certain parts flexible.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，一种称为*字符串模板字面类型*或简称*模板字面类型*的类型正是我们所需要的。模板字面类型允许我们定义字符串字面量，但保留某些部分的灵活性。
+- en: 'For example, a type that accepts all strings that start with `on` could look
+    like this:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，一个接受以`on`开头的所有字符串的类型可能如下所示：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Syntactically, template literal types borrow from JavaScript’s *template strings*.
+    They start and end with a backtick, followed by any string.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在语法上，模板文字类型借鉴了JavaScript的*模板字符串*。它们以反引号开始和结束，后跟任意字符串。
+- en: 'Using the specific syntax `${}` allows adding JavaScript expressions, like
+    variables, function calls, and the like to strings:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`${}`的特定语法允许向字符串添加JavaScript表达式，例如变量、函数调用等：
+- en: '[PRE1]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Template literal types in TypeScript are very similar. Instead of JavaScript
+    expressions, they allow us to add a set of values in the form of types. A type
+    defining the string representation of all available heading elements in HTML could
+    look like this:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript中的模板文字类型非常相似。与JavaScript表达式不同，它们允许我们添加一组类型形式的值。定义HTML中所有可用标题元素的字符串表示的类型可以如下所示：
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: '`Levels` is a subset of `number`, and `Headings` reads as “starts with H, followed
+    by a value compatible with `Levels`.” You can’t put every type in here, only ones
+    that have a string representation.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Levels`是`number`的一个子集，而`Headings`读作“以H开头，后跟与`Levels`兼容的值”。你不能在这里放入每一种类型，只能是那些有字符串表示的类型。'
+- en: 'Let’s go back to `EventName`:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到`EventName`：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Defined like this, `EventName` reads like “starts with `"on"`, followed by any
+    string.” This includes the empty string. Let’s use `EventName` to create a simple
+    event system. In the first step, we only want to collect callback functions.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像这样定义，`EventName`读起来像“以`"on"`开头，后跟任意字符串”。这包括空字符串。让我们使用`EventName`来创建一个简单的事件系统。在第一步中，我们只想收集回调函数。
+- en: 'For that, we define a `Callback` type that is a function type with one parameter:
+    an `EventObject`. The `EventObject` is a generic type that contains the value
+    with the event information:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们定义了一个`Callback`类型，它是一个带有一个参数的函数类型：`EventObject`。`EventObject`是一个通用类型，包含事件信息的值：
+- en: '[PRE4]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Furthermore, we need a type to store all registered event callbacks, `Events`:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们需要一个类型来存储所有注册的事件回调，`Events`：
+- en: '[PRE5]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'We use `EventName` as index access as it is a valid subtype of `string`. Each
+    index points to an array of callbacks. With our types defined, we set up an `EventSystem`
+    class:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将`EventName`用作索引访问，因为它是`string`的有效子类型。每个索引指向一个回调函数数组。有了我们定义的类型，我们设置了一个`EventSystem`类：
+- en: '[PRE6]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The constructor creates a new events storage, and `defineEventHandler` takes
+    an `Ev⁠en⁠t​Na⁠me` and `Callback` and stores them in said events storage. Also,
+    `trigger` takes an `Ev⁠ent​Na⁠me` and, if callbacks are registered, executes every
+    registered callback with an `Ev⁠ent​Obj⁠ect`.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构造函数创建了一个新的事件存储，`defineEventHandler`接受一个`Ev⁠en⁠t​Na⁠me`和`Callback`并将它们存储在所述的事件存储中。此外，`trigger`接受一个`Ev⁠ent​Na⁠me`，如果注册了回调，则执行每个注册的回调函数，并传递一个`Ev⁠ent​Obj⁠ect`。
+- en: 'The first step is done. We now have type safety when defining events:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一步完成了。我们现在在定义事件时拥有了类型安全性：
+- en: '[PRE7]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: In [Recipe 6.2](#ch06_string_manipulation_types) we will look at how we can
+    use string manipulation types and key remapping to enhance our system.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[配方6.2](#ch06_string_manipulation_types)中，我们将看看如何使用字符串操作类型和键重映射来增强我们的系统。
+- en: 6.2 Creating Event Callbacks with String Manipulation Types and Key Remapping
+  id: totrans-36
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.2 使用字符串操作类型和键重映射创建事件回调
+- en: Problem
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to provide a `watch` function that takes any object and adds watcher
+    functions for each property, allowing you to define event callbacks.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望提供一个`watch`函数，该函数接受任何对象并为每个属性添加观察者函数，允许您定义事件回调。
+- en: Solution
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use *key remapping* to create new string property keys. Use *string manipulation
+    types* to have proper camel casing for watcher functions.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用*键重映射*创建新的字符串属性键。使用*字符串操作类型*为观察函数设置适当的驼峰命名。
+- en: Discussion
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Our event system from [Recipe 6.1](#ch06_custom_events) is taking shape. We
+    are able to register event handlers and trigger events. Now we want to add watch
+    functionality. The idea is to extend valid objects with methods for registering
+    callbacks that are executed every time a property changes. For example, when we
+    define a `person` object, we should be able to listen to `onAgeChanged` and `onNameChanged`
+    events:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的事件系统在[配方6.1](#ch06_custom_events)中逐渐成形。我们能够注册事件处理程序并触发事件。现在我们想要添加观察功能。这个想法是扩展有效对象，使其具有注册回调的方法，每当属性更改时就会执行这些回调。例如，当我们定义一个`person`对象时，我们应该能够监听`onAgeChanged`和`onNameChanged`事件：
+- en: '[PRE8]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: So for each property, there will be a method that starts with `on`, ends with
+    `Changed`, and accepts callback functions with event object parameters.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，对于每个属性，将有一个方法以`on`开头，以`Changed`结尾，并接受带有事件对象参数的回调函数。
+- en: 'To define the new event handler methods, we create a helper type called `Wa⁠tch⁠ed​Ob⁠jec⁠t<T>`,
+    where we add bespoke methods:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了定义新的事件处理程序方法，我们创建了一个名为 `Wa⁠tch⁠ed​Ob⁠jec⁠t<T>` 的辅助类型，在其中添加定制方法：
+- en: '[PRE9]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'There’s a lot to unpack. Let’s go through it step by step:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有很多东西需要理清。让我们逐步进行：
+- en: We define a *mapped type* by iterating over all keys from `T`. Since we care
+    only about `string` property keys, we use the intersection `string & keyof T`
+    to get rid of potential symbols or numbers.
+  id: totrans-48
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们通过迭代 `T` 的所有键来定义一个*映射类型*。由于我们只关心 `string` 属性键，我们使用交集 `string & keyof T` 来摆脱潜在的符号或数字。
+- en: Next, we *remap* this key to a new string, defined by a *string template literal
+    type*. It starts with `on`, then takes the key `K` from our mapping process, and
+    appends `Changed`.
+  id: totrans-49
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 接下来，我们将这个键*重映射*到一个新的字符串，由*字符串模板字面量类型*定义。它以 `on` 开头，然后取自我们映射过程的键 `K`，并附加 `Changed`。
+- en: The property key points to a function that accepts a callback. The callback
+    itself has an event object as an argument, and by correctly substituting its generics,
+    we can make sure this event object contains the original type of our watched object.
+    This means when we call `onAgeChanged`, the event object will actually contain
+    a `number`.
+  id: totrans-50
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 属性 `key` 指向一个接受回调函数的函数。回调函数本身将事件对象作为参数，并通过正确地替换其泛型，确保此事件对象包含我们观察对象的原始类型。这意味着当我们调用
+    `onAgeChanged` 时，事件对象实际上将包含一个 `number`。
+- en: 'This is already fantastic but lacks significant detail. When we use `WatchedObject`
+    on `person` like that, all generated event handler methods lack an uppercase character
+    after `on`. To solve this, we can use one of the built-in *string manipulation
+    types* to capitalize string types:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这已经很棒了，但缺少重要的细节。当我们像这样在 `person` 上使用 `WatchedObject` 时，所有生成的事件处理方法在 `on` 后都缺少大写字母。为了解决这个问题，我们可以使用内置的*字符串操作类型*之一来将字符串类型大写：
+- en: '[PRE10]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Next to `Capitalize`, `Lowercase`, `Uppercase`, and `Uncapitalize` are also
+    available. If we hover over `WatchedObject<typeof person>`, we can see what the
+    generated type looks like:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是 `Capitalize`、`Lowercase`、`Uppercase` 和 `Uncapitalize`。如果我们悬停在 `WatchedObject<typeof
+    person>` 上，我们可以看到生成的类型是什么样子的：
+- en: '[PRE11]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'With our types set up, we start with the implementation. First, we create two
+    helper functions:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着我们的类型设置，我们开始实施。首先，我们创建两个辅助函数：
+- en: '[PRE12]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: We need both helper functions to mimic TypeScript’s behavior of remapping and
+    manipulating strings. `capitalize` changes the first letter of a string to its
+    uppercase equivalent, and `handlerName` adds a prefix and suffix to it. With `handlerName`
+    we need a little type assertion to signal TypeScript that the type has changed.
+    With the many ways we can transform strings in JavaScript, TypeScript can’t figure
+    out that this will result in a capitalized version.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要这两个辅助函数来模仿 TypeScript 重映射和操作字符串的行为。`capitalize` 将字符串的第一个字母更改为大写，并且 `handlerName`
+    在其前后添加前缀。使用 `handlerName` 我们需要进行一点类型断言，以向 TypeScript 指示类型已更改。通过 JavaScript 中可以转换字符串的多种方法，TypeScript
+    无法确定这将导致大写版本。
+- en: Next, we implement the `watch` functionality in the event system. We create
+    a generic function that accepts any object and returns an object that contains
+    both the original properties and the watcher properties.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们在事件系统中实现 `watch` 功能。我们创建一个通用函数，接受任何对象并返回一个包含原始属性和观察者属性的对象。
+- en: 'To successfully implement triggering of event handlers on property change,
+    we use `Proxy` objects to intercept `get` and `set` calls:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了成功实现在属性更改时触发事件处理程序，我们使用 `Proxy` 对象来拦截 `get` 和 `set` 调用：
+- en: '[PRE13]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The `get` calls we want to intercept are whenever we access the properties
+    of `WatchedObject<T>`:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们想要拦截的 `get` 调用是每当我们访问 `WatchedObject<T>` 的属性时：
+- en: They start with `on` and end with `Changed`.
+  id: totrans-62
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它们以 `on` 开头并以 `Changed` 结尾。
+- en: If that’s the case, we return a function that accepts callbacks. The function
+    itself adds callbacks to the event storage via `defineEventHandler`.
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果是这种情况，我们返回一个接受回调函数的函数。该函数本身通过 `defineEventHandler` 将回调函数添加到事件存储中。
+- en: In all other cases we do regular property access.
+  id: totrans-64
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在所有其他情况下，我们进行常规的属性访问。
+- en: 'Now, every time we set a value of the original object, we want to trigger stored
+    events. This is why we modify all `set` calls:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，每当我们设置原始对象的值时，我们希望触发存储的事件。这就是为什么我们修改所有 `set` 调用的原因：
+- en: '[PRE14]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'The process is as follows:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个过程如下：
+- en: Set the value. We need to update the object anyway.
+  id: totrans-68
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 设置值。无论如何，我们都需要更新对象。
+- en: Call the `trigger` function to execute all registered callbacks.
+  id: totrans-69
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 调用 `trigger` 函数执行所有已注册的回调。
+- en: Please note that we need a couple of type assertions to nudge TypeScript in
+    the right direction. We are creating new objects, after all.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们需要进行一些类型断言来引导 TypeScript 朝正确的方向发展。毕竟，我们正在创建新对象。
+- en: 'And that’s it! Try the example from the beginning to see your event system
+    in action:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！从头开始尝试示例，看看您的事件系统如何运行：
+- en: '[PRE15]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: String template literal types along with string manipulation types and key remapping
+    allow us to create types for new objects on the fly. These powerful tools make
+    the use of advanced JavaScript object creation more robust.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 字符串模板字面类型与字符串操作类型和键重映射允许我们动态创建新对象的类型。这些强大的工具使得使用高级 JavaScript 对象创建更加健壮。
+- en: 6.3 Writing a Formatter Function
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.3 编写格式化函数
+- en: Problem
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create typings for a function that takes a format string and substitutes
+    placeholders with actual values.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想为一个接受格式字符串并用实际值替换占位符的函数创建类型。
+- en: Solution
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a conditional type that infers the placeholder name from a string template
+    literal type.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一种条件类型，从字符串模板字面类型中推断占位符名称。
+- en: Discussion
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Your application has a way of defining format strings by defining placeholders
+    with curly braces. A second parameter takes an object with substitutions, so for
+    each placeholder defined in the format string, there is one property key with
+    the respective value:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的应用程序通过定义带有花括号占位符的格式字符串来定义格式字符串的方法。第二个参数接受一个带有替换值的对象，因此对于格式字符串中定义的每个占位符，都有一个相应值的属性键：
+- en: '[PRE16]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Let’s create typings for this function, where we make sure that your users
+    don’t forget to add the required properties. As a first step, we define the function
+    interface with some very broad types. The format string is of type `string`, and
+    the formatting parameters are in a `Record` of `string` keys and literally any
+    value. We focus on the types first; the function body’s implementation comes later:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们为此函数创建类型定义，确保您的用户不会忘记添加所需的属性。作为第一步，我们使用一些非常广泛的类型定义函数接口。格式字符串的类型为 `string`，格式化参数在具有字面值的
+    `string` 键的 `Record` 中。我们首先关注类型；函数体的实现稍后处理：
+- en: '[PRE17]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'As a next step, we want to lock function arguments to concrete values or literal
+    types by adding generics. We change the type of `fmtString` to be of a generic
+    type `T`, which is a subtype of `string`. This allows us to still pass strings
+    to the function, but the moment we pass a literal string, we can analyze the literal
+    type and look for patterns (see [Recipe 4.3](ch04.html#ch04_no_any) for more details):'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为下一步，我们希望通过添加泛型将函数参数锁定为具体值或字面类型。我们将 `fmtString` 的类型更改为泛型类型 `T`，它是 `string`
+    的子类型。这使我们仍然可以将字符串传递给函数，但是一旦我们传递字面字符串，我们就可以分析字面类型并查找模式（有关详细信息，请参见 [Recipe 4.3](ch04.html#ch04_no_any)）：
+- en: '[PRE18]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Now that we locked in `T`, we can pass it as a type parameter to a generic
+    type `FormatKeys`. This is a conditional type that will scan our format string
+    for curly braces:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经确定了 `T`，我们可以将其作为泛型类型 `FormatKeys` 的类型参数传递。这是一种条件类型，用于扫描我们的格式字符串以查找花括号：
+- en: '[PRE19]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Here, we check if the format string:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们检查格式字符串是否：
+- en: Starts with a string; this can also be an empty string
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 以字符串开头；这也可以是空字符串
+- en: Contains a `{`, followed by any string, followed by a `}`
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包含 `{`，跟随任何字符串，跟随 `}`。
+- en: Is followed again by any string
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 再次由任何字符串跟随。
+- en: 'This effectively means that we check if there is exactly one placeholder in
+    the format string. If so, we return the entire format string, and if not, we return
+    `never`:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这实际上意味着我们检查格式字符串中是否恰好有一个占位符。如果是这样，我们返回整个格式字符串，如果不是，我们返回 `never`：
+- en: '[PRE20]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '`FormatKeys` can tell us if the strings we pass in are format strings or not,
+    but we are actually much more interested in a specific part of the format string:
+    the piece between the curly braces. Using TypeScript’s `infer` keyword, we can
+    tell TypeScript that, if the format string matches this pattern, then grab whatever
+    literal type you find between the curly braces and put it in a type variable:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FormatKeys` 可以告诉我们传入的字符串是否是格式字符串，但我们实际上对格式字符串的一个特定部分更感兴趣：即花括号之间的部分。使用 TypeScript
+    的 `infer` 关键字，我们可以告诉 TypeScript，如果格式字符串匹配此模式，那么获取花括号之间的任何文本类型并放入类型变量中：'
+- en: '[PRE21]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'That way, we can extract substrings and reuse them for our needs:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，我们可以提取子字符串并根据需要重用它们：
+- en: '[PRE22]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Fantastic! We extracted the first placeholder name. Now on to the rest. Since
+    there might be placeholders following, we take everything *after* the first placeholder
+    and store it in a type variable called `Rest`. This condition will be always true,
+    because either `Rest` is the empty string or it contains an actual string that
+    we can analyze again.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 真棒！我们提取了第一个占位符名称。现在处理其余部分。由于可能会有后续的占位符，我们取第一个占位符之后的所有内容，并将其存储在名为`Rest`的类型变量中。这个条件总是成立，因为`Rest`要么是空字符串，要么包含我们可以再次分析的实际字符串。
+- en: 'We take the `Rest` and in the `true` branch call `FormatKeys<Rest>` in a union
+    type of `Key`:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们取出`Rest`，在`true`分支中调用`FormatKeys<Rest>`，在`Key`的联合类型中：
+- en: '[PRE23]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'This is a *recursive conditional type*. The result will be a union of placeholders,
+    which we can use as keys for the formatting object:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个*递归条件类型*。结果将是占位符的联合，我们可以用作格式化对象的键：
+- en: '[PRE24]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Now it’s time to wire up `FormatKeys`. Since we already locked in `T`, we can
+    pass it as an argument to `FormatKeys`, which we can use as an argument for `Record`:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候连接`FormatKeys`了。由于我们已经锁定了`T`，我们可以将其作为参数传递给`FormatKeys`，然后用作`Record`的参数：
+- en: '[PRE25]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'And with that, our typings are all ready. On to the implementation! The implementation
+    is beautifully inverted to how we defined our types. We go over all keys from
+    `params` and replace all occurrences within curly braces with the respective value:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，我们的类型都准备好了。来实现吧！实现方式与我们定义的类型完美呼应。我们遍历`params`的所有键，并用括号内的相应值替换所有出现：
+- en: '[PRE26]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Notice two particular typings:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意两个特定的类型：
+- en: We need to annotate `ret` with `string`. `fmtString` is with `T`, a subtype
+    of `string`; thus `ret` would also be `T`. This would mean we couldn’t change
+    values because the type of `T` would change. Annotating it to a broader `string`
+    type helps us modify `ret`.
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们需要使用`string`对`ret`进行注释。`fmtString`是`T`的子类型，因此`ret`也将是`T`。这意味着我们无法更改值，因为`T`的类型将发生变化。通过将其注释为更广泛的`string`类型，帮助我们修改`ret`。
+- en: We also need to assert that the object key `k` is actually a key of `params`.
+    This is an unfortunate workaround that is due to some fail-safe mechanisms of
+    TypeScript. Read more on this topic in [Recipe 9.1](ch09.html#ch09_working_with_object_keys).
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们还需要断言对象键`k`实际上是`params`的一个键。这是一个不幸的解决方案，由于TypeScript的一些故障安全机制所致。有关此主题的更多信息，请参阅[食谱
+    9.1](ch09.html#ch09_working_with_object_keys)。
+- en: 'With the information from [Recipe 9.1](ch09.html#ch09_working_with_object_keys),
+    we can redefine `format` to get rid of some type assertions to reach our final
+    version of the `format` function:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过[食谱 9.1](ch09.html#ch09_working_with_object_keys)中的信息，我们可以重新定义`format`，消除一些类型断言，以达到`format`函数的最终版本：
+- en: '[PRE27]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Being able to split strings and extract property keys is extremely powerful.
+    TypeScript developers all over the world use this pattern to strengthen types,
+    for example, for web servers like [Express](https://expressjs.com). We will see
+    more examples of how we can use this tool to get better types.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 能够分割字符串并提取属性键非常强大。全球范围内的TypeScript开发人员都使用这种模式来加强类型，例如用于像[Express](https://expressjs.com)这样的Web服务器。我们将看到更多如何使用这个工具来获得更好类型的示例。
+- en: 6.4 Extracting Format Parameter Types
+  id: totrans-113
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.4 提取格式参数类型
+- en: Problem
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Problem
+- en: You want to extend the formatting function from [Recipe 6.3](#ch06_formatter_function)
+    with the ability to define types for your placeholders.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望扩展来自[食谱 6.3](#ch06_formatter_function)的格式化函数，使其能够为占位符定义类型。
+- en: Solution
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Solution
+- en: Create a nested conditional type and look up types with a type map.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个嵌套的条件类型，并使用类型映射查找类型。
+- en: Discussion
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Discussion
+- en: 'Let’s extend the example from the previous lesson. We now want to not only
+    know all placeholders but also be able to define a certain set of types with the
+    placeholders. Types should be optional, be indicated with a colon after the placeholder
+    name, and be one of JavaScript’s primitive types. We expect to get type errors
+    when we pass in a value that is of the wrong type:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们扩展上一课的例子。我们现在不仅想知道所有占位符，还想能够为这些占位符定义一定的类型集合。类型应该是可选的，并在占位符名称后面用冒号表示，类型应为JavaScript的基本类型之一。当我们传入类型不正确的值时，我们期望得到类型错误：
+- en: '[PRE28]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'For reference, let’s look at the original implementation from [Recipe 6.3](#ch06_formatter_function):'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 供参考，让我们看一下来自[食谱 6.3](#ch06_formatter_function)的原始实现：
+- en: '[PRE29]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'To achieve this, we need to do two things:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了实现这一点，我们需要做两件事：
+- en: Change the type of `params` from `Record<FormatKeys<T>, any>` to an actual object
+    type that has proper types associated with each property key.
+  id: totrans-124
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将`params`的类型从`Record<FormatKeys<T>, any>`更改为一个实际对象类型，该对象类型具有与每个属性键相关联的适当类型。
+- en: Adapt the string template literal type within `FormatKeys` to be able to extract
+    primitive JavaScript types.
+  id: totrans-125
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 调整`FormatKeys`中的字符串模板字面类型，以便提取原始JavaScript类型。
+- en: 'For the first step, we introduce a new type called `FormatObj<T>`. It works
+    just as `FormatKeys` did, but instead of simply returning string keys, it maps
+    out the same keys to a new object type. This requires us to chain the recursion
+    using intersection types instead of a union type (we add more properties with
+    each recursion) and to change the breaking condition from `never` to `{}`. If
+    we did an intersection with `never`, the entire return type becomes `never`. This
+    way, we don’t add any new properties to the return type:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于第一步，我们引入了一个名为`FormatObj<T>`的新类型。它与`FormatKeys`的工作方式相同，但不是简单返回字符串键，而是将相同的键映射到新对象类型。这要求我们使用交集类型链式递归而不是联合类型（我们在每次递归中添加更多属性），并将打破条件从`never`更改为`{}`。如果我们使用`never`进行交集，整个返回类型变为`never`。这样，我们不会向返回类型添加任何新属性：
+- en: '[PRE30]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '`FormatObj<T>` works the same way as `Record<FormatKeys<T>, any>`. We still
+    didn’t extract any placeholder type, but we made it easy to set the type for each
+    placeholder now that we are in control of the entire object type.'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FormatObj<T>`的工作方式与`Record<FormatKeys<T>, any>`相同。我们仍然没有提取任何占位符类型，但现在我们可以轻松设置每个占位符的类型，因为我们控制整个对象类型。'
+- en: 'As a next step, we change the parsing condition in `FormatObj<T>` to also look
+    out for colon delimiters. If we find a `:` character, we infer the subsequent
+    string literal type in `Type` and use it as the type for the mapped-out key:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为下一步，我们将在`FormatObj<T>`中更改解析条件，以便还要查找冒号分隔符。如果找到`:`字符，则推断`Type`中的后续字符串文字类型，并将其用作映射键的类型：
+- en: '[PRE31]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'We are very close; there’s just one caveat. We infer a *string* literal type.
+    This means that if we, for example, parse `{age:number}`, the type of `age` would
+    be the literal string `"number"`. We need to convert this string to an actual
+    type. We could do another conditional type or use a map type as a lookup:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们非常接近；只有一个警告。我们推断了*字符串*文字类型。这意味着，例如，解析`{age:number}`，`age`的类型将是字面字符串`"number"`。我们需要将此字符串转换为实际类型。我们可以使用另一个条件类型或使用映射类型作为查找：
+- en: '[PRE32]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'That way, we can simply check which type is associated with which key and have
+    a fantastic fallback for all other strings:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，我们可以简单地检查每个键关联的类型，并为所有其他字符串提供一个出色的备选方案：
+- en: '[PRE33]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Let’s wire `MapFormatType` up to `FormatObj<T>`:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将`MapFormatType`连接到`FormatObj<T>`：
+- en: '[PRE34]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: We are almost there! The problem now is that we expect every placeholder to
+    also define a type. We want to make types optional. But our parsing condition
+    explicitly asks for `:` delimiters, so every placeholder that doesn’t define a
+    type doesn’t produce a property, either.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们快要成功了！现在的问题是我们期望每个占位符也定义类型。我们想要使类型是可选的。但是我们的解析条件明确要求`:`分隔符，因此每个没有定义类型的占位符也不会产生属性。
+- en: 'The solution is to do the check for types *after* we check for placeholder:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案是在检查占位符之后*再次*检查类型：
+- en: '[PRE35]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'The type reads as follows:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型读取如下：
+- en: Check if there is a placeholder available.
+  id: totrans-141
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 检查是否有可用的占位符。
+- en: If a placeholder is available, check if there is a type annotation. If so, map
+    the key to a format type; otherwise, map the original key to `any`.
+  id: totrans-142
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如果有可用的占位符，请检查是否有类型注释。如果有，则将键映射到格式类型；否则，将原始键映射到`any`。
+- en: In all other cases, return the empty object.
+  id: totrans-143
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在所有其他情况下，返回空对象。
+- en: 'And that’s it. There is one fail-safe guard that we can add. Instead of allowing
+    `any` type for placeholders without a type definition, we can at least expect
+    that the type implements `toString()`. This ensures we always get a string representation:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样。我们可以添加一个故障安全保护。与其允许占位符没有类型定义，我们至少可以期望类型实现`toString()`。这确保我们始终获得字符串表示：
+- en: '[PRE36]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'And with that, let’s apply the new type to `format` and change the implementation:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，让我们将新类型应用于`format`并更改实现：
+- en: '[PRE37]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: We help ourselves with a regular expression to replace names with potential
+    type annotations. There is no need to check types within the function. TypeScript
+    should be enough to help in this case.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们利用正则表达式替换可能带有类型注释的名称。在函数内部无需检查类型。在这种情况下，TypeScript应该足够帮助我们。
+- en: What we’ve seen is that conditional types in combination with string template
+    literal types and other tools like recursion and type lookups allow us to specify
+    complex relationships with a couple of lines of code. Our types get better, our
+    code gets more robust, and it’s a joy for developers to use APIs like this.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们看到的是，条件类型与字符串模板字面类型以及递归和类型查找等工具的结合，使我们能够用几行代码指定复杂的关系。我们的类型变得更好，我们的代码变得更加健壮，对开发者来说使用这样的
+    API 是一种享受。
+- en: 6.5 Dealing with Recursion Limits
+  id: totrans-150
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.5 处理递归限制
+- en: Problem
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You craft an elaborate string template literal type that converts any string
+    to a valid property key. With your setup of helper types, you run into recursion
+    limits.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过精心设计的字符串模板字面类型将任何字符串转换为有效的属性键。使用您设置的辅助类型，您可能会遇到递归限制。
+- en: Solution
+  id: totrans-153
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the accumulation technique to enable tail-call optimization.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用累积技术启用尾调用优化。
+- en: Discussion
+  id: totrans-155
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: TypeScript’s string template literal types in combination with conditional types
+    allow you to create new string types on the fly, which can serve as property keys
+    or check your program for valid strings.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的字符串模板字面类型与条件类型结合使用，允许您动态创建新的字符串类型，这些类型可以作为属性键或检查程序的有效字符串。
+- en: They work using recursion, which means that just like a function, you can call
+    the same type over and over again, up to a certain limit.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它们使用递归工作，这意味着就像函数一样，您可以多次调用同一类型，直到达到某个限制。
+- en: 'For example, this type `Trim<T>` removes whitespaces at the start and end of
+    your string type:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，这种类型 `Trim<T>` 可以去除字符串类型开头和结尾的空格：
+- en: '[PRE38]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'It checks if there’s a whitespace at the beginning, infers the rest, and does
+    the same check over again. Once all whitespaces at the beginning are gone, the
+    same checks happen for whitespaces at the end. Once all whitespaces at the beginning
+    and end are gone, it is finished and hops into the last branch—returning the remaining
+    string:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它检查是否有起始空白，推断其余部分，并再次进行相同的检查。一旦所有起始空格都消失，相同的检查将发生在末尾的空格上。一旦起始和末尾的所有空格都消失，它就完成了，并跳到最后一个分支——返回剩余的字符串：
+- en: '[PRE39]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Calling the type over and over is recursion, and writing it like that works
+    reasonably well. TypeScript can see from the type that the recursive calls stand
+    on their own, and it can evaluate them as tail-call optimized, which means it
+    can evaluate the next step of the recursion within the same call stack frame.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用类型多次就是递归，并且像这样写是合理的。TypeScript 可以从类型中看出递归调用是独立的，并且可以将其作为尾调用优化来评估，这意味着它可以在同一个调用堆栈帧内评估递归的下一步。
+- en: Note
+  id: totrans-163
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you want to know more about the call stack in JavaScript, Thomas Hunter’s
+    book [*Distributed Systems with Node.js*](https://learning.oreilly.com/library/view/distributed-systems-with/9781492077282)
+    (O’Reilly) gives a great introduction.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想了解更多有关 JavaScript 中调用堆栈的信息，Thomas Hunter 的书籍 [*使用 Node.js 进行分布式系统*](https://learning.oreilly.com/library/view/distributed-systems-with/9781492077282)（O’Reilly
+    出版）提供了很好的介绍。
+- en: We want to use TypeScript’s feature to recursively call conditional types to
+    create a valid string identifier out of any string, by removing whitespace and
+    invalid characters.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们想要利用 TypeScript 的特性，通过递归调用条件类型，从任何字符串中创建一个有效的字符串标识符，方法是去除空白和无效字符。
+- en: 'First, we write a helper type similar to `Trim<T>` that gets rid of any whitespace
+    it finds:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们写一个类似于 `Trim<T>` 的辅助类型，它去掉找到的所有空格：
+- en: '[PRE40]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: It checks if there is a whitespace, infers the strings in front of the whitespace
+    and after the whitespace (which can be empty strings), and calls the same type
+    again with a newly formed string type. It also uncapitalizes the first inference
+    and capitalizes the second inference to create a camel-case-like string identifier.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它检查是否有空白，推断空格前后的字符串（可以是空字符串），然后使用新形成的字符串类型再次调用相同的类型。它还将第一个推断小写化，并将第二个推断大写化，以创建类似驼峰命名的字符串标识符。
+- en: 'It does so until all whitespaces are gone:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它一直这样做，直到所有空格都消失：
+- en: '[PRE41]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Next, we want to check if the remaining characters are valid. We again use
+    recursion to take a string of valid characters, split them into single string
+    types with only one character, and create a capitalized and uncapitalized version:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们想要检查剩余字符是否有效。我们再次使用递归，将有效字符的字符串拆分为只包含一个字符的单字符串类型，并创建大写和小写版本：
+- en: '[PRE42]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: We shave off the first character we find, capitalize it, uncapitalize it, and
+    do the same with the rest until no more strings are left. Note that this recursion
+    can’t be tail-call optimized, as we put the recursive call in a union type with
+    the results from each recursion step. Here we would reach a recursion limit when
+    we hit 50 characters (a hard limit from the TypeScript compiler). With basic characters,
+    we are fine!
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们刮掉我们找到的第一个字符，将其大写，将其小写，然后对其余部分执行相同操作，直到没有更多的字符串为止。请注意，由于我们将递归调用放在联合类型中的结果中，这种递归无法进行尾调用优化。当我们达到50个字符时（TypeScript编译器的硬限制），我们将达到递归限制。对于基本字符，我们没有问题！
+- en: But we hit the first limits when we are doing the next step, the creation of
+    the `Identifier`. Here we check for valid characters. First, we call the `RemoveWhiteSpace<T>`
+    type, which allows us to get rid of whitespaces and camel-cases the rest. Then
+    we check the result against valid characters.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是当我们进行下一步，创建`Identifier`时，我们首先要检查有效字符。首先，我们调用`RemoveWhiteSpace<T>`类型，这允许我们摆脱空格并将其余部分改为驼峰式。然后我们检查结果是否符合有效字符。
+- en: 'Just like in `StringSplit<T>`, we shave off the first character but do another
+    type-check within inference. We see if the character we just shaved off is one
+    of the valid characters. Then we get the rest. We combine the same string again
+    but do a recursive check with the remaining string. If the first character isn’t
+    valid, then we call `Cr⁠ea⁠te​Id⁠en⁠ti⁠fie⁠r<T>` with the rest:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像在`StringSplit<T>`中一样，我们删掉了第一个字符，但在推断中进行了另一种类型检查。我们看看刚刚刮掉的字符是否是有效字符之一。然后我们获取剩下的部分。我们再次组合相同的字符串，但在剩余字符串上进行递归检查。如果第一个字符无效，则我们调用`Cr⁠ea⁠te​Id⁠en⁠ti⁠fie⁠r<T>`处理剩余部分：
+- en: '[PRE43]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: And here we hit the first recursion limit. TypeScript warns us—with an error—that
+    this type instantiation is possibly infinite and excessively deep. It seems that
+    if we use the recursive call within a string template literal type, this might
+    result in call stack errors and blow up. So TypeScript breaks. It can’t do tail-call
+    optimization here.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里我们首次触及递归限制。TypeScript通过错误警告我们，这种类型实例化可能是无限的且过于深层。似乎如果我们在字符串模板文字类型内使用递归调用，可能会导致调用栈错误并引发故障。因此，TypeScript中断了。它无法在这里进行尾调用优化。
+- en: Note
+  id: totrans-178
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`CreateIdentifier<T>` might still produce correct results, even though TypeScript
+    errors when you write your type. Those are hard-to-spot bugs because they might
+    hit you when you don’t expect them. Be sure to not let TypeScript produce any
+    results when errors happen.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`CreateIdentifier<T>`可能仍然会生成正确的结果，即使在编写类型时TypeScript出错。这些是难以察觉的错误，因为它们可能在您不期望时出现。确保在错误发生时不要让TypeScript生成任何结果。'
+- en: 'There’s one way to work around it. To activate tail-call optimization, the
+    recursive call needs to stand alone. We can achieve this by using the so-called
+    *accumulator technique*. Here, we pass a second type parameter called `Acc`, which
+    is of a type `string` and is instantiated with the empty string. We use this as
+    an accumulator where we store the intermediate result, passing it over and over
+    again to the next call:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一种解决方法。为了激活尾调用优化，递归调用需要独立存在。我们可以通过使用所谓的*累加器技术*来实现这一点。在这里，我们传递第二个类型参数称为`Acc`，它是`string`类型，并用空字符串进行实例化。我们将其用作累加器，存储中间结果，并一遍又一遍地将其传递给下一个调用：
+- en: '[PRE44]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'This way, the recursive call is standing on its own again, and the result is
+    the second parameter. When we are done with recursive calls, the recursion-breaking
+    branch, we return the accumulator, as it is our finished result:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，递归调用再次独立存在，并且结果是第二个参数。当我们完成递归调用时，递归断开的分支，我们返回累加器，因为它是我们的最终结果：
+- en: '[PRE45]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: There might be more clever ways to produce identifiers from any string, but
+    note that the same thing can hit you deep down in any elaborate conditional type
+    where you use recursion. The accumulator technique is a good way to mitigate problems
+    like this.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可能有更聪明的方法从任意字符串生成标识符，但请注意，在使用递归的复杂条件类型中，可能会遇到相同的问题。累加器技术是减轻此类问题的好方法。
+- en: 6.6 Using Template Literals as Discriminants
+  id: totrans-185
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 6.6 使用字符串模板文字作为判别因子
+- en: Problem
+  id: totrans-186
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You model requests to a backend as a state machine, going from *pending* to
+    either *error* or *success*. Those states should work for different backend requests,
+    but the underlying types should be the same.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你的模型将对后端的请求作为状态机处理，从*pending*状态转换为*error*或*success*状态。这些状态应适用于不同的后端请求，但底层类型应该是相同的。
+- en: Solution
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use string template literals as discriminants for a discriminated union.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用字符串模板文字作为判别联合类型的判别因子。
+- en: Discussion
+  id: totrans-190
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The way you fetch data from a backend always follows the same structure. You
+    do a request, and it’s pending to be either fulfilled and return some data—success—or
+    rejected and return with an error. For example, to log in a user, all possible
+    states can look like this:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从后端获取数据的方式始终遵循相同的结构。您发出请求，它可能是待处理的，要么实现并返回一些数据（成功），要么拒绝并返回错误。例如，要登录用户，所有可能的状态可能如下所示：
+- en: '[PRE46]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'When we fetch a user’s order, we have the same states available. The only difference
+    is in the success payload and in the names of each state, which are tailored to
+    the type of request:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们获取用户订单时，我们可以使用相同的状态。唯一的区别在于成功载荷和每个状态的名称，这些名称根据请求类型进行了定制：
+- en: '[PRE47]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: When we deal with a global state handling mechanism, such as [Redux](https://redux.js.org),
+    we want to differentiate by using identifiers like this. We still want to narrow
+    it to the respective state types!
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们处理全局状态处理机制，比如[Redux](https://redux.js.org)，我们希望通过像这样的标识符进行区分。我们仍然希望将其缩小到相应的状态类型！
+- en: 'TypeScript allows you to create discriminated union types where the discriminant
+    is a string template literal type. So we can sum up all possible backend requests
+    using the same pattern:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript允许您创建有区别的联合类型，其中辨别器是字符串模板文字类型。因此，我们可以使用相同的模式总结所有可能的后端请求：
+- en: '[PRE48]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'This already gives us an edge. We know that the state property of each union
+    type member needs to start with an uppercase string, followed by an underscore
+    and the respective state as a string. And we can narrow it to the subtypes just
+    as we are used to:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这已经给了我们一个优势。我们知道每个联合类型成员的状态属性需要以大写字符串开头，后跟下划线和相应的状态字符串。我们可以像往常一样缩小到子类型：
+- en: '[PRE49]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Having the entire set of strings as the first part of the discriminant might
+    be a bit too much. We can subset to a variety of known requests and use string
+    manipulation types to get the right subtypes:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将整个字符串集作为辨别器的第一部分可能有点过于复杂。我们可以缩小到各种已知请求，并使用字符串操作类型来获取正确的子类型：
+- en: '[PRE50]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'That’s how to get rid of typos! Even better, let’s say we store all data in
+    a global state object of type `Data`. We can derive all possible `BackendRequest`
+    types from here. By using `keyof Data`, we get the string keys that make up the
+    `BackendRequest` state:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是摆脱拼写错误的方法！更好的是，假设我们将所有数据存储在类型为`Data`的全局状态对象中。我们可以从这里派生所有可能的`BackendRequest`类型。通过使用`keyof
+    Data`，我们获得组成`BackendRequest`状态的字符串键：
+- en: '[PRE51]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: This already works well for `Pending` and `Err`, but in the `Success` case we
+    want to have the actual data type associated with `"user"` or `"order"`.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这已经对`Pending`和`Err`很有效，但在`Success`情况下，我们希望具有与`"user"`或`"order"`关联的实际数据类型。
+- en: 'A first option would be to use index access to get the correct types for the
+    `data` property from `Data`:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一种选择是使用索引访问从`Data`中获取`data`属性的正确类型：
+- en: '[PRE52]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: Tip
+  id: totrans-207
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: '`NonNullable<T>` gets rid of `null` and `undefined` in a union type. With the
+    compiler flag `strictNullChecks` on, both `null` and `undefined` are excluded
+    from all types. This means you need to manually add them if you have nullish states
+    and manually exclude them when you want to make sure that they don’t.'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`NonNullable<T>`消除联合类型中的`null`和`undefined`。启用编译器标志`strictNullChecks`后，所有类型都排除了`null`和`undefined`。这意味着如果存在空值状态，则需要手动添加它们，并在想要确保它们不包含时手动排除它们。'
+- en: 'But this would mean that `data` can be both `User` or `Order` for all backend
+    requests, and more if we add new ones. To avoid breaking the connection between
+    the identifier and its associated data type, we map through all `RequestConstants`,
+    create state objects, and then use index access of `RequestConstants` again to
+    produce a union type:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这意味着`data`对于所有后端请求可以是`User`或`Order`，如果添加新的请求，则更多。为了避免断开标识符与其关联的数据类型之间的连接，我们通过所有`RequestConstants`进行映射，创建状态对象，然后再次使用`RequestConstants`的索引访问来生成联合类型：
+- en: '[PRE53]'
+  id: totrans-210
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: '`Success` is now equal to the manually created union type:'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Success`现在等于手动创建的联合类型：'
+- en: '[PRE54]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'

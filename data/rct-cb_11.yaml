@@ -1,0 +1,2838 @@
+- en: Chapter 11\. Progressive Web Applications
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第11章。渐进式 Web 应用程序
+- en: Progressive web applications (PWAs) are web applications that try to behave
+    like locally installed applications. They can work offline, integrate with the
+    native notification system, and have the ability to run long background processes,
+    which can continue even after you leave the website. They’re called *progressive*
+    because they smoothly downgrade their functionality if some feature is not available
+    in the current browser.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渐进式 Web 应用程序（PWAs）是尝试像本地安装的应用程序一样行为的 Web 应用程序。它们可以在离线状态下工作，集成本机通知系统，并具有运行长时间后台进程的能力，即使您离开网站后仍可继续。它们之所以被称为“渐进式”，是因为如果当前浏览器中某些功能不可用，它们会平滑降级其功能。
+- en: 'This chapter focuses almost exclusively on one feature of PWAs: service workers.
+    You will occasionally encounter the term *progressive web application* used to
+    describe any JavaScript-rich browser application. The truth is that unless that
+    application uses service workers, it isn’t a PWA.'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章几乎完全集中在 PWAs 的一个特性上：service workers。偶尔会遇到“渐进式 Web 应用程序”这个术语，用来描述任何 JavaScript
+    丰富的浏览器应用程序。事实上，除非该应用程序使用 service workers，否则它不算是 PWA。
+- en: Service workers are, in effect, a locally installed server for the application.
+    The backend server is a software distribution mechanism and a provider of live
+    data services, but the service worker is really in charge because it provides
+    access to the network. It can choose to satisfy network requests from its own
+    local cache. If the network is not available, it can choose to replace network
+    resources with local placeholders. It can even queue data updates offline and
+    synchronize with the backend server when the network connection reappears.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service workers 实际上是应用程序的本地安装服务器。后端服务器是软件分发机制和实时数据服务的提供者，但是实际控制权在于 service worker，因为它提供对网络的访问。它可以选择从自己的本地缓存满足网络请求。如果网络不可用，它可以选择用本地占位符替换网络资源。它甚至可以在离线状态下排队数据更新，并在网络连接恢复时与后端服务器同步。
+- en: This is a good topic for the final chapter because it has been the most enjoyable
+    chapter to write. Service workers are one of the most fascinating features found
+    in modern browsers. We hope you have fun.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于它是写作过程中最令人愉悦的一章，因此这是一个很好的最终章主题。Service workers 是现代浏览器中最迷人的功能之一。希望您会喜欢。
+- en: Create Service Workers with Workbox
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Workbox 创建 Service Workers
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: PWAs can work even when you’re offline. They can cache any content or code they
+    require, and the cache will survive the user refreshing the page. They can run
+    background operations independently of the code that runs in the browser.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: PWAs 即使在离线状态下也能工作。它们可以缓存所需的任何内容或代码，并且缓存会在用户刷新页面后保留。它们可以独立于在浏览器中运行的代码运行后台操作。
+- en: PWAs can do this because of *service workers*. Service workers are a kind of
+    web worker. A *web worker* is a piece of JavaScript that runs in a separate thread
+    from the JavaScript running in a web page. Service workers are specialized web
+    workers that can intercept network traffic between a web page and the server,
+    giving them a tremendous amount of control over the page that registers them.
+    You can think of a service worker as a kind of local proxy service that’s available
+    even when you’ve disconnected from the network.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: PWAs 之所以能够做到这一点，是因为 service workers。Service workers 是一种 Web worker。Web worker
+    是在与 Web 页面运行的 JavaScript 分离的单独线程中运行的 JavaScript 片段。Service workers 是特殊的 Web worker，可以拦截
+    Web 页面与服务器之间的网络流量，从而对注册它们的页面具有极大的控制权。您可以将 service worker 理解为一种本地代理服务，即使在断开网络连接时也可用。
+- en: Service workers are most often used to cache content locally. Browsers will
+    cache most content they see, but a service worker can do so much more aggressively.
+    For example, hitting force-refresh in a browser will often force it to reload
+    assets from the network. But the force-refresh function will not affect service
+    workers, no matter how many times a user uses it.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service workers 最常用于本地缓存内容。浏览器会缓存大部分它们看到的内容，但是 service worker 可以更加积极地进行缓存。例如，在浏览器中进行强制刷新通常会强制从网络重新加载资产。但是无论用户使用多少次强制刷新功能，它都不会影响
+    service workers。
+- en: You can see a service worker in operation in [Figure 11-1](#ch11_image_1).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在 [图 11-1](#ch11_image_1) 中看到一个 service worker 在运行中的情况。
+- en: '![](Images/recb_1101.png)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1101.png)'
+- en: Figure 11-1\. A service worker will intercept all network requests
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-1。一个 service worker 将拦截所有网络请求
+- en: In this case, the service worker will cache files the first time they are downloaded.
+    If the page asks for the *logo.svg* file more than once, the service worker will
+    return it from its private cache rather than from the network.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，服务工作线程将在第一次下载文件时进行缓存。如果页面多次请求 *logo.svg* 文件，服务工作线程将从其私有缓存中返回它，而不是从网络中获取。
+- en: How a service worker caches data and how it decides if it needs to return data
+    from its cache or the network is called a *strategy*. We will look at various
+    standard strategies in this chapter.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程如何缓存数据以及它如何决定是否从其缓存或网络返回数据称为 *策略*。在本章中，我们将查看各种标准策略。
+- en: Service workers are stored on the server as separate JavaScript files, and the
+    browser will download and install them from a URL. There is nothing to prevent
+    you from handcrafting a service worker and storing it in the public folder of
+    your application, but there are several problems with writing service workers
+    from scratch.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程以单独的 JavaScript 文件形式存储在服务器上，并且浏览器将从 URL 下载并安装它们。没有什么可以阻止您手工制作一个服务工作线程并将其存储在应用程序的公共文件夹中，但是手工编写服务工作线程存在几个问题。
+- en: First, service workers are notoriously difficult to create. Not only can they
+    include complex code, but they also have complex life cycles. It’s far too easy
+    to write a service worker that fails to load or caches the wrong files. Even worse,
+    it’s possible to write a service worker that will isolate your application from
+    the network.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，服务工作线程非常难以创建。它们不仅可以包含复杂的代码，还有复杂的生命周期。编写一个加载失败或者缓存错误文件的服务工作线程非常容易。更糟糕的是，有可能编写一个会使您的应用程序与网络隔离的服务工作线程。
+- en: Second, you can use service workers to precache application code. For a React
+    application, this is a fantastic feature. Instead of downloading several hundred
+    kilobytes of JavaScript, a service worker can return it all in a split second
+    from a local cache, which means that your application can start almost immediately,
+    even on a low-powered device with a bad network connection.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其次，您可以使用服务工作线程来预缓存应用程序代码。对于 React 应用程序来说，这是一个非常棒的功能。服务工作线程可以从本地缓存中一瞬间返回几百千字节的
+    JavaScript，而不是从网络下载，这意味着您的应用程序可以几乎立即启动，即使在网络连接不佳的低功耗设备上也是如此。
+- en: 'But code caching has its own set of problems. Let’s say we have a React application
+    that includes the following generated JavaScript files:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是代码缓存也有其自身的问题。假设我们有一个包含以下生成的 JavaScript 文件的 React 应用程序：
+- en: '[PRE0]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: If we want to precache these files, the service worker will need to know the
+    names. That’s because it will download the files in the background, even before
+    the browser has asked for them. So if you create a service worker by hand, you
+    will need to include the names of each of the files that it will precache.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要预缓存这些文件，服务工作线程将需要知道这些文件的名称。这是因为它将在后台下载这些文件，甚至在浏览器请求它们之前。因此，如果您手动创建服务工作线程，您将需要包括每个文件的名称以进行预缓存。
+- en: But then what happens if you make a small change to your source code and then
+    re-build the application?
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果您对源代码进行小改动然后重新构建应用程序会发生什么？
+- en: '[PRE1]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The filenames *change*, which means you will now have to update the service
+    worker script with the latest generated filenames.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件名 *会改变*，这意味着现在您必须使用最新生成的文件名更新服务工作线程脚本。
+- en: How can you create stable service workers that are always in sync with the latest
+    application code?
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何创建稳定的服务工作线程，始终与最新的应用程序代码同步？
+- en: Solution
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to use a set of tools from Google called [Workbox](https://oreil.ly/9dPXh).
+    The Workbox tools allow you to generate service workers that are up-to-date with
+    your latest application files.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用来自 Google 的一组工具称为 [Workbox](https://oreil.ly/9dPXh)。Workbox 工具允许您生成与最新应用程序文件同步的服务工作线程。
+- en: Workbox includes a set of standard strategies to handle the details of common
+    service worker use cases. If you want to precache your application, you can do
+    so with a single line of code into Workbox.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Workbox 包含一组标准策略来处理常见服务工作线程用例的详细信息。如果您想要预缓存您的应用程序，可以通过一行代码将其集成到 Workbox 中。
+- en: To see how to use Workbox, consider the application you can see in [Figure 11-2](#ch11_image_2).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解如何使用 Workbox，请考虑您可以在[图 11-2](#ch11_image_2)中看到的应用程序。
+- en: '![](Images/recb_1102.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1102.png)'
+- en: Figure 11-2\. Our example application has two pages
+  id: totrans-30
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-2\. 我们的示例应用程序有两个页面
+- en: It’s a simple two-page application based on the default application generated
+    by `create-react-app`. We’re going to build a service worker that will precache
+    all of the application’s code and files.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个基于`create-react-app`生成的简单的双页面应用程序。我们将构建一个服务工作者，预缓存所有应用程序的代码和文件。
+- en: 'We’ll begin by installing a few of the libraries from Workbox:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从Workbox安装几个库：
+- en: '[PRE2]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: You will see what each of these libraries is for as we build the service worker.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当构建服务工作者时，您将看到每个库的作用。
+- en: 'In our application, we will create a new file for the service worker called
+    *service-worker.js*. We can place this file in the same directory as the rest
+    of the application code:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用程序中，我们将创建一个名为*service-worker.js*的新文件作为服务工作者。我们可以将这个文件放在与应用程序其余代码相同的目录中：
+- en: '[PRE3]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: If we were creating a service worker by hand, we would have to create it in
+    the same directory we use to store other static content. For example, in a `create-react-app`
+    application, we would have to create it in the *public* directory.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们手动创建服务工作者，我们必须将其创建在用于存储其他静态内容的相同目录中。例如，在`create-react-app`应用程序中，我们必须将其创建在*public*目录中。
+- en: Our service worker will precache all of the application code. That means it
+    will automatically cache any CSS, JavaScript, HTML, and images that are part of
+    the application.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的服务工作者将预缓存所有应用程序代码。这意味着它将自动缓存作为应用程序一部分的任何CSS、JavaScript、HTML和图像。
+- en: The service worker calls the `clientsClaim` function from *workbox-core*, which
+    will make the service worker the controller for all clients within its scope.
+    A *client* is a web page, and the *scope* is any web page with a URL within the
+    same path as the service worker. Workbox will generate our service worker at *https://host/service-worker.js*,
+    which means the service worker will be the controller for all pages that begin
+    with *https://host/*.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作者从*workbox-core*调用`clientsClaim`函数，这将使服务工作者成为其范围内所有客户端的控制器。*客户端*是一个网页，*范围*是与服务工作者相同路径的任何网页URL。Workbox将在*https://host/service-worker.js*生成我们的服务工作者，这意味着服务工作者将成为所有以*https://host/*开头的页面的控制器。
+- en: The `precacheAndRoute` function will handle all of the gory details of the precaching
+    process. It will create and manage the local cache, and it will intercept network
+    requests for application files and load them from the local cache rather than
+    the network.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数`precacheAndRoute`将处理预缓存过程的所有细节。它将创建和管理本地缓存，并拦截应用程序文件的网络请求，从本地缓存而不是网络加载它们。
+- en: Service workers will function only if loaded with HTTPS. Most browsers make
+    an exception for sites loaded from *localhost*. For security reasons, browsers
+    will not run service workers in private tabs.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有通过HTTPS加载，服务工作者才能正常运行。大多数浏览器会为从*localhost*加载的站点做出例外。出于安全原因，浏览器不会在私密标签页中运行服务工作者。
+- en: As we’ve created our service worker, we need to register it from the main application
+    code. Registration is a complex process, but the good news is that it’s almost
+    always the same. Once you’ve written the registration code for one application,
+    you can copy it, unchanged, to another. Also, if you are building your application
+    using the *cra-template-pwa* template, it will generate the registration code
+    for you.^([1](ch11.xhtml#idm46634379052936))
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们创建了服务工作者后，我们需要从主应用程序代码中注册它。注册是一个复杂的过程，但好消息是几乎总是相同的。一旦您为一个应用程序编写了注册代码，您可以无需更改地复制到另一个应用程序中。此外，如果您使用*cra-template-pwa*模板构建应用程序，它会为您生成注册代码。^([1](ch11.xhtml#idm46634379052936))
+- en: It is still worth understanding the details of the registration process; it
+    will give you insight into the life cycle of a service worker. That will make
+    it a lot easier to understand any seemingly odd behavior that occurs after you
+    deploy your application.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 了解注册过程的细节仍然很重要；这将帮助您理解部署应用程序后发生的任何看似奇怪的行为背后的生命周期。这将使您更容易理解注册过程。
+- en: 'Create a new file called *registerWorker.js* in the main source directory of
+    the application:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在应用程序的主源目录中创建一个名为*registerWorker.js*的新文件：
+- en: '[PRE4]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Leave the `register` function empty for now.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在先将`register`函数保持为空。
+- en: 'We will call the `registerWorker` function from the *index.js* file in our
+    application:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在应用程序中的*index.js*文件中调用`registerWorker`函数：
+- en: '[PRE5]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The `registerWorker` function will call `register` with the path of our generated
+    service worker: *service-worker.js*.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数`registerWorker`将使用生成的服务工作者的路径调用`register`函数：*service-worker.js*。
+- en: 'We can now start to write the `register` function:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以开始编写`register`函数：
+- en: '[PRE6]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: We’ll check that we’re in *production* mode and that the browser can run service
+    workers. The *progressive* in *progressive web application* means that we should
+    always check that a feature is available before using it. Almost all browsers
+    (with the notable exception of Internet Explorer) support service workers, but
+    we can skip the service worker entirely if a browser doesn’t. It will mean that
+    the application will lose its ability to work offline, but other than that, the
+    application should still work.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将检查我们是否处于*生产*模式，并且浏览器是否支持运行服务工作线程。*渐进*网页应用程序中的*渐进*意味着我们应该始终检查功能是否可用才使用。几乎所有浏览器（除了著名的Internet
+    Explorer）都支持服务工作线程，但是如果浏览器不支持，我们可以完全跳过服务工作线程。这意味着应用程序将失去离线工作的能力，但除此之外，应用程序应该仍然可以运行。
+- en: We also add an extra check to ensure we are running on the specified `PUBLIC
+    URL` of the application, which will avoid cross-domain issues that arise when
+    loading code from content distribution networks.^([2](ch11.xhtml#idm46634378758840))
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还添加了额外的检查以确保我们运行在应用程序指定的`PUBLIC URL`上，这将避免在从内容分发网络加载代码时出现的跨域问题。^([2](ch11.xhtml#idm46634378758840))
+- en: 'Now we can download and register the service worker:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以下载并注册服务工作线程：
+- en: '[PRE7]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Once we know the web page is loaded, we can register the service worker with
+    the `navigator.serviceWorker.register` function, passing it the full URL of the
+    service worker: *[*https://host/service-worker.js*](https://host/service-worker.js)*.'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们知道网页已加载，我们可以使用`navigator.serviceWorker.register`函数注册服务工作线程，并传递服务工作线程的完整URL：*[*https://host/service-worker.js*](https://host/service-worker.js)*。
+- en: 'It returns a *registration* object, which can be used to track and manage the
+    service worker. For example, you can use the registration object to find out when
+    the service worker is updated or installed:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它返回一个*注册*对象，可用于跟踪和管理服务工作线程。例如，您可以使用注册对象查找服务工作线程何时更新或安装：
+- en: '[PRE8]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The `onupdatefound` handler runs when the browser starts to install the service
+    worker. Once the browser has installed the service worker, we can check `navigator.serviceWorker.controller`
+    to see if a previous service worker is still running. If not, we know that this
+    is a fresh installation and not an update.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onupdatefound` 处理程序在浏览器开始安装服务工作线程时运行。一旦浏览器安装了服务工作线程，我们可以检查 `navigator.serviceWorker.controller`
+    来查看之前的服务工作线程是否仍在运行。如果没有，则知道这是一个全新的安装，而不是更新。'
+- en: One of the most confusing things about service workers is the way that they
+    are updated. If an old service worker is already in control of a page, the browser
+    will put the new service worker into a *waiting* state, which means it will do
+    *absolutely nothing* until the old service worker stops. A service worker stops
+    when the user closes all the pages that it controls. Consequently, if you update
+    your service worker, you will not run the new code until you open, close, and
+    then open the page again.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关服务工作线程最令人困惑的事情之一是它们的更新方式。如果旧的服务工作线程已经控制了一个页面，浏览器将将新的服务工作线程置于*等待*状态，这意味着它将*绝对什么也不做*，直到旧的服务工作线程停止。服务工作线程停止的时机是当用户关闭所有它控制的页面时。因此，如果更新了您的服务工作线程，您将不会运行新的代码，直到您再次打开页面，然后关闭并再次打开页面。
+- en: This process can be confusing for anyone manually testing a new service worker
+    feature.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个过程对于手动测试新服务工作线程功能的任何人来说可能会有些混乱。
+- en: Before we build the application, we will need to configure the build tools to
+    convert our *service-worker.js* source file into a densely written service worker
+    script.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建应用程序之前，我们需要配置构建工具以将我们的*service-worker.js*源文件转换为紧凑编写的服务工作线程脚本。
+- en: 'If you’re building your application with Webpack, you should install the Workbox
+    Webpack Plugin:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用Webpack构建应用程序，您应该安装Workbox Webpack插件：
+- en: '[PRE9]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: You will not need to install the Workbox Webpack Plugin or configure its use
+    if you created your application with `create-react-app`, which includes and configures
+    the plugin for you.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用`create-react-app`创建应用程序，无需安装Workbox Webpack插件或配置其使用，因为它已经包含并配置了插件。
+- en: 'You can then add the following to your *webpack.config.js* configuration:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您可以将以下内容添加到您的*webpack.config.js*配置中：
+- en: '[PRE10]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: This configuration will tell Webpack to generate a service worker from the *src/service-worker.js*
+    file. It will also generate a file called *asset-manifest.json* in your built
+    application, which will list all of the application files. The service worker
+    will use the information in *asset-manifest.json* when it’s precaching the application.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配置将告诉 Webpack 从 *src/service-worker.js* 文件生成服务工作线程。它还将在构建的应用程序中生成一个名为 *asset-manifest.json*
+    的文件，该文件将列出所有应用程序文件。服务工作线程在预缓存应用程序时将使用 *asset-manifest.json* 中的信息。
+- en: 'Now you build the application:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在构建应用程序：
+- en: '[PRE11]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'In your *build* directory, you will see a generated *service-worker.js* file
+    and the *asset-manifest.json* file:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的 *build* 目录中，您将看到一个生成的 *service-worker.js* 文件和 *asset-manifest.json* 文件：
+- en: '[PRE12]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'The *asset-manifest.json* file will contain something like this:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*asset-manifest.json* 文件将包含类似以下内容：'
+- en: '[PRE13]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'You can now run the application. You can’t just start the development server
+    with this:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在可以运行应用程序了。您不能只使用以下命令启动开发服务器：
+- en: '[PRE14]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'That will only run the application in development mode, and the service worker
+    will not start. You will need to run a server on the contents of the *build* directory.
+    The simplest way to do this is by installing the *serve* package globally and
+    then running it against the *build* directory:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只会以开发模式运行应用程序，并且服务工作线程不会启动。您需要在 *build* 目录上运行服务器。最简单的方法是全局安装 *serve* 包，然后针对
+    *build* 目录运行它：
+- en: '[PRE15]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The `-s` option is for running SPAs. If the server can’t find a matching file,
+    it will return the *build/index.html* file.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`-s` 选项用于运行单页面应用程序。如果服务器找不到匹配的文件，它将返回 *build/index.html* 文件。'
+- en: You can now open a browser at *http://localhost:5000*. The application will
+    appear, and if you open the developer tools and switch to the Application tab,
+    under Service Workers, you should see the *service-worker.js* script running (see
+    [Figure 11-3](#ch11_image_3)).
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您可以在 *http://localhost:5000* 打开浏览器。应用程序将显示出来，如果您打开开发者工具并切换到应用程序选项卡，在服务工作线程下，您应该可以看到
+    *service-worker.js* 脚本正在运行（见 [图 11-3](#ch11_image_3)）。
+- en: '![](Images/recb_1103.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1103.png)'
+- en: Figure 11-3\. The service worker installed and running in the application
+  id: totrans-82
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-3\. 应用程序中安装并运行的服务工作线程
+- en: The service worker will download all of the application files into a local cache
+    so that the next time the page is loaded, the files will come from the local cache
+    rather than the server. You can see this happen if you switch to the *Network*
+    tab in developer tools and then reload the page (see [Figure 11-4](#ch11_image_4)).
+    The service worker will supply each of the network responses, except those that
+    fall outside its scope. Any file that belongs at the site level rather than page
+    level, such as *favicon* icons, will still be downloaded in the usual way.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程将所有应用程序文件下载到本地缓存中，因此下次加载页面时，文件将来自本地缓存而不是服务器。如果您切换到开发者工具中的 *网络* 选项卡然后重新加载页面，您可以看到这一过程（见
+    [图 11-4](#ch11_image_4)）。服务工作线程将提供每个网络响应，除了那些超出其范围的响应。属于站点级而不是页面级别的文件，如 *favicon*
+    图标，仍将以通常的方式下载。
+- en: '![](Images/recb_1104.png)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1104.png)'
+- en: Figure 11-4\. After refresh, the files are downloaded using the service worker
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-4\. 刷新后，文件将使用服务工作线程下载
+- en: The service worker is returning the files from a local cache. If you are using
+    Chrome, you can see the cache on the Application tab. For Firefox, you will find
+    it on the Storage tab (see [Figure 11-5](#ch11_image_5)).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程从本地缓存返回文件。如果您使用 Chrome，您可以在应用程序选项卡中看到缓存。对于 Firefox，您将在存储选项卡中找到它（见 [图 11-5](#ch11_image_5)）。
+- en: '![](Images/recb_1105.png)'
+  id: totrans-87
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1105.png)'
+- en: Figure 11-5\. A cache stores the files locally
+  id: totrans-88
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-5\. 缓存将文件存储在本地
+- en: The cache doesn’t contain a copy of *all* the application files, only those
+    that the application has requested. In this way, it will avoid downloading files
+    that are not needed and will download files into the cache only after the browser
+    or the application code has requested them.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缓存不包含 *所有* 应用程序文件的副本，只包含应用程序请求的文件。这样，它将避免下载不需要的文件，并且仅在浏览器或应用程序代码请求它们后将文件下载到缓存中。
+- en: So the first time you load the application, the cache might be empty. It depends
+    on when the service worker becomes active. If the page loads *before* the service
+    worker is active, the service worker won’t intercept the network requests and
+    cache the responses. As a result, you might have to refresh a page before you
+    see the caches appear.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，第一次加载应用程序时，缓存可能是空的。这取决于服务工作线程何时变为活动状态。如果页面在服务工作线程变为活动状态之前加载，服务工作线程不会拦截网络请求并缓存响应。因此，在看到缓存出现之前，您可能需要刷新页面。
+- en: To prove that the files are genuinely coming from the service worker, you can
+    stop the server and refresh the web page. Even though the server is no longer
+    there, the page should load as usual (see [Figure 11-6](#ch11_image_6)).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要证明文件确实来自服务工作线程，您可以停止服务器并刷新网页。即使服务器不再存在，页面也应该正常加载（见 [图 11-6](#ch11_image_6)）。
+- en: '![](Images/recb_1106.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1106.png)'
+- en: Figure 11-6\. Even without the server running, you can refresh the page
+  id: totrans-93
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-6\. 即使没有运行服务器，您也可以刷新页面。
+- en: You should now think of the React application as a local application rather
+    than a network application. It’s served from the service worker rather than the
+    backend server. It will even let you get to navigate to page 2 (see [Figure 11-7](#ch11_image_7)).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您应该将 React 应用程序视为本地应用程序，而不是网络应用程序。它是通过服务工作线程提供的，而不是通过后端服务器。甚至可以让您导航到第二页（见
+    [图 11-7](#ch11_image_7)）。
+- en: '![](Images/recb_1107.png)'
+  id: totrans-95
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1107.png)'
+- en: Figure 11-7\. You can still navigate between pages even when the server is offline
+  id: totrans-96
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-7\. 即使服务器离线，您仍然可以在页面之间导航。
+- en: Using code splitting can interfere with some offline functionality. If the code
+    to display page 2 in the example application was stored in a separate JavaScript
+    file that was not initially loaded, the browser will not return it from the local
+    cache. It will be available once the browser has visited that page when the server
+    is online.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用代码分割可能会干扰某些离线功能。例如，如果用于显示示例应用程序中第二页的代码存储在一个未初始化加载的单独 JavaScript 文件中，浏览器将不会从本地缓存返回它。只有当浏览器在在线状态下访问该页面时，它才会可用。
+- en: While we are looking at page 2, we can examine a current problem with the service
+    worker. Make sure the server is *not* running, and navigate to page 2\. It should
+    load normally. Then reload the page. Instead of seeing page 2, you will get an
+    error page from the browser (see [Figure 11-8](#ch11_image_8)).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们查看第二页时，我们可以检查服务工作线程的当前问题。确保服务器 *未* 运行，并导航到第二页。它应该正常加载。然后重新加载页面。而不是看到第二页，您将从浏览器得到一个错误页面（见
+    [图 11-8](#ch11_image_8)）。
+- en: '![](Images/recb_1108.png)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1108.png)'
+- en: Figure 11-8\. Page 2 will not reload when the server is offline
+  id: totrans-100
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-8\. 当服务器离线时，第二页不会重新加载。
+- en: We can reload the front page of the application while offline, so why isn’t
+    this true for page 2? It’s because this is an SPA. When we navigate to page 2,
+    the browser isn’t loading a new web page from the server; instead, it uses the
+    history API to update the URL in the address bar and then modify the DOM to show
+    page 2.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以在离线状态下重新加载应用程序的首页，那为什么不能对第二页做到呢？因为这是一个单页面应用程序（SPA）。当我们导航到第二页时，浏览器不会从服务器加载一个新的网页；相反，它使用历史
+    API 更新地址栏中的 URL，然后修改 DOM 来显示第二页。
+- en: However, when you reload the page, the browser will make a new request to the
+    server for *http://localhost:5000/page2*. When the server is running, it will
+    return the contents of *index.html* for all page requests, and the React router
+    will render the components to look like page 2.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，当您重新加载页面时，浏览器将向服务器发出新的请求以获取 *http://localhost:5000/page2*。当服务器运行时，它将为所有页面请求返回
+    *index.html* 的内容，而 React 路由器将渲染组件，看起来像第二页。
+- en: This process falls apart when the server is no longer online. The service worker
+    will not be able to respond to a request for *http://localhost:5000/page2* using
+    cached data. There is nothing in the cache for *page2*. So, it will forward the
+    request to the server, which is no longer running. That’s why you get the error
+    page.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当服务器不再在线时，这个过程就会失败。服务工作线程将无法使用缓存数据响应 *http://localhost:5000/page2* 的请求。对于 *page2*，缓存中没有任何内容。因此，它会将请求转发到不再运行的服务器，这就是为什么会出现错误页面的原因。
+- en: We can fix this by adding a little more code to *service-worker.js*:^([3](ch11.xhtml#idm46634377919384))
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过向 *service-worker.js* 添加更多代码来解决这个问题：^([3](ch11.xhtml#idm46634377919384))
+- en: '[PRE16]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: We are now registering an explicit *route* using `workbox-routing`. A route
+    decides how the service worker will deal with requests for a set of paths. We’re
+    registering a new route using a filter function and a handler in the previous
+    example code. The filter function is the first value passed to the `registerRoute`
+    call. It will return true if this route deals with a given request. The filter
+    function in the preceding code will deal with any navigation requests to new web
+    pages. So if you open the browser at *http://localhost:5000/* or *http://localhost:5000/page2*,
+    this route will return the same cached copy of *index.html*.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在正在使用`workbox-routing`注册显式*路由*。路由决定服务工作线程如何处理一组路径的请求。我们使用前面示例代码中的过滤器函数和处理程序注册了一个新路由。过滤器函数是`registerRoute`调用中传递的第一个值。如果该路由处理给定请求，则返回true。在前面的代码中，过滤器函数将处理任何导航到新网页的请求。因此，如果您在*http://localhost:5000/*或*http://localhost:5000/page2*打开浏览器，此路由将返回相同的缓存*index.html*副本。
+- en: The function `createHandlerBoundToURL` will create a handler to treat any of
+    these requests as if they were requests for *http://localhost:5000/index.html*,
+    which means that if we reload the application while we’re on page 2, the service
+    worker should load the HTML the same way it does when we are on the front page.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数`createHandlerBoundToURL`将创建一个处理程序，将这些请求视为对*http://localhost:5000/index.html*的请求，这意味着如果我们在第
+    2 页重新加载应用程序，服务工作线程应该以与在首页上加载HTML相同的方式加载它。
+- en: 'Let’s try this. After saving the change to *service-worker.js*, rebuild the
+    application:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们试试这个。在保存更改到*service-worker.js*之后，重新构建应用程序：
+- en: '[PRE17]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now make sure that your local server is running:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在确保本地服务器正在运行：
+- en: '[PRE18]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Open the browser at *http://localhost:5000*, and you should see the application.
+    If you check the developer tools, you will find that it has loaded the new version
+    of the service worker, but the old version of the service worker is still running
+    (see [Figure 11-9](#ch11_image_9)).
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 打开浏览器访问*http://localhost:5000*，您应该看到应用程序。如果检查开发者工具，您会发现它已加载了新版本的服务工作线程，但旧版本的服务工作线程仍在运行（见[图
+    11-9](#ch11_image_9)）。
+- en: '![](Images/recb_1109.png)'
+  id: totrans-113
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1109.png)'
+- en: Figure 11-9\. The old and new service workers are both visible in the tools
+  id: totrans-114
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-9\. 工具中显示了新旧服务工作线程。
+- en: The previous version of the service worker is still in control of the application.
+    The browser has installed the new service worker, but it’s in a *waiting* state.
+    It won’t take over until the old service work disappears, and that will happen
+    if you close down the tab and then reopen it (see [Figure 11-10](#ch11_image_10)).
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 先前版本的服务工作线程仍然控制应用程序。浏览器已安装了新的服务工作线程，但处于*等待*状态。直到旧的服务工作线程消失，它才会接管，如果您关闭标签页然后重新打开它（见[图
+    11-10](#ch11_image_10)）。
+- en: '![](Images/recb_1110.png)'
+  id: totrans-116
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1110.png)'
+- en: Figure 11-10\. Reopen the application to activate the new worker
+  id: totrans-117
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-10\. 重新打开应用程序以激活新工作线程。
+- en: If you now stop your local server and navigate to page 2, you should be able
+    to reload it with no problems (see [Figure 11-11](#ch11_image_11)).
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您现在停止本地服务器并导航到第 2 页，应该能够重新加载而无任何问题（见[图 11-11](#ch11_image_11)）。
+- en: '![](Images/recb_1107.png)'
+  id: totrans-119
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1107.png)'
+- en: Figure 11-11\. Once you’ve registered a route handler, you can reload page 2
+  id: totrans-120
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-11\. 一旦注册了路由处理程序，您可以重新加载第 2 页。
+- en: Discussion
+  id: totrans-121
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'We’ve gone into quite a lot of depth in this recipe, looking at how to create,
+    register, and use service workers. In the following recipe, you will see that
+    you can automatically generate a lot of this code when you first build the application.
+    But it’s still worth digging into the messy details of how service workers operate.
+    It helps to understand the life cycle of a worker: how a browser installs a service
+    worker and how it becomes active.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个配方中，我们深入探讨了如何创建、注册和使用服务工作线程。在接下来的配方中，您将看到，在首次构建应用程序时，可以自动生成大部分这些代码。但是，深入了解服务工作线程的混乱细节仍然是值得的。这有助于理解工作线程的生命周期：浏览器如何安装服务工作线程以及它如何变为活动状态。
+- en: We have found that service workers can confuse anyone who is manually testing
+    the code. If the browser is still running an old version of a service worker,
+    it may still be running an old version of your application. This confusion can
+    lead to failed test reports because an old bug might still appear to be there.
+    Once you understand how new service workers load and how old service workers disappear,
+    you can quickly diagnose the problem.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们发现服务工作线程可能会让手动测试代码的人感到困惑。如果浏览器仍在运行旧版本的服务工作线程，则可能仍在运行旧版本的应用程序。这种混淆可能导致测试报告失败，因为旧
+    bug 可能仍然存在。一旦理解了新服务工作线程如何加载以及旧服务工作线程如何消失，您就可以快速诊断问题。
+- en: Out-of-date service workers are not an issue with automated browser tests, which
+    will tend to run in a *clean* state at the start of a test, with no caches or
+    running service workers.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化浏览器测试不会受过时的服务工作线程影响，测试开始时通常处于*干净*状态，没有缓存或正在运行的服务工作线程。
+- en: Progressive web applications with service workers are a kind of hybrid between
+    a local application and a remote application. The server becomes a distribution
+    server for an application that is installed locally. When the application is updated,
+    it will install a new version in the browser, but that new application will not
+    typically become available until the browser reopens it.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 带有服务工作线程的渐进式网络应用程序是本地应用程序和远程应用程序的混合体。服务器成为安装在本地的应用程序的分发服务器。当应用程序更新时，它将在浏览器中安装一个新版本，但通常要等到浏览器重新打开才能使用新应用程序。
+- en: Now that we’ve gone through service workers in a detailed way, we can look at
+    how you can quickly add them to a new application.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经详细介绍了服务工作线程，可以看看如何将它们快速添加到新应用程序中。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/su224).
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/su224)下载此示例的源代码。
+- en: Build a PWA with Create React App
+  id: totrans-128
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Create React App 构建 PWA
+- en: Problem
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You need two things before you can run service workers in your application.
+    First, you need a service worker, and [“Create Service Workers with Workbox”](#ch11-01)
+    looked at how the Workbox library would help simplify the creation and management
+    of service workers. Second, you need code that will register the service worker
+    in your application. Although complex to create, you can copy registration code
+    to new applications with few changes.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的应用程序中运行服务工作线程之前，您需要两件事情。首先，您需要一个服务工作线程，[“使用 Workbox 创建服务工作线程”](#ch11-01)介绍了
+    Workbox 库如何帮助简化服务工作线程的创建和管理。其次，您需要一段代码，在您的应用程序中注册服务工作线程。虽然创建复杂，但您可以通过少量更改将注册代码复制到新应用程序中。
+- en: However, as patterns evolve in the use of service workers, it would be helpful
+    to avoid the need to create our own registration code. How can we do that?
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，随着服务工作线程使用模式的发展，避免创建自己的注册代码将是有帮助的。我们可以如何做到这一点？
+- en: Solution
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We will look at how to use templates in `create-react-app` to build an application
+    that includes service workers.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将看看如何在 `create-react-app` 中使用模板来构建一个包含服务工作线程的应用程序。
+- en: Even if you don’t intend to use `create-react-app`, it can be worth generating
+    an application with it and then reusing the service worker code in your project.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使您不打算使用 `create-react-app`，使用它生成应用程序然后在项目中重用服务工作线程代码可能是值得的。
+- en: We briefly saw how to use application templates in [Chapter 1](ch01_split_000.xhtml#chapter01)
+    when we generated TypeScript projects with `create-react-app`. Templates are the
+    boilerplate code that `create-react-app` uses when it generates a new application.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在[第1章](ch01_split_000.xhtml#chapter01)简要介绍了如何在生成 TypeScript 项目时使用应用程序模板，该模板是`create-react-app`在生成新应用程序时使用的样板代码。
+- en: 'If we want to create a progressive web application, we can do it by typing
+    the following:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想创建一个渐进式网络应用程序，我们可以通过输入以下内容来实现：
+- en: '[PRE19]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: If you want to create a TypeScript application, replace `cra-template-pwa` with
+    `cra-template-pwa-typescript`.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想创建一个 TypeScript 应用程序，请使用 `cra-template-pwa-typescript` 替换 `cra-template-pwa`。
+- en: 'If we do that, it will generate a React application in a new folder called
+    *appname*. The application will look virtually the same as any other CRA application,
+    but it will install several Workbox libraries. It will add two additional source
+    files. In the *src* directory, you will find an example *service-worker.js* script:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们这样做，它将在名为*appname*的新文件夹中生成一个 React 应用程序。该应用程序看起来几乎与任何其他 CRA 应用程序相同，但它将安装几个
+    Workbox 库。它将添加两个额外的源文件。在*src*目录中，您将找到一个名为*service-worker.js*的示例脚本：
+- en: '[PRE20]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The service worker is similar to the one we created in [“Create Service Workers
+    with Workbox”](#ch11-01).
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作者类似于我们在[“使用 Workbox 创建服务工作者”](#ch11-01)中创建的服务工作者。
+- en: You will also find a new file in the *src* directory called *serviceWorkerRegistration.js*.
+    This file is very long, so we won’t include the contents here. But it serves the
+    same purpose as the *registerWorker.js* script we wrote in [“Create Service Workers
+    with Workbox”](#ch11-01). It registers the service worker as the controller of
+    the application. The *serviceWorkerRegistration.js* file is valuable, even if
+    you don’t intend to use `create-react-app` for your application. It has several
+    additional features that the registration code in the previous recipe did not.
+    For example, suppose you are running on *localhost*. In that case, it will unregister
+    any service workers that look like they belong to a different application, which
+    is helpful if you’re working on several React applications.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还会在 *src* 目录中找到一个名为 *serviceWorkerRegistration.js* 的新文件。这个文件非常长，所以我们不会在这里包含其内容。但它与我们在[“使用
+    Workbox 创建服务工作者”](#ch11-01)中编写的 *registerWorker.js* 脚本具有相同的目的。它将服务工作者注册为应用程序的控制器。即使您不打算在应用程序中使用
+    `create-react-app`，*serviceWorkerRegistration.js* 文件也非常有价值。它有几个前一篇配方中的注册代码没有的附加功能。例如，假设您正在运行在
+    *localhost* 上。如果它们看起来属于不同应用程序，它将注销任何服务工作者，这在您同时在几个 React 应用程序上工作时非常有用。
+- en: 'Even though the service worker and the registration code are created for you
+    in your new application, they won’t actually be configured. In the *index.js*
+    file, you will find that the application will actually unregister any service
+    workers:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管服务工作者和注册代码在您的新应用程序中为您创建了，但它们实际上并没有配置好。在 *index.js* 文件中，您会发现该应用程序实际上会注销任何服务工作者：
+- en: '[PRE21]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: If you want to enable the *service-worker.js* script, you will need to change
+    `serviceWor⁠kerRegistration.unregister` to `serviceWorkerRegistration.register`.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要启用 *service-worker.js* 脚本，您需要将 `serviceWor⁠kerRegistration.unregister`
+    更改为 `serviceWorkerRegistration.register`。
+- en: 'The `register` function allows you to pass callbacks into the registration
+    process so that you can track the current status of the service worker installation.
+    To do this, pass an object with `onInstall` and `onUpdate` functions:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`register` 函数允许您将回调传递到注册过程中，以便您可以跟踪服务工作者安装的当前状态。为此，请传递一个带有 `onInstall` 和 `onUpdate`
+    函数的对象：'
+- en: '[PRE22]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: The callbacks are helpful if you want to defer some processing until after the
+    browser has installed the service worker or if you would like to run code when
+    the new service worker is an update to a previous one. If `onUpdate` is called,
+    you will know that your new service worker is waiting for an old service worker
+    to disappear.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要延迟某些处理直到浏览器安装了服务工作者，或者如果您想在新的服务工作者更新到先前版本时运行代码，则回调非常有用。如果调用 `onUpdate`，则您将知道您的新服务工作者正在等待旧服务工作者消失。
+- en: Discussion
+  id: totrans-149
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: '[“Create Service Workers with Workbox”](#ch11-01) helps you understand how
+    service workers operate. When you are finally building a real application, templated
+    code will be far more polished and feature-rich.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“使用 Workbox 创建服务工作者”](#ch11-01) 帮助您了解服务工作者的操作方式。当您最终构建一个真实的应用程序时，模板代码将更加精致和功能丰富。'
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/hHAC9).
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 站点](https://oreil.ly/hHAC9)下载此配方的源代码。
+- en: Cache Third-Party Resources
+  id: totrans-152
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 缓存第三方资源
+- en: Problem
+  id: totrans-153
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'Many of the resources used in a modern application come from third-party servers:
+    payment libraries, fonts, images, etc. Third-party resources can consume a lot
+    of bandwidth and might grow in size over time. If they come from slow servers,
+    then they might slow down your application in a way that’s out of your control.^([4](ch11.xhtml#idm46634377229464))'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代应用程序中使用的许多资源来自第三方服务器：支付库、字体、图片等等。第三方资源可能会消耗大量带宽，并且随着时间的推移可能会增长。如果它们来自慢速服务器，那么它们可能会以您无法控制的方式减慢您的应用程序速度。^([4](ch11.xhtml#idm46634377229464))
+- en: Is it possible to use a service worker to cache third-party resources?
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是否可以使用服务工作者缓存第三方资源？
+- en: Solution
+  id: totrans-156
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Service workers have limited scope because they are allowed to control pages
+    only within the same URL path. That’s why service workers are generally at the
+    root of an application; it allows them to control every page.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于服务工作者只允许控制相同 URL 路径内的页面，所以它们的范围有限。这就是为什么服务工作者通常位于应用程序的根目录的原因；它允许它们控制每一页。
+- en: But there is no such limitation on the URLs that they are allowed to contact.
+    They can talk to any endpoint that your page or code can. That means you can start
+    to cache resources that come from third-party servers.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但对于它们允许访问的 URL 并无限制。它们可以与页面或代码可以访问的任何端点通信。这意味着你可以开始缓存来自第三方服务器的资源。
+- en: The application you can see in [Figure 11-12](#ch11_image_12) is using a font
+    downloaded from Google Fonts.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您在 [图 11-12](#ch11_image_12) 中看到的应用程序使用了从 Google Fonts 下载的字体。
+- en: '![](Images/recb_1112.png)'
+  id: totrans-160
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1112.png)'
+- en: Figure 11-12\. An application with a Google font—beautiful!
+  id: totrans-161
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-12\. 使用谷歌字体的应用程序——非常漂亮！
+- en: 'The font was added using these two lines in the header of the page:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在页面头部添加了以下两行代码来添加字体：
+- en: '[PRE23]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: The first `link` imports the web font, and the second imports the associated
+    stylesheet.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个 `link` 导入了网络字体，第二个导入了相关样式表。
+- en: 'To cache this in the application, we will first need to register a service
+    worker. The example application was created with the *cra-template-pwa* template,
+    so we will need to call the `register` function in the *index.js* file:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在应用程序中缓存这些内容，我们首先需要注册一个服务工作者。示例应用程序是使用 *cra-template-pwa* 模板创建的，因此我们需要在 *index.js*
+    文件中调用 `register` 函数：
+- en: '[PRE24]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: We will now add some routes into the *service-worker.js* script, which contains
+    the service worker for the application. The service worker uses the Workbox library.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将在 *service-worker.js* 脚本中添加一些路由，该脚本包含应用程序的服务工作者。服务工作者使用 Workbox 库。
+- en: We need to cache the stylesheet and the downloadable font.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要缓存样式表和可下载字体。
+- en: 'We saw in [“Create Service Workers with Workbox”](#ch11-01) that we could precache
+    the application code, which is such a common requirement that Workbox lets you
+    do it with a single line of code:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 [“使用 Workbox 创建服务工作者”](#ch11-01) 中看到，我们可以预缓存应用程序代码，这是一个非常常见的需求，Workbox 让你只需一行代码即可完成：
+- en: '[PRE25]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'This command will create a route that will cache any application code locally.
+    We need to do a little more work if we want to cache third-party resources. Let’s
+    create a route to cache the stylesheet:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个命令将创建一个路由，本地缓存任何应用程序代码。如果要缓存第三方资源，我们需要做更多工作。让我们创建一个路由来缓存样式表：
+- en: '[PRE26]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: When we call `registerRoute`, we have to pass it a filter function and a handler.
+    The filter function is given a request object and returns true if the handler
+    should process it. The handler is a function that decides how to satisfy the request.
+    It might look in a local cache, pass the request onto the network, or do some
+    combination of the two.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用 `registerRoute` 时，我们需要传递一个过滤函数和一个处理程序。过滤函数接收一个请求对象，并返回 true 如果处理程序应该处理该请求。处理程序是一个函数，决定如何满足请求。它可能查找本地缓存，将请求传递给网络，或者两者结合。
+- en: Handlers are quite complex functions to build, but they typically follow some
+    standard *strategy*, such as checking the cache before downloading a file from
+    the network. Workbox has functions that will provide implementations of several
+    strategies.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理程序是相当复杂的构建函数，但通常遵循某些标准的 *策略*，比如在从网络下载文件之前检查缓存。Workbox 有一些函数提供了几种策略的实现。
+- en: When we’re downloading stylesheets, we’ll use a [`stale-while-revalidate` strategy](https://oreil.ly/Ct1K3),
+    which means that when the browser wants to download the Google stylesheet, we
+    will send a request for the stylesheet and also check the local cache to see if
+    we already have a copy of the stylesheet file. If not, we’ll wait for the stylesheet
+    network request to return. This strategy is helpful if you make frequent requests
+    for a resource but don’t care if you have the latest version. We’ll prefer to
+    use the cached version of the stylesheet because that will be faster. But we will
+    also always request a new version of the stylesheet from the network. We’ll cache
+    whatever comes back from Google, so even if we don’t get the latest version of
+    the stylesheet this time, we will the next time we load it.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们下载样式表时，我们将使用 [`stale-while-revalidate` 策略](https://oreil.ly/Ct1K3)，这意味着当浏览器想要下载
+    Google 样式表时，我们会发送一个样式表请求，并检查本地缓存是否已经有样式表文件的副本。如果没有，我们将等待样式表网络请求返回。如果你频繁请求资源但不关心是否有最新版本，这种策略非常有用。我们更喜欢使用缓存版本的样式表，因为速度更快。但我们也会始终从网络请求新版本的样式表。我们将缓存从
+    Google 返回的任何内容，因此即使这次没有获取到样式表的最新版本，下次加载时我们也会得到。
+- en: 'This is how we create a handler for the `stale-while-revalidate` strategy:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们为 `stale-while-revalidate` 策略创建处理程序的方法：
+- en: '[PRE27]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: The `StaleWhileRevalidate` function will return a handler function that will
+    cache the stylesheet in a cache called `stylesheets`.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`StaleWhileRevalidate`函数将返回一个处理程序函数，该处理程序将在名为`stylesheets`的缓存中缓存样式表。'
+- en: When loading third-party requests, you might find that your request might fail
+    with a cross-origin resource sharing (CORS) error. This error can occur even if
+    the third-party resource is returned with a valid CORS header because the `GET`
+    request comes from JavaScript code rather than the HTML of the page. You can fix
+    it by setting the `crossorigin` to `anonymous` on the HTML element using the resource,
+    for example, the `link` reference that is downloading a stylesheet.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当加载第三方请求时，您可能会发现您的请求可能因为跨域资源共享（CORS）错误而失败。即使第三方资源带有有效的CORS头，由于`GET`请求来自JavaScript代码而不是页面的HTML，也可能发生此错误。您可以通过在使用资源的HTML元素上将`crossorigin`设置为`anonymous`来解决此问题，例如正在下载样式表的`link`引用。
+- en: We could apply the same strategy when downloading the Google font. But font
+    files can be large, and the `stale-while-revalidate` strategy will always download
+    the latest version of the resource, even if it does so only to update the local
+    cache.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当下载Google字体时，我们可以应用相同的策略。但是字体文件可能很大，`stale-while-revalidate`策略将始终下载资源的最新版本，即使仅仅是为了更新本地缓存。
+- en: 'Instead, we’ll use a [*cache-first* strategy](https://oreil.ly/c8aa5). In a
+    cache-first strategy, we first check the cache for the resource, and if it’s there,
+    we use it. If we don’t find the resource locally, we will send a network request.
+    This is a helpful strategy for large resources. It does have a downside: you will
+    download a new version of the resource only if the cache doesn’t contain it. That
+    means you might never be able to download any updated versions.'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，我们将使用[*缓存优先策略*](https://oreil.ly/c8aa5)。在缓存优先策略中，我们首先检查资源的缓存，如果存在，则使用缓存。如果在本地找不到资源，我们将发送网络请求。这是处理大资源的有益策略。它确实有一个缺点：只有当缓存中不存在资源时，你才能下载资源的新版本。这意味着你可能永远无法下载任何更新版本。
+- en: For that reason, we usually configure the cache-first strategy to cache resources
+    for only a given period. If the handler finds the resource in the local cache
+    but it’s too old, it will request the resource from the network and then cache
+    the updated version.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，通常我们会配置缓存优先策略，只缓存一段时间内的资源。如果处理程序在本地缓存中找到资源但它太旧，它将从网络请求资源，然后缓存更新版本。
+- en: Whatever we cache, we’ll be using until the cache times out. So if there’s some
+    temporary problem on the third-party server and we receive a `500` status,^([5](ch11.xhtml#idm46634376960472))
+    we don’t want to cache the response. So, we will also need to check the status
+    before we decide to cache a response.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论我们缓存什么，我们都将使用直到缓存超时。因此，如果第三方服务器出现临时问题并且我们收到`500`状态，^([5](ch11.xhtml#idm46634376960472))我们不希望缓存响应。因此，在决定是否缓存响应之前，我们还需要检查状态。
+- en: 'The following code shows how we will register a route to cache the Google font:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下代码显示了我们如何注册路由以缓存Google字体：
+- en: '[PRE28]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This code will cache up to five font files in a local cache called `fonts`.
+    The cached copies will time out after a week, and we will cache the response only
+    if the status is either `200` or `0`. A `0` status indicates a cross-origin issue
+    with the request, and in this case, we cache the response. A CORS error will not
+    go away without a code change, and if we cache the error, we will avoid sending
+    future requests that are doomed to fail.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码将在名为`fonts`的本地缓存中缓存最多五个字体文件。缓存副本将在一周后超时，我们只会在状态为`200`或`0`时缓存响应。状态`0`表示请求存在跨域问题，在这种情况下，我们会缓存响应。CORS错误不会因为代码更改而消失，如果我们缓存错误，我们将避免发送注定失败的未来请求。
+- en: Discussion
+  id: totrans-187
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Third-party resource caching can significantly improve the performance of your
+    application, but much more importantly, it will make resources available when
+    your application is offline. It doesn’t matter too much if the application cannot
+    read something cosmetic like a font file. Still, if you’re using third-party code
+    to generate a payment form, it would be helpful to keep doing so, even if the
+    user’s device is temporarily off the network.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三方资源缓存可以显著改善应用程序的性能，但更重要的是，在应用程序离线时，它将使资源可用。如果应用程序无法读取诸如字体文件之类的外观文件并不太重要，但是，如果您使用第三方代码生成付款表单，即使用户设备暂时断开网络，保持操作也会很有帮助。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/QaFYG).
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/QaFYG)下载此配方的源代码。
+- en: Automatically Reload Workers
+  id: totrans-190
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 自动重新加载工作线程
+- en: Problem
+  id: totrans-191
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: The way that service workers are updated can be confusing for anyone using or
+    testing an application. If we make a change to a service worker, the application
+    will download the new version and set its status to Installed (see [Figure 11-13](#ch11_image_13)).
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程更新的方式可能会让使用或测试应用程序的任何人感到困惑。如果我们对服务工作线程进行更改，应用程序将下载新版本并将其状态设置为已安装（参见 [图 11-13](#ch11_image_13)）。
+- en: '![](Images/recb_1109.png)'
+  id: totrans-193
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1109.png)'
+- en: Figure 11-13\. The updated worker is installed, but the old version is still
+    running
+  id: totrans-194
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-13\. 更新后的工作线程已安装，但旧版本仍在运行
+- en: The old service worker will go away only if the user closes the tab and then
+    reopens it. The old worker disappears, and the new worker can stop waiting and
+    start running (see [Figure 11-14](#ch11_image_14)).
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有当用户关闭标签页然后重新打开时，旧的服务工作线程才会消失。旧的工作线程消失，新的工作线程可以停止等待并开始运行（参见 [图 11-14](#ch11_image_14)）。
+- en: '![](Images/recb_1110.png)'
+  id: totrans-196
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1110.png)'
+- en: Figure 11-14\. The new worker will start only if you close and re-open the application
+  id: totrans-197
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-14\. 只有在关闭并重新打开应用程序时，新的工作线程才会开始运行
+- en: The service worker may be caching the application’s code, so if the service
+    worker does not start running, it will not download the latest code from the server.
+    You might find that you are using an old version of the entire client application.
+    To run the new application, you need to reload the page (to install the new worker)
+    and then close and reopen the tab (removing the old worker and starting the new
+    one).
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果服务工作线程正在缓存应用程序的代码，那么如果服务工作线程没有启动，它将不会从服务器下载最新的代码。您可能会发现您正在使用整个客户端应用程序的旧版本。为了运行新的应用程序，您需要重新加载页面（以安装新的工作线程），然后关闭并重新打开标签页（删除旧的工作线程并启动新的工作线程）。
+- en: Testers will soon get used to this slightly odd sequence, but the same is not
+    true for real users. In reality, the fact that new code will only update the next-but-one
+    time that it’s available is usually not a big problem. It *can* be a problem if
+    you have made a significant change to the code, such as an update to an API.^([6](ch11.xhtml#idm46634376861112))
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试人员很快会习惯这种稍微奇怪的顺序，但对真正的用户来说却不是这样。事实上，新代码只有在下次但一个时间可用时才会更新，通常不是一个大问题。如果您对代码进行了重大更改，例如更新
+    API，*可能* 会有问题。^([6](ch11.xhtml#idm46634376861112))
+- en: In some cases, you want to use the new code immediately. Is there a way to clear
+    out the old service workers and upgrade to the new version of the application?
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些情况下，您希望立即使用新代码。有没有一种方法可以清除旧的服务工作线程并升级到应用程序的新版本？
+- en: Solution
+  id: totrans-201
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'There are two things that we need to do to switch to a new service worker:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两件事情我们需要做来切换到一个新的服务工作线程：
+- en: 'If you’ve created your application with `create-react-app` or you are using
+    the code from the *cra-template-pwa* template,^([7](ch11.xhtml#idm46634376855640))
+    then you will be registering your service worker, using the `serviceWorkerRegistration.register`
+    function. For example, you might have code in the *index.js* file of your application
+    that looks like this:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用 `create-react-app` 创建应用程序，或者使用 *cra-template-pwa* 模板的代码，^([7](ch11.xhtml#idm46634376855640))
+    那么您将会注册您的服务工作线程，使用 `serviceWorkerRegistration.register` 函数。例如，您可能在应用程序的 *index.js*
+    文件中有以下代码：
+- en: '[PRE29]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Even if you’ve written your own registration code, you will likely have something
+    similar.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使您已经编写了自己的注册代码，您可能也有类似的内容。
+- en: 'The `serviceWorkerRegistration.register` function allows you to pass a couple
+    of callbacks, which will tell you when a service worker has been installed or
+    updated:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`serviceWorkerRegistration.register` 函数允许您传递一对回调函数，这些函数将告知您服务工作线程何时已被安装或更新：'
+- en: '[PRE30]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'The callbacks receive a *registration* object: a wrapper for the service worker
+    that the browser has just installed or updated.'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回调函数接收到一个 *registration* 对象：这是浏览器刚刚安装或更新的服务工作线程的包装器。
+- en: A service worker is installed when it is downloaded. But if an existing service
+    worker is running, the new service worker will wait for the old service worker
+    to disappear. If a service worker is waiting, the `onUpdate` function will be
+    called.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当服务工作线程下载后，会被安装。但是如果已经有一个现存的服务工作线程在运行，新的服务工作线程将等待旧的服务工作线程消失。如果服务工作线程在等待，`onUpdate`
+    函数将会被调用。
+- en: We want to automatically remove the old service worker whenever the `onUpdate`
+    function is called. That will allow the new service worker to start operating.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望在每次调用 `onUpdate` 函数时自动删除旧的服务工作线程。这将允许新的服务工作线程开始运行。
+- en: Service workers are a specialized form of *web worker*. A web worker is a piece
+    of JavaScript that runs in a separate thread from the JavaScript running in the
+    web page. You communicate with all web workers by posting asynchronous messages
+    to them. Service workers can intercept network requests because the browser will
+    convert network requests into messages.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程是一种特殊形式的*网络工作者*。网络工作者是在与网页中运行的 JavaScript 分离的线程中运行的 JavaScript 片段。您可以通过向它们发送异步消息来与所有网络工作者进行通信。服务工作线程可以拦截网络请求，因为浏览器将网络请求转换为消息。
+- en: 'So, we can ask a service worker to run an arbitrary piece of code by sending
+    it a message. We can make our service worker respond to messages by giving it
+    a message event listener:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们可以通过向服务工作线程发送消息来要求其运行任意代码片段。我们可以通过给服务工作线程添加消息事件侦听器来使其响应消息：
+- en: '[PRE31]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: The `self` variable contains the global scope for the service worker. It’s like
+    `window` is for page code.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`self` 变量包含服务工作线程的全局范围。这就像 `window` 对于页面代码一样。'
+- en: 'The page code can send a message to the new service worker, telling it that
+    we want it to stop waiting and replace the old service worker:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面代码可以向新服务工作线程发送消息，告诉它我们希望它停止等待并替换旧的服务工作线程：
+- en: '[PRE32]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: '`registration.waiting` is a reference to the service worker, and `registration.wait⁠ing.postMessage`
+    will send it a message.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`registration.waiting` 是对服务工作线程的引用，`registration.wait⁠ing.postMessage` 将向其发送消息。'
+- en: When the browser installs a new version of a service worker but the old service
+    worker is still running, the application code will send a `SKIP_WAITING` message
+    to the new service worker.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当浏览器安装新版本的服务工作线程但旧的服务工作线程仍在运行时，应用程序代码将向新的服务工作线程发送 `SKIP_WAITING` 消息。
+- en: 'Service workers have a built-in function called `skipWaiting`, which will kill
+    the old service worker and allow the new one to take over. So, we can call `skipWaiting`
+    in the service worker, when it receives a `SKIP_WAITING` message:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程有一个名为 `skipWaiting` 的内置函数，它将终止旧的服务工作线程并允许新的服务工作线程接管。因此，当服务工作线程收到 `SKIP_WAITING`
+    消息时，我们可以在服务工作线程中调用 `skipWaiting`：
+- en: '[PRE33]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: If the application is now updated, the new service worker will immediately replace
+    the old service worker.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果应用程序现在已更新，新的服务工作线程将立即取代旧的服务工作线程。
+- en: 'There’s just one step remaining: we need to reload the page so that we can
+    download the new application code through the new service worker. This means that
+    the updated version of the *index.js* file in the application looks like this:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只剩下一步：我们需要重新加载页面，以便通过新的服务工作线程下载新的应用程序代码。这意味着应用程序中的更新版本的 *index.js* 文件看起来像这样：
+- en: '[PRE34]'
+  id: totrans-223
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Once you’ve installed this new version of the code, the application will automatically
+    update itself each time the application changes. Instead of seeing the old service
+    worker alongside a patiently waiting version of the new service worker, you will
+    instead just see the newly loaded version (see [Figure 11-15](#ch11_image_15)).
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦安装了这个新版本的代码，每次应用程序更改时应用程序将自动更新自身。与旧的服务工作线程并排等待新服务工作线程的耐心版本不同，您将只看到新加载的版本（见[图 11-15](#ch11_image_15)）。
+- en: '![](Images/recb_1110.png)'
+  id: totrans-225
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1110.png)'
+- en: Figure 11-15\. The new service worker will now immediately replace the old version
+  id: totrans-226
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-15\. 新的服务工作线程现在将立即取代旧版本
+- en: Discussion
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: By adding a page reload, you will find that the page “blinks” when the new code
+    is downloading. If you have a large application, this might be jarring for the
+    user, so you might choose to ask the user if they want to upgrade to the new version
+    of the application before reloading. Gmail does this whenever a significant update
+    is available.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过添加页面重新加载，当新代码正在下载时，您会发现页面会“闪烁”。如果您的应用程序很大，这可能会让用户感到不适，因此您可能会选择在重新加载之前询问用户是否要升级到应用程序的新版本。Gmail
+    在有重大更新可用时会这样做。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/Lbal7).
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/Lbal7)下载此配方的源代码。
+- en: Add Notifications
+  id: totrans-230
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加通知
+- en: Problem
+  id: totrans-231
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: One of the advantages of service workers, and web workers in general, is that
+    they don’t stop running just because the user leaves the page. If a service worker
+    performs a slow operation, it will continue to run in the background, so long
+    as the browser itself is still running. That means you can leave the page or close
+    the tab and be sure that your worker will have time to finish.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程以及一般的网络工作者的一个优点是，它们不会因用户离开页面而停止运行。如果服务工作线程执行了一个耗时的操作，只要浏览器本身仍在运行，它将继续在后台运行。这意味着您可以离开页面或关闭选项卡，并确保您的工作者将有时间完成。
+- en: However, what if the user wants to know when the background task has finally
+    finished? Service workers don’t have any visual interface. They might control
+    web pages, but they can’t update them. The only way that a web page and a service
+    worker can communicate is by sending messages.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果用户想知道后台任务何时完成，怎么办？服务工作者没有任何可视化界面。它们可能控制网页，但不能更新它们。网页和服务工作者之间唯一的通信方式是发送消息。
+- en: Given that service workers have no visual interface, how can they let us know
+    when something important has happened?
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于服务工作者没有可视化界面，它们如何告诉我们发生了重要事件？
+- en: Solution
+  id: totrans-235
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to create notifications from a service worker. Our example application
+    (see [Figure 11-16](#ch11_image_16)) will start a long-running process, taking
+    around 20 seconds, when you click the button.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从服务工作者创建通知。我们的示例应用程序（参见[图 11-16](#ch11_image_16)）将在您点击按钮时启动一个长时间运行的过程，大约需要
+    20 秒。
+- en: '![](Images/recb_1116.png)'
+  id: totrans-237
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1116.png)'
+- en: Figure 11-16\. The example application starts a slow process when you click
+    the button
+  id: totrans-238
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-16\. 当您点击按钮时，示例应用程序会启动一个较慢的进程。
+- en: The user will have to grant permission to be sent a completion notification
+    (see [Figure 11-17](#ch11_image_17)). If they deny permission, the background
+    task will still run, but they won’t see anything when it’s complete.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户将不得不授予发送完成通知的权限（参见[图 11-17](#ch11_image_17)）。如果他们拒绝了权限，后台任务仍将运行，但完成时不会看到任何内容。
+- en: '![](Images/recb_1117.png)'
+  id: totrans-240
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1117.png)'
+- en: Figure 11-17\. You will have to grant permission to receive notifications
+  id: totrans-241
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-17\. 您将需要授予接收通知的权限
+- en: Notifications have a poor reputation. You usually see them when a site wants
+    to spam you with information. In general, if you’re using notifications, it’s
+    best to defer asking for permission until it’s apparent to the user why you want
+    it. Avoid asking for permission to send notifications when the page first loads
+    because the user will have no idea why you want to send them.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通知的声誉很差。通常情况下，当网站想用信息轰炸您时，您会看到它们。一般来说，如果您使用通知，最好在用户明白为什么需要时再请求权限。避免在页面加载时就请求发送通知的权限，因为用户不会知道为什么要发送通知。
+- en: The service worker will then run some code that will pause for 20 seconds, and
+    then it will display a notification (see [Figure 11-18](#ch11_image_18)).
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后服务工作者将运行一些代码，暂停 20 秒钟，然后显示通知（参见[图 11-18](#ch11_image_18)）。
+- en: '![](Images/recb_1118.png)'
+  id: totrans-244
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1118.png)'
+- en: Figure 11-18\. The notification that appears when the task is finished
+  id: totrans-245
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-18\. 当任务完成时显示的通知
+- en: 'Let’s start to look at the code. In the `App` component, we’ll add a button
+    to run the background but make sure we make it visible only if the browser supports
+    service workers:'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们开始看代码。在`App`组件中，我们将添加一个按钮来运行后台，但确保仅在浏览器支持服务工作者时可见：
+- en: '[PRE35]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'When the user clicks the button, they will call the `startTask` function. We
+    can ask for permission to show notifications in there:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击按钮时，它们将调用`startTask`函数。我们可以在那里请求权限来显示通知：
+- en: '[PRE36]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: If the user grants permission, the `permission` string will have the value `granted`,
+    which will set the `notifyMe` variable to `true`. We can run the task in the service
+    worker and tell it whether it’s allowed to send a notification when it’s complete.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户授予权限，则`permission`字符串将具有`granted`值，这将将`notifyMe`变量设置为`true`。我们可以在服务工作者中运行任务，并告诉它在完成时是否允许发送通知。
+- en: We cannot talk to service workers directly. Instead, we have to post messages
+    because service workers run in a separate thread from web page code.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不能直接与服务工作者交流。相反，我们必须发布消息，因为服务工作者在与网页代码分离的单独线程中运行。
+- en: 'We can get the current service worker controlling the page from `navigator.serviceWorker.controller`.
+    So, we can send a message to the service worker like this:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以从`navigator.serviceWorker.controller`获取当前控制页面的服务工作者。因此，我们可以像这样向服务工作者发送消息：
+- en: '[PRE37]'
+  id: totrans-253
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'In the example application, our service is in *service-worker.js*. It can receive
+    messages by adding a `message` event handler:'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在示例应用程序中，我们的服务在*service-worker.js*中。它可以通过添加`message`事件处理程序来接收消息：
+- en: '[PRE38]'
+  id: totrans-255
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: In a service worker, `self` refers to the global scope object. It’s the equivalent
+    of `window` in web page code. Let’s simulate a slow task, with a call to `setTimeout`,
+    which will wait for 20 seconds before sending a message to the console:^([8](ch11.xhtml#idm46634376018072))
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在服务工作者中，`self`指的是全局作用域对象。它相当于网页代码中的`window`。让我们模拟一个慢任务，通过调用`setTimeout`等待 20
+    秒钟，然后向控制台发送消息：^([8](ch11.xhtml#idm46634376018072))
+- en: '[PRE39]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'All that’s left to do now is show the notification. We can do this with the
+    service worker’s *registration* object, which has a `showNotification` method:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在剩下的事情就是显示通知。我们可以使用服务工作线程的 *registration* 对象来实现，该对象具有一个 `showNotification`
+    方法：
+- en: '[PRE40]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: Notice that we check `event.data.notifyMe` before attempting to show a notification;
+    this is the variable we added to the message in the web page code.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在尝试显示通知之前，我们会检查 `event.data.notifyMe`；这是我们在网页代码中添加的变量。
+- en: The notification takes a `title` and an `options` object. The options allow
+    you to modify the behavior of the notification. In this case, we’re giving it
+    some body text and an icon and setting a vibration sequence. If the user’s device
+    supports them, they should feel a set of *dot-dot-dot-dash-dash-dash-dot-dot-dot*
+    vibrations when the notification appears.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通知需要一个 `title` 和一个 `options` 对象。选项允许你修改通知的行为。在本例中，我们给它一些主体文本和一个图标，并设置了一个振动序列。如果用户的设备支持，他们应该在通知出现时感受到一组
+    *dot-dot-dot-dash-dash-dash-dot-dot-dot* 的振动。
+- en: There’s also a `tag` option, which we’ve commented out in the example code.
+    We can use the `tag` to uniquely identify a notification and prevent the user
+    from receiving the same notification multiple times. If you omit it, each call
+    to `showNotification` will make a new notification appear.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在示例代码中，还有一个 `tag` 选项，我们已经将其注释掉了。我们可以使用 `tag` 来唯一标识一个通知，防止用户多次接收相同的通知。如果你省略它，每次调用
+    `showNotification` 都会产生一个新的通知。
+- en: 'To try the code, you will first need to build the application because service
+    workers will run only in production mode:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要试验代码，你首先需要构建应用程序，因为服务工作线程只在生产模式下运行：
+- en: '[PRE41]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'You will then need to run a server on the contents of the generated *build*
+    directory. You can do this by installing the *serve* module and then running this
+    command:'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你接下来需要在生成的 *build* 目录上运行一个服务器。你可以通过安装 *serve* 模块来实现，并执行以下命令：
+- en: '[PRE42]'
+  id: totrans-266
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: If you open the application at *http://localhost:5000* and click the button,
+    the slow process will start. You can then go to a different page or close the
+    tab, and the slow task will continue running. It will stop only if you close the
+    browser.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在 *http://localhost:5000* 打开应用并点击按钮，慢速处理将开始。然后你可以转到另一页或关闭标签页，慢速任务将继续运行。只有当你关闭浏览器时，它才会停止。
+- en: After 20 seconds, you should see a notification appear that looks similar to
+    [Figure 11-19](#ch11_image_19).
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 20 秒后，你应该会看到一个类似于 [图 11-19](#ch11_image_19) 的通知出现。
+- en: '![](Images/recb_1118.png)'
+  id: totrans-269
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1118.png)'
+- en: Figure 11-19\. A notification as it appears on a Mac
+  id: totrans-270
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-19\. Mac 上显示的通知
+- en: It’s tempting to access your server from a mobile device to check that the vibrations
+    work in the notification. Be aware that service workers are enabled only if you
+    access *localhost* or are using HTTPS. If you want to test your application over
+    HTTPS, see [“Enable HTTPS”](ch07.xhtml#ch07-03) to enable it on a server.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很诱人从移动设备访问你的服务器以检查通知中的振动是否工作。请注意，服务工作线程仅在访问 *localhost* 或使用 HTTPS 时启用。如果你想通过
+    HTTPS 测试应用程序，请参见 [“启用 HTTPS”](ch07.xhtml#ch07-03) 以在服务器上启用它。
+- en: 'Given that notifications can appear after you’ve closed the page, it’s helpful
+    if you give the user a simple way of navigating back to your application. You
+    can do this by adding a notification-click handler to your service worker. If
+    a service worker creates a notification and the user clicks it, the browser will
+    send a `notificationclick` event to the service worker. You can create a handler
+    for it like this:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到通知可能在你关闭页面后出现，如果你给用户一个简单的方式回到你的应用程序将会很有帮助。你可以通过在服务工作线程中添加一个通知点击处理程序来实现这一点。如果服务工作线程创建了一个通知并且用户点击了它，浏览器将向服务工作线程发送一个
+    `notificationclick` 事件。你可以像这样创建一个处理程序：
+- en: '[PRE43]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: You can close the notification by calling `event.notification.close`. But how
+    do you send the user back to the React application?
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过调用 `event.notification.close` 来关闭通知。但是如何将用户发送回 React 应用程序呢？
+- en: 'The service worker is the controller of zero or more browser tabs, which are
+    called its *clients*. These are tabs whose network requests are intercepted by
+    the service worker. You can get access to the list of clients using `self.clients`.
+    This object has a utility function called `openWindow` that can be used to open
+    a new tab in the browser:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作线程是零个或多个浏览器标签页的控制器，这些标签页被称为其 *clients*。这些标签页的网络请求被服务工作线程拦截。你可以使用 `self.clients`
+    来获取客户端列表。这个对象有一个叫做 `openWindow` 的实用函数，可以用来在浏览器中打开一个新的标签页：
+- en: '[PRE44]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: If the user now clicks the notification, the browser will return them to the
+    front page of the React application.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户现在点击通知，则浏览器将返回到 React 应用程序的首页。
+- en: But we can do a little better than that. If the user has switched to a different
+    tab but the React application is still open, we can switch the focus back to the
+    correct tab.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们可以做得更好一点。如果用户已切换到不同的标签页但 React 应用程序仍然打开，我们可以将焦点切回到正确的标签页。
+- en: 'To do this, we will need to get hold of an array of each of the open tabs that
+    our service worker controls. Then we can look to see if any match the correct
+    path. If we find one, we can switch focus to that tab:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们需要获取服务工作线程控制的每个打开标签的数组。然后我们可以查看是否有任何匹配的正确路径。如果找到一个，我们可以将焦点切换到该标签：
+- en: '[PRE45]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: If we click the notification, we will switch back to an open tab rather than
+    always create a new one (see [Figure 11-20](#ch11_image_20)).
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们点击通知，我们将切换回一个打开的标签页，而不是总是创建新的标签页（见 [图 11-20](#ch11_image_20)）。
+- en: '![](Images/recb_1120.png)'
+  id: totrans-282
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1120.png)'
+- en: Figure 11-20\. The notification can switch back to our application if it’s still
+    open
+  id: totrans-283
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-20\. 如果仍然打开，则通知可以切换回我们的应用程序
+- en: Discussion
+  id: totrans-284
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Notifications are a great way of keeping the user informed about important events.
+    The critical thing is to clarify *why* they should agree to receive notifications
+    and then send them only if something significant has happened.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通知是让用户了解重要事件的好方法。关键在于澄清他们为什么应该同意接收通知，然后只有在发生重要事件时才发送通知。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/ZkcrR).
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 站点](https://oreil.ly/ZkcrR) 下载此示例的源代码。
+- en: Make Offline Changes with Background Sync
+  id: totrans-287
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 利用后台同步进行离线更改
+- en: Problem
+  id: totrans-288
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Imagine someone is using an application in a place where a network connection
+    is not available, for example, on a subway train.^([9](ch11.xhtml#idm46634375467048))
+    Precaching of application code means that there should be no problem opening an
+    application without a network connection. The user can also move from page to
+    page, and everything should appear normal.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象有人在网络连接不可用的地方（例如，在地铁上）使用应用程序。应用程序代码的预缓存意味着可以无需网络连接打开应用程序。用户还可以在页面之间移动，一切都应该正常显示。
+- en: But what if they do something that will send data to a server? What if they
+    try to post a message?
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是如果他们做了一些会向服务器发送数据的事情怎么办？如果他们试图发布消息怎么办？
+- en: Solution
+  id: totrans-291
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: '*Background sync* is a way of queuing network requests when the server is not
+    available and then resending them automatically at a later time.'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*后台同步* 是一种在服务器不可用时排队网络请求并在以后自动重新发送它们的方式。'
+- en: Our example application will send some data to a backend server when the user
+    clicks a button (see [Figure 11-21](#ch11_image_21)).
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用程序将在用户点击按钮时向后端服务器发送一些数据（参见 [图 11-21](#ch11_image_21)）。
+- en: '![](Images/recb_1121.png)'
+  id: totrans-294
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1121.png)'
+- en: Figure 11-21\. The example application sends data to the server when the user
+    clicks a button
+  id: totrans-295
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-21\. 当用户点击按钮时，示例应用程序会向服务器发送数据
+- en: 'To start the application, you will first need to build it with this command:'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要启动应用程序，您首先需要使用此命令构建它：
+- en: '[PRE46]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'The example project includes this server in *server/index.js*:'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例项目在 *server/index.js* 中包含此服务器：
+- en: '[PRE47]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: The server will deliver content from the *build* directory, where the generated
+    code is published. It also displays the data from any `POST` requests sent to
+    *http://localhost:8000/endpoint*.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务器将从 *build* 目录中提供内容，该目录中发布了生成的代码。它还显示从发送到 *http://localhost:8000/endpoint*
+    的任何 `POST` 请求接收到的数据。
+- en: 'You can start the server with this command:'
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用此命令启动服务器：
+- en: '[PRE48]'
+  id: totrans-302
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'If you now open the application in a browser at *http://localhost:8000* and
+    click the button on the front page a few times, you will see data appearing in
+    the server window:'
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在在浏览器中打开应用程序，地址为 *http://localhost:8000*，并在首页点击按钮几次，你将看到数据出现在服务器窗口中：
+- en: '[PRE49]'
+  id: totrans-304
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'This is the application code that sends data to the server. It uses the `fetch`
+    function to `POST` the current time when the button is pressed:'
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是发送数据到服务器的应用程序代码。它使用 `fetch` 函数在按下按钮时 `POST` 当前时间：
+- en: '[PRE50]'
+  id: totrans-306
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: If you now stop the server, clicking the button on the web page will generate
+    a series of failed network requests, as shown in [Figure 11-22](#ch11_image_22).
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在停止服务器，点击网页上的按钮将生成一系列失败的网络请求，如 [图 11-22](#ch11_image_22) 所示。
+- en: '![](Images/recb_1122.png)'
+  id: totrans-308
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1122.png)'
+- en: Figure 11-22\. If the server cannot be contacted, the network requests fail
+  id: totrans-309
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-22\. 如果无法联系服务器，则网络请求将失败
+- en: Stopping the server simulates what would happen if the user was temporarily
+    out of network contact and then tried to send data from the application.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 停止服务器会模拟用户暂时失去网络联系后尝试从应用程序发送数据的情况。
+- en: 'We can fix this problem using service workers. A service worker can intercept
+    the network requests made by a web page in a progressive web application. In the
+    other recipes in this chapter, we have used service workers to handle network
+    failures by returning locally cached versions of files. We now need to handle
+    data going in the opposite direction: from the browser to the server.'
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过使用 service worker 来解决这个问题。Service worker 可以拦截渐进式 web 应用程序中网页发出的网络请求。在本章的其他示例中，我们已经使用
+    service worker 通过返回本地缓存版本的文件来处理网络故障。现在我们需要处理数据的反向传输：从浏览器到服务器。
+- en: We need to cache the `POST` requests that we try to send to the server and then
+    resend them when we are back in contact with the server.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要缓存我们尝试发送到服务器的 `POST` 请求，并在再次与服务器联系时重新发送它们。
+- en: To do this, we will use the `workbox-background-sync` library. *Background sync*
+    is an API for diverting network requests onto a queue in those cases where we
+    cannot contact the server. It’s a complex API, and not all browsers support it.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们将使用 `workbox-background-sync` 库。*后台同步* 是一种 API，用于在我们无法联系服务器的情况下将网络请求重定向到队列中。这是一个复杂的
+    API，并非所有浏览器都支持。
+- en: The `workbox-background-sync` library makes the API far easier to use, and it
+    will also work on browsers like Firefox that don’t support Background Sync natively.
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`workbox-background-sync` 库使得 API 的使用变得更加简单，并且它还能够在像 Firefox 这样不原生支持后台同步的浏览器上运行。'
+- en: 'The service worker for the example application is in the *service-worker.js*
+    file. We can add background syncing by adding this code:'
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例应用程序的 service worker 在 *service-worker.js* 文件中。我们可以通过添加以下代码来添加后台同步功能：
+- en: '[PRE51]'
+  id: totrans-316
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: This code will register a new *route* in the service worker, saying how to deal
+    with network requests to particular URLs. In this case, we are creating a route
+    to handle all requests to *http://localhost:8000/endpoint*. We’re using a regular
+    expression to match the path. We’re then using a [Network Only](https://oreil.ly/rLqLq)
+    strategy, which means that the browser will send all requests to the service worker,
+    and all responses will come from the network. But we’re configuring that strategy
+    to use the background sync plugin. The third parameter in the route says that
+    it is interested only in `POST` requests to the endpoint.
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码将在 service worker 中注册一个新的 *路由*，用于处理特定 URL 的网络请求。在这种情况下，我们正在创建一个路由来处理所有对
+    *http://localhost:8000/endpoint* 的请求。我们使用正则表达式来匹配路径。然后，我们使用 [Network Only](https://oreil.ly/rLqLq)
+    策略，这意味着浏览器会将所有请求发送到 service worker，并且所有响应都将来自网络。但我们配置该策略以使用后台同步插件。路由的第三个参数表示它只对
+    `POST` 请求到 endpoint 感兴趣。
+- en: When the application sends a `POST` request to *http://localhost:8000/endpoint*,
+    the service worker intercepts it. The service worker will forward the request
+    to the server, and if successful, it will return the response to the web page.
+    If the server is unavailable, the service worker will return a network error to
+    the web page and then add the network request to a retry queue called `endPointQueue1`.
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当应用程序向 *http://localhost:8000/endpoint* 发送 `POST` 请求时，service worker 会拦截它。Service
+    worker 将请求转发到服务器，如果成功，将返回响应给网页。如果服务器不可用，service worker 将向网页返回网络错误，然后将网络请求添加到名为
+    `endPointQueue1` 的重试队列中。
+- en: Workbox stores queues in indexed databases within the browser. Setting the `maxRe⁠tentionTime`
+    to *24 * 60* stores the requests in the database for a maximum of one day.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Workbox 在浏览器内的索引数据库中存储队列。将 `maxRe⁠tentionTime` 设置为 *24 * 60* 将请求存储在数据库中最多一天。
+- en: The `workbox-background-sync` library will resend the requests in the queue
+    whenever it thinks the server might have become available, for example, if the
+    network connection comes online. Retries will also happen every few minutes.
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`workbox-background-sync` 库将在认为服务器可能已经可用时重新发送队列中的请求，例如，如果网络连接重新上线。重试也会每隔几分钟进行一次。'
+- en: 'If you restart the server and then wait about five minutes, you should see
+    the failed network requests appearing in the server:'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您重新启动服务器然后等待大约五分钟，您应该会看到失败的网络请求出现在服务器中：
+- en: '[PRE52]'
+  id: totrans-322
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: You can force Chrome to resend the requests immediately if you open the Application
+    tab in the developer tools, select the service worker, and then send a sync message
+    to `workbox-background-sync:endPointQueue1` (as shown in [Figure 11-23](#ch11_image_23)).
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您打开开发者工具中的应用程序选项卡，选择服务工作者，然后向`workbox-background-sync:endPointQueue1`发送同步消息（如[图 11-23](#ch11_image_23)所示），则可以强制Chrome立即重新发送请求。
+- en: '![](Images/recb_1123.png)'
+  id: totrans-324
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1123.png)'
+- en: Figure 11-23\. Forcing a sync to occur in Chrome
+  id: totrans-325
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图11-23\. 在Chrome中强制进行同步
+- en: Discussion
+  id: totrans-326
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Background sync is a tremendously powerful feature, but you need to think carefully
+    before enabling it. The order in which the client code sends requests will not
+    necessarily be the order they are processed at the server.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 后台同步是一个非常强大的功能，但在启用之前需要仔细考虑。客户端代码发送请求的顺序不一定是服务器处理它们的顺序。
+- en: The exact order will probably not matter if you are creating a simple set of
+    resources with `POST` requests. For example, if you buy books from an online bookstore,
+    it doesn’t matter what sequence you buy them in.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您创建简单的一组资源并使用`POST`请求，确切的顺序可能并不重要。例如，如果您从在线书店购买书籍，购买它们的顺序并不重要。
+- en: But if you create dependent resources or apply multiple updates to the same
+    resource,⁠^([10](ch11.xhtml#idm46634375015192)) then you need to careful. If you
+    amend your credit card number to *1111 1111 1111 1111* and then to *2222 2222
+    2222 2222*, the order of updates will completely change the final result.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果您创建依赖资源或对同一资源应用多个更新⁠^([10](ch11.xhtml#idm46634375015192))，那么您需要小心。例如，如果您先将信用卡号修改为*1111
+    1111 1111 1111*，然后再修改为*2222 2222 2222 2222*，更新的顺序将完全改变最终结果。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/NFVAY).
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub站点](https://oreil.ly/NFVAY)下载此配方的源代码。
+- en: Add a Custom Installation UI
+  id: totrans-331
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加自定义安装UI
+- en: Problem
+  id: totrans-332
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: PWAs behave, in many ways, like locally installed applications. You *can* install
+    them alongside other applications on a desktop machine or a mobile device. Many
+    browsers allow you to create a shortcut on the current device to launch your application
+    in a separate window. If you’re using a desktop machine, you can add the shortcut
+    to the dock or launch menus. If you’re on a mobile device, you can add the application
+    to the home screen.
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: PWAs在许多方面的行为方式类似于本地安装的应用程序。您可以在桌面机器或移动设备上安装它们。许多浏览器允许您在当前设备上创建快捷方式，以在单独的窗口中启动您的应用程序。如果您在桌面机器上，您可以将快捷方式添加到码头或启动菜单中。如果您在移动设备上，您可以将应用程序添加到主屏幕上。
+- en: But many users miss the fact that that they can install PWAs, a situation that
+    is not helped by the low-key interface used in browsers to indicate that installation
+    is possible (see [Figure 11-24](#ch11_image_24)).
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，许多用户忽略了他们可以安装PWA的事实，这一情况在浏览器中使用低调界面来指示可安装性时并没有得到改善（参见[图 11-24](#ch11_image_24)）。
+- en: '![](Images/recb_1124.png)'
+  id: totrans-335
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1124.png)'
+- en: Figure 11-24\. PWAs are installed with a small button in the address bar
+  id: totrans-336
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图11-24\. PWA安装在地址栏中的一个小按钮中
+- en: Browsers do this to maximize the amount of screen estate available for your
+    website. However, if you think that a local installation would be helpful to your
+    users, you might choose to add a custom installation UI. But how can you do that?
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器这样做是为了最大化您网站的屏幕空间。然而，如果您认为本地安装对您的用户有帮助，您可以选择添加自定义安装UI。但是如何做到呢？
+- en: Solution
+  id: totrans-338
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Some browsers^([11](ch11.xhtml#idm46634374902744)) will generate a JavaScript
+    `beforeinstallprompt` event if they detect that your application is a fully fledged
+    PWA.^([12](ch11.xhtml#idm46634374900808))
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些浏览器^([11](ch11.xhtml#idm46634374902744))会在检测到您的应用程序是一个完整的PWA时生成JavaScript
+    `beforeinstallprompt`事件。^([12](ch11.xhtml#idm46634374900808))
+- en: You can capture this event and use it to display your custom installation UI.
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以捕获此事件并使用它来显示您的自定义安装UI。
+- en: 'Create a component called *MyInstaller.js* and add this code:'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为*MyInstaller.js*的组件，并添加以下代码：
+- en: '[PRE53]'
+  id: totrans-342
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'This component will capture the `onbeforeinstallprompt` event and store it
+    in the `installEvent` variable. It then uses the existence of the event to display
+    a custom user interface. In the code here, it displays a simple button on the
+    screen. You can then insert this component into your application, for example:'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此组件将捕获`onbeforeinstallprompt`事件，并将其存储在`installEvent`变量中。然后，它利用事件的存在来显示自定义用户界面。在此处的代码中，它在屏幕上显示一个简单的按钮。然后，您可以将此组件插入到您的应用程序中，例如：
+- en: '[PRE54]'
+  id: totrans-344
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'If you now build and run the application:'
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在构建并运行应用程序：
+- en: '[PRE55]'
+  id: totrans-346
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'you will see the install button at the top of the front page (see [Figure 11-25](#ch11_image_25)).
+    You won’t see the install button if you run the application with the development
+    server, like this:'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将在首页顶部看到安装按钮（参见 [图 11-25](#ch11_image_25)）。如果您像这样使用开发服务器运行应用程序，则不会看到安装按钮：
+- en: '[PRE56]'
+  id: totrans-348
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: '![](Images/recb_1125.png)'
+  id: totrans-349
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1125.png)'
+- en: Figure 11-25\. The custom install button appears at the top of the page
+  id: totrans-350
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-25\. 自定义安装按钮出现在页面顶部
+- en: That’s because the application will qualify as a PWA only if it has a service
+    worker running. The service worker will run only in production code.
+  id: totrans-351
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是因为应用程序只有在有服务工作线程运行时才能被视为 PWA。服务工作线程只会在生产代码中运行。
+- en: If you click the Install button, the `MyInstaller` component will run the `installE⁠vent.prompt`
+    method. This will display the usual installation dialog (see [Figure 11-26](#ch11_image_26)).
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果单击安装按钮，`MyInstaller` 组件将运行 `installEvent.prompt` 方法。这将显示通常的安装对话框（参见 [图 11-26](#ch11_image_26)）。
+- en: '![](Images/recb_1126.png)'
+  id: totrans-353
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1126.png)'
+- en: Figure 11-26\. The install prompt will appear when you click the custom install
+    button
+  id: totrans-354
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-26\. 单击自定义安装按钮后，将出现安装提示。
+- en: If your device has already installed the application, the browser will not fire
+    the `onbeforeinstallprompt` event.
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的设备已安装该应用程序，则浏览器不会触发`onbeforeinstallprompt`事件。
+- en: If the user chooses to install the application, it will launch a separate application
+    window.^([13](ch11.xhtml#idm46634374590808)) If they are using a desktop machine,
+    a finder or explorer window might appear, with a launch icon for the application
+    that can be added to the dock or launch menus on your machine (see [Figure 11-27](#ch11_image_27)).
+    On a mobile device, the icon will appear on the home screen.
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户选择安装该应用程序，将启动一个单独的应用程序窗口。^([13](ch11.xhtml#idm46634374590808)) 如果他们使用桌面设备，可能会出现一个查找器或资源管理器窗口，其中包含一个可添加到您的设备上的停靠栏或启动菜单的应用程序启动图标（参见
+    [图 11-27](#ch11_image_27)）。在移动设备上，该图标将出现在主屏幕上。
+- en: '![](Images/recb_1127.png)'
+  id: totrans-357
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1127.png)'
+- en: Figure 11-27\. The browser will create a launch icon for the application
+  id: totrans-358
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-27\. 浏览器将为该应用程序创建一个启动图标
+- en: Discussion
+  id: totrans-359
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Local installation is an excellent feature for users who want to run your application
+    often. In our experience, many users don’t realize that the installation option
+    is available for some sites, so adding a custom interface is a good idea. However,
+    you should be wary of creating an intrusive interface if you think your users
+    are likely to be one-time visitors. It’s probably also best to avoid triggering
+    the appearance of the instance automatically when the page loads. Doing so is
+    likely to irritate your users and deter them from returning to your site.
+  id: totrans-360
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本地安装是一个对经常运行您的应用程序的用户非常有用的功能。根据我们的经验，许多用户并不知道某些网站可以安装，因此添加一个自定义界面是个好主意。但是，如果您认为用户可能只是偶然访客，最好避免触发页面加载时自动显示安装实例。这样做可能会让用户感到不适，从而阻止他们返回您的网站。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/Dbmpc).
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/Dbmpc)下载此示例的源代码。
+- en: Provide Offline Responses
+  id: totrans-362
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 提供离线响应
+- en: Problem
+  id: totrans-363
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You won’t want to cache all third-party resources in your application; it would
+    take too much space. That means there will be times when your code will be unable
+    to load all the resources it needs. For example, you can see in [Figure 11-28](#ch11_image_28)
+    an application we created in an earlier chapter that displayed a series of images
+    from a third-party image site.
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您不希望在应用程序中缓存所有第三方资源；这会占用太多空间。这意味着有时您的代码将无法加载所需的所有资源。例如，您可以看到在早期章节中创建的应用程序，该应用程序显示了从第三方图像站点获取的一系列图像（参见
+    [图 11-28](#ch11_image_28)）。
+- en: '![](Images/recb_1128.png)'
+  id: totrans-365
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1128.png)'
+- en: Figure 11-28\. The application displays images from http://picsum.photos
+  id: totrans-366
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-28\. 应用程序显示来自 http://picsum.photos 的图像
+- en: You can use a service worker to cache all of this application’s code to work
+    offline. You probably wouldn’t want to cache the third-party images because there
+    will be too many. That means that if you disconnect from the network, the application
+    will still open but without images (see [Figure 11-29](#ch11_image_29)).
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用服务工作线程将此应用程序的所有代码缓存以便离线工作。您可能不希望缓存第三方图像，因为这样会导致太多的缓存。这意味着如果断开网络连接，应用程序仍将打开，但没有图像（参见
+    [图 11-29](#ch11_image_29)）。
+- en: '![](Images/recb_1129.png)'
+  id: totrans-368
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1129.png)'
+- en: Figure 11-29\. If you’re offline, the images won’t load
+  id: totrans-369
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-29\. 如果您处于离线状态，图片将无法加载。
+- en: It would be helpful to replace the missing image with a locally served replacement.
+    That way, when the user is offline, they will still see a placeholder image.
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有助于用本地提供的替代图像替换丢失的图像。这样，当用户处于离线状态时，他们仍然可以看到占位图像。
+- en: 'This is a particular case of a general problem: you may want to have placeholder
+    files when a sizable external file is unavailable. You might want to replace video
+    files, audio files, or even complete web pages with some temporary replacement.'
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个特定情况的普遍问题：当一个大型外部文件不可用时，您可能希望有占位文件。您可能想用一些临时替代品替换视频文件、音频文件，甚至完整的网页。
+- en: Solution
+  id: totrans-372
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: To solve this problem, we’ll use a couple of service worker techniques that
+    together will return a local replacement with a cached file.
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，我们将结合使用几种服务工作者技术，以返回一个本地替代品和一个缓存文件。
+- en: Let’s say we want to replace all failed image loads with the replacement image
+    shown in [Figure 11-30](#ch11_image_30).
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设我们想要用在 [图 11-30](#ch11_image_30) 中显示的替代图像来替换所有加载失败的图像。
+- en: '![](Images/recb_1130.png)'
+  id: totrans-375
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1130.png)'
+- en: Figure 11-30\. Replacement for images that fail to load
+  id: totrans-376
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-30\. 用于替换加载失败的图像
+- en: The first thing we need to do is make sure that the image file is available
+    in the local cache. We’ll add the image to static files used by the application,
+    but we can’t rely on the replacement image being cached automatically. Precaching
+    will store any files we download from the server. We will not need the placeholder
+    image until the network is offline, so we will have to use *cache warming* to
+    load the image into a local cache explicitly.
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要做的第一件事是确保图像文件在本地缓存中可用。我们将把图像添加到应用程序使用的静态文件中，但我们不能依赖于替代图像被自动缓存。预缓存将存储我们从服务器下载的任何文件。在网络离线时，我们将需要占位图像，因此我们必须使用
+    *缓存预热* 明确地将图像加载到本地缓存中。
+- en: 'In the service worker, we’re going to run some code as soon as the service
+    worker is installed. We can do this by adding an `install` event handler:'
+  id: totrans-378
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在服务工作者中，我们将在服务工作者安装时运行一些代码。我们可以通过添加一个 `install` 事件处理程序来实现这一点：
+- en: '[PRE57]'
+  id: totrans-379
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'We can explicitly open a local cache—which we’ll call `fallback`—and then add
+    the file to it from the network:'
+  id: totrans-380
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以显式地打开一个名为 `fallback` 的本地缓存，然后从网络中添加文件：
+- en: '[PRE58]'
+  id: totrans-381
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: You can use this technique if you ever want to cache files when your application
+    is installed, which is helpful for files that will be needed when you’re offline
+    but that are not immediately loaded by the application.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您希望在应用程序安装时缓存文件，这种技术将会很有帮助，特别是对于那些虽然不会被应用程序立即加载，但在离线时仍然需要的文件。
+- en: Now that we have the replacement image stored, we need to return it when the
+    real images are not available. We’ll need to add code that will run when network
+    requests fail. We can do this with a *catch handler*. A catch handler is executed
+    when a Workbox strategy fails:^([14](ch11.xhtml#idm46634374444984))
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经存储了替代图像，当真正的图像不可用时，我们需要返回它。我们需要添加在网络请求失败时运行的代码。我们可以使用 *catch 处理程序* 来实现这一点。当
+    Workbox 策略失败时，将执行 catch 处理程序：^([14](ch11.xhtml#idm46634374444984))
+- en: '[PRE59]'
+  id: totrans-384
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'The catch handler receives the failed request object. We could check the URL
+    of the request, but it is better to check the request’s `destination`. The destination
+    is the thing that will consume the file, and the destination is helpful when selecting
+    a placeholder for the file. If the destination is `image`, the request happened
+    because the browser was trying to load an `img` element. Here are some other examples
+    of request destinations:'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: catch 处理程序接收失败的请求对象。我们可以检查请求的 URL，但最好检查请求的 `destination`。目的地是将消耗文件的事物，并在选择文件的占位符时非常有帮助。如果目的地是
+    `image`，则请求发生是因为浏览器尝试加载 `img` 元素。以下是一些其他请求目的地的示例：
+- en: '| Destination | Generated by |'
+  id: totrans-386
+  prefs: []
+  type: TYPE_TB
+  zh: '| 目的地 | 生成者 |'
+- en: '| --- | --- |'
+  id: totrans-387
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| “” | JavaScript network requests |'
+  id: totrans-388
+  prefs: []
+  type: TYPE_TB
+  zh: '| “” | JavaScript 网络请求 |'
+- en: '| “audio” | Loading an <audio> |'
+  id: totrans-389
+  prefs: []
+  type: TYPE_TB
+  zh: '| “音频” | 加载一个 <audio> |'
+- en: '| “document” | Navigation to a web page |'
+  id: totrans-390
+  prefs: []
+  type: TYPE_TB
+  zh: '| “document” | 导航到一个网页 |'
+- en: '| “embed” | Loading an <embed> |'
+  id: totrans-391
+  prefs: []
+  type: TYPE_TB
+  zh: '| “嵌入” | 加载一个 <embed> |'
+- en: '| “font” | Loading a font in CSS |'
+  id: totrans-392
+  prefs: []
+  type: TYPE_TB
+  zh: '| “font” | 在 CSS 中加载字体 |'
+- en: '| “frame” | Loading a <frame> |'
+  id: totrans-393
+  prefs: []
+  type: TYPE_TB
+  zh: '| “frame” | 加载一个 <frame> |'
+- en: '| “iframe” | Loading an<iframe> |'
+  id: totrans-394
+  prefs: []
+  type: TYPE_TB
+  zh: '| “iframe” | 加载一个 <iframe> |'
+- en: '| “image” | Loading an <img>, /favicon.ico, SVG <image>, or a CSS image |'
+  id: totrans-395
+  prefs: []
+  type: TYPE_TB
+  zh: '| “image” | 加载一个 <img>、/favicon.ico、SVG <image> 或 CSS 图像 |'
+- en: '| “object” | Loading an <object> |'
+  id: totrans-396
+  prefs: []
+  type: TYPE_TB
+  zh: '| “object” | 加载一个 <object> |'
+- en: '| “script” | Loading a <script> |'
+  id: totrans-397
+  prefs: []
+  type: TYPE_TB
+  zh: '| “script” | 加载一个 <script> |'
+- en: '| “serviceworker” | Loading a service worker |'
+  id: totrans-398
+  prefs: []
+  type: TYPE_TB
+  zh: '| “serviceworker” | 加载一个服务工作者 |'
+- en: '| “sharedworker” | Loading a shared worker |'
+  id: totrans-399
+  prefs: []
+  type: TYPE_TB
+  zh: '| “sharedworker” | 加载一个共享工作者 |'
+- en: '| “style” | Loading CSS |'
+  id: totrans-400
+  prefs: []
+  type: TYPE_TB
+  zh: '| “style” | 加载 CSS |'
+- en: '| “video” | Loading a <video> |'
+  id: totrans-401
+  prefs: []
+  type: TYPE_TB
+  zh: '| “video” | 加载一个 <video> |'
+- en: '| “worker” | Loading a worker |'
+  id: totrans-402
+  prefs: []
+  type: TYPE_TB
+  zh: '| “worker” | 加载一个 worker |'
+- en: If our catch handler is called, we will return the *comingSoon.png* image from
+    the cache. We’re using `caches.match` to find the file in any of the available
+    caches.
+  id: totrans-403
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的捕获处理程序被调用，我们将从缓存中返回 *comingSoon.png* 图像。我们使用 `caches.match` 在所有可用缓存中查找文件。
+- en: 'But now that we have a catch handler, we need to make sure that we define a
+    Workbox strategy for every request. If not, a failed request might not trigger
+    the catch handler. If we set a default handler, it will apply a strategy to every
+    request not handled in some other way:'
+  id: totrans-404
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是现在我们有了一个捕获处理程序，我们需要确保为每个请求定义一个 Workbox 策略。如果没有，可能会导致失败的请求不触发捕获处理程序。如果设置了默认处理程序，它将对每个未以其他方式处理的请求应用策略：
+- en: '[PRE60]'
+  id: totrans-405
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: This command will ensure that the service worker forwards all requests to the
+    network unless some more specific handler is defined.
+  id: totrans-406
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令将确保服务工作器将所有请求转发到网络，除非定义了更具体的处理程序。
+- en: Each of the `img` tags on the page will generate a request with a destination
+    of `image`. The default handler will forward them to a third-party server, which
+    will cause an error because the application can’t contact the network. The catch
+    handler will then return the replacement image file to each `img` element. You
+    can see the result of this process in [Figure 11-31](#ch11_image_31).
+  id: totrans-407
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面上每个 `img` 标签都会生成一个目标为 `image` 的请求。默认处理程序将它们转发到第三方服务器，这将导致应用程序无法联系网络而出错。然后捕获处理程序将为每个
+    `img` 元素返回替换的图像文件。你可以在 [图 11-31](#ch11_image_31) 中看到此过程的结果。
+- en: '![](Images/recb_1131.png)'
+  id: totrans-408
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_1131.png)'
+- en: Figure 11-31\. When offline, all images are replaced by a placeholder
+  id: totrans-409
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-31\. 当离线时，所有图像将被占位符替换
+- en: Discussion
+  id: totrans-410
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This technique is beneficial for large media files that are difficult or impossible
+    to cache locally. If, for example, you have built an application to play podcasts,
+    you could replace a missing episode with a short audio clip, explaining that the
+    episode will be available only when you are next online.
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种技术对于难以或无法在本地缓存的大型媒体文件非常有益。例如，如果你构建了一个播放播客的应用程序，你可以用短音频剪辑替换丢失的剧集，并说明只有在下次联机时才能使用该剧集。
+- en: 'Warming the cache with files can increase the time needed for the service worker
+    to install. For this reason, if you’re warming a cache with reasonably large files,
+    you should also add this line to your service worker:'
+  id: totrans-412
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缓存中预热文件可能增加服务工作器安装所需的时间。因此，如果你正在预热一个包含相当大文件的缓存，你应该在你的服务工作器中添加以下行：
+- en: '[PRE61]'
+  id: totrans-413
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: '*Navigation preload* is a browser optimization that will run network requests
+    in the background if they begin when a service worker is installing. Not all browsers
+    support navigation preload, but the `workbox-navigation-preload` library will
+    use it if it’s available.'
+  id: totrans-414
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*导航预加载* 是浏览器优化的一部分，如果服务工作器在安装时开始，则在后台运行网络请求。并非所有浏览器都支持导航预加载，但如果可用，`workbox-navigation-preload`
+    库将使用它。'
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/5nN80).
+  id: totrans-415
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从 [GitHub 网站](https://oreil.ly/5nN80) 下载这个示例的源码。
+- en: ^([1](ch11.xhtml#idm46634379052936-marker)) See [“Build a PWA with Create React
+    App”](#ch11-02).
+  id: totrans-416
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch11.xhtml#idm46634379052936-marker)) 参见 [“使用 Create React App 构建 PWA”](#ch11-02)。
+- en: ^([2](ch11.xhtml#idm46634378758840-marker)) The code we will build here is a
+    simplified version of the code in the `cra-template-pwa` library. For further
+    information, see [this issue on GitHub](https://oreil.ly/dKJE0).
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch11.xhtml#idm46634378758840-marker)) 我们将在这里构建的代码是 `cra-template-pwa`
+    库中代码的简化版本。更多信息，请参见 [GitHub 上的这个问题](https://oreil.ly/dKJE0)。
+- en: ^([3](ch11.xhtml#idm46634377919384-marker)) This code is based on the example
+    service worker is `cra-template-pwa`, which we will look at in the following recipe.
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch11.xhtml#idm46634377919384-marker)) 这段代码基于 `cra-template-pwa` 中的服务工作器示例，我们将在下一个示例中查看。
+- en: ^([4](ch11.xhtml#idm46634377229464-marker)) A recent project we worked on relied
+    on a third-party payment library. When we were testing the application’s performance,
+    the payment library was by far the slowest component, not simply because it was
+    large but because its server often took several 100 ms to start downloading the
+    code.
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch11.xhtml#idm46634377229464-marker)) 我们最近开发的一个项目依赖于第三方支付库。在测试应用程序性能时，支付库是最慢的组件，不仅因为它很大，而且因为其服务器通常需要几百毫秒才能开始下载代码。
+- en: ^([5](ch11.xhtml#idm46634376960472-marker)) “Internal Server Error.”
+  id: totrans-420
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch11.xhtml#idm46634376960472-marker)) “内部服务器错误。”
+- en: ^([6](ch11.xhtml#idm46634376861112-marker)) This is not the case if you use
+    semantic versioning of API endpoints.
+  id: totrans-421
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch11.xhtml#idm46634376861112-marker)) 如果你使用 API 端点的语义化版本控制，情况就不同了。
+- en: ^([7](ch11.xhtml#idm46634376855640-marker)) See [“Build a PWA with Create React
+    App”](#ch11-02).
+  id: totrans-422
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch11.xhtml#idm46634376855640-marker)) 请参阅[“使用 Create React App 构建 PWA”](#ch11-02)。
+- en: ^([8](ch11.xhtml#idm46634376018072-marker)) You will see the message in Chrome.
+    You will not see it if you use Firefox because Firefox does not give service workers
+    access to the JavaScript console.
+  id: totrans-423
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch11.xhtml#idm46634376018072-marker)) 在 Chrome 浏览器中你会看到这条消息。如果你使用 Firefox，你将看不到它，因为
+    Firefox 不允许服务工作线程访问 JavaScript 控制台。
+- en: ^([9](ch11.xhtml#idm46634375467048-marker)) Admittedly, more and more subways
+    now have mobile repeater stations.
+  id: totrans-424
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch11.xhtml#idm46634375467048-marker)) 诚然，越来越多的地铁现在都有移动中继站。
+- en: ^([10](ch11.xhtml#idm46634375015192-marker)) In a RESTful API, you would probably
+    perform updates with a PUT or PATCH request.
+  id: totrans-425
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([10](ch11.xhtml#idm46634375015192-marker)) 在 RESTful API 中，你可能会使用 PUT 或 PATCH
+    请求进行更新。
+- en: ^([11](ch11.xhtml#idm46634374902744-marker)) At the time of writing, Chrome,
+    Edge, and Samsung Internet support this event.
+  id: totrans-426
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([11](ch11.xhtml#idm46634374902744-marker)) 截至目前，Chrome、Edge 和 Samsung Internet
+    支持此事件。
+- en: ^([12](ch11.xhtml#idm46634374900808-marker)) You can check if your application
+    meets the requirements of a PWA by running the Lighthouse tool in Chrome Developer
+    Tools. Not only will it tell you if your application qualifies, it will also give
+    you reasons why, if it doesn’t.
+  id: totrans-427
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([12](ch11.xhtml#idm46634374900808-marker)) 你可以通过在 Chrome 开发者工具中运行 Lighthouse
+    工具来检查你的应用是否符合 PWA 的要求。它不仅会告诉你你的应用是否符合条件，还会告诉你如果不符合的原因。
+- en: ^([13](ch11.xhtml#idm46634374590808-marker)) While it will create a separate
+    application window, it will disappear if you close the web browser. If you launch
+    the application directly, it will also launch the web browser if it’s not already
+    running.
+  id: totrans-428
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([13](ch11.xhtml#idm46634374590808-marker)) 尽管它会创建一个独立的应用窗口，但如果你关闭了 web 浏览器，它将会消失。如果直接启动应用程序，则会启动
+    web 浏览器（如果尚未运行）。
+- en: ^([14](ch11.xhtml#idm46634374444984-marker)) For more details about the Workbox
+    library, see the other recipes in this chapter.
+  id: totrans-429
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([14](ch11.xhtml#idm46634374444984-marker)) 欲了解有关 Workbox 库的更多详情，请参阅本章其他部分的内容。

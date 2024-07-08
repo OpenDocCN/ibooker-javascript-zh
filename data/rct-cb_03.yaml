@@ -1,0 +1,2062 @@
+- en: Chapter 3\. Managing State
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第3章 管理状态
+- en: When we manage state in React, we have to store data, but we also record data
+    dependencies. Dependencies are intrinsic to the way that React works. They allow
+    React to update the page efficiently and only when necessary.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在React中管理状态时，我们必须存储数据，但我们也记录数据依赖关系。依赖关系是React工作的本质。它们允许React在必要时高效地更新页面。
+- en: Managing data dependencies, then, is the key to managing state in React. You
+    will see throughout this chapter that most of the tools and techniques we use
+    are to ensure that we manage dependencies efficiently.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 管理数据依赖关系，是React状态管理的关键。你将在本章中看到，我们使用的大多数工具和技术都是为了确保我们高效地管理依赖关系。
+- en: A key concept in the following recipes is a data reducer. A *reducer* is simply
+    a function that receives a single object or an array and then returns a modified
+    copy. This simple concept is what lies behind much of the state management in
+    React. We’ll look at how React uses reducer functions natively and how we can
+    use the Redux library to manage data application-wide with reducers.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面食谱中的一个关键概念是数据*reducer*。*Reducer*只是一个接收单个对象或数组的函数，然后返回一个修改后的副本。这个简单的概念是React中大部分状态管理的基础。我们将看看React如何本地使用*reducer*函数，以及如何使用Redux库来全局管理数据和*reducer*。
+- en: We’ll also look at selector functions. These allow us to drill into the state
+    returned by reducers. Selectors help us ignore the irrelevant data, and in doing
+    so, they significantly improve the performance of our code.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将看看选择器函数。这些函数允许我们深入到*reducer*返回的状态中。选择器帮助我们忽略不相关的数据，并显著提高代码的性能。
+- en: Along the way, we’ll look at simple ways of checking whether you’re online,
+    how to manage form data, and various other tips and tricks to keep your application
+    ticking along.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个过程中，我们将看到一些简单的方法来检查你是否在线，如何管理表单数据，以及其他各种提示和技巧，以确保你的应用程序正常运行。
+- en: Use Reducers to Manage Complex State
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Reducers管理复杂状态
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Many React components are straightforward. They do little more than render a
+    section of HTML and perhaps show a few properties.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多React组件很简单。它们只是渲染一个HTML部分，可能显示几个属性。
+- en: However, some components can be more complicated. They might need to manage
+    several pieces of internal state. For example, consider the simple number game
+    you can see in [Figure 3-1](#ch03_image_1).
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，有些组件可能更加复杂。它们可能需要管理多个内部状态。例如，考虑你可以在[图 3-1](#ch03_image_1)中看到的简单数字游戏。
+- en: '![](Images/recb_0301.png)'
+  id: totrans-10
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0301.png)'
+- en: Figure 3-1\. A simple number puzzle
+  id: totrans-11
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-1 简单数字拼图
+- en: The component displays a series of numeric tiles, in a grid, with a single space.
+    If the user clicks a tile next to the space, they can move it. In this way, the
+    user can rearrange the tiles until they are in the correct order from 1 to 8.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该组件显示一系列数字方块，排列成网格，其中有一个空格。如果用户点击空格旁边的方块，则可以移动它。通过这种方式，用户可以重新排列方块，直到它们按照从1到8的正确顺序排列。
+- en: This component renders a small amount of HTML, but it will require some fairly
+    complex logic and data. It will record the positions of the tiles. It will need
+    to know whether a user can move a given tile. It will need to know how to move
+    the tile. It will need to know whether the game is complete. It will also need
+    to do other things, such as reset the game by shuffling the tiles.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个组件渲染了少量HTML，但它将需要一些相当复杂的逻辑和数据。它将记录各个方块的位置。它需要知道用户是否可以移动给定的方块。它需要知道如何移动方块。它需要知道游戏是否完成。它还需要执行其他操作，比如通过洗牌方块来重置游戏。
+- en: It’s entirely possible to write all this code inside the component, but it will
+    be harder to test it. You could use the React Testing Library, but that is probably
+    overkill, given that most of the code will have very little to do with rendering
+    HTML.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完全可以在组件内部编写所有这些代码，但测试起来会更困难。你可以使用React测试库，但这可能过于复杂，因为大部分代码与渲染HTML无关。
+- en: Solution
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: If you have a component with some complex internal state or that needs to manipulate
+    its state in complex ways, consider using a reducer.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你有一个具有复杂内部状态或需要以复杂方式操纵其状态的组件，请考虑使用*reducer*。
+- en: 'A reducer is a function that accepts two parameters:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个*reducer*是一个接受两个参数的函数：
+- en: An object or array that represents a given state
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个表示给定状态的对象或数组
+- en: An action that describes how you want to modify the state
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 描述如何修改状态的动作
+- en: The function returns a new copy of the state we pass to it.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数返回一个我们传递给它的状态的新副本。
+- en: The action parameter can be whatever you want, but typically it is an object
+    with a string `type` attribute and a `payload` with additional information. You
+    can think of the `type` as a command name and the `payload` as parameters to the
+    command.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动作参数可以是任何你想要的，但通常它是一个带有字符串`type`属性和一个包含额外信息的`payload`对象。您可以将`type`视为命令名称，将`payload`视为命令的参数。
+- en: 'For example, if we number our tile positions from 0 (top-left) to 8 (bottom-right),
+    we might tell the reducer to move whatever tile is in the top-left corner with:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果我们将我们的瓦片位置从0（左上角）到8（右下角）编号，我们可以告诉减速器移动左上角的瓦片：
+- en: '[PRE0]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'We need an object or array that completely defines our game’s internal state.
+    We could use a simple array of strings:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要一个完全定义游戏内部状态的对象或数组。我们可以使用一个简单的字符串数组：
+- en: '[PRE1]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'That would represent the tiles laid out like this:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那将表示瓦片布局如下：
+- en: '| 1 | 2 | 3 |'
+  id: totrans-27
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 2 | 3 |'
+- en: '|  | 5 | 6 |'
+  id: totrans-28
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 5 | 6 |'
+- en: '| 7 | 8 | 4 |'
+  id: totrans-29
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | 8 | 4 |'
+- en: 'However, a slightly more flexible approach uses an object for our state and
+    gives it an `items` attribute containing the current tile layout:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，一个稍微更灵活的方法是为我们的状态使用对象，并给它一个包含当前瓦片布局的`items`属性：
+- en: '[PRE2]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Why would we do this? Because it will allow our reducer to return other state
+    values, such as whether or not the game is complete:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么要这样做？因为这将允许我们的减速器返回其他状态值，比如游戏是否已完成：
+- en: '[PRE3]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'We’ve decided on an action (`move`) and know how the state will be structured,
+    which means we’ve done enough design to create a test:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经决定了一个动作（`move`），并且知道状态将如何被构造，这意味着我们已经做了足够的设计来创建一个测试：
+- en: '[PRE4]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: In our first test scenario, we pass in the tiles’ locations in one state. Then
+    we check that the reducer returns the tiles in a new state.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的第一个测试场景中，我们在一个状态中传入瓦片的位置。然后我们检查减速器是否返回了新状态的瓦片。
+- en: In our second test, we perform two tile moves and then look for a `complete`
+    attribute to tell us the game has ended.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的第二个测试中，我们执行两次瓦片移动，然后查找`complete`属性来告诉我们游戏是否结束了。
+- en: 'OK, we’ve delayed looking at the actual reducer code long enough:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好的，我们已经推迟看减速器代码的时间足够长了：
+- en: '[PRE5]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Our reducer currently recognizes a single action: `move`. The code in our [GitHub
+    repository](https://oreil.ly/q85H3) also includes actions for `shuffle` and `reset`.
+    The repository also has a more [exhaustive set of tests](https://oreil.ly/yRNyU)
+    that we used to create the previous code.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的减速器当前只识别一个动作：`move`。我们的[GitHub存储库](https://oreil.ly/q85H3)中的代码还包括`shuffle`和`reset`的动作。该存储库还有一个更[详尽的测试集](https://oreil.ly/yRNyU)，我们用它来创建前面的代码。
+- en: But *none* of this code includes any React components. It’s pure JavaScript
+    and so can be created and tested in isolation from the outside world.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是*没有*这段代码包含任何React组件。这是纯JavaScript，因此可以在与外界隔离的环境中创建和测试。
+- en: Be careful to generate a new object in the reducer to represent the new state.
+    Doing so ensures each new state completely independent of those that came before
+    it.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要小心在减速器中生成一个新对象来表示新状态。这样做可以确保每个新状态都完全独立于之前的状态。
+- en: 'Now it’s time to wire up our reducer into a React component, with the `useReducer`
+    hook:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候将我们的减速器与React组件进行连接，使用`useReducer`钩子：
+- en: '[PRE6]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Even though our puzzle component is doing something quite complicated, that
+    actual React code is relatively short.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使我们的拼图组件正在做一些相当复杂的事情，实际的React代码也相对简短。
+- en: 'The `useReducer` accepts a reducer function and a starting state, and it returns
+    a two-element array:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useReducer`接受一个减速器函数和一个初始状态，并返回一个两元素数组：'
+- en: The first element in the array is the current state from the reducer
+  id: totrans-47
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组中的第一个元素是来自减速器的当前状态。
+- en: The second element is a `dispatch` function that allows us to send actions to
+    the reducer.
+  id: totrans-48
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组的第二个元素是一个`dispatch`函数，允许我们向减速器发送动作。
+- en: We display the tiles by looping through the strings in the array given by `state.items`.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过遍历`state.items`数组中的字符串来显示瓦片。
+- en: 'If someone clicks a tile at position `i`, we send a `move` command to the reducer:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果有人点击位置为`i`的瓦片，我们向减速器发送`move`命令：
+- en: '[PRE7]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: The React component has no idea what it takes to move the tile. It doesn’t even
+    know if it can move the tile at all. The component sends the action to the reducer.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React组件不知道如何移动瓦片。它甚至不知道是否可以移动瓦片。组件将动作发送到减速器。
+- en: 'If the `move` action moves a tile, the component will automatically re-render
+    the component with the tiles in their new positions. If the game is complete,
+    the component will know by the value of `state.complete`:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`move`动作移动了一个瓦片，组件将自动重新渲染具有新位置瓦片的组件。如果游戏完成，组件将通过`state.complete`的值知道：
+- en: '[PRE8]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: We also added two buttons to run the `shuffle` and `reset` actions, which we
+    omitted earlier but is in the [GitHub repository](https://oreil.ly/WmZ18).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还添加了两个按钮来运行 `shuffle` 和 `reset` 操作，这些之前遗漏了但在[GitHub 仓库](https://oreil.ly/WmZ18)中有说明。
+- en: Now that we’ve created our component, let’s try it. When we first load the component,
+    we see it in its initial state, as shown in [Figure 3-2](#ch03_image_2).
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经创建了组件，让我们试试它。当我们首次加载组件时，我们会看到它处于初始状态，如[图 3-2](#ch03_image_2)所示。
+- en: '![](Images/recb_0302.png)'
+  id: totrans-57
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0302.png)'
+- en: Figure 3-2\. The starting state of the game
+  id: totrans-58
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-2\. 游戏的初始状态
+- en: If we click the tile labeled 7, it moves into the gap (see [Figure 3-3](#ch03_image_3)).
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们点击标记为 7 的瓷砖，则其将移动到空白处（见[图 3-3](#ch03_image_3)）。
+- en: '![](Images/recb_0303.png)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0303.png)'
+- en: Figure 3-3\. After moving tile 7
+  id: totrans-61
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-3\. 移动瓷砖 7 后
+- en: If we click the Shuffle button, the reducer rearranges tiles randomly, as shown
+    in [Figure 3-4](#ch03_image_4).
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果点击“洗牌”按钮，则 reducer 会随机重新排列瓷砖，如[图 3-4](#ch03_image_4)所示。
+- en: '![](Images/recb_0304.png)'
+  id: totrans-63
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0304.png)'
+- en: Figure 3-4\. The Shuffle button moves tiles to random positions
+  id: totrans-64
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-4\. 洗牌按钮将瓷砖移动到随机位置
+- en: And if we click Reset, the puzzle changes to the completed position, and the
+    “Complete!” text appears (see [Figure 3-5](#ch03_image_5)).
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 点击“重置”按钮后，拼图将变为完成状态，并显示“完成！”文本（见[图 3-5](#ch03_image_5)）。
+- en: '![](Images/recb_0305.png)'
+  id: totrans-66
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0305.png)'
+- en: Figure 3-5\. The Reset button moves the tiles to their correct positions
+  id: totrans-67
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-5\. 重置按钮将瓷砖移动到其正确位置
+- en: We bury all of the complexity inside the reducer function, where we can test
+    it, and the component is simple and easy to maintain.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将所有复杂性都隐藏在 reducer 函数内部，这样我们可以对其进行测试，而组件则简单易维护。
+- en: Discussion
+  id: totrans-69
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Reducers are a way of managing complexity. You will typically use a reducer
+    in either of these cases:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Reducers 是管理复杂性的一种方式。通常会在以下情况下使用 reducer：
+- en: You have a large amount of internal state to manage.
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您需要管理大量的内部状态。
+- en: You need complex logic to manage the internal state of your component.
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您需要复杂的逻辑来管理组件的内部状态。
+- en: If either of these things is correct, then a reducer can make your code significantly
+    easier to manage.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果上述任一情况正确，则 reducer 可以显著简化您的代码管理。
+- en: However, be wary of using reducers for very small components. If your component
+    has a simple state and little logic, you probably don’t need the added complexity
+    of a reducer.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，要注意不要在非常小的组件中使用 reducers。如果您的组件具有简单的状态和少量逻辑，可能不需要引入 reducer 的额外复杂性。
+- en: Sometimes, even if you do have a complex state, there are alternative approaches.
+    For example, if you are capturing and validating data in a form, it might be better
+    to create a validating form component (see [“Create and Validate Forms”](#ch03-03)).
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，即使存在复杂状态，也可以采用其他方法。例如，如果在表单中捕获和验证数据，创建一个验证表单组件可能更好（见[“创建和验证表单”](#ch03-03)）。
+- en: You need to ensure that your reducer does not have any side effects. Avoid,
+    say, making network calls that update a server. If your reducer has side effects,
+    there is every chance that it might break. React (sneakily) might sometimes make
+    additional calls to your reducer in development mode to make sure that no side
+    effects are happening. If you’re using a reducer and notice that React calls your
+    code twice when rendering a component, it means React is checking for bad behavior.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您需要确保您的 reducer 没有任何副作用。避免例如更新服务器的网络调用。如果 reducer 有副作用，那么可能会导致其破坏。React 在开发模式下有时会对您的
+    reducer 进行额外调用，以确保没有副作用。如果您使用 reducer 并注意到 React 在渲染组件时调用了两次您的代码，则意味着 React 正在检查不良行为。
+- en: With all of those provisos, reducers are an excellent tool at fighting complexity.
+    They are integral to libraries such as Redux, can easily be reused and combined,
+    simplify components, and make your React code significantly easier to test.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在满足所有这些条件的情况下，reducers 是应对复杂性的极好工具。它们是 Redux 等库的核心部分，可以轻松重用和组合，简化组件，并显著简化 React
+    代码的测试。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/q85H3).
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/q85H3)下载此示例的源代码。
+- en: Create an Undo Feature
+  id: totrans-79
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建撤销功能
+- en: Problem
+  id: totrans-80
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Part of the promise of JavaScript-rich frameworks like React is that web applications
+    can closely resemble desktop applications. One common feature in desktop applications
+    is the ability to undo an action. Some native components within React applications
+    automatically support an undo function. If you edit some text in a text area,
+    and then press Cmd/Ctrl-Z, it will undo your edit. But what about extending undo
+    into custom components? How is it possible to track state changes without a large
+    amount of code?
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript丰富框架如React的承诺之一是Web应用可以与桌面应用程序密切相似。桌面应用程序的一个常见功能是撤消操作。React应用程序中的某些本机组件自动支持撤消功能。如果您在文本区域中编辑文本，然后按下Cmd/Ctrl-Z，它将撤消您的编辑。但是如何将撤消扩展到自定义组件？如何在没有大量代码的情况下跟踪状态变化？
+- en: Solution
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: If a reducer function manages the state in your component, you can implement
+    a quite general undo function using an undo-reducer.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个reducer函数管理您组件中的状态，则可以使用undo-reducer实现一个相当通用的撤消功能。
+- en: 'Consider this piece of code from the `Puzzle` example from [“Use Reducers to
+    Manage Complex State”](#ch03-01):'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑来自[“使用reducer管理复杂状态”](#ch03-01)的`Puzzle`示例中的此代码片段：
+- en: '[PRE9]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: This code uses a reducer function (called `reducer`) and an initial state to
+    manage the tiles in a number-puzzle game (see [Figure 3-6](#ch03_image_6)).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码使用一个称为`reducer`的reducer函数和一个初始状态来管理数字拼图游戏中的图块（见[图 3-6](#ch03_image_6)）。
+- en: '![](Images/recb_0301.png)'
+  id: totrans-87
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0301.png)'
+- en: Figure 3-6\. A simple number puzzle game
+  id: totrans-88
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-6\. 一个简单的数字拼图游戏
+- en: 'If the user clicks the Shuffle button, the component updates the tile state
+    by sending a `shuffle` action to the reducer:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户单击Shuffle按钮，则组件通过将`shuffle`操作发送到reducer来更新图块状态：
+- en: '[PRE10]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: (For more details on what reducers are and when you should use them, see [“Use
+    Reducers to Manage Complex State”](#ch03-01).)
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （有关reducer的详细信息及何时应使用它们，请参见[“使用reducer管理复杂状态”](#ch03-01)。）
+- en: 'We will create a new hook called `useUndoReducer`, which is a drop-in replacement
+    for `useReducer`:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个名为`useUndoReducer`的新钩子，它可以替代`useReducer`：
+- en: '[PRE11]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'The `useUndoReducer` hook will magically give our component the ability to
+    go back in time:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useUndoReducer`钩子将神奇地赋予我们的组件回到过去的能力：'
+- en: '[PRE12]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: If we add this button to the component, it undoes the last action the user performed,
+    as shown in [Figure 3-7](#ch03_image_7).
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们在组件中添加此按钮，则可以撤消用户执行的最后一个操作，如图 3-7](#ch03_image_7)所示。
+- en: '![](Images/recb_0307.png)'
+  id: totrans-97
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0307.png)'
+- en: Figure 3-7\. (1) Game in progress; (2) Make a move; (3) Click *Undo* to undo
+    move
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-7\. (1) 游戏进行中；(2) 进行移动；(3) 单击*撤消*以撤消移动
+- en: But how do we perform this magic? Although `useUndoReducer` is relatively easy
+    to use, it’s somewhat harder to understand. But it’s worth doing so that you can
+    adjust the recipe to your requirements.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是我们如何执行这种魔法呢？虽然`useUndoReducer`相对容易使用，但理解起来有些困难。但值得这样做，这样您就可以根据需要调整该方法。
+- en: 'We can take advantage of the fact that all reducers work in the same way:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以利用所有reducer都以相同方式工作的事实：
+- en: The action defines what you want to do.
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 行为定义了你想做的事情。
+- en: The reducer returns a fresh state after each action.
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: reducer在每个操作后返回一个新状态。
+- en: No side effects are allowed when calling the reducer.
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 调用reducer时不允许产生副作用。
+- en: Also, reducers are just simple JavaScript functions that accept a state object
+    and an action object.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，reducer只是接受状态对象和操作对象的简单JavaScript函数。
+- en: Because reducers work in such a well-defined way, we can create a new reducer
+    (an undo-reducer) that wraps around another reducer function. Our undo-reducer
+    will work as an intermediary. It will pass most actions through to the underlying
+    reducer while keeping a history of all previous states. If someone wants to undo
+    an action, it will find the last state from its history and then return that without
+    calling the underlying reducer.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为reducer以如此明确定义的方式工作，我们可以创建一个新的reducer（一个undo-reducer），它包裹在另一个reducer函数周围。我们的undo-reducer将作为中介工作。它将大多数操作传递给底层reducer，同时保留所有先前状态的历史记录。如果有人想要撤消一个操作，它将从其历史记录中找到最后一个状态，然后返回该状态而不调用底层reducer。
+- en: 'We’ll begin by creating a higher-order function that accepts one reducer and
+    returns another:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从创建一个接受一个reducer并返回另一个的高阶函数开始：
+- en: '[PRE13]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This reducer is quite a complex function, so it’s worth taking some time to
+    understand what it does.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个reducer函数相当复杂，所以值得花些时间来理解它的作用。
+- en: It creates a reducer function that keeps track of the actions and states we
+    pass to it. Let’s say our game component sends an action to shuffle the tiles
+    in the game. Our reducer will first check if the action has the type `undo` or
+    `redo`. It doesn’t. So it passes the `shuffle` action to the underlying reducer
+    that manages the tiles in our game (see [Figure 3-8](#ch03_image_8)).
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它创建一个 reducer 函数，用于跟踪我们传递给它的动作和状态。假设我们的游戏组件发送一个动作来打乱游戏中的方块。我们的 reducer 首先检查动作是否是
+    `undo` 或 `redo` 类型。它不是。因此，它将 `shuffle` 动作传递给管理游戏中方块的底层 reducer（参见 [图 3-8](#ch03_image_8)）。
+- en: '![](Images/recb_0308.png)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0308.png)'
+- en: Figure 3-8\. The undo-reducer passes most actions to the underlying reducer
+  id: totrans-111
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-8\. undo-reducer 将大多数动作传递给底层 reducer
+- en: As it passes the `shuffle` action through to the underlying reducer, the `undo`
+    code keeps track of the existing state and the `shuffle` action by adding them
+    to the `undoHistory` and `undoActions`. It then returns the state of the underlying
+    game reducer and the `undoHistory` and `undoActions`.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当它将 `shuffle` 动作传递给底层 reducer 时，`undo` 代码通过将它们添加到 `undoHistory` 和 `undoActions`
+    中来跟踪现有状态和 `shuffle` 动作。然后返回底层游戏 reducer 的状态以及 `undoHistory` 和 `undoActions`。
+- en: If our puzzle component sends in an `undo` action, the undo-reducer returns
+    the previous state from the `undoHistory`, completely bypassing the game’s own
+    reducer function (see [Figure 3-9](#ch03_image_9)).
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的拼图组件发送了一个 `undo` 动作，则 undo-reducer 从 `undoHistory` 中返回先前的状态，完全绕过游戏自身的 reducer
+    函数（参见 [图 3-9](#ch03_image_9)）。
+- en: '![](Images/recb_0309.png)'
+  id: totrans-114
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0309.png)'
+- en: Figure 3-9\. For undo actions, the undo-reducer returns the latest historic
+    state
+  id: totrans-115
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-9\. 对于撤销操作，undo-reducer 返回最新的历史状态
+- en: 'Now let’s look at the `useUndoReducer` hook itself:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们看看 `useUndoReducer` 钩子本身：
+- en: '[PRE14]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'This `useUndoReducer` hook is a concise piece of code. It’s simply a call to
+    the built-in `useReducer` hook, but instead of passing the reducer straight through,
+    it passes `undo(reducer)`. The result is that your component uses an enhanced
+    version of the reducer you provide: one that can undo and redo actions.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 `useUndoReducer` 钩子是一段简洁的代码。它只是对内置的 `useReducer` 钩子的调用，但是不直接传递 reducer，而是传递
+    `undo(reducer)`。结果是您的组件使用您提供的 reducer 的增强版本：一个可以撤销和重做动作的版本。
+- en: 'Here is our updated `Puzzle` component (see [“Use Reducers to Manage Complex
+    State”](#ch03-01) for the original version):'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们更新后的 `Puzzle` 组件（查看 [“使用 Reducers 管理复杂状态”](#ch03-01) 获取原始版本）：
+- en: '[PRE15]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The only changes are that we use `useUndoReducer` instead of `useReducer`, and
+    we’ve added a couple of buttons to call the “undo” and “redo” actions.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 唯一的更改是我们使用 `useUndoReducer` 替代了 `useReducer`，并且我们添加了一对按钮来调用 “undo” 和 “redo”
+    动作。
+- en: If you now load the component and makes some changes, you can undo the changes
+    one at a time, as shown in [Figure 3-10](#ch03_image_10).
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果加载组件并进行一些更改，您可以逐个撤销更改，如 [图 3-10](#ch03_image_10) 所示。
+- en: '![](Images/recb_0301.png)'
+  id: totrans-123
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0301.png)'
+- en: Figure 3-10\. With useUndoReducer, you can now send *undo* and *redo* actions
+  id: totrans-124
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-10\. 使用 useUndoReducer，您现在可以发送 *undo* 和 *redo* 动作
+- en: Discussion
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The undo-reducer shown here will work with reducers that accept and return state
+    objects. If your reducer manages state using arrays, you will have to modify the
+    `undo` function.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此处显示的 undo-reducer 将与接受和返回状态对象的 reducer 一起工作。如果您的 reducer 使用数组管理状态，则必须修改 `undo`
+    函数。
+- en: Because it keeps a history of all previous states, you probably want to avoid
+    using it if your state data is extensive or if you’re using it in circumstances
+    where it might make a huge number of changes. Otherwise, you might want to limit
+    the maximum size of the history.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为它保留了所有先前状态的历史记录，所以如果你的状态数据庞大或者在可能进行大量更改的情况下使用它时，可能需要避免使用它。否则，你可能希望限制历史记录的最大大小。
+- en: Also, bear in mind that it maintains its history in memory. If a user reloads
+    the entire page, then the history will disappear. It should be possible to resolve
+    this issue by persisting the global state in local storage whenever it changes.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，请记住它在内存中维护其历史记录。如果用户重新加载整个页面，则历史记录将消失。每当全局状态发生变化时，通过将其持久化到本地存储可以解决此问题。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/Oz27A).
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 网站](https://oreil.ly/Oz27A) 下载此示例的源代码。
+- en: Create and Validate Forms
+  id: totrans-130
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建和验证表单
+- en: Problem
+  id: totrans-131
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Most React applications use forms to some degree, and most applications take
+    an ad-hoc approach to creating them. If a team is building your application, you
+    might find that some developers manage individual fields in separate state variables.
+    Others will choose to record form state in a single-value object, which is simpler
+    to pass into and out of the form but can be tricky for each field to update. Field
+    validation often leads to spaghetti code, with some forms validating at submit
+    time and others validating dynamically as the user types. Some forms might show
+    validation messages when the form first loads. In other forms, the messages might
+    appear only after the user has touched the fields.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数 React 应用程序在某种程度上使用表单，并且大多数应用程序对创建表单采取临时方法。如果团队正在构建您的应用程序，您可能会发现一些开发人员单独管理各个字段的状态变量。其他人则选择将表单状态记录在单一值对象中，这样更简单地将其传入和传出表单，但每个字段更新起来可能有些棘手。字段验证通常会导致混乱的代码，一些表单在提交时进行验证，而另一些表单在用户键入时动态验证。有些表单可能在首次加载时显示验证消息，而其他表单可能仅在用户触摸字段后才会显示消息。
+- en: These variations in design can lead to poor user experience and an inconsistent
+    approach to writing code. In our experience working with React teams, forms and
+    form validation are common stumbling blocks for developers.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设计上的这些变化可能会导致用户体验差和编写代码时方法不一致。在我们与 React 团队合作的经验中，表单和表单验证是开发人员常见的绊脚石。
+- en: Solution
+  id: totrans-134
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'To apply some consistency to form development, we will create a `SimpleForm`
+    component that we will wrap around one or more `InputField` components. This is
+    an example of the use of `SimpleForm` and `InputField`:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了对表单开发应用一些一致性，我们将创建一个 `SimpleForm` 组件，该组件将包裹一个或多个 `InputField` 组件。这是使用 `SimpleForm`
+    和 `InputField` 的示例：
+- en: '[PRE16]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'We track the state of the form in a single object, `formFields`. Whenever we
+    change a field in the form, the field will call `onChange` on the `SimpleForm`.
+    The `field1` field is validated using the `onValidate` method, and whenever the
+    validation state changes, the field calls the `onValid` method on the `SimpleForm`.
+    Validation will occur only if the user has interacted with a field: making it
+    *dirty*.'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在单个对象 `formFields` 中跟踪表单的状态。每当我们在表单中更改字段时，该字段将在 `SimpleForm` 上调用 `onChange`。使用
+    `onValidate` 方法验证 `field1` 字段，并且每当验证状态发生变化时，该字段将在 `SimpleForm` 上调用 `onValid` 方法。只有在用户与字段交互时才会进行验证，使其变为
+    *dirty*。
+- en: You can see the form running in [Figure 3-11](#ch03_image_11).
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在 [图 3-11](#ch03_image_11) 中看到表单的运行情况。
+- en: 'There is no need to track individual field values. The form value object records
+    individual field values with attributes derived from the name of the field. The
+    `InputField` handles the details of when to run the validation: it will update
+    the form value and decide when to display errors.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无需跟踪单个字段值。表单值对象记录具有从字段名称派生的属性的单个字段值。`InputField` 处理何时运行验证的详细信息：它将更新表单值并决定何时显示错误。
+- en: '![](Images/recb_0311.png)'
+  id: totrans-140
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0311.png)'
+- en: Figure 3-11\. A simple form with field validation
+  id: totrans-141
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-11\. 带有字段验证的简单表单
+- en: '[Figure 3-12](#ch03_image_12) shows a slightly more complex example that uses
+    the `SimpleForm` with several fields.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 3-12](#ch03_image_12) 展示了一个稍微复杂的例子，使用了带有几个字段的 `SimpleForm`。'
+- en: '![](Images/recb_0312.png)'
+  id: totrans-143
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0312.png)'
+- en: Figure 3-12\. A more complex form
+  id: totrans-144
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-12\. 更复杂的表单
+- en: To create the `SimpleForm` and `InputField` components, we must first look at
+    how they will communicate with each other. An `InputField` component will need
+    to tell the `SimpleForm` when its value has changed and whether or not the new
+    value is valid. It will do this with a context.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建 `SimpleForm` 和 `InputField` 组件，我们必须首先查看它们如何彼此通信。`InputField` 组件需要告诉 `SimpleForm`
+    其值何时发生变化以及新值是否有效。它将使用上下文来实现这一点。
+- en: 'A *context* is a storage scope. When a component stores values in a context,
+    that value is visible to its subcomponents. The `SimpleForm` will create a context
+    called `FormCon⁠text` and use it to store a set of callback functions that any
+    child component can use to communicate with the form:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*上下文* 是存储范围。当组件在上下文中存储值时，该值对其子组件可见。`SimpleForm` 将创建一个名为 `FormCon⁠text` 的上下文，并用它来存储一组回调函数，任何子组件都可以使用这些函数与表单通信：'
+- en: '[PRE17]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'To see how `SimpleForm` works, let’s begin with a simplified version, which
+    tracks only its subcomponents’ values, without worrying about validation just
+    yet:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解 `SimpleForm` 的工作原理，让我们从一个简化版本开始，该版本仅跟踪其子组件的值，暂时不用担心验证：
+- en: '[PRE18]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: The final version of `SimpleForm` will have additional code for tracking validation
+    and errors, but this cut-down form is easier to understand.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终版本的`SimpleForm`将增加额外的代码来跟踪验证和错误，但这个简化的表单更易于理解。
+- en: The form is going to track all of its field values in the `values` object. The
+    form creates two callback functions called `getValue` and `setValue` and puts
+    them into the context (as the `form` object), where subcomponents will find them.
+    We put the `form` into the context by wrapping a `<FormContext.Provider>` around
+    the child components.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表单将在`values`对象中跟踪所有字段值。表单创建了两个名为`getValue`和`setValue`的回调函数，并将它们放入上下文（作为`form`对象），子组件将在其中找到它们。我们通过在子组件周围包装`<FormContext.Provider>`来将`form`放入上下文中。
+- en: Notice that we have wrapped the `getValue` and `setValue` callbacks in `useCallback`,
+    which prevents the component from creating a new version of each function every
+    time we render the `SimpleForm`.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们已经在`useCallback`中包装了`getValue`和`setValue`回调，这样可以防止组件每次渲染`SimpleForm`时创建这些函数的新版本。
+- en: Whenever a child component calls the `form.value()` function, it will receive
+    the current value of the specified field. If a child component calls `form.setValue()`,
+    it will update that value.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每当子组件调用`form.value()`函数时，它将收到指定字段的当前值。如果子组件调用`form.setValue()`，它将更新该值。
+- en: 'Now let’s look at a simplified version of the `InputField` component, again
+    with any validation code removed to make it easier to understand:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们看一个简化版的`InputField`组件，再次删除任何验证代码，以便更容易理解：
+- en: '[PRE19]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The `InputField` extracts the `form` object from the `FormContext`. If it cannot
+    find a `form` object, it knows that we have not wrapped it in a `SimpleForm` component.
+    The `InputField` then renders an `input` field, setting its value to whatever
+    is returned by `form.value(name)`. If the user changes the field’s value, the
+    `InputField` component sends the new value to `form.setValue(name, event.target.value)`.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`InputField`从`FormContext`中提取`form`对象。如果找不到`form`对象，它知道我们没有将其包装在`SimpleForm`组件中。然后，`InputField`渲染一个`input`字段，并将其值设置为`form.value(name)`返回的任何内容。如果用户更改字段的值，`InputField`组件将新值发送到`form.setValue(name,
+    event.target.value)`。'
+- en: If you need a form field other than an `input`, you can wrap it in some component
+    similar to the `InputField` shown here.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您需要除了`input`之外的表单字段，可以将其包装在类似此处所示的`InputField`组件中。
+- en: The validation code is just more of the same. In the same way that the form
+    tracks its current value in the `values` state, it also needs to track which fields
+    are dirty and which are invalid. It then needs to pass callbacks for `setDirty`,
+    `isDirty`, and `setIn⁠valid`. These callbacks are used by the child fields when
+    running their `onValidate` code.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 验证代码与前面类似。与表单在`values`状态中跟踪当前值的方式相同，它还需要跟踪哪些字段是脏的，哪些是无效的。然后需要传递`setDirty`、`isDirty`和`setInvalid`的回调函数。这些回调函数在子字段运行其`onValidate`代码时使用。
+- en: 'Here is the final version of the `SimpleForm` component, including validation:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是包含验证的`SimpleForm`组件的最终版本：
+- en: '[PRE20]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'And this is the final version of the `InputField` component. Notice that the
+    field is counted as *dirty* once it loses focus or its value changes:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是`InputField`组件的最终版本。请注意，一旦它失去焦点或其值发生变化，该字段被标记为*dirty*：
+- en: '[PRE21]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Discussion
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You can use this recipe to create many simple forms, and you can extend it for
+    use with any React component. For example, if you are using a third-party calendar
+    or date picker, you would only need to wrap it in a component similar to `InputField`
+    to use it inside a `SimpleForm`.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用此方案创建许多简单的表单，并可以扩展它以与任何React组件一起使用。例如，如果您正在使用第三方日历或日期选择器，只需将其包装在类似`InputField`的组件中，即可在`SimpleForm`内部使用它。
+- en: This recipe doesn’t support forms within forms or arrays of forms. It should
+    be possible to modify the `SimpleForm` component to behave like an `InputField`
+    to place one form inside another.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此方案不支持表单内嵌或表单数组。可以修改`SimpleForm`组件，使其像`InputField`一样，以便在一个表单内放置另一个表单。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/gU03F).
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/gU03F)下载此方案的源代码。
+- en: Measure Time with a Clock
+  id: totrans-167
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用时钟测量时间
+- en: Problem
+  id: totrans-168
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Sometimes a React application needs to respond to the time of day. It might
+    only need to display the current time, or it might need to poll a server at regular
+    intervals or change its interface as day turns to night. But how do you cause
+    your code to re-render as the result of a time change? How do you avoid rendering
+    components too often? And how do you do all that without overcomplicating your
+    code?
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，React 应用程序需要根据一天中的时间做出响应。它可能只需要显示当前时间，或者可能需要定期轮询服务器，或者在白天变成黑夜时更改其界面。但是，如何使您的代码在时间变化时重新渲染？如何避免过度渲染组件？而且如何在不过度复杂化代码的情况下完成所有这些？
+- en: Solution
+  id: totrans-170
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We’re going to create a `useClock` hook. The `useClock` hook will give us access
+    to a formatted version of the current date and time and automatically update the
+    interface when the time changes. Here’s an example of the code in use, and [Figure 3-13](#ch03_image_13)
+    shows it running:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个 `useClock` 钩子。`useClock` 钩子将使我们能够访问当前日期和时间的格式化版本，并在时间变化时自动更新界面。以下是代码示例，并且
+    [图 3-13](#ch03_image_13) 显示其运行中：
+- en: '[PRE22]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '![](Images/recb_0313.png)'
+  id: totrans-173
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0313.png)'
+- en: Figure 3-13\. The `SimpleTicker` over three seconds
+  id: totrans-174
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-13\. `SimpleTicker` 每三秒
+- en: The `time` variable contains the current time in the format `HH:mm:ss`. When
+    the time changes, the value of the `isTick` state is toggled between true and
+    false and then used to display the word *Tick!* or *Tock!* We show the current
+    time and then also display the time with a `ClockFace` component.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`time` 变量包含格式为 `HH:mm:ss` 的当前时间。当时间变化时，`isTick` 状态的值在真和假之间切换，然后用于显示 *Tick!*
+    或 *Tock!*。我们显示当前时间，然后还显示带有 `ClockFace` 组件的时间。'
+- en: 'As well as accepting a date and time format, `useClock` can take a number specifying
+    the number of milliseconds between updates (see [Figure 3-14](#ch03_image_14)):'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了接受日期和时间格式外，`useClock` 还可以接受一个指定更新之间毫秒数的数字（见 [图 3-14](#ch03_image_14)）：
+- en: '[PRE23]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '![](Images/recb_0314.png)'
+  id: totrans-178
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0314.png)'
+- en: Figure 3-14\. The `IntervalTicker` re-renders the component every three seconds
+  id: totrans-179
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-14\. `IntervalTicker` 每三秒重新渲染组件
+- en: This version is more useful if you want to perform some task at regular intervals,
+    such as polling a network service.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您希望定期执行某些任务（例如轮询网络服务），这个版本会更加实用。
+- en: To poll a network service, consider using a clock with [“Convert Network Calls
+    to Hooks”](ch05.xhtml#ch05-01). If the current value of the clock is passed as
+    a dependency to a hook that makes network calls, the network call will be repeated
+    every time the clock changes.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要轮询网络服务，请考虑使用具有 [“将网络调用转换为钩子”](ch05.xhtml#ch05-01) 的时钟。如果将时钟的当前值作为依赖项传递给执行网络调用的钩子，则每次时钟变化时都会重复网络调用。
+- en: If you pass a numeric parameter to `useClock`, it will return a time string
+    in ISO format like `2021-06-11T14:50:34.706`.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果向 `useClock` 传递一个数值参数，它将返回一个 ISO 格式的时间字符串，例如 `2021-06-11T14:50:34.706`。
+- en: 'To build this hook, we will use a third-party library called [Moment.js](https://momentjs.com)
+    to handle date and time formatting. If you would prefer to use another library,
+    such as [Day.js](https://day.js.org), it should be straightforward to convert:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了构建这个钩子，我们将使用一个名为 [Moment.js](https://momentjs.com) 的第三方库来处理日期和时间格式化。如果您更愿意使用另一个库，如
+    [Day.js](https://day.js.org)，转换应该是直接的：
+- en: '[PRE24]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'This is the code for `useClock`:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 `useClock` 的代码：
+- en: '[PRE25]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: We derive the date and time `format` and the required *ticking* `interval` from
+    the `formatOrInterval` parameter passed to the hook. Then we create a timer with
+    `setInterval`. This time will set the `response` value every `interval` milliseconds.
+    When we set the `response` string to a new time, any component that relies on
+    `useClock` will re-render.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从传递给钩子的 `formatOrInterval` 参数派生日期时间的 `format` 和所需的 *tick* `interval`。然后我们使用
+    `setInterval` 创建一个定时器。每 `interval` 毫秒，此定时器将设置 `response` 值为新的时间字符串。当我们将 `response`
+    字符串设置为新时间时，依赖于 `useClock` 的任何组件都将重新渲染。
+- en: We need to make sure that we cancel any timers that are no longer in use. We
+    can do this using a feature of the `useEffect` hook. If we return a function at
+    the end of our `useEffect` code, then that function will be called the next time
+    `useEffect` needs to run. So, we can use it to clear the old timer before creating
+    a new one.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要确保取消任何不再使用的定时器。我们可以利用 `useEffect` 钩子的一个特性来实现这一点。如果在 `useEffect` 代码的末尾返回一个函数，那么该函数将在下次
+    `useEffect` 需要运行时调用。因此，我们可以在创建新定时器之前清除旧定时器。
+- en: If we pass a new format or interval to `useClock`, it will cancel its old timer
+    and respond using a new timer.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们向 `useClock` 传递新的格式或间隔，它将取消旧的定时器，并使用新的定时器响应。
+- en: Discussion
+  id: totrans-190
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This recipe is an example of how you can use hooks to solve a simple problem
+    simply. React code (the clue is in the name) reacts to dependency changes. Instead
+    of thinking, “How can I run this piece of code every second?” the `useClock` hook
+    allows you to write code that depends on the current time and hides away all of
+    the gnarly details of creating timers, updating state, and clearing timers.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例展示了如何使用钩子来简单解决问题。React代码（名字就是提示）会对依赖项更改做出反应。不要想着“如何每秒运行这段代码？”`useClock`钩子允许您编写依赖于当前时间的代码，并隐藏了创建定时器、更新状态和清除定时器的所有复杂细节。
+- en: If you use the `useClock` hook several times in a component, then a time change
+    can result in multiple renders. For example, if you have two clocks that format
+    the current time in 12-hour format (04:45) and 24-hour format (16:45), then your
+    component will render twice when the minute changes. An extra render once a minute
+    is unlikely to have much of a performance impact.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在组件中多次使用`useClock`钩子，则时间更改可能导致多次渲染。例如，如果您有两个时钟，分别以12小时制（04:45）和24小时制（16:45）格式化当前时间，则当分钟更改时，您的组件将渲染两次。每分钟额外渲染一次不太可能对性能产生太大影响。
+- en: You can also use the `useClock` hook inside other hooks. If you create a `useMessages`
+    hook to retrieve messages from a server, you can call `useClock` inside it to
+    poll the server at regular intervals.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以在其他钩子内部使用`useClock`钩子。如果您创建一个`useMessages`钩子来从服务器检索消息，您可以在其中调用`useClock`以定期轮询服务器。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/hohKK).
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/hohKK)下载此示例的源代码。
+- en: Monitor Online Status
+  id: totrans-195
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 监控在线状态
+- en: Problem
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Let’s say someone is using your application on their cell phone, and then they
+    head into a subway with no data connection. How can you check that the network
+    connection has disappeared? What’s a React-friendly way of updating your interface
+    to either tell the user that there’s a problem or disable some features that require
+    network access?
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设有人在其手机上使用您的应用程序，然后他们进入没有数据连接的地铁。如何检查网络连接已经断开？如何以React友好的方式更新您的界面，告知用户存在问题或禁用一些需要网络访问的功能？
+- en: Solution
+  id: totrans-198
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We will create a hook called `useOnline` that will tell us whether we’re connected
+    to a network. We need code that runs when the browser loses or regains a connection
+    to the network. Fortunately, there are window/body-level events called `online`
+    and `offline` that do exactly that. When the `online` and `offline` events are
+    triggered, the current network state will be given by `navigator.onLine`, which
+    will be set to `true` or `false`:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个名为`useOnline`的钩子，用于告诉我们是否连接到网络。我们需要的代码在浏览器失去或重新获得与网络的连接时运行。幸运的是，有称为`online`和`offline`的窗口/全局事件正是做这些事情的。当触发`online`和`offline`事件时，当前网络状态将由`navigator.onLine`给出，其值将设置为`true`或`false`：
+- en: '[PRE26]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: This hook manages its connection state in the `online` variable. When the hook
+    is first run (notice the empty dependency array), we register listeners to the
+    browser’s online/offline events. When either of these events occurs, we can set
+    the value of `online` to `true` or `false`. If this is a change to the current
+    value, then any component using this hook will re-render.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此钩子在`online`变量中管理其连接状态。当首次运行该钩子时（请注意空依赖数组），我们会注册浏览器的在线/离线事件监听器。当任一事件发生时，我们可以将`online`的值设置为`true`或`false`。如果这是当前值的更改，则使用此钩子的任何组件都将重新渲染。
+- en: 'Here’s an example of the hook in action:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是钩子实际运行的示例：
+- en: '[PRE27]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: If you run the app, the page will currently show as online. If you disconnect/reconnect
+    your network, the message will switch to OFFLINE and then back to ONLINE (see
+    [Figure 3-15](#ch03_image_15)).
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果运行应用程序，页面当前将显示为在线状态。如果断开/重新连接网络，则消息将切换到离线，然后再切换到在线（参见[图3-15](#ch03_image_15)）。
+- en: '![](Images/recb_0315.png)'
+  id: totrans-205
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0315.png)'
+- en: Figure 3-15\. The code re-renders when the network is switched off and back
+    on again
+  id: totrans-206
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-15\. 当网络关闭和重新打开时，代码将重新渲染
+- en: Discussion
+  id: totrans-207
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It’s important to note that this hook checks your browser’s connection to a
+    network, not whether it connects to the broader Internet or your server. If you
+    would like to check that your server is running and available, you would have
+    to write additional code.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重要的是要注意，此钩子检查的是浏览器连接到网络的情况，而不是连接到更广泛的Internet或您的服务器。如果要检查服务器是否正在运行并可用，您需要编写额外的代码。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/9hkSA).
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/9hkSA)下载此示例的源代码。
+- en: Manage Global State with Redux
+  id: totrans-210
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Redux 管理全局状态
+- en: Problem
+  id: totrans-211
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: In other recipes in this chapter, we’ve seen that you can manage complex component
+    state with a pure JavaScript function called a reducer. *Reducers* simplify components
+    and make business logic more testable.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章的其他示例中，我们已经看到您可以使用称为 reducer 的纯 JavaScript 函数来管理复杂的组件状态。*Reducers* 简化组件并使业务逻辑更易于测试。
+- en: But what if you have some data, such as a shopping basket, that needs to be
+    accessed everywhere?
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是如果您有一些数据，比如购物篮，需要在所有地方访问怎么办？
+- en: Solution
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We will use the Redux library to manage the global application state. Redux
+    uses the same reducers we can give to the React `useReducer` function, but they
+    are used to manage a single state object for the entire application. Plus, there
+    are many extensions to Redux that solve common programming problems and develop
+    and manage your application more quickly.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用 Redux 库来管理全局应用程序状态。Redux 使用相同的 reducers，我们可以提供给 React 的 `useReducer` 函数，但它们用于管理整个应用程序的单个状态对象。此外，Redux
+    还有许多扩展，用于解决常见的编程问题，以便更快地开发和管理您的应用程序。
+- en: 'First, we need to install the Redux library:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们需要安装 Redux 库：
+- en: '[PRE28]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'We will also install the React Redux library, which will make Redux far easier
+    to use with React:'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将安装 React Redux 库，这将使 Redux 与 React 结合使用更加简单：
+- en: '[PRE29]'
+  id: totrans-219
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: We’re going to use Redux to build an application containing a shopping basket
+    (see [Figure 3-16](#ch03_image_16)).
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用 Redux 构建一个包含购物篮的应用程序（参见 [图 3-16](#ch03_image_16)）。
+- en: '![](Images/recb_0316.png)'
+  id: totrans-221
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0316.png)'
+- en: Figure 3-16\. When a customer buys a product, the application adds it to the
+    basket
+  id: totrans-222
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-16\. 当客户购买产品时，应用程序将其添加到购物篮中
+- en: 'If a customer clicks a Buy button, the application adds the product to the
+    basket. If they click the Buy button again, the quantity in the basket is updated.
+    The basket will appear in several places across the application, so it’s a good
+    candidate for moving to Redux. Here is the reducer function that we will use to
+    manage the basket:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果客户点击“购买”按钮，应用程序将产品添加到购物篮中。如果他们再次点击“购买”按钮，则更新购物篮中的数量。购物篮将出现在应用程序的多个位置，因此非常适合迁移到
+    Redux。这是我们将用来管理购物篮的 reducer 函数：
+- en: '[PRE30]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: We are creating a single reducer here. Once your application grows in size,
+    you will probably want to split your reducer into smaller reducers, which you
+    can combine with the Redux `combineReduc⁠ers` [function](https://oreil.ly/IVh7x).
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里我们创建了一个单一的 reducer。当您的应用程序规模扩大时，您可能希望将 reducer 拆分为更小的 reducers，并使用 Redux 的
+    `combineReduc⁠ers` [函数](https://oreil.ly/IVh7x) 将它们组合起来。
+- en: The reducer function responds to `buy` and `clearBasket` actions. The `buy`
+    action will either add a new item to the basket or update the quantity of an existing
+    item if one has a matching `productId`. The `clearBasket` action will set the
+    basket back to an empty array.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: reducer 函数响应 `buy` 和 `clearBasket` 操作。`buy` 操作将添加新项目到购物篮，或者如果已有匹配的 `productId`，则更新现有项目的数量。`clearBasket`
+    操作将将购物篮设置为空数组。
+- en: 'Now that we have a reducer function, we will use it to create a Redux *store*.
+    The store is going to be our central repository for the shared application state.
+    To create a store, add these two lines to some top-level component such as *App.js*:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了一个 reducer 函数，我们将使用它来创建一个 Redux *store*。这个 store 将成为我们共享应用程序状态的中央存储库。要创建一个
+    store，在一些顶层组件（如 *App.js*）中添加以下两行代码：
+- en: '[PRE31]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'The store needs to be available globally in the app, and to do that, we need
+    to inject it into the context of the components that might need it. The React
+    Redux library provides a component to inject the store in a component context
+    called `Provider`:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 商店需要全局可用，为此，我们需要将其注入到可能需要它的组件的上下文中。React Redux 库提供了一个用于在组件上下文中注入 store 的组件，称为
+    `Provider`：
+- en: '[PRE32]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Here is the *reducer.js* component from the example application, which you
+    can find in the [GitHub repository](https://oreil.ly/j90xI) for this book:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是示例应用程序中的 *reducer.js* 组件，您可以在本书的 [GitHub 仓库](https://oreil.ly/j90xI) 中找到它：
+- en: '[PRE33]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Now that the store is available to our components, how do we use it? React
+    Redux allows you to access the store through hooks. If you want to read the contents
+    of the global state, you can use `useSelector`:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的组件可以访问商店了，那么我们如何使用它呢？React Redux 允许您通过 hooks 访问商店。如果您想要读取全局状态的内容，可以使用 `useSelector`：
+- en: '[PRE34]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: The `useSelector` hook accepts a function to extract part of the central state.
+    Selectors are pretty efficient and will cause your component to re-render only
+    if the particular part of the state you are interested in changes.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useSelector`钩子接受一个函数来提取中央状态的一部分。选择器非常高效，只有在您关注的状态部分发生变化时，您的组件才会重新渲染。'
+- en: 'If you need to submit an action to the central store, you can do it with the
+    `useDispatch` hook:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您需要将动作提交到中央存储，可以使用`useDispatch`钩子：
+- en: '[PRE35]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'This returns a `dispatch` function that you can use to send actions to the
+    store:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将返回一个`dispatch`函数，您可以使用它发送动作到存储中：
+- en: '[PRE36]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: These hooks work by extracting the store from the current context. If you forget
+    to add a `Provider` to your application or try to run `useSelector` or `useDispatch`
+    outside of a `Provider` context, you will get an error, as shown in [Figure 3-17](#ch03_image_17).
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些钩子通过从当前上下文中提取存储来工作。如果您忘记向应用程序添加`Provider`或尝试在`Provider`上下文之外运行`useSelector`或`useDispatch`，则会收到错误，如[图
+    3-17](#ch03_image_17)所示。
+- en: '![](Images/recb_0317.png)'
+  id: totrans-241
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0317.png)'
+- en: Figure 3-17\. If you forget to include a `Provider`, you will get this error
+  id: totrans-242
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-17\. 如果您忘记包含`Provider`，您将会收到此错误
+- en: 'The completed `Basket` component reads and clears the app-wide shopping basket:'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成的`Basket`组件读取并清除应用程序范围内的购物篮：
+- en: '[PRE37]'
+  id: totrans-244
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'To demonstrate some code adding items to the basket, here’s a `Boots` component
+    that allows a customer to buy a selection of products:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了演示一些向购物篮添加商品的代码，这里是一个`Boots`组件，允许客户购买一系列产品：
+- en: '[PRE38]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: These two components may appear at very different locations in the component
+    tree, but they share the same Redux store. As soon as a customer adds a product
+    to the basket, the `Basket` component will automatically update with the change
+    (see [Figure 3-18](#ch03_image_18)).
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个组件可能出现在组件树中非常不同的位置，但它们共享同一个Redux存储。一旦客户将产品添加到购物篮中，`Basket`组件将自动更新变化（参见[图
+    3-18](#ch03_image_18)）。
+- en: '![](Images/recb_0318.png)'
+  id: totrans-248
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0318.png)'
+- en: Figure 3-18\. The Redux-React hooks make sure that when a user buys a product,
+    the `Basket` is re-rendered
+  id: totrans-249
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-18\. Redux-React钩子确保当用户购买产品时，`Basket`将被重新渲染
+- en: Discussion
+  id: totrans-250
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Developers often use the Redux library with the React framework. For a long
+    time, it seemed, almost every React application included Redux by default. It’s
+    probably true that Redux was often overused or used inappropriately. We have seen
+    projects that have even banned local state in favor of using Redux for *all* state.
+    We believe this approach is a mistake. Redux is intended for central application
+    state management, not for simple component state. If you are storing data that
+    is of concern to only one component, or its subcomponents, you should probably
+    not store it in Redux.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发人员通常将Redux库与React框架一起使用。长期以来，几乎每个React应用程序默认都包含Redux。我们认为Redux经常被过度使用或不当使用。我们曾经看到一些项目甚至禁止使用本地状态，而是使用Redux来处理*所有*状态。我们认为这种做法是错误的。Redux旨在用于集中管理应用程序状态，而不是简单的组件状态。如果您存储的数据仅关系到一个组件或其子组件，您可能不应将其存储在Redux中。
+- en: However, if your application manages some global application state, then Redux
+    is still the tool of choice.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，如果您的应用程序管理一些全局应用程序状态，那么Redux仍然是首选的工具。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/j90xI).
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/j90xI)下载本教程的源代码。
+- en: Survive Page Reloads with Redux Persist
+  id: totrans-254
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Redux Persist 解决页面重新加载问题
+- en: Problem
+  id: totrans-255
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'Redux is an excellent way of managing the application state centrally. However,
+    it does have a small problem: when you reload the page, the entire state disappears
+    (see [Figure 3-19](#ch03_image_19)).'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux 是管理应用程序状态的绝佳方式。然而，它确实存在一个小问题：当您重新加载页面时，整个状态会消失（参见[图 3-19](#ch03_image_19)）。
+- en: '![](Images/recb_0319.png)'
+  id: totrans-257
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0319.png)'
+- en: Figure 3-19\. Redux state (left) is lost if the page is reloaded (right)
+  id: totrans-258
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-19\. Redux 状态（左）在页面重新加载时会丢失（右）
+- en: The state disappears because Redux keeps its state in memory. How do we prevent
+    the state from disappearing?
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态会消失是因为Redux将其状态保存在内存中。我们如何防止状态消失呢？
+- en: Solution
+  id: totrans-260
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We will use the Redux Persist library to keep a copy of the Redux state in
+    local storage. To install Redux Persist, type the following:'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用Redux Persist库将Redux状态的副本保存在本地存储中。要安装Redux Persist，请输入以下命令：
+- en: '[PRE39]'
+  id: totrans-262
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'The first thing we need to do is create a *persisted reducer*, wrapped around
+    our existing reducer:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要做的第一件事是创建一个*持久化的reducer*，围绕我们现有的reducer包装起来：
+- en: '[PRE40]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'The `storage` specifies where we will persist the Redux state: it will be in
+    `localStor⁠age` by default. The `persistConfig` says that we want to keep our
+    state in a `localStorage` item called `persist:root`. When the Redux state changes,
+    the `persistedReducer` will write a copy with `localStorage.setItem(''persist:root'',
+    ...)`. We now need to create our Redux store with `persistedReducer`:'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`storage` 指定了我们将持久化 Redux 状态的位置：默认情况下将在 `localStorage` 中。`persistConfig` 表明我们希望将我们的状态保存在名为
+    `persist:root` 的 `localStorage` 项中。当 Redux 状态发生变化时，`persistedReducer` 将通过 `localStorage.setItem(''persist:root'',
+    ...)` 写入副本。现在我们需要使用 `persistedReducer` 创建我们的 Redux store：'
+- en: '[PRE41]'
+  id: totrans-266
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'We need to interject the Redux Persist code between the Redux store and the
+    code that’s accessing the Redux store. We do that with a component called `PersistGate`:'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要在访问 Redux store 的代码和 Redux store 之间插入 Redux Persist 代码。我们使用一个名为 `PersistGate`
+    的组件来实现这一点：
+- en: '[PRE42]'
+  id: totrans-268
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'The `PersistGate` must be *inside* the Redux `Provider` and *outside* the components
+    that are going to use Redux. The `PersistGate` will watch for when the Redux state
+    is lost and then reload it from `localStorage`. It might take a moment to reload
+    the data, and if you want to show that the UI is briefly busy, you can pass a
+    `loading` component to the `PersistGate`: for example, an animated spinner. The
+    loading component will be displayed in place of its child components when Redux
+    is reloading. If you don’t want a loading component, you can set it to `null`.'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`PersistGate` 必须位于 Redux `Provider` 内部，并且位于将使用 Redux 的组件之外。`PersistGate` 将监视
+    Redux 状态丢失的情况，并从 `localStorage` 中重新加载它。当 Redux 正在重新加载数据时，可能需要一点时间，如果您想显示 UI 稍微忙碌的状态，可以将一个
+    `loading` 组件传递给 `PersistGate`：例如，一个动画旋转器。当 Redux 重新加载时，加载组件将显示在其子组件的位置。如果您不想要加载组件，可以将其设置为
+    `null`。'
+- en: 'Here is the final version of the modified *App.js* from the example app:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是示例应用程序中修改后的 *App.js* 的最终版本：
+- en: '[PRE43]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: Now, when the user reloads the page, the Redux state survives, as shown in [Figure 3-20](#ch03_image_20).
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当用户重新加载页面时，Redux 状态会保留，如 [图 3-20](#ch03_image_20) 所示。
+- en: '![](Images/recb_0320.png)'
+  id: totrans-273
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0320.png)'
+- en: Figure 3-20\. Redux state before the reload (top) and after (bottom)
+  id: totrans-274
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-20\. 重新加载前的 Redux 状态（顶部）和重新加载后（底部）
+- en: Discussion
+  id: totrans-275
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The Redux Persist library is a simple way of persisting Redux state through
+    page reloads. If you have a substantial amount of Redux data, you will need to
+    be careful not to break the `localStorage` limit, which will vary from browser
+    to browser but is typically around 10 MB. However, if your Redux data is that
+    size, you should consider offloading some of it to a server.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux Persist 库是通过页面重新加载简单地持久化 Redux 状态的方法。如果您有大量的 Redux 数据，需要小心不要超出 `localStorage`
+    的限制，这个限制因浏览器而异，但通常约为 10 MB。但是，如果您的 Redux 数据量如此之大，您应该考虑将其中一些数据转移到服务器上。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/K8U5J).
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 站点](https://oreil.ly/K8U5J) 下载本配方的源代码。
+- en: Calculate Derived State with Reselect
+  id: totrans-278
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Reselect 计算派生状态
+- en: Problem
+  id: totrans-279
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: When you extract your application state into an external object with a tool
+    like Redux, you often need to process the data in some way before displaying it.
+    For example, [Figure 3-21](#ch03_image_21) shows an application we have used in
+    a few recipes in this chapter.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您将应用程序状态提取到类似 Redux 这样的工具中的外部对象时，通常需要在显示之前对数据进行某种方式的处理。例如，[图 3-21](#ch03_image_21)
+    展示了本章中几个配方中使用过的应用程序。
+- en: '![](Images/recb_0318.png)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0318.png)'
+- en: Figure 3-21\. What’s the best method for calculating the total cost and tax
+    of the basket?
+  id: totrans-282
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-21\. 如何计算购物篮的总费用和税金的最佳方法？
+- en: What if we want to calculate the total cost of the items in the basket and then
+    calculate the amount of sales tax to pay? We could create a JavaScript function
+    that reads through the basket items and calculates both, but that function would
+    have to recalculate the values every time the basket renders. Is there a way of
+    calculating derived values from the state that updates only when the state changes?
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要计算购物篮中物品的总费用，然后计算要支付的销售税，该怎么办？我们可以创建一个 JavaScript 函数，读取购物篮中的物品并计算这两个值，但是每次购物篮重新渲染时，该函数都需要重新计算这些值。有没有一种方法可以从更新状态时仅计算派生值呢？
+- en: Solution
+  id: totrans-284
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The Redux developers have created a library specifically designed to derive
+    values efficiently from state objects, called `reselect`.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux 开发者专门创建了一个库，名为 `reselect`，用于高效地从状态对象中派生值。
+- en: The `reselect` library creates selector functions. A *selector function* takes
+    a single parameter—a state object—and returns a processed version.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`reselect` 库创建选择器函数。*选择器函数* 接受一个参数——状态对象，并返回一个处理过的版本。'
+- en: 'We’ve already seen one selector in [“Manage Global State with Redux”](#ch03-06).
+    We used it to return the current basket from the central Redux state:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经在 [“使用 Redux 管理全局状态”](#ch03-06) 中看到了一个选择器。我们用它来从中央 Redux 状态返回当前的购物篮：
+- en: '[PRE44]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: The `state => state.basket` is a selector function; it derives some value from
+    a state object. The `reselect` library creates highly efficient selector functions
+    that can cache their results if the state they depend upon has not changed.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`state => state.basket` 是一个选择器函数；它从状态对象中派生出一些值。`reselect` 库创建高效的选择器函数，如果它们依赖的状态没有改变，可以缓存它们的结果。'
+- en: 'To install `reselect`, enter this command:'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要安装 `reselect`，请输入以下命令：
+- en: '[PRE45]'
+  id: totrans-291
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'Let’s begin by creating a selector function that will do the following:'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从创建一个选择器函数开始，它将执行以下操作：
+- en: Count the total number of items in a basket
+  id: totrans-293
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 计算购物篮中所有物品的总数
+- en: Calculate the total cost of all of the items
+  id: totrans-294
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 计算所有商品的总成本
+- en: 'We’ll call this function `summarizer`. Before we go into the details of how
+    we’ll write it, we’ll begin by writing a test that will show what it will need
+    to do:'
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将这个函数称为 `summarizer`。在详细介绍如何编写它之前，我们将首先编写一个测试，展示它需要做什么：
+- en: '[PRE46]'
+  id: totrans-296
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: So if we give it a state object, it will add up the quantities and costs and
+    return an object containing the `itemCount` and `cost`.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，如果我们给它一个状态对象，它将添加数量和成本，并返回一个包含 `itemCount` 和 `cost` 的对象。
+- en: 'We can create a selector function called `summarizer` with the Reselect library
+    like this:'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以像这样使用 Reselect 库创建一个名为 `summarizer` 的选择器函数：
+- en: '[PRE47]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'The `createSelector` function creates a selector function *based* on other
+    selector functions. Each of the parameters passed to it—except the last parameter—should
+    be selector functions. We are passing just one:'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`createSelector` 函数创建一个基于其他选择器函数的选择器函数。传递给它的每个参数（除了最后一个参数）都应该是选择器函数。我们只传递了一个：'
+- en: '[PRE48]'
+  id: totrans-301
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: This code extracts the basket from the state.
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码从状态中提取了购物篮。
+- en: 'The final parameter passed to `createSelector` (the *combiner*) is a function
+    that derives a new value, based on the results of the preceding selectors:'
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传递给 `createSelector` 的最后一个参数（*combiner*）是一个函数，根据前面选择器的结果派生出一个新值：
+- en: '[PRE49]'
+  id: totrans-304
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: The `basket` value is the result of running the state through the first selector.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`basket` 值是通过第一个选择器处理状态得到的结果。'
+- en: Why on Earth would anyone create functions this way? Isn’t it *way* more complicated
+    than just creating a JavaScript function manually, without the need to pass all
+    of these functions to functions?
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到底有谁会以这种方式创建函数？这难道不比仅仅手动创建一个 JavaScript 函数复杂得多，而不需要将所有这些函数传递给函数？
+- en: The answer is *efficiency*. Selectors will recalculate their values only when
+    they need to. State objects can be complex and might have dozens of attributes.
+    But we are interested only in the contents of the `basket` attribute, and we don’t
+    want to have to recalculate our costs if anything else changes.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案是*效率*。选择器只会在需要时重新计算它们的值。状态对象可能很复杂，可能有数十个属性。但是我们只关注 `basket` 属性的内容，如果其他任何内容发生变化，我们都不希望重新计算成本。
+- en: 'What `reselect` does is work out when the value it returns is likely to have
+    changed. Let’s say we call it one time, and it calculates the `itemCount` and
+    `value` like this:'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`reselect` 的作用是确定它返回的值何时可能已经发生了变化。假设我们调用它一次，它会像这样计算 `itemCount` 和 `value`：'
+- en: '[PRE50]'
+  id: totrans-309
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: Then the user runs a bunch of commands that update personal preferences, posts
+    a message to somebody, adds several things to their wish list, and so on.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后用户运行一堆命令，更新个人偏好设置，向某人发布消息，将几件物品添加到他们的愿望清单中，等等。
+- en: 'Each of the events might update the global application state. But the next
+    time we run the `summarizer` function, it will return the cached value that it
+    produced before:'
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个事件可能会更新全局应用程序状态。但是下次运行 `summarizer` 函数时，它将返回之前生成的缓存值：
+- en: '[PRE51]'
+  id: totrans-312
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Why? Because it knows that this value is dependent *only* upon the `basket`
+    value in the global state. And if that hasn’t changed, then it doesn’t need to
+    recalculate the return value.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么？因为它知道这个值仅仅依赖于全局状态中的 `basket` 值。如果那没有改变，它就不需要重新计算返回值。
+- en: 'Because `reselect` allows us to build selector functions from other selector
+    functions, we could build another selector called `taxer` to calculate the basket’s
+    sales tax:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 `reselect` 允许我们从其他选择器函数构建选择器函数，我们可以构建另一个名为 `taxer` 的选择器，来计算购物篮的销售税：
+- en: '[PRE52]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: The `taxer` selector uses the value returned by the `summarizer` function. It
+    takes the `cost` of the `summarizer` result and multiplies it by 7%. If the basket’s
+    summarized total doesn’t change, then the `taxer` function will not need to update
+    its result.
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`taxer`选择器使用`summarizer`函数返回的值。它获取`summarizer`结果的`cost`，并将其乘以7%。如果篮子的总结总额不变，则`taxer`函数将不需要更新其结果。'
+- en: 'Now that we have the `summarizer` and `taxer` selectors, we can use them inside
+    a component, just as we would any other selector function:'
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了`summarizer`和`taxer`选择器，我们可以像使用任何其他选择器函数一样在组件内部使用它们：
+- en: '[PRE53]'
+  id: totrans-318
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: When we run the code now, we see a summary at the bottom of the shopping basket,
+    which will update whenever we buy a new product (see [Figure 3-22](#ch03_image_22)).
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们现在运行代码时，在购物篮底部看到一个摘要，每当我们购买新产品时它都会更新（见[图 3-22](#ch03_image_22)）。
+- en: '![](Images/recb_0322.png)'
+  id: totrans-320
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0322.png)'
+- en: Figure 3-22\. The selectors recalculate the total cost and sales tax only when
+    the basket changes
+  id: totrans-321
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-22\. 选择器重新计算总成本和销售税，仅在篮子变化时。
+- en: Discussion
+  id: totrans-322
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The first time you meet selector functions, they can seem complicated and hard
+    to understand. But it is worth taking the time to understand them. There is nothing
+    Redux-specific about them. There is no reason why you can’t also use them with
+    non-Redux reducers. Because they have no dependencies beyond the `reselect` library
+    itself, they are easy to unit test. We include example tests in the code for this
+    chapter.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一次遇到选择器函数时，它们可能会显得复杂和难以理解。但是花时间理解它们是值得的。它们与Redux无关。你也可以将它们与非Redux reducer一起使用。因为它们除了`reselect`库本身外没有任何依赖，所以很容易进行单元测试。我们在本章的代码中包含了示例测试。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/U7SLr).
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub 网站](https://oreil.ly/U7SLr)下载此配方的源代码。

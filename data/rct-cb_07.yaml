@@ -1,0 +1,2736 @@
+- en: Chapter 7\. Security
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 7 章 安全
+- en: In this chapter, we look at various ways of securing your application. We’ll
+    look at common patterns for integrating your application with standard security
+    systems. We’ll look at how you can audit your code for several common security
+    flaws. In several recipes in this chapter, we will use the WebAuthn API to integrate
+    an application with security devices, such as fingerprint sensors and physical
+    tokens. WebAuthn is an exciting and underused technology that can increase your
+    application’s security and enhance the user’s experience.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨多种保护应用程序的方法。我们将看看将你的应用程序与标准安全系统集成的常见模式。我们将看看如何审计你的代码以解决几种常见的安全缺陷。在本章的几个示例中，我们将使用
+    WebAuthn API 将应用程序集成到安全设备（如指纹传感器和物理令牌）中。WebAuthn 是一种令人兴奋且未充分利用的技术，可以提高应用程序的安全性并增强用户体验。
+- en: Secure Requests, Not Routes
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 安全请求，而不是路由。
+- en: Problem
+  id: totrans-3
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: '[“Create Secured Routes”](ch02.xhtml#ch02-06) showed how you could use React
+    Router to create secured routes. That means if the user tries to get to specific
+    paths within your application, you can force them to submit a login form before
+    seeing the contents of that page.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“创建安全路由”](ch02.xhtml#ch02-06) 展示了如何使用 React Router 创建安全路由。这意味着如果用户尝试访问应用程序中特定的路径，你可以强制他们在查看该页面内容之前提交登录表单。'
+- en: The secured routes approach is a good, reasonably general approach when you
+    are first building an application. However, some applications don’t fall so easily
+    into this static model of security. Some pages will be secure, and some will be
+    insecure. But in many applications, it’s easier to secure data services rather
+    than pages. What matters is not which page you are on but the data you are viewing.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你首次构建应用程序时，安全路由方法是一个很好的、相当通用的方法。然而，有些应用程序并不容易落实到这种静态的安全模型中。有些页面将是安全的，有些将是不安全的。但在许多应用程序中，更容易保护数据服务而不是页面。重要的是你查看的不是哪个页面，而是你正在查看的数据。
+- en: All of these complexities are usually straightforward to define at the API level.
+    But it’s the kind of complexity that you don’t want to reproduce in the logic
+    of your frontend client. For these reasons, the simple approach of marking some
+    routes secure and others as insecure is not good enough.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些复杂性通常在 API 层面定义起来很直接。但这种复杂性不应该在前端客户端的逻辑中重复。因此，将某些路由标记为安全的，而其他路由标记为不安全的这种简单方法是不够好的。
+- en: Solution
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: If defining routes as secure or insecure is not sufficient for your client’s
+    security, you might want to consider controlling access to your application by
+    using the security responses you receive from the backend server.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果仅将路由定义为安全或不安全不足以满足客户端的安全性要求，你可能需要考虑通过使用后端服务器接收到的安全响应来控制对你的应用程序的访问。
+- en: With this approach, you begin by assuming the user can go anywhere in your app.
+    You don’t worry about secure routes and insecure routes. You just have routes.
+    If a user visits a path that contains private data, the API server will return
+    an error, typically an HTTP status 401 (Unauthorized). When the error occurs,
+    the security redirects the user to a login form.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种方法，你首先假设用户可以在你的应用中随处访问。你不需要担心安全路由和不安全路由。你只有路由。如果用户访问包含私人数据的路径，API 服务器会返回一个错误，通常是
+    HTTP 状态码 401（未授权）。当发生错误时，安全系统会将用户重定向到一个登录表单。
+- en: With this approach, the API server drives the policy of what is private and
+    what is public. If the security policies change, you only need to modify the code
+    on the API server without changing the client code.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种方法，API 服务器驱动的是什么是私有的、什么是公共的策略。如果安全策略发生变化，你只需要修改 API 服务器上的代码，而不需要更改客户端代码。
+- en: 'Let’s take a look at the code for the original secured-routes recipe again.
+    In our application, we inject a `SecurityProvider`, which controls the security
+    of all of its child components. In the example application, we do this in the
+    *App.js* file:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们再次看看原始安全路由示例的代码。在我们的应用程序中，我们注入了一个 `SecurityProvider`，它控制其所有子组件的安全性。在示例应用程序中，我们在
+    *App.js* 文件中实现这一点：
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: You can see that the application has simple `Routes` and `SecuredRoutes`. If
+    an unauthenticated user tries to access a secured route, they are redirected to
+    the login form, as you can see in [Figure 7-1](#ch07_image_1).
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以看到应用程序具有简单的 `Routes` 和 `SecuredRoutes`。如果未经认证的用户尝试访问安全路由，则会被重定向到登录表单，正如你在
+    [图 7-1](#ch07_image_1) 中所看到的。
+- en: '![](Images/recb_0214.png)'
+  id: totrans-14
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0214.png)'
+- en: Figure 7-1\. When you first access a secured route, you see a login form
+  id: totrans-15
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. 当你首次访问一个安全路由时，会看到一个登录表单。
+- en: Once they are logged in (see [Figure 7-2](#ch07_image_2)), they can access the
+    secured content.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦他们登录（参见[Figure 7-2](#ch07_image_2)），他们可以访问安全内容。
+- en: '![](Images/recb_0215.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0215.png)'
+- en: Figure 7-2\. Once you are logged in, secured routes are visible
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图7-2. 一旦您登录，安全路由就可见
+- en: 'If we want to base our security upon the security of the backend API, we’ll
+    begin by replacing all of the `SecuredRoutes` with simple `Routes`. The application
+    simply doesn’t know, until the API server tells it, which data is private and
+    public. For the example app in this recipe, we’ll have two pages on the application
+    that contain a mix of public and private data. The Transactions page will read
+    secure data from the server. The Offers page will read insecure data from the
+    server. Here is the new version of our *App.js* file:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想基于后端API的安全性来设计我们的安全性，我们将从所有`SecuredRoutes`替换为简单的`Routes`开始。应用程序只有在API服务器告诉它哪些数据是私有的和公共的时候才知道。对于本食谱中的示例应用程序，我们将在应用程序上有两个页面，这两个页面包含公开和私有数据的混合。交易页面将从服务器读取安全数据。优惠页面将从服务器读取不安全数据。以下是我们*App.js*文件的新版本：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: We’ll also need to make a change to our `SecurityProvider`. In an API security
+    model, the client begins by assuming that all data is public, which is the opposite
+    of the secured-routes approach, which assumes you don’t have access until you
+    prove that you do by logging in.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要对我们的`SecurityProvider`进行更改。在API安全模型中，客户端首先假设所有数据都是公开的，这与安全路由方法相反，后者假设您在登录前没有访问权限。
+- en: 'This means our new `SecurityProvider` has to default its initial logged-in
+    state to `true`:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们的新`SecurityProvider`必须将其初始登录状态默认为`true`：
+- en: '[PRE2]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'We’ve also made several other changes:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还进行了几项其他更改：
+- en: The code that decides whether the user should see the `Login` form is now in
+    the `SecurityProvider`. This code used to live inside the `SecuredRoute` component,
+    but now we display it centrally.
+  id: totrans-25
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 确定用户是否应该看到`Login`表单的代码现在位于`SecurityProvider`中。这段代码曾经存在于`SecuredRoute`组件内部，但现在我们将其集中显示。
+- en: We’ve replaced the dummy username/password checks with calls to the backend
+    services called */api/login* and */api/logout*. It would be best if you replaced
+    these with whatever security code applies to your system.
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们用对后端服务调用*/api/login*和*/api/logout*取代了虚拟的用户名/密码检查。您应该根据您的系统应用程序替换这些内容。
+- en: The `SecurityProvider` now provides a new function called `onFailure`, which
+    simply marks the person as logged out.
+  id: totrans-27
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`SecurityProvider`现在提供了一个名为`onFailure`的新函数，它简单地将人员标记为已登出。'
+- en: When you call this function, it forces the user to log in. If we no longer have
+    secured routes, at what point do we perform the security checks? We do them in
+    the API calls themselves.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您调用此函数时，它会强制用户登录。如果我们不再使用安全路由，那么在什么时候进行安全检查？我们会在API调用本身中执行它们。
+- en: In a real application, you would want to add code that deals with an invalid
+    login attempt. To keep the code short, we’ve omitted any special handling here.
+    A failed login will simply leave you in the login form without any error messages.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在真实的应用程序中，您可能需要添加处理无效登录尝试的代码。为了保持代码简洁，我们在这里省略了任何特殊处理。登录失败将简单地使您留在登录表单中，而没有任何错误消息。
+- en: 'Let’s look at our new Transactions page, as defined in *src/Transactions.js*.
+    This component reads the transactions data and displays it on the screen:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看我们新的*src/Transactions.js*定义的交易页面。该组件读取交易数据并在屏幕上显示：
+- en: '[PRE3]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'The `useTransactions` hook contains the network code to read data from the
+    server. It’s inside this hook that we need to add our check for a 401 (Unauthorized)
+    response from the server:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useTransactions`钩子包含了从服务器读取数据的网络代码。在这个钩子内部，我们需要添加对来自服务器的401（未经授权）响应的检查：'
+- en: '[PRE4]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: In the example application, we’re using the `axios` library to contact the server.
+    `axios` handles HTTP errors such as `401` (the HTTP status for Unauthorized) as
+    exceptions. That makes it a little clearer which code is dealing with an unexpected
+    response. If you were using a different API standard, like GraphQL, you would
+    be able to deal with security errors in an analogous way by examining the contents
+    of the error object that GraphQL returns.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在示例应用中，我们使用`axios`库联系服务器。`axios`处理HTTP错误，如`401`（未经授权的HTTP状态），将其作为异常处理。这使得处理意外响应的代码更加清晰。如果您使用不同的API标准，如GraphQL，您可以通过检查GraphQL返回的错误对象的内容以类似的方式处理安全错误。
+- en: In the event that there’s an unauthorized response from the server, the `useTransac⁠tions`
+    hook makes a call to the `onFailure` function in the `SecurityPro⁠vider`.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果从服务器返回未授权响应，`useTransac⁠tions` 钩子会调用 `SecurityPro⁠vider` 中的 `onFailure` 函数。
+- en: 'We’ll build the Offers page in the same way. The *src/Offers.js* component
+    will format the `offers` data from the server:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将以相同方式构建“优惠”页面。*src/Offers.js* 组件将格式化来自服务器的 `offers` 数据：
+- en: '[PRE5]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'And the code that reads the data is inside the *src/useOffers.js* hook:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 读取数据的代码位于 *src/useOffers.js* 钩子中：
+- en: '[PRE6]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Even though the */api/offers* endpoint is not secured, we still have code that
+    checks for security errors. One consequence of the API security approach is that
+    you have to treat all endpoints as secure, just in case they become secure in
+    the future.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使 */api/offers* 端点未受保护，我们仍然有代码来检查安全错误。 API 安全方法的一个后果是，您必须把所有端点都视为安全的，以防它们未来变得安全。
+- en: Let’s try our example application. We’ll begin by opening the front page (see
+    [Figure 7-3](#ch07_image_3)).
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们尝试我们的示例应用程序。我们将从打开首页开始（见 [图 7-3](#ch07_image_3)）。
+- en: '![](Images/recb_0703.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0703.png)'
+- en: Figure 7-3\. The front page of the application
+  id: totrans-43
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-3\. 应用程序的首页
+- en: If we click the Offers link, we see the offers read from the server (see [Figure 7-4](#ch07_image_4)).
+    This data is unsecured, and the application doesn’t ask us to log in.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们点击“优惠”链接，我们可以看到从服务器读取的优惠内容（见 [图 7-4](#ch07_image_4)）。这些数据未受保护，应用程序不要求我们登录。
+- en: '![](Images/recb_0704.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0704.png)'
+- en: Figure 7-4\. If we click the Offers link, we can see the contents
+  id: totrans-46
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-4\. 如果我们点击“优惠”链接，我们可以看到内容
+- en: If we now go back to the home page and click the Transactions link, the application
+    asks us to log in (see [Figure 7-5](#ch07_image_5)). The transactions page has
+    attempted to download transaction data from the server, which resulted in a 401
+    (Unauthorized) response. The code catches this as an exception and calls the `onFailure`
+    function in the SecurityProvider, which then displays the login form (see [Figure 7-5](#ch07_image_5)).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在我们返回首页并点击“交易”链接，应用程序会要求我们登录（见 [图 7-5](#ch07_image_5)）。交易页面尝试从服务器下载交易数据，结果是
+    401（未授权）响应。代码捕获此异常并调用 `SecurityProvider` 中的 `onFailure` 函数，然后显示登录表单（见 [图 7-5](#ch07_image_5)）。
+- en: '![](Images/recb_0705.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0705.png)'
+- en: Figure 7-5\. If we try to access the Transactions page, we are asked to log
+    in
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-5\. 如果我们尝试访问“交易”页面，系统会要求我们登录
+- en: If we log in, the application sends our username and password to the server.
+    Assuming that doesn’t result in an error, the `SecurityProvider` hides the login
+    form, the Transactions page is re-rendered, and the data is now able to be read
+    as we’ve logged in (see [Figure 7-6](#ch07_image_6)).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们登录，应用程序将我们的用户名和密码发送到服务器。假设这不会导致错误，`SecurityProvider` 将隐藏登录表单，重新渲染“交易”页面，并且现在可以读取数据，因为我们已登录（见
+    [图 7-6](#ch07_image_6)）。
+- en: '![](Images/recb_0706.png)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0706.png)'
+- en: Figure 7-6\. Once we log in, we can see the Transactions page
+  id: totrans-52
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-6\. 一旦我们登录，我们可以看到“交易”页面
+- en: Discussion
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Our example app now contains nothing to indicate which APIs are secured and
+    which are unsecured. The server now handles all of that work. The API endpoints
+    are entirely in charge of the security of the application.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用现在没有任何内容表明哪些 API 是受保护的，哪些是不受保护的。服务器现在处理所有这些工作。 API 端点完全负责应用程序的安全性。
+- en: Using this approach, you should apply the same security handling to all API
+    calls. One of the benefits of extracting API calls into custom hooks is that the
+    hooks can share the security code. Hooks can call other hooks, and a common approach
+    is to create hooks that act as general-purpose `GET` and `POST` calls.^([1](ch07.xhtml#idm46634402876760))
+    A general-purpose `GET` hook could not only handle access failures but also include
+    request cancellations, debouncing (Recipes [5.3](ch05.xhtml#ch05-03) and [5.6](ch05.xhtml#ch05-06)),
+    and shared error handling ([“Build a Centralized Error Handler”](ch04.xhtml#ch04-01)).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种方法，您应该对所有 API 调用应用相同的安全处理。将 API 调用提取到自定义钩子中的一个好处是，这些钩子可以共享安全代码。钩子可以调用其他钩子，一个常见的方法是创建行为通用的
+    `GET` 和 `POST` 调用的钩子。^([1](ch07.xhtml#idm46634402876760)) 通用的 `GET` 钩子不仅可以处理访问失败，还可以包括请求取消、防抖（见第
+    [5.3](ch05.xhtml#ch05-03) 和 [5.6](ch05.xhtml#ch05-06) 章节），以及共享的错误处理（“构建集中式错误处理程序”）^([“ch04.xhtml#ch04-01”](ch04.xhtml#ch04-01))。
+- en: Another advantage to the secured API approach is that it’s possible to disable
+    security in some circumstances entirely. For example, during development, you
+    can do away with the need for developers to have an identity provider configured.
+    You can also choose to have different security configurations in different deployments.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 采用安全API方法的另一个优点是，在某些情况下完全可以禁用安全性。例如，在开发过程中，可以取消开发人员需要配置身份提供者的需求。还可以选择在不同的部署中使用不同的安全配置。
+- en: Finally, for automated testing systems, like Cypress, which can simulate network
+    responses, you can split the testing of application functionality from nonfunctional
+    security testing. It’s a good idea to have additional server-only security tests
+    that are separate from the UI tests to ensure that the server is secure in its
+    own right.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，对于像Cypress这样的自动化测试系统，它可以模拟网络响应，您可以将应用程序功能的测试与非功能性安全性测试分开。建议使用额外的仅服务器安全性测试，以确保服务器本身的安全性。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/ByWVZ).
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub站点](https://oreil.ly/ByWVZ)下载此配方的源代码。
+- en: Authenticate with Physical Tokens
+  id: totrans-59
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用物理令牌进行认证
+- en: Problem
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Usernames and passwords are not always enough; they might be stolen or guessed.
+    So some users might only use applications that provide additional security.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户名和密码并不总是足够安全；它们可能被窃取或猜测。因此，一些用户可能只使用提供额外安全性的应用程序。
+- en: An increasing number of systems now provide *two-factor authentication*. A two-factor
+    system requires the user to log in with a form and then provide some additional
+    information. The additional information might be a code sent to them by an SMS
+    text message. Or it might be an application on their phone that generates a one-time
+    password. Or, perhaps most securely, it might involve the use of a physical hardware
+    device, like a [YubiKey](https://www.yubico.com), which is attached to the computer
+    when required and pressed.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 越来越多的系统现在提供**双因素认证**。双因素系统要求用户首先用表单登录，然后提供额外的信息。额外的信息可能是通过短信文本消息发送给他们的代码。或者可能是他们手机上的应用程序生成的一次性密码。或者，可能是最安全的，它可能涉及使用物理硬件设备，比如一个[YubiKey](https://www.yubico.com)，在需要时连接到计算机并按下。
+- en: These physical tokens work using public-key cryptography, which generates a
+    public key for use with a given application and encrypts strings using a private
+    key. An application can send a random “challenge” string to the device, generating
+    a signature using the private key. The application can then use the public key
+    to check that the string was signed correctly.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些物理令牌使用公钥密码学，为特定应用程序生成公钥并使用私钥加密字符串。应用程序可以向设备发送随机的“挑战”字符串，使用私钥生成签名。然后，应用程序可以使用公钥检查字符串是否被正确签名。
+- en: But how do you integrate them with your React application?
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是你如何将它们与你的React应用程序集成？
+- en: Solution
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: '*Web Authentication* (also known as *WebAuthn*) is a widely supported^([2](ch07.xhtml#idm46634402851832))
+    W3C standard that allows a browser to communicate with a physical device, like
+    a YubiKey.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Web Authentication*（也称为*WebAuthn*）是一个广泛支持的^([2](ch07.xhtml#idm46634402851832))
+    W3C标准，允许浏览器与物理设备（如YubiKey）通信。'
+- en: There are two *flows* in web authentication. The first is called *attestation*.
+    During attestation, a user registers a security device with an application. During
+    *assertion*, the user can verify their identity to log in to a system.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web认证中有两种*流程*。第一种称为*attestation*。在attestation期间，用户将安全设备注册到应用程序中。在*assertion*期间，用户可以验证其身份以登录系统。
+- en: First, let’s look at attestation. During this flow, the user registers a physical
+    device against their account. That means that the user should always be logged
+    in during attestation.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们看看attestation。在这个流程中，用户会注册一个物理设备到他们的帐户。这意味着用户在attestation期间应始终保持登录状态。
+- en: 'The code for this recipe includes a dummy Node server, which you can run from
+    the *server* directory within the application:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配方的代码包括一个虚拟的Node服务器，可以从应用程序中的*server*目录运行：
+- en: '[PRE7]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'There are three steps to attestation:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Attestation有三个步骤：
+- en: The server generates an attestation request, saying what kind of device is acceptable.
+  id: totrans-72
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器生成attestation请求，说明可以接受的设备类型。
+- en: The user connects the device and activates it, probably by pressing a button
+    on it.
+  id: totrans-73
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户连接设备并激活它，可能通过按下设备上的按钮。
+- en: A response is generated from the device, which includes the public key, and
+    is then returned to the server, where it can be stored against the user’s account.
+  id: totrans-74
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 设备生成响应，其中包括公钥，然后将其返回到服务器，在那里可以存储在用户的帐户中。
+- en: We can tell if the browser supports WebAuthn by checking for the existence of
+    `window.PublicKeyCredential`. If it exists, you’re good to go.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过检查 `window.PublicKeyCredential` 的存在来判断浏览器是否支持 WebAuthn。如果存在，则可以继续。
+- en: 'There is an endpoint at */startRegister*, which will create the attestation
+    request on the server. So we’ll begin by calling that:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 */startRegister* 处有一个端点，该端点将在服务器上创建认证请求。因此，我们将首先调用该端点。
+- en: '[PRE8]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'This is what an attestation request looks like:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是认证请求的外观：
+- en: '[PRE9]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Some of the attributes begin with the letters `rp...`, which stands for *relying
+    party*. The relying party is the application that generated the request.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些属性以 `rp...` 开头，表示*依赖方*。依赖方是生成请求的应用程序。
+- en: The `rpName` is a free-form text string that describes the application. You
+    should set the `rpId` to the current domain name. Here it’s `localhost` because
+    we’re running on a development server. The `userID` is a string that uniquely
+    identifies the user. The `userName` is the name of the user.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`rpName` 是一个描述应用程序的自由格式文本字符串。应将 `rpId` 设置为当前域名。在这里，它是 `localhost`，因为我们正在运行开发服务器。`userID`
+    是一个唯一标识用户的字符串。`userName` 是用户的名称。'
+- en: '`excludeCredentials` is an interesting attribute. Users might record multiple
+    devices against their accounts. This value lists the devices that are already
+    recorded to avoid the user registering the same device twice. If you attempt to
+    register the same device more than once, the browser will immediately throw an
+    exception saying that the device has been registered elsewhere.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`excludeCredentials` 是一个有趣的属性。用户可能会将多个设备记录到其帐户中。该值列出已记录的设备，以避免用户注册相同的设备两次。如果尝试多次注册同一设备，则浏览器将立即抛出异常，指出设备已在其他地方注册。'
+- en: The `authenticatorSelection` allows you to set various options about what the
+    user needs to do when they activate their device. Here we’re setting `userVerification`
+    to `false` to prevent the user from performing any additional steps (such as entering
+    a PIN) when activating their device. Consequently, when asked to plug in their
+    device, the user will insert it into the USB socket and press the button, with
+    nothing else needed.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`authenticatorSelection` 允许您设置各种选项，用于在用户激活其设备时需要执行的操作。在这里，我们将 `userVerification`
+    设置为 `false`，以防止用户在激活其设备时执行任何额外的步骤（如输入 PIN 码）。因此，当要求用户插入其设备时，用户将其插入 USB 插槽并按下按钮，无需执行其他操作。'
+- en: The `credProps` extension asks the device to return additional credential properties,
+    which might be helpful to the server.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`credProps` 扩展请求设备返回附加的凭证属性，这可能对服务器有所帮助。'
+- en: 'Once the server has generated the attestation request, we need to ask the user
+    to connect their security device. We do this with a browser function called:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦服务器生成了认证请求，我们需要要求用户连接其安全设备。我们使用一个名为的浏览器函数进行此操作：
+- en: '[PRE10]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'The `create` function accepts an attestation request object. Unfortunately,
+    the data within the object needs to be in a variety of low-level binary forms,
+    such as byte arrays. We can make our life significantly easier by installing a
+    library from GitHub called `webauthn-json`, which lets you use JSON to specify
+    the request:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`create` 函数接受一个认证请求对象。不幸的是，对象内的数据需要采用各种低级二进制形式，如字节数组。我们可以通过从 GitHub 安装名为 `webauthn-json`
+    的库来显著简化我们的工作，该库允许您使用 JSON 指定请求：'
+- en: '[PRE11]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'We can then pass the contents of the WebAuthn request to the GitHub version
+    of the `create` function:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以将 WebAuthn 请求的内容传递给 GitHub 版本的 `create` 函数：
+- en: '[PRE12]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This is the point where the browser asks the user to insert and activate their
+    security device (see [Figure 7-7](#ch07_image_7)).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是浏览器要求用户插入并激活其安全设备的时刻（见 [Figure 7-7](#ch07_image_7)）。
+- en: '![](Images/recb_0707.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0707.png)'
+- en: Figure 7-7\. The browser asks for the token when `create` is called
+  id: totrans-93
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-7\. 当调用 `create` 时，浏览器请求令牌
+- en: 'The `create` function resolves to an *attestation object*, which you can think
+    of as the registration information for the device. The server can use the attestation
+    object to verify the user’s identity when they log in. We need to record the attestation
+    object against the user’s account. We’ll do that by posting it back to an endpoint
+    on the example server at */register*:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`create` 函数返回一个 *attestation 对象*，你可以将其视为设备的注册信息。服务器可以使用 attestation 对象在用户登录时验证其身份。我们需要将
+    attestation 对象记录在用户的账户上。我们将通过将其发布到示例服务器上的 */register* 端点来实现：'
+- en: '[PRE13]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: That’s the overview of how we register a new device for a user. But where do
+    we put that in the code?
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们为用户注册新设备的概述。但是我们在代码中放置它在哪里呢？
+- en: The example application has an Account page (see [Figure 7-8](#ch07_image_8)),
+    and we’ll add a button in there to register a new key.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例应用程序有一个账户页面（参见 [图 7-8](#ch07_image_8)），我们将在其中添加一个按钮来注册新密钥。
+- en: '![](Images/recb_0708.png)'
+  id: totrans-98
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0708.png)'
+- en: Figure 7-8\. We’ll add a button to the account page to register a new device
+  id: totrans-99
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-8\. 我们将在账户页面上添加一个按钮来注册新设备
+- en: 'Here is the registration code in place:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是已经就位的注册代码：
+- en: '[PRE14]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: If we click the registration button on the account page, the browser asks us
+    to connect the security device (see [Figure 7-9](#ch07_image_9)). Once we do that,
+    the application sends the device’s credentials to the server and then tells us
+    it has recorded a new device against our account (see [Figure 7-10](#ch07_image_10)).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们在账户页面上点击注册按钮，浏览器会要求我们连接安全设备（参见 [图 7-9](#ch07_image_9)）。一旦完成，应用程序将设备的凭据发送到服务器，然后告诉我们已在我们的账户上记录了一个新设备（参见
+    [图 7-10](#ch07_image_10)）。
+- en: '![](Images/recb_0707.png)'
+  id: totrans-103
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0707.png)'
+- en: Figure 7-9\. When you choose to register a new device, you are asked to activate
+    it
+  id: totrans-104
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-9\. 当您选择注册新设备时，系统要求您激活它
+- en: '![](Images/recb_0710.png)'
+  id: totrans-105
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0710.png)'
+- en: Figure 7-10\. We are told when a new device is registered
+  id: totrans-106
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-10\. 当注册新设备时，我们会收到通知
+- en: The next flow we need to think about is assertion. Assertion happens when a
+    user verifies their identity when logging in.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要考虑的下一个流程是断言。当用户登录时，断言发生。
+- en: 'The steps are pretty similar to attestation:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 步骤与证明类似：
+- en: The application asks the server to create an assertion request.
+  id: totrans-109
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 应用程序请求服务器创建一个断言请求。
+- en: The user converts that request into an assertion object by activating their
+    security device.
+  id: totrans-110
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户通过激活其安全设备将该请求转换为断言对象。
+- en: The server checks the assertion against its stored credentials to prove the
+    person is who they say they are.
+  id: totrans-111
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器将根据其存储的凭据检查断言以证明该人是他们自称的人。
+- en: 'Let’s begin with the first stage when we create an assertion request. This
+    is what an assertion request looks like:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从创建断言请求的第一阶段开始。这是断言请求的外观：
+- en: '[PRE15]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The `allowCredentials` attribute is an array of registered devices that will
+    be acceptable. The browser will use this array to check that the user has connected
+    the correct device.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`allowCredentials` 属性是一个注册设备数组，将被接受。浏览器将使用此数组来检查用户是否连接了正确的设备。'
+- en: 'The assertion request also includes a `challenge` string: a randomly generated
+    string the device will need to create a signature with its private key. The server
+    will check this signature with the public key to ensure that we used the correct
+    device.'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言请求还包括一个 `challenge` 字符串：设备将需要使用其私钥创建一个签名。服务器将使用公钥来检查此签名，以确保我们使用了正确的设备。
+- en: The `timeout` specifies how long the user will have to prove their identity.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`timeout` 指定了用户需要证明身份的时间长度。'
+- en: 'The example server generates an assertion request when you call the */startVerify*
+    endpoint with a specified user ID:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用指定的用户 ID 调用 */startVerify* 端点时，示例服务器将生成一个断言请求：
+- en: '[PRE16]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'We can then pass the assertion request to the `get` webauthn-json function,
+    which will ask the user to verify their identity by connecting an acceptable device
+    (see [Figure 7-11](#ch07_image_11)):'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以将断言请求传递给 `get` webauthn-json 函数，该函数将要求用户通过连接一个可接受的设备来验证其身份（参见 [图 7-11](#ch07_image_11)）：
+- en: '[PRE17]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '![](Images/recb_0711.png)'
+  id: totrans-121
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0711.png)'
+- en: Figure 7-11\. The `get` function asks the user to connect the device
+  id: totrans-122
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-11\. `get` 函数要求用户连接设备
+- en: 'The `get` function returns an assertion object, which contains a signature
+    for the challenge string sent back to the server’s */verify* endpoint to check
+    the signature. The response to that call will tell us if the user has correctly
+    verified their identity:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`get` 函数返回一个断言对象，其中包含用于挑战字符串的签名，发送回服务器的 */verify* 端点以检查签名。对该调用的响应将告诉我们用户是否正确验证了其身份：'
+- en: '[PRE18]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Where do we put this code in the application?
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在应用程序中把这段代码放在哪里？
+- en: 'The example application is based on the secured-routes recipe.^([3](ch07.xhtml#idm46634401908472))
+    It contains a `SecurityProvider`, which manages the security for all of its child
+    components. The `SecurityProvider` provides a `login` function, which is called
+    with the username and password when the user submits a login form. We’ll put the
+    verification code in here:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该示例应用基于安全路由配方。^([3](ch07.xhtml#idm46634401908472)) 它包含一个 `SecurityProvider`，用于管理其所有子组件的安全性。`SecurityProvider`
+    提供一个 `login` 函数，在用户提交登录表单时调用该函数并传递用户名和密码。我们将在这里放置验证代码：
+- en: '[PRE19]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: We first send the username and password to the */login* endpoint. If the user
+    has registered a security device, the response to the */login* will have a `twoFactorNeeded`
+    attribute set to true. We can call the */startVerify* endpoint with the user’s
+    ID and use the resulting assertion request to ask the user to activate their device.
+    We can send the assertion back to the server. And if all is well, we set `loggedIn`
+    to true, and the user will then see the page.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先将用户名和密码发送到 */login* 终点。如果用户注册了安全设备，那么 */login* 的响应将设置 `twoFactorNeeded`
+    属性为 true。我们可以使用用户的ID调用 */startVerify* 终点，并使用生成的断言请求要求用户激活他们的设备。我们可以将断言发送回服务器。如果一切顺利，我们将
+    `loggedIn` 设置为 true，用户将能看到页面。
+- en: Let’s look at it in action. We’ll assume we’ve already registered the device
+    against our account. We open the application and click the Account page (see [Figure 7-12](#ch07_image_12)).
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看它是如何工作的。假设我们已经注册了设备到我们的账户。我们打开应用程序并点击账户页面（见[图 7-12](#ch07_image_12)）。
+- en: '![](Images/recb_0712.png)'
+  id: totrans-130
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0712.png)'
+- en: Figure 7-12\. When the application opens, click the Account link
+  id: totrans-131
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-12\. 应用程序打开时，点击账户链接
+- en: The Account page is secured, so we’re asked for a username and password (see
+    [Figure 7-13](#ch07_image_13).) In the example application, you can enter **`freda`**
+    as the username and **`mypassword`** as the password.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 账户页面是安全的，所以我们被要求输入用户名和密码（见[图 7-13](#ch07_image_13)）。在示例应用程序中，您可以将 **`freda`**
+    作为用户名和 **`mypassword`** 作为密码输入。
+- en: '![](Images/recb_0713.png)'
+  id: totrans-133
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0713.png)'
+- en: Figure 7-13\. The login form appears
+  id: totrans-134
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-13\. 登录表单出现
+- en: Once we’ve entered the username and password, the browser asks us to connect
+    the security device (see [Figure 7-14](#ch07_image_14)).
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们输入了用户名和密码，浏览器会要求我们连接安全设备（见[图 7-14](#ch07_image_14)）。
+- en: '![](Images/recb_0714.png)'
+  id: totrans-136
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0714.png)'
+- en: Figure 7-14\. The browser asks the user to activate their security device
+  id: totrans-137
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-14\. 浏览器要求用户激活他们的安全设备
+- en: If they connect their device and activate it, the user can see the secured page
+    (see [Figure 7-15](#ch07_image_15)).
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果他们连接他们的设备并激活它，用户可以看到安全页面（见[图 7-15](#ch07_image_15)）。
+- en: '![](Images/recb_0715.png)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0715.png)'
+- en: Figure 7-15\. The Account page is visible once the user has verified their identity
+  id: totrans-140
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-15\. 用户验证身份后，账户页面可见
+- en: Discussion
+  id: totrans-141
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: As you can probably tell, WebAuthn is quite a complex API. It uses quite obscure
+    language (*attestation* for *registration*, and *assertion* for *verification*)
+    and uses some low-level data types, which fortunately the GitHub `webauthn-json`
+    allows us to avoid.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你可能已经注意到的，WebAuthn 是一个相当复杂的API。它使用相当晦涩的术语（*attestation* 用于 *registration*，*assertion*
+    用于 *verification*），并使用一些低级数据类型，幸运的是 GitHub 的 `webauthn-json` 让我们可以避免这些。
+- en: The complexity lives on the server. The example server in the downloadable source
+    code uses a library called SimpleWebAuthn to handle most of the cryptological
+    *stuff* for us. If you are planning on using SimpleWebAuthn for the server side
+    of your application, be aware that there is also a client SimpleWebAuthn library
+    that works with it. We’ve avoided using it in the example client source to avoid
+    making our code too SimpleWebAuthn-specific.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复杂性存在于服务器端。可下载源代码中的示例服务器使用一个名为 SimpleWebAuthn 的库来处理大部分的加密 *事务*。如果你计划在应用程序的服务器端使用
+    SimpleWebAuthn，请注意还有一个客户端的 SimpleWebAuthn 库与之配套。在示例客户端源代码中，我们避免使用它，以避免使我们的代码过于依赖
+    SimpleWebAuthn。
+- en: If you implement two-factor authentication, you will need to think about what
+    you will do if a user loses their security device. Technically, all you will have
+    to do to re-enable their account is remove the device that’s registered against
+    their name. But it would be best to be extremely careful. A typical attack against
+    two-factor authentication is to call the service desk and pretend to be a user
+    who has lost their token.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您实施双因素认证，您需要考虑如果用户丢失了他们的安全设备该怎么办。从技术上讲，您只需删除注册在其名下的设备即可重新启用他们的帐户。但最好要非常小心。针对双因素认证的典型攻击是致电服务台，假装是丢失令牌的用户。
+- en: Instead, you will need to create a sufficiently rigorous process that will check
+    the identity of any person asking for an account reset.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，您需要创建一个足够严格的流程，以检查任何要求重置帐户的人的身份。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/Diy5D).
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/Diy5D)下载此教程的源代码。
+- en: Enable HTTPS
+  id: totrans-147
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 启用HTTPS
+- en: Problem
+  id: totrans-148
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: HTTPS is often used in production environments, but there are circumstances
+    where it can be helpful to use HTTPS during development. Some networked services
+    will only work from within pages secured with HTTPS. WebAuthn will only work remotely
+    with HTTPS.^([4](ch07.xhtml#idm46634401487224)) Numerous bugs and other issues
+    can creep into your code if your application uses a proxy server with HTTPS.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在生产环境中通常使用HTTPS，但在开发过程中使用HTTPS可能会有所帮助。某些网络服务只能在通过HTTPS保护的页面中工作。WebAuthn只能通过HTTPS远程工作。^([4](ch07.xhtml#idm46634401487224))
+    如果您的应用程序使用带有HTTPS代理服务器，可能会在您的代码中引入许多错误和其他问题。
+- en: Enabling HTTPS on production servers is now relatively straightforward,^([5](ch07.xhtml#idm46634401485080))
+    but how do you enable HTTPS on a development server?
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在生产服务器上启用HTTPS现在相对简单，^([5](ch07.xhtml#idm46634401485080)) 但是如何在开发服务器上启用HTTPS呢？
+- en: Solution
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'If you’ve created your application with `create-react-app`, you can enable
+    HTTPS by:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用`create-react-app`创建了您的应用程序，您可以通过以下方式启用HTTPS：
+- en: Generating a self-signed SSL certificate
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 生成自签名SSL证书
+- en: Registering the certificate with your development server
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将证书注册到您的开发服务器
+- en: To generate a self-signed certificate, we need to understand a little about
+    how HTTPS works.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要生成自签名证书，我们需要了解HTTPS的一些工作原理。
+- en: HTTPS is just HTTP that is tunneled through an encrypted Secure Sockets Layer
+    (SSL) connection. When a browser connects to an HTTPS address, it opens a connection
+    to a secure socket on the server.^([6](ch07.xhtml#idm46634401473368)) The server
+    has to provide a certificate from an organization the browser trusts. If the browser
+    accepts the certificate, it will then send encrypted data to the secure socket
+    on the server, which will then be decrypted on the server and forwarded to an
+    HTTP server.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTPS只是通过加密的安全套接字层（SSL）连接隧道传输的HTTP。当浏览器连接到HTTPS地址时，它会打开到服务器上安全套接字的连接。^([6](ch07.xhtml#idm46634401473368))
+    服务器必须提供来自浏览器信任的组织的证书。如果浏览器接受证书，它将向服务器上的安全套接字发送加密数据，然后服务器会将其解密并转发给HTTP服务器。
+- en: The main difficulty setting up an HTTPS server is getting a certificate that
+    a web browser will trust. Browsers maintain a set of *root certificates*. These
+    are certificates that large, trustworthy organizations issue. When an HTTPS server
+    presents a certificate to a browser, that certificate must be signed by one of
+    the browser’s root certificates.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置HTTPS服务器的主要困难在于获取一个Web浏览器将信任的证书。浏览器维护一组*根证书*。这些是由大型、可信任的组织发布的证书。当HTTPS服务器向浏览器呈现证书时，该证书必须由浏览器的一个根证书签名。
+- en: If we want to generate an SSL certificate, we will first need to create a root
+    certificate and tell the browser to trust it. Then we must generate a certificate
+    for our development server that has been signed by the root certificate.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想生成一个SSL证书，我们首先需要创建一个根证书，并告诉浏览器信任它。然后我们必须为我们的开发服务器生成一个由根证书签名的证书。
+- en: If this sounds complicated, it’s because it is.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果听起来很复杂，那是因为确实如此。
+- en: Let’s begin by creating a root certificate. To do this, you will need a tool
+    called OpenSSL installed on your machine.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先创建一个根证书。为此，您需要在您的机器上安装一个名为OpenSSL的工具。
+- en: 'We’ll use the `openssl` command to create a key file. It will ask you for a
+    passphrase, which you will have to enter twice:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用`openssl`命令创建一个密钥文件。它会要求您输入一个密码，您需要输入两次：
+- en: '[PRE20]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The *mykey.key* file now contains a private key, which can be used for encrypting
+    data. We can use the key file to create a certificate file. A certificate file
+    contains information about an organization and an end date after which it is no
+    longer valid.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*mykey.key* 文件现在包含一个私钥，用于加密数据。我们可以使用这个密钥文件来创建一个证书文件。证书文件包含关于组织的信息以及一个截止日期，之后它将不再有效。'
+- en: 'You can create a certificate using the following command:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用以下命令创建一个证书：
+- en: '[PRE21]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Here we are creating a certificate that will be valid for the next 2,048 days.
+    The passphrase you are asked for is the one you set when you created the *mykey.key*
+    file. It doesn’t matter what you enter for the organization details, as you will
+    be using it only on your local machine.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们正在创建一个有效期为 2,048 天的证书。系统会要求你输入的密码是你创建 *mykey.key* 文件时设置的密码。组织细节无关紧要，因为你只会在本地机器上使用它。
+- en: The certificate is stored in a file called *mypem.pem*, and we need to install
+    this file as a root certificate on our machine.^([7](ch07.xhtml#idm46634401431416))
+    There are several ways to install root certificates on your machine.^([8](ch07.xhtml#idm46634401428680))
+    You can use a root certificate to sign website certificates, which is what we’ll
+    do next.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 证书存储在名为 *mypem.pem* 的文件中，我们需要将这个文件安装为我们机器上的根证书。^([7](ch07.xhtml#idm46634401431416))
+    有几种方法可以在您的机器上安装根证书。^([8](ch07.xhtml#idm46634401428680)) 您可以使用根证书来签署网站证书，这是我们接下来要做的事情。
+- en: 'We’ll create a local key file, and a certificate signing request (CSR) file,
+    with the following command:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个本地密钥文件，并使用以下命令创建一个证书签名请求（CSR）文件：
+- en: '[PRE22]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Next, create a file called `extfile.txt`, containing the following:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为 `extfile.txt` 的文件，其中包含以下内容：
+- en: '[PRE23]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'We can now run a command that will generate an SSL certificate for our application:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以运行一个命令来为我们的应用程序生成一个 SSL 证书：
+- en: '[PRE24]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Remember, the passphrase is the one you created when you first created the *mykey.key*
+    file.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住，密码是你第一次创建 *mykey.key* 文件时设置的密码。
+- en: 'The result of going through all of those steps is that we have two files that
+    we can use to secure our development server:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经过所有这些步骤的结果是，我们有两个文件可以用来保护我们的开发服务器：
+- en: The *myprivate.crt* file is a certificate signed by the root certificate, which
+    is the file that reassures the browser that it can trust our application
+  id: totrans-176
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*myprivate.crt* 文件是由根证书签名的证书，这个文件向浏览器保证我们的应用程序是可信的。'
+- en: The *myprivate.key* file will be used to encrypt connections between the development
+    server and the browser.
+  id: totrans-177
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*myprivate.key* 文件将用于加密开发服务器与浏览器之间的连接。'
+- en: 'If you created your application with `create-react-app`, you could enable HTTPS
+    by putting this in a `.env` file in your application directory:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你是使用 `create-react-app` 创建你的应用程序，你可以通过将以下内容放入应用程序目录中的 `.env` 文件来启用 HTTPS：
+- en: '[PRE25]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: If you restart your server, you should be able to access your application at
+    *https://localhost:3000* instead of *http://localhost:3000*.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果重新启动服务器，你应该能够通过 *https://localhost:3000* 访问你的应用程序，而不是 *http://localhost:3000*。
+- en: Discussion
+  id: totrans-181
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Self-signed certificates are pretty complex things to create, but there are
+    circumstances when they are required. However, even if you don’t need to run HTTPS
+    in your development environment, it can still be worth understanding what HTTPS
+    is, how it works, and why you should trust it.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自签名证书是创建起来非常复杂的东西，但在某些情况下是必需的。然而，即使在开发环境中不需要运行 HTTPS，理解 HTTPS 是什么、它是如何工作的以及为什么应该信任它仍然是值得的。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/BAKAE).
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从 [GitHub 网站](https://oreil.ly/BAKAE) 下载这个示例的源代码。
+- en: Authenticate with Fingerprints
+  id: totrans-184
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用指纹进行身份验证
+- en: Problem
+  id: totrans-185
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: '[“Authenticate with Physical Tokens”](#ch07-02) looked at how physical tokens,
+    such as YubiKeys, can be used for two-factor authentication. But physical tokens
+    are still relatively rare and can be pretty expensive. Most people already have
+    mobile devices, such as cell phones and tablets. Many of those have built-in fingerprint
+    sensors. But how can we get a React application to use a fingerprint sensor for
+    two-factor authentication?'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“使用物理令牌进行身份验证”](#ch07-02) 讨论了如何使用物理令牌，如 YubiKeys，进行双因素身份验证。但物理令牌仍然相对稀少，而且价格相对较高。大多数人已经拥有手机、平板等移动设备。其中许多设备都内置了指纹传感器。但如何让一个
+    React 应用程序使用指纹传感器进行双因素身份验证呢？'
+- en: Solution
+  id: totrans-187
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We can use fingerprint sensors as WebAuthn authentication tokens. They connect
+    to the API in the same way, although several configuration changes are required.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用指纹传感器作为WebAuthn认证令牌。它们以同样的方式连接到API，尽管需要进行几个配置更改。
+- en: 'This recipe is based on [“Authenticate with Physical Tokens”](#ch07-02) for
+    using removable tokens for two-factor authentication. We saw in [“Authenticate
+    with Physical Tokens”](#ch07-02) that there are two main flows in WebAuthn authentication:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配方基于[“使用物理令牌进行身份验证”](#ch07-02)，用于使用可移动令牌进行双因素认证。我们在[“使用物理令牌进行身份验证”](#ch07-02)中看到，在WebAuthn身份验证中有两个主要流程：
+- en: Attestation
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 认证
+- en: In this flow, the user registers a device or token against their account. One
+    way to do this is by pressing the fingerprint sensor on their phone.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个流程中，用户注册设备或令牌到他们的账户。一种方法是在他们的手机上按指纹传感器。
+- en: Assertion
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言
+- en: In this flow, the user activates the device or token, and the server checks
+    that it matches the device or token that was previously registered.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个流程中，用户激活设备或令牌，服务器检查它是否与之前注册的设备或令牌匹配。
+- en: 'Both attestation and assertion have three stages:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论是认证还是断言都有三个阶段：
+- en: The server generates a request.
+  id: totrans-195
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器生成请求。
+- en: The user uses the token, which generates a response.
+  id: totrans-196
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户使用令牌，生成响应。
+- en: The response is sent to the server.
+  id: totrans-197
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 响应发送到服务器。
+- en: 'If we want to switch from using a removable physical token to using the built-in
+    fingerprint sensor in a device, we will only need to change the attestation request
+    stage. The attestation request says what kind of token the browser can register
+    for a user. For removable physical tokens, like YubiKeys, we generated an attestation
+    request that looked like this:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要从使用可移动物理令牌切换到使用设备中内置的指纹传感器，我们只需更改认证请求阶段。认证请求说明浏览器可以为用户注册的令牌类型。对于可移动物理令牌，如YubiKeys，我们生成了一个类似这样的认证请求：
+- en: '[PRE26]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'We need to change this slightly to allow the user to use a fingerprint sensor:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要稍微更改这一点，以允许用户使用指纹传感器：
+- en: '[PRE27]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: The two requests are almost the same. The first change is in the authenticator
+    selection. We now want to use a `platform` authenticator because fingerprint sensors
+    are built into the device and not removable, which means we effectively limit
+    the user to their current physical device. In contrast, a YubiKey can be disconnected
+    from one machine and then connected to another.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个请求几乎相同。第一个变化在认证器选择上。我们现在想使用`platform`认证器，因为指纹传感器内置于设备中，不可移动，这意味着我们有效地限制用户在其当前物理设备上使用。相比之下，YubiKey可以从一台机器断开连接，然后连接到另一台机器。
+- en: We’re also saying that we want to use direct attestation, which means we won’t
+    require any additional verification. For example, we won’t be asking the user
+    to press the fingerprint sensor and then enter a PIN.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还表示我们希望使用直接认证，这意味着我们不需要任何额外的验证。例如，我们不会要求用户按指纹传感器然后输入PIN码。
+- en: Beyond changing this initial attestation request object, all of the other code
+    remains the same. Once a user responds to the attestation request by pressing
+    the fingerprint sensor, it will generate a public key that we can store against
+    the user. When the user logs back in and confirms their identity by pressing the
+    fingerprint sensor, it will sign the challenge string in the same way that a YubiKey
+    would.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了更改初始的认证请求对象之外，所有其他代码保持不变。一旦用户按指纹传感器响应认证请求，它将生成一个公钥，我们可以存储在用户账户中。当用户再次登录并通过按指纹传感器确认其身份时，它将以与YubiKey相同的方式签署挑战字符串。
+- en: Therefore, if you’re going to support one type of authenticator, it’s worth
+    allowing the user to use both fingerprint sensors and removable tokens.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，如果你要支持一种类型的认证器，值得允许用户同时使用指纹传感器和可移动令牌。
+- en: Unless a user has a removable token that also works on mobile devices—for example,
+    by using Near-Field Communication (NFC)—it’s unlikely that any user will register
+    both removable tokens and fingerprints. As soon as they have registered a fingerprint,
+    they won’t be able to log in and register a removable token, and vice versa.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除非用户有一个也适用于移动设备的可移动令牌，例如使用近场通信（NFC），否则任何用户都不太可能注册可移动令牌和指纹。一旦他们注册了一个指纹，他们将无法登录并注册可移动令牌，反之亦然。
+- en: 'Here is the updated component that allows a user to register a token:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是更新后的组件，允许用户注册令牌：
+- en: '[PRE28]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: We’re calling a slightly different endpoint when we want to register a fingerprint.
+    Otherwise, the rest of the code remains the same.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们要注册指纹时，我们调用了一个稍微不同的端点。否则，代码的其余部分保持不变。
+- en: To try it, you’ll need to use a device with a fingerprint sensor. We can only
+    use WebAuthn if we run the application on *localhost* or a remote server using
+    HTTPS. To test this code from a mobile device, you will need to configure HTTPS
+    on your development server (see [“Enable HTTPS”](#ch07-03)), or you will need
+    to configure your device to proxy *localhost* connections to your development
+    machine (see [“Test on an Android Device”](#ch07-07)).
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要尝试它，您需要使用带有指纹传感器的设备。只有在本地主机或使用HTTPS的远程服务器上运行应用程序时，我们才能使用WebAuthn。要从移动设备测试此代码，您需要在开发服务器上配置HTTPS（参见[“启用HTTPS”](#ch07-03)），或者您需要配置您的设备将*localhost*连接代理到您的开发机器（参见[“在Android设备上测试”](#ch07-07)）。
+- en: 'To run the example application, you will need to change into the application
+    directory and start the development server with the following:'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行示例应用程序，您需要切换到应用程序目录，并使用以下命令启动开发服务器：
+- en: '[PRE29]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'You will also need to run the API server. Open a separate terminal for this
+    and then run it from the *server* subdirectory:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要运行API服务器。为此打开一个单独的终端，然后从*server*子目录运行它：
+- en: '[PRE30]'
+  id: totrans-214
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: The development server will run on port 3000 and the API server on port 5000\.
+    The development server will proxy API requests to the API server.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发服务器将在端口3000上运行，API服务器将在端口5000上运行。开发服务器将代理API请求到API服务器。
+- en: When you open the application, you should click the “Account page” link (see
+    [Figure 7-16](#ch07_image_16)).
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 打开应用程序后，您应单击“账户页面”链接（参见[图 7-16](#ch07_image_16)）。
+- en: '![](Images/recb_0716.png)'
+  id: totrans-217
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0716.png)'
+- en: Figure 7-16\. Click the “Account page” link on the home page
+  id: totrans-218
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-16\. 在主页上单击“账户页面”链接
+- en: The application will ask you to sign in. Enter the username **`freda`** and
+    the password **`mypassword`** (see [Figure 7-17](#ch07_image_17)). These values
+    have been hardcoded in the example server.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序将要求您登录。输入用户名**`freda`**和密码**`mypassword`**（参见[图 7-17](#ch07_image_17)）。这些值在示例服务器中已硬编码。
+- en: '![](Images/recb_0717.png)'
+  id: totrans-220
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0717.png)'
+- en: Figure 7-17\. Enter **`freda/mypassword`** into the login form
+  id: totrans-221
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-17\. 在登录表单中输入**`freda/mypassword`**
+- en: 'You will now see two buttons for registering tokens against your account: one
+    for removable tokens, the other for fingerprints (see [Figure 7-18](#ch07_image_18)).'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您将看到两个按钮，用于为您的账户注册令牌：一个用于可移动令牌，另一个用于指纹（参见[图 7-18](#ch07_image_18)）。
+- en: '![](Images/recb_0718.png)'
+  id: totrans-223
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0718.png)'
+- en: Figure 7-18\. There are buttons to register removable tokens and fingerprints
+  id: totrans-224
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-18\. 有按钮用于注册可移动令牌和指纹
+- en: Press the button to register a fingerprint. Your mobile device will ask you
+    to press the fingerprint sensor. Your fingerprint sensor will generate a public
+    key that the application can store against the *freda* account. A message box
+    will appear to tell you when this has been done, as shown in [Figure 7-19](#ch07_image_19).
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按下按钮注册指纹。您的移动设备将要求您按下指纹传感器。您的指纹传感器将生成一个公钥，该应用程序可以存储在*freda*账户中。消息框将显示在完成时，如[图
+    7-19](#ch07_image_19)所示。
+- en: '![](Images/recb_0719.png)'
+  id: totrans-226
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0719.png)'
+- en: Figure 7-19\. The application will confirm when the token is registered
+  id: totrans-227
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-19\. 应用程序将在令牌注册完成时进行确认
+- en: Now log out. When you log back in again, enter **`freda`** and **`mypassword`**
+    in the form. The application will now ask you to confirm your identity by pressing
+    the fingerprint sensor, and it will then log you back in.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在注销。再次登录时，在表单中输入**`freda`**和**`mypassword`**。应用程序现在将要求您通过指纹传感器确认身份，然后再次登录。
+- en: Discussion
+  id: totrans-229
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Built-in fingerprint sensors are much more common than removable tokens like
+    YubiKeys. There is a difference in the usage pattern of the two devices. YubiKeys
+    can be moved from device to device, whereas fingerprints are typically limited
+    to a single device.^([9](ch07.xhtml#idm46634400657128)) Removable tokens, therefore,
+    have additional flexibility for users who might want to connect from several devices.
+    The downside to removable devices is that they are far easier to lose than a cell
+    phone. In most cases, it is worth supporting both types of devices and leaving
+    it to the users to decide which option is best for them.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内置指纹传感器比可移动令牌（如YubiKeys）更常见。这两种设备的使用模式有所不同。YubiKeys可以从一个设备移动到另一个设备，而指纹通常限于单个设备。^([9](ch07.xhtml#idm46634400657128))
+    因此，对于希望从多个设备连接的用户来说，可移动令牌具有额外的灵活性。可移动设备的缺点是它们比手机更容易丢失。在大多数情况下，支持这两种设备并让用户决定哪种选项最适合他们是值得的。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/m8hs6).
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/m8hs6)下载此示例的源代码。
+- en: Use Confirmation Logins
+  id: totrans-232
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用确认登录
+- en: Problem
+  id: totrans-233
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Sometimes a user might want to perform operations that are more dangerous or
+    are not easily reversible. They might want to delete data, remove a user account,
+    or do something that will send an email. How do you prevent a malicious third
+    party from carrying out these operations if they find a logged-in but unattended
+    machine?
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时用户可能希望执行更危险或不易撤销的操作。他们可能想要删除数据，移除用户帐户，或者执行会发送电子邮件的操作。如何防止恶意第三方在找到登录但未被关注的机器时执行这些操作？
+- en: Solution
+  id: totrans-235
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Many systems force users to confirm their login credentials before being able
+    to perform sensitive operations. You will most likely want to do this for several
+    operations, so it would be helpful if there was a way of doing the confirmation
+    centrally.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多系统要求用户在执行敏感操作之前确认其登录凭据。您很可能希望为多个操作执行此操作，因此如果有一种集中进行确认的方法将非常有帮助。
+- en: 'We’ll base this recipe on the code for the secured routes in [“Create Secured
+    Routes”](ch02.xhtml#ch02-06). In that recipe, we built a `SecurityProvider` component
+    that provided `login` and `logout` functions to its child components:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将基于[“创建安全路由”](ch02.xhtml#ch02-06)中的代码来编写此示例。在那个示例中，我们构建了一个`SecurityProvider`组件，为其子组件提供了`login`和`logout`函数：
+- en: '[PRE31]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'Components that needed to use the `login` and `logout` functions could access
+    them from the `useSecurity` hook:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要使用`login`和`logout`函数的组件可以从`useSecurity`钩子中访问它们：
+- en: '[PRE32]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: For this recipe, we’ll add an extra function to `SecurityProvider` that will
+    allow a child component to confirm that the user is logged in. Once they’ve provided
+    the username and password, we allow them to perform the dangerous operation.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此示例，我们将在`SecurityProvider`中添加一个额外的函数，允许子组件确认用户已登录。一旦他们提供了用户名和密码，我们允许他们执行危险操作。
+- en: 'We could do this by creating a function that accepts a callback function containing
+    the dangerous operation, which the application calls after the user confirms their
+    login details. This function will be easier to implement in the `SecurityProvider`
+    but will have some issues when we call it from a component. We could return a
+    success/failure flag:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过创建一个接受包含危险操作的回调函数的函数来完成此操作，在用户确认其登录详细信息后应用程序调用此函数。在`SecurityProvider`中实现此函数会更容易，但在从组件中调用它时会有一些问题。我们可以返回一个成功/失败标志：
+- en: '[PRE33]'
+  id: totrans-243
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: This approach has the disadvantage that if you forget to check the value of
+    the `success` flag, the code will perform the dangerous operation, even if the
+    user cancels the login form.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的缺点是，如果您忘记检查`success`标志的值，即使用户取消了登录表单，代码也将执行危险操作。
+- en: 'Alternatively, we will have to pass two separate callbacks: one for success
+    and one for cancellation:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们将不得不传递两个单独的回调函数：一个用于成功，一个用于取消：
+- en: '[PRE34]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: However, this code is a little ugly.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这段代码有点丑陋。
+- en: Instead, we’ll implement the code with a promise, which will make the implementation
+    more complex, but it will simplify any code that calls it.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，我们将使用一个promise来实现该代码，这将使实现变得更加复杂，但将简化调用它的任何代码。
+- en: 'This is a version of `SecurityProvider`, complete with the new `confirmLogin`
+    function:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是`SecurityProvider`的一个版本，完整包含了新的`confirmLogin`函数：
+- en: '[PRE35]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: If the user calls the `confirmLogin` function, the `SecurityProvider` will display
+    a login form to allow the user to confirm their username and password. The `confirmLo⁠gin`
+    function returns a promise that will resolve only if the user types in the username
+    and password correctly. If the user cancels the login form, the promise will be
+    rejected.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户调用`confirmLogin`函数，`SecurityProvider`将显示一个登录表单，允许用户确认其用户名和密码。`confirmLo⁠gin`函数返回一个承诺，仅当用户正确输入用户名和密码时才会解决。如果用户取消登录表单，则承诺将被拒绝。
+- en: We’re not showing the details of the `LoginForm` component here, but you can
+    find it in the downloadable source for this recipe.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这里不显示`LoginForm`组件的详细信息，但您可以在此配方的可下载源代码中找到它。
+- en: Our example code here checks the username and password against static strings
+    to see if they’re correct. In your version of the code, you will replace this
+    with a call to some security service.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的示例代码中，这里检查用户名和密码与静态字符串是否匹配。在您的代码版本中，您将用一些安全服务的调用替换它。
+- en: When we call the `confirmLogin`, we’re storing the promise in a *ref*. Refs
+    commonly point to elements in the DOM, but you can use them to store any piece
+    of state. Unlike `useState`, refs will update immediately. In general, it’s not
+    good practice to use a lot of refs in your code, and we’re only using them here
+    so we can record the promise immediately, without waiting for a `useState` operation
+    to finish.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用`confirmLogin`时，我们正在将承诺存储在一个*ref*中。*Refs*通常指向DOM中的元素，但您可以使用它们来存储任何状态片段。与`useState`不同，*refs*会立即更新。一般来说，在代码中不应大量使用*refs*并且我们在这里仅使用它们以便我们可以立即记录承诺，而不必等待`useState`操作完成。
+- en: 'How would you use the `confirmLogin` function in practice? Let’s say we have
+    a component that contains a button that performs some dangerous operation:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实际中如何使用`confirmLogin`函数？假设我们有一个包含执行某些危险操作按钮的组件：
+- en: '[PRE36]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'If we want the user to confirm their login details before performing this operation,
+    we can first get hold of the context provided by the `SecurityProvider`:'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们希望用户在执行此操作之前确认其登录详细信息，我们可以首先获取由`SecurityProvider`提供的上下文：
+- en: '[PRE37]'
+  id: totrans-258
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'In the code that performs the dangerous operation, we can then `await` the
+    promise returned by `confirmLogin`:'
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在执行危险操作的代码中，我们可以`await`由`confirmLogin`返回的承诺：
+- en: '[PRE38]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: The code following the call to `confirmLogin` will run only if the user provides
+    the correct username and password.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调用`confirmLogin`后的代码将仅在用户提供正确的用户名和密码时运行。
+- en: If the user cancels the login dialog, the promise will be rejected, and we can
+    handle the cancellation in a `catch` block.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户取消登录对话框，承诺将被拒绝，我们可以在`catch`块中处理取消。
+- en: 'Here is a modified version of the component performing dangerous code that
+    now confirms the user’s login before proceeding:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个修改后的执行危险代码的组件版本，现在在继续之前确认用户的登录：
+- en: '[PRE39]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'If we try the code, we will first need to run the application from the app
+    directory:'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们尝试这段代码，我们首先需要从应用程序目录运行应用程序：
+- en: '[PRE40]'
+  id: totrans-266
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: When the application opens (see [Figure 7-20](#ch07_image_20)), you will need
+    to click Private Page 1.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当应用程序打开时（参见[图 7-20](#ch07_image_20)），您将需要点击私人页面 1。
+- en: '![](Images/recb_0720.png)'
+  id: totrans-268
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0720.png)'
+- en: Figure 7-20\. Begin by clicking the Private Page 1 link
+  id: totrans-269
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-20\. 首先点击私人页面 1 链接
+- en: The application will then ask you to log in (see [Figure 7-21](#ch07_image_21).)
+    You should log in with *fred/password*.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后应用程序会要求您登录（参见[图 7-21](#ch07_image_21)）。您应该使用*fred/password*登录。
+- en: '![](Images/recb_0721.png)'
+  id: totrans-271
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0721.png)'
+- en: Figure 7-21\. The page is secured, so you will need to log in
+  id: totrans-272
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-21\. 页面受保护，因此您需要登录
+- en: If you now click the button to perform the dangerous operation, you will need
+    to confirm your credentials before continuing (as shown in [Figure 7-22](#ch07_image_22)).
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您现在点击按钮执行危险操作，您将需要确认您的凭据后才能继续（如[图 7-22](#ch07_image_22)所示）。
+- en: '![](Images/recb_0722.png)'
+  id: totrans-274
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0722.png)'
+- en: Figure 7-22\. You must confirm your login details before continuing
+  id: totrans-275
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-22\. 您必须确认您的登录详细信息才能继续
+- en: Discussion
+  id: totrans-276
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'This recipe centralizes your confirmation code in the `SecurityProvider`, which
+    has an advantage: not only does this lighten the code in our components, but it
+    means that user confirmation can take place inside custom hooks. If you abstract
+    a set of operations into some hook-based service,^([10](ch07.xhtml#idm46634399587928))
+    you can also include the confirmation logic in that service. As a result, your
+    components will be completely unaware of which operations are dangerous and which
+    are not.'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配方将您的确认代码集中在`SecurityProvider`中，这具有优势：不仅可以减少组件中的代码量，还意味着用户确认可以在自定义钩子内完成。如果您将一组操作抽象成基于钩子的服务，^([10](ch07.xhtml#idm46634399587928))那么您还可以在该服务中包含确认逻辑。因此，您的组件将完全不知道哪些操作是危险的，哪些不是。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/zP75q).
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/zP75q)下载此配方的源代码。
+- en: Use Single-Factor Authentication
+  id: totrans-279
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用单因素认证
+- en: Problem
+  id: totrans-280
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: We’ve already seen that removable tokens and fingerprints can be used in a two-factor
+    authentication system to provide additional security to a user’s account.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经看到可移动令牌和指纹可以用于双因素认证系统，为用户的账户提供额外的安全性。
+- en: However, you can also use them as a simple login convenience. Many mobile applications
+    allow a user to log in by pressing the fingerprint sensor without entering a username
+    or password.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，您也可以将它们用作简单的登录便利。许多移动应用程序允许用户通过按压指纹传感器而无需输入用户名或密码登录。
+- en: How do you enable single-factor authentication for a React application?
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何为React应用启用单因素认证？
+- en: Solution
+  id: totrans-284
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Security tokens, such as fingerprint sensors and USB devices like YubiKeys,
+    need to be recorded against a user account on the server. The problem with single-factor
+    authentication is that we don’t know who the user is supposed to be when they
+    tap the fingerprint sensor. In a two-factor system, they have just typed their
+    username into a form. But in a single-factor system, we need to know who the user
+    is supposed to be when we create the assertion request.^([11](ch07.xhtml#idm46634399549096))
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安全令牌，如指纹传感器和USB设备（如YubiKeys），需要记录在服务器上的用户账户上。单因素认证的问题在于，当他们触摸指纹传感器时，我们不知道用户应该是谁。在双因素系统中，他们刚刚在表单中输入了他们的用户名。但在单因素系统中，当我们创建断言请求时，我们需要知道用户应该是谁。^([11](ch07.xhtml#idm46634399549096))
+- en: We can avoid this problem by setting a cookie in the browser containing the
+    user ID whenever a person with a token-enabled account logs in.^([12](ch07.xhtml#idm46634399545880))
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过在浏览器中设置包含用户ID的cookie，我们可以避免这个问题，每当启用了令牌的账户的用户登录时。^([12](ch07.xhtml#idm46634399545880))
+- en: When the application displays the login form, the app can check for the existence
+    of the cookie and then use it to create an assertion request and ask the user
+    for the security token. If the user does not want to use the token, they can cancel
+    the request and simply use the login form.^([13](ch07.xhtml#idm46634399544376))
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当应用程序显示登录表单时，应用程序可以检查cookie的存在，然后使用它创建一个断言请求，并要求用户输入安全令牌。如果用户不想使用令牌，他们可以取消请求，简单地使用登录表单。^([13](ch07.xhtml#idm46634399544376))
+- en: User IDs are often machine-generated internal keys, which contain no secure
+    information. However, if your user IDs are more easily identifiable, such as an
+    email address, you should not use this approach.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户ID通常是机器生成的内部密钥，不包含安全信息。但是，如果您的用户ID更容易识别，比如电子邮件地址，您不应该使用这种方法。
+- en: 'We’re basing the code for this recipe on the secured routes code from [“Create
+    Secured Routes”](ch02.xhtml#ch02-06). We manage all of our security through a
+    wrapper component called `SecurityProvider`. This provides child components with
+    `login` and `logout` functions. We’ll add another functions called `loginWithToken`:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们基于[“创建安全路由”](ch02.xhtml#ch02-06)中的安全路由代码来编写此配方的代码。我们通过名为`SecurityProvider`的包装组件管理所有安全性。这为子组件提供了`login`和`logout`功能。我们将添加另一个名为`loginWithToken`的函数：
+- en: '[PRE41]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'The `loginWithToken` accepts a user ID and then asks the user to verify their
+    identity with a token by:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`loginWithToken`接受一个用户ID，然后要求用户用令牌验证其身份：'
+- en: Calling a `startVerify` function on the server to create an assertion request
+  id: totrans-292
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在服务器上调用`startVerify`函数创建一个断言请求
+- en: Passing the request to WebAuthn to ask the user to press the fingerprint sensor
+  id: totrans-293
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将请求传递给WebAuthn，要求用户按压指纹传感器
+- en: Passing the generated assertion back to an endpoint called `verify` to check
+    that the token is valid
+  id: totrans-294
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将生成的断言传递回名为`verify`的端点，以检查令牌是否有效
+- en: You will need to replace the `startVerify` and `verify` endpoints in your implementation.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您需要在您的实现中替换 `startVerify` 和 `verify` 端点。
+- en: 'To call the `loginWithToken` function in `SecurityProvider`, we will need to
+    find the current user’s ID from the cookies. We’ll do this by installing the `js-cookie`
+    library:'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要调用 `SecurityProvider` 中的 `loginWithToken` 函数，我们需要从 cookie 中找到当前用户的 ID。我们将通过安装
+    `js-cookie` 库来实现这一点：
+- en: '[PRE42]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'This will allow us to read a `userID` cookie like this:'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将允许我们像这样读取 `userID` cookie：
+- en: '[PRE43]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'We can now use this code in a `Login` component, which will check for a `userID`
+    cookie. If one exists, it will ask to log in by token. Otherwise, it will allow
+    the user to log in using a username and password:'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以在 `Login` 组件中使用此代码，它将检查 `userID` cookie。如果存在，它将要求通过令牌登录。否则，它将允许用户使用用户名和密码登录：
+- en: '[PRE44]'
+  id: totrans-301
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'Let’s try the example application. We must first start the development server
+    from the application directory:'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们试试示例应用程序。我们必须首先从应用程序目录启动开发服务器：
+- en: '[PRE45]'
+  id: totrans-303
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'Then in a separate terminal, we can start the example API server:'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，在单独的终端中，我们可以启动示例 API 服务器：
+- en: '[PRE46]'
+  id: totrans-305
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: The development server runs on port 3000; the API server runs on port 5000.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发服务器运行在端口 3000 上；API 服务器运行在端口 5000 上。
+- en: When the application starts, click the link to the Account page (as shown in
+    [Figure 7-23](#ch07_image_23)).
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序启动时，点击链接到账户页面（如[图 7-23](#ch07_image_23)所示）。
+- en: '![](Images/recb_0723.png)'
+  id: totrans-308
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0723.png)'
+- en: Figure 7-23\. When the app opens, click the link to the Account page
+  id: totrans-309
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-23\. 应用程序打开时，点击链接到账户页面
+- en: The application asks us to log in (see [Figure 7-24](#ch07_image_24)). Use the
+    username **`freda`** and the password **`mypassword`**.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序要求我们登录（见[图 7-24](#ch07_image_24)）。使用用户名 **`freda`** 和密码 **`mypassword`**。
+- en: '![](Images/recb_0724.png)'
+  id: totrans-311
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0724.png)'
+- en: Figure 7-24\. Log in with **`freda/mypassword`**
+  id: totrans-312
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-24\. 使用 **`freda/mypassword`** 登录
+- en: The account page asks if we want to enable login with a fingerprint sensor or
+    physical token (see [Figure 7-25](#ch07_image_25)). You can register a token and
+    then log out.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 账户页面询问我们是否希望使用指纹传感器或物理令牌进行登录（见[图 7-25](#ch07_image_25)）。您可以注册一个令牌，然后注销。
+- en: '![](Images/recb_0725.png)'
+  id: totrans-314
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0725.png)'
+- en: Figure 7-25\. Choose to enable login with a physical token or fingerprint
+  id: totrans-315
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-25\. 选择启用使用物理令牌或指纹登录
+- en: The next time we log in, we will immediately see the request to activate a token
+    (see [Figure 7-26](#ch07_image_26)).
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下次我们登录时，将立即看到激活令牌的请求（见[图 7-26](#ch07_image_26)）。
+- en: '![](Images/recb_0726.png)'
+  id: totrans-317
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0726.png)'
+- en: Figure 7-26\. Once enabled, you can log in with just the token
+  id: totrans-318
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-26\. 一旦启用，您可以仅使用令牌登录
+- en: If we activate the token, we will log in without providing a username and password.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们激活令牌，我们将无需提供用户名和密码即可登录。
+- en: Discussion
+  id: totrans-320
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It’s important to note that single-factor authentication is about increasing
+    convenience rather than security. Fingerprint sensors are particularly convenient,
+    as logging in literally involves moving one finger.
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，单因素身份验证主要是为了增加便利性而非安全性。指纹传感器特别方便，因为登录实际上只需要移动一个手指。
+- en: You should always provide the ability to fall back to using the login form.
+    Doing so will not reduce the security of your application, as a wily hacker could
+    delete the cookie and fall back to using the form anyway.
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您应始终提供返回到使用登录表单的能力。这样做不会降低应用程序的安全性，因为狡猾的黑客可能会删除 cookie，并返回使用表单。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/4ZDh6).
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从 [GitHub 网站](https://oreil.ly/4ZDh6) 下载此示例的源代码。
+- en: Test on an Android Device
+  id: totrans-324
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在 Android 设备上测试
+- en: Problem
+  id: totrans-325
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You can perform most mobile browser testing with a desktop browser simulating
+    the appearance of a mobile device (see [Figure 7-27](#ch07_image_27)).
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用桌面浏览器模拟移动设备的外观进行大多数移动浏览器测试（见[图 7-27](#ch07_image_27)）。
+- en: '![](Images/recb_0727.png)'
+  id: totrans-327
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0727.png)'
+- en: Figure 7-27\. You can use a desktop browser for most mobile testing
+  id: totrans-328
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-27\. 您可以使用桌面浏览器进行大多数移动测试
+- en: But there are times when it is best to test a React application on a physical
+    mobile device, which is usually not a problem; the mobile device can access the
+    React application remotely using the IP address of the development machine.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但有时最好在物理移动设备上测试 React 应用程序，这通常不是问题；移动设备可以使用开发机的 IP 地址远程访问 React 应用程序。
+- en: 'There are, however, circumstances where that is not true:'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在某些情况下，这并不成立：
+- en: Your mobile device might not be able to connect to the same network as your
+    development machine.
+  id: totrans-331
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您的移动设备可能无法连接到与开发机相同的网络。
+- en: You might be using a technology, such as WebAuthn, that requires HTTPS for domains
+    other than *localhost*.
+  id: totrans-332
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您可能正在使用需要除 *localhost* 外域名的 HTTPS 的技术，比如 WebAuthn。
+- en: Is it possible to configure a mobile device to access a React app as if it is
+    running on *localhost*, even though it is running on a separate machine?
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是否可以配置移动设备访问 React 应用，就像它在 *localhost* 上运行一样，尽管它是在不同的机器上运行？
+- en: Solution
+  id: totrans-334
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: This recipe will look at how we can proxy the network on an Android-based device
+    so that connections to *localhost* will go to the server on your development machine.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此步骤将探讨如何在基于 Android 的设备上代理网络，以便连接到 *localhost* 的连接将转到您开发机器上的服务器。
+- en: The first thing you’ll need is an Android device that has [USB debugging enabled](https://oreil.ly/fc5Fv).
+    You will also need a copy of the [Android SDK](https://oreil.ly/BFeXr) installed,
+    which will allow you to use a tool called the *Android Debug Bridge* (ADB). The
+    ADB opens a communication channel between your development machine and an Android
+    device.
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您需要的第一件事是拥有启用了 [USB 调试](https://oreil.ly/fc5Fv) 的 Android 设备。您还需要安装 [Android
+    SDK](https://oreil.ly/BFeXr) 的一个副本，它将允许您使用一个称为 *Android 调试桥* (ADB) 的工具。ADB 在开发机器和
+    Android 设备之间打开了一个通信通道。
+- en: 'You will then need to connect your Android device to your development machine
+    with a USB cable and ensure that the `adb` command is available on your command
+    path.^([14](ch07.xhtml#idm46634398831896)) You can then list the Android devices
+    connected to your machine:'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您需要使用 USB 数据线将 Android 设备连接到开发机器，并确保 `adb` 命令在您的命令路径中可用。^([14](ch07.xhtml#idm46634398831896))
+    您随后可以列出连接到您的机器的 Android 设备：
+- en: '[PRE47]'
+  id: totrans-338
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: Here you can see there is a single device connected, with a device ID of `25PRIFFEJZWWDFWO`.
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，您可以看到只连接了一个设备，其设备 ID 为 `25PRIFFEJZWWDFWO`。
+- en: 'You can now use the `adb` command to configure a proxy on the Android device,
+    which will redirect all HTTP traffic to its internal port 3000:'
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您现在可以使用 `adb` 命令在 Android 设备上配置代理，将所有 HTTP 流量重定向到其内部端口 3000：
+- en: '[PRE48]'
+  id: totrans-341
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: If you have more than one Android device connected to your machine, you will
+    need to specify its device ID with the `adb` option `-s <device-id>`.
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果有多台 Android 设备连接到您的机器，您需要使用 `adb` 选项 `-s <device-id>` 指定其设备 ID。
+- en: 'You will next need to tell `adb` to run a proxy service on the Android device,
+    which will forward any traffic from port 3000 on the device to port 3000 on the
+    development machine:'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，您需要告诉 `adb` 在 Android 设备上运行一个代理服务，该服务将从设备的端口 3000 转发到开发机器的端口 3000：
+- en: '[PRE49]'
+  id: totrans-344
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: If you now open a browser on the Android device and tell it to go to *http://localhost:3000*,
+    it will display the app running on your development machine, as if it’s running
+    inside the device (see [Figure 7-28](#ch07_image_28)).
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在在 Android 设备上打开浏览器，并告诉它访问 *http://localhost:3000*，它将显示在您的开发机器上运行的应用程序，就像它在设备内部运行一样（参见
+    [图 7-28](#ch07_image_28)）。
+- en: '![](Images/recb_0716.png)'
+  id: totrans-346
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0716.png)'
+- en: Figure 7-28\. If you open a mobile browser to localhost, it will connect to
+    the development machine
+  id: totrans-347
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-28\. 如果您在移动浏览器中打开 localhost，则将连接到开发机器
+- en: Once you have finished using the app, you will need to disable the proxy setting
+    on the Android device.
+  id: totrans-348
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用完应用程序后，您需要在 Android 设备上禁用代理设置。
+- en: If you fail to disable the proxy on the Android device, it will no longer access
+    the network.
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果未能在 Android 设备上禁用代理，则将无法访问网络。
+- en: 'You can do this by resetting the proxy back to `:0`:'
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过将代理重置回 `:0` 来完成此操作：
+- en: '[PRE50]'
+  id: totrans-351
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: Discussion
+  id: totrans-352
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This recipe requires a lot of work the first time you use it because it involves
+    installing an entire Android SDK on your development machine. But then it will
+    be straightforward to connect and disconnect real Android devices to your machine.
+  id: totrans-353
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个步骤第一次使用时需要大量工作，因为它涉及在开发机器上安装整个 Android SDK。但之后，连接和断开真实的 Android 设备到您的机器将变得非常简单。
+- en: Check Security with ESlint
+  id: totrans-354
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 ESlint 进行安全检查
+- en: Problem
+  id: totrans-355
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Just a few common coding issues frequently cause security threats in JavaScript.
+    You can decide to create a set of coding standards that will avoid those errors.
+    However, you will need to frequently review the standards to keep them up-to-date
+    with the latest changes in technology, and you will also need to introduce slow
+    and expensive code review processes.
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 中经常出现的一些常见编码问题会导致安全威胁。您可以决定创建一组编码标准，以避免这些错误。但是，您需要经常审查这些标准，以使它们与技术的最新变化保持同步，并且还需要引入缓慢和昂贵的代码审查过程。
+- en: Is there a way to check for poor security practices in code that will not slow
+    down your development processes?
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是否有一种方法可以检查代码中的不良安全实践，而不会减慢您的开发过程？
+- en: Solution
+  id: totrans-358
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'One way to introduce security reviews is to try to automate them. One tool
+    that will allow you to do this is `eslint`. If you’ve created your application
+    with a tool like `create-react-app`, you have probably already got `eslint` installed.
+    In fact, `create-react-app` runs `eslint` each time it restarts its development
+    server. If you’ve ever seen coding issues highlighted in the terminal, that output
+    has come from `eslint`:'
+  id: totrans-359
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 引入安全审查的一种方法是尝试自动化。一个可以帮助您做到这一点的工具是`eslint`。如果您使用类似`create-react-app`这样的工具创建了您的应用程序，您可能已经安装了`eslint`。事实上，`create-react-app`每次重新启动开发服务器时都会运行`eslint`。如果您曾在终端中看到代码问题被突出显示，那输出就来自于`eslint`：
+- en: '[PRE51]'
+  id: totrans-360
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'If you don’t have `eslint` installed, you can install it through `npm`:'
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您尚未安装`eslint`，可以通过`npm`安装它：
+- en: '[PRE52]'
+  id: totrans-362
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'Once installed, you can initialize it like this:'
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完成后，您可以像这样初始化它：
+- en: '[PRE53]'
+  id: totrans-364
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'Remember: you don’t need to initialize `eslint` if you’re using `create-react-app`;
+    it’s already done for you.'
+  id: totrans-365
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住：如果您使用`create-react-app`，您不需要初始化`eslint`；它已经为您做好了。
+- en: At this point, you could choose to write your own set of `eslint` rules to check
+    for breaches of any security practices. However, it’s far easier to install an
+    `eslint` plugin with a set of security rules already written for you.
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此时，您可以选择编写自己的`eslint`规则集，以检查任何安全实践的违规。然而，安装一个已经为您编写好一套安全规则的`eslint`插件要简单得多。
+- en: 'For example, let’s install the `eslint-plugin-react-security` package, which
+    is created and managed by [Slyk](https://slyk.io):'
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们安装由[Slyk](https://slyk.io)创建和管理的`eslint-plugin-react-security`包：
+- en: '[PRE54]'
+  id: totrans-368
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: Once installed, we can enable this plugin by editing the `eslintConfig` section
+    of *package.json* (if you’re using `create-react-app`) or the *eslintrc** file
+    in your app directory.
+  id: totrans-369
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完成后，我们可以通过编辑`package.json`中的`eslintConfig`部分（如果您使用`create-react-app`），或者在您的应用目录中的`eslintrc`文件中启用此插件。
+- en: 'You should change it from this:'
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您应该将它从这个变成这个：
+- en: '[PRE55]'
+  id: totrans-371
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'to this:'
+  id: totrans-372
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'to this:'
+- en: '[PRE56]'
+  id: totrans-373
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: This change will enable four rules from the React Security plugin.
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一更改将启用来自React安全插件的四个规则。
+- en: 'To check that they work, let’s add some code to an application that will contravene
+    the *no-dangerously-set-innerhtml* rule:'
+  id: totrans-375
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了检查它们是否有效，让我们向应用程序添加一些代码，违反*no-dangerously-set-innerhtml*规则：
+- en: '[PRE57]'
+  id: totrans-376
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'If you’ve installed `eslint` manually, you can now scan this file with:'
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您手动安装了`eslint`，现在可以使用以下命令扫描此文件：
+- en: '[PRE58]'
+  id: totrans-378
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'If you’re using `create-react-app`, you just need to restart the server to
+    ensure that it reloads the `eslint` config:'
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用`create-react-app`，只需重新启动服务器即可确保重新加载`eslint`配置：
+- en: '[PRE59]'
+  id: totrans-380
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: Discussion
+  id: totrans-381
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If you have a team of developers, you might also want to run the `eslint` checks
+    using a Git *pre-commit* hook to prevent developers from ever checking in code
+    that fails the audit. A Git hook will give faster feedback to the developer and
+    prevent them from failing the build for everyone else.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您有一个开发团队，您可能还希望使用Git的*pre-commit*钩子来运行`eslint`检查，以防止开发人员提交失败的代码。Git钩子将更快地向开发人员反馈，并阻止他们让所有人的构建失败。
+- en: If you want to configure pre-commit hooks through your *package.json* file,
+    consider installing [Husky code hooks](https://oreil.ly/uEjix).
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想通过*package.json*文件配置预提交钩子，请考虑安装[Husky code hooks](https://oreil.ly/uEjix)。
+- en: Another advantage of automating your security checks is that you can add them
+    to your build-and-deploy pipeline. If you run the checks at the start of the pipeline,
+    you can reject a commit immediately and notify the developer.
+  id: totrans-384
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化安全检查的另一个好处是您可以将它们添加到您的构建和部署管道中。如果您在管道的开始运行检查，您可以立即拒绝提交并通知开发人员。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/kvBcS).
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub站点](https://oreil.ly/kvBcS)下载此配方的源代码。
+- en: Make Login Forms Browser Friendly
+  id: totrans-386
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使登录表单在浏览器中友好
+- en: Problem
+  id: totrans-387
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Many security solutions rely on username/password forms, but several usability
+    traps are easy to fall into when creating them. On some devices, automated capitalization
+    and autocorrect can corrupt usernames and passwords in an attempt to be helpful.
+    Some browsers will attempt to autocomplete username fields, but it is often unclear
+    what rules they use, so autocomplete works on some sites but not others.
+  id: totrans-388
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多安全解决方案依赖于用户名/密码表单，但在创建它们时很容易陷入几个可用性陷阱。在某些设备上，自动大写和自动更正可能会破坏用户名和密码，以帮助为目的。一些浏览器会尝试自动填充用户名字段，但通常不清楚它们使用了什么规则，因此自动完成在某些站点上有效，但在其他站点上则无效。
+- en: What practices should you follow when building login forms so that they will
+    work with the browser rather than against it?
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建登录表单时，应遵循哪些实践，以使其与浏览器配合而不是相互对抗？
+- en: Solution
+  id: totrans-390
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Several HTML attributes can significantly improve the usability of your login
+    forms.
+  id: totrans-391
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 几个HTML属性可以显著提高登录表单的可用性。
+- en: 'First, it can be useful to disable autocorrect for username fields. Autocorrect
+    is frequently applied on mobile devices to compensate for the small keyboards
+    and the spelling mistakes that inevitably occur. But autocorrect is of little
+    use when typing usernames. You can disable autocorrect using the `autoCorrect`
+    attribute:'
+  id: totrans-392
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，可以禁用用户名字段的自动更正可能会有所帮助。在移动设备上经常会应用自动更正来弥补键盘小和不可避免的拼写错误。但是在输入用户名时，自动更正没有什么用处。您可以使用`autoCorrect`属性禁用自动更正：
+- en: '[PRE60]'
+  id: totrans-393
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'Next, if your username is an email address, consider setting the `type` to
+    `email`, which might launch an email-specific keyboard on mobile devices. Some
+    browsers may even show recent email addresses in an autocomplete window or in
+    the header of an email-specific keyboard:'
+  id: totrans-394
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，如果您的用户名是电子邮件地址，请考虑将`type`设置为`email`，这可能会在移动设备上启动专用于电子邮件的键盘。某些浏览器甚至可能在自动完成窗口或电子邮件专用键盘的标题中显示最近的电子邮件地址：
+- en: '[PRE61]'
+  id: totrans-395
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'You might also consider using `j_username` as the `id` and `name` of the username
+    field. Why? It’s because Java-based applications commonly have fields named `j_username`,
+    and so the user is likely to have provided a `j_username` value in the past. This
+    increases the likelihood that the browser might offer the email address in an
+    autocomplete window:'
+  id: totrans-396
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以考虑将`j_username`用作用户名字段的`id`和`name`。为什么？因为基于Java的应用程序通常有名为`j_username`的字段，因此用户可能以前已经提供了`j_username`值。这增加了浏览器在自动完成窗口中提供电子邮件地址的可能性：
+- en: '[PRE62]'
+  id: totrans-397
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'You can explicitly say that a field represents a username field, making it
+    *very* likely that you will trigger an autocomplete response from the browser:'
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以明确指定一个字段表示用户名字段，这样很可能会触发浏览器的自动完成响应：
+- en: '[PRE63]'
+  id: totrans-399
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: Now, what to do about passwords?
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，关于密码，该怎么办呢？
+- en: 'First, always set the type to `password`:'
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，始终将类型设置为`password`：
+- en: '[PRE64]'
+  id: totrans-402
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: Never be tempted to reproduce the visual appearance of a password field in some
+    other way, for example, by custom CSS styling. Doing so will prevent the browser
+    from applying standard security features to the password field, such as disabling
+    the copy function inside it. Also, if you don’t set the type to `password`, the
+    browser will not offer to store the value in its password manager.
+  id: totrans-403
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 永远不要试图以其他方式复制密码字段的视觉外观，例如通过自定义CSS样式。这样做将阻止浏览器对密码字段应用标准安全功能，例如在其中禁用复制功能。此外，如果不将类型设置为`password`，浏览器将不会提供将值存储在其密码管理器中的选项。
+- en: 'There are two types of password fields: for current passwords (when logging
+    in) and for new passwords (when signing up or changing a password).'
+  id: totrans-404
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 密码字段有两种类型：用于当前密码（登录时）和用于新密码（注册或更改密码时）。
+- en: Why is this relevant? It’s because the HTML `autoComplete` attribute can indicate
+    to the browser how you intend to use the password field.
+  id: totrans-405
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么这很重要？因为HTML中的`autoComplete`属性可以告诉浏览器您打算如何使用密码字段。
+- en: 'If it’s a login form, you will want to say that the password is a `current-password`:'
+  id: totrans-406
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果是登录表单，您将希望说密码是`current-password`：
+- en: '[PRE65]'
+  id: totrans-407
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'If it’s a registration or change password form, you should set it to `new-password`:'
+  id: totrans-408
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果是注册或更改密码表单，您应将其设置为`new-password`：
+- en: '[PRE66]'
+  id: totrans-409
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: This value will encourage the browser to autocomplete stored passwords in a
+    login form. It will also trigger any built-in or third-party password generation
+    tools.
+  id: totrans-410
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个值将促使浏览器在登录表单中自动填充存储的密码。它还会触发任何内置或第三方密码生成工具。
+- en: Finally, avoid using wizard-style login screens (see [Figure 7-29](#ch07_image_29)
+    for an example from the *Washington Post*).
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，避免使用向导式登录界面（参见[图 7-29](#ch07_image_29)，来自*华盛顿邮报*的示例）。
+- en: Browsers are less likely to recognize a single username field as a login form
+    and so are less likely to offer to complete the details for you.
+  id: totrans-412
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器不太可能将单个用户名字段识别为登录表单，因此不太可能为您提供完整的详细信息。
+- en: '![](Images/recb_0729.png)'
+  id: totrans-413
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0729.png)'
+- en: Figure 7-29\. Multistep forms can prevent a browser from using autocomplete
+  id: totrans-414
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-29。多步表单可能会阻止浏览器使用自动完成。
+- en: Discussion
+  id: totrans-415
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `autocomplete` attribute has many other seldom-used values for several types
+    of form fields, from address details and phone numbers to credit card numbers.
+    For further information, see the [Mozilla development site](https://oreil.ly/TLHLF).
+  id: totrans-416
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`autocomplete`属性对于几种表单字段类型有许多其他不常用的值，包括地址详细信息、电话号码和信用卡号。有关更多信息，请参见[Mozilla开发网站](https://oreil.ly/TLHLF)。'
+- en: ^([1](ch07.xhtml#idm46634402876760-marker)) Or, in the case of GraphQL, accessors
+    and mutators.
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch07.xhtml#idm46634402876760-marker)) 或者，在GraphQL的情况下，访问器和变异器。
+- en: ^([2](ch07.xhtml#idm46634402851832-marker)) With the notable exception of Internet
+    Explorer.
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch07.xhtml#idm46634402851832-marker)) 与Internet Explorer显著不同。
+- en: ^([3](ch07.xhtml#idm46634401908472-marker)) See [“Create Secured Routes”](ch02.xhtml#ch02-06).
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch07.xhtml#idm46634401908472-marker)) 参见[“创建安全路由”](ch02.xhtml#ch02-06)。
+- en: ^([4](ch07.xhtml#idm46634401487224-marker)) It is possible to get around this
+    problem on Android devices by proxying your phone through your development machine.
+    See [“Test on an Android Device”](#ch07-07).
+  id: totrans-420
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch07.xhtml#idm46634401487224-marker)) 在Android设备上通过代理手机到开发机器可以解决此问题。参见[“在Android设备上进行测试”](#ch07-07)。
+- en: ^([5](ch07.xhtml#idm46634401485080-marker)) See [the Let’s Encrypt site](https://letsencrypt.org).
+  id: totrans-421
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch07.xhtml#idm46634401485080-marker)) 查看[Let’s Encrypt网站](https://letsencrypt.org)。
+- en: ^([6](ch07.xhtml#idm46634401473368-marker)) By default, this will be on port
+    443.
+  id: totrans-422
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch07.xhtml#idm46634401473368-marker)) 默认情况下，这将在端口443上进行。
+- en: ^([7](ch07.xhtml#idm46634401431416-marker)) The *.pem* extension stands for
+    Privacy-Enhanced Mail. The PEM format was initially designed for use with email
+    but is now used as a general certificate storage format.
+  id: totrans-423
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch07.xhtml#idm46634401431416-marker)) *.pem*扩展名代表Privacy-Enhanced Mail。PEM格式最初设计用于电子邮件，但现在用作通用证书存储格式。
+- en: ^([8](ch07.xhtml#idm46634401428680-marker)) For a detailed guide, see [this
+    tutorial from BounCA](https://oreil.ly/9NN1H).
+  id: totrans-424
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch07.xhtml#idm46634401428680-marker)) 要详细的指南，请参阅来自BounCA的[此教程](https://oreil.ly/9NN1H)。
+- en: ^([9](ch07.xhtml#idm46634400657128-marker)) An exception would be if the user
+    has connected an external fingerprint sensor.
+  id: totrans-425
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch07.xhtml#idm46634400657128-marker)) 唯一的例外情况是用户连接了外部指纹传感器。
+- en: ^([10](ch07.xhtml#idm46634399587928-marker)) For an example of such a service,
+    see the `useForum` hook in [“Refresh Automatically with State Counters”](ch05.xhtml#ch05-02).
+  id: totrans-426
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([10](ch07.xhtml#idm46634399587928-marker)) 有关此类服务的示例，请参见[“使用状态计数器自动刷新”](ch05.xhtml#ch05-02)中的`useForum`钩子。
+- en: ^([11](ch07.xhtml#idm46634399549096-marker)) The assertion request is needed
+    when the browser asks the user to scan their fingerprint or activate their token.
+    It includes a list of all acceptable devices and so will be unique to a given
+    user.
+  id: totrans-427
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([11](ch07.xhtml#idm46634399549096-marker)) 当浏览器要求用户扫描他们的指纹或激活他们的令牌时，需要断言请求。它包含所有可接受设备的列表，因此对于特定用户是唯一的。
+- en: ^([12](ch07.xhtml#idm46634399545880-marker)) A consequence of this approach
+    is that the user will perform single-factor authentication on the browser only
+    where they registered the token. If they use a different browser or have recently
+    cleared their cookies, they will have to fall back to using the login form.
+  id: totrans-428
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([12](ch07.xhtml#idm46634399545880-marker)) 这种方法的一个后果是用户将仅在注册令牌的浏览器上进行单因素认证。如果他们使用不同的浏览器或最近清除了他们的Cookies，他们将不得不回到使用登录表单。
+- en: ^([13](ch07.xhtml#idm46634399544376-marker)) This assumes that you are using
+    a cookie that is readable by JavaScript. It’s also possible to use an HTTP-only
+    cookie, which only the server (or service workers) can read. If you use an HTTP-only
+    cookie, you will need code on the server to check whether the user should provide
+    a token.
+  id: totrans-429
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([13](ch07.xhtml#idm46634399544376-marker)) 这假定您使用的是JavaScript可读取的Cookie。也可以使用HTTP-only
+    Cookie，只有服务器（或服务工作者）才能读取。如果使用HTTP-only Cookie，则需要服务器上的代码来检查用户是否应提供令牌。
+- en: ^([14](ch07.xhtml#idm46634398831896-marker)) You will need to locate the Android
+    SDK installed on your machine. You can find the `adb` command in a subdirectory
+    within this installation.
+  id: totrans-430
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([14](ch07.xhtml#idm46634398831896-marker)) 您需要找到安装在您计算机上的Android SDK。您可以在安装的子目录中找到`adb`命令。

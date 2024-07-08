@@ -1,0 +1,1911 @@
+- en: Chapter 8\. Helper Types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章。辅助类型
+- en: One of TypeScript’s strengths is the ability to derive types from other types.
+    This allows you to define relationships between types, where updates in one type
+    trickle through to all derived types automatically. This reduces maintenance and
+    ultimately results in more robust type setups.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的一个优势是能够从其他类型派生出新的类型。这使你能够定义类型之间的关系，其中对一个类型的更新会自动传播到所有派生类型中。这减少了维护成本，最终导致更加健壮的类型设置。
+- en: When creating derived types, we usually apply the same type modifications but
+    in different combinations. TypeScript already has a set of [built-in utility types](https://oreil.ly/inM2y),
+    some of which we’ve already seen in this book. But sometimes they are not enough.
+    Some situations require you either to apply known techniques differently or to
+    dig deep into the inner workings of the type system to produce the desired result.
+    You might need your own set of helper types.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建派生类型时，通常会应用相同的类型修改，但组合方式不同。TypeScript 已经内置了一组 [实用工具类型](https://oreil.ly/inM2y)，本书中我们已经见过其中一些。但有时候这些还不够。有些情况下，你需要以不同的方式应用已知技术，或者深入了解类型系统的内部工作原理来实现期望的结果。你可能需要自己的一组辅助类型。
+- en: This chapter introduces you to the concept of helper types and shows you some
+    use cases where a custom helper type expands your ability to derive types from
+    others tremendously. Each type is designed to work in different situations, and
+    each type should teach you a new aspect of the type system. Of course, the list
+    of types you see here is by no means complete, but they give you a good entry
+    point and enough resources to branch out.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了辅助类型的概念，并展示了一些使用案例，说明自定义辅助类型如何极大地扩展你从其他类型中推导类型的能力。每种类型都设计用于不同的情况，并且每种类型应该教会你类型系统的一个新方面。当然，你在这里看到的类型列表并不全面，但它们为你提供了一个良好的起点和足够的资源来展开研究。
+- en: In the end, TypeScript’s type system can be seen as its own functional meta-programming
+    language, where you combine small, single-purpose helper types with bigger helper
+    types to make type derivates as easy as applying a single type to your existing
+    models.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，TypeScript 的类型系统可以被视为自己的功能性元编程语言，在这里，你可以将小型、单一目的的辅助类型与更大的辅助类型结合起来，使类型派生就像将单一类型应用于现有模型一样简单。
+- en: 8.1 Setting Specific Properties Optional
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.1 设置特定属性为可选
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to derive types where you set specific properties optional.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望推导出设置特定属性为可选的类型。
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Create a custom helper type `SetOptional` that intersects two object types:
+    one that maps over all selected properties using the optional mapped type modifier
+    and one that maps over all remaining properties.'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个自定义辅助类型 `SetOptional`，它交集两个对象类型：一个使用可选映射类型修饰符映射所有选定属性，另一个映射所有剩余属性。
+- en: Discussion
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'All your models in your TypeScript project are set and defined, and you want
+    to refer to them throughout your code:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 项目中的所有模型都已设置和定义，并且你希望在整个代码中引用它们：
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: One situation that occurs pretty often is that you need something that looks
+    like `Person` but does not require all properties to be set; some of them can
+    be *optional*. This will make your API more open to other structures and types
+    that are of similar shape but lack one or two fields. You don’t want to maintain
+    different types (see [Recipe 12.1](ch12.html#ch12_low_maintenance_types)) but
+    rather derive them from the original model, which is still in use.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经常出现的一种情况是，你需要像 `Person` 这样的东西，但不要求设置所有属性；其中一些可以是 *可选的*。这将使你的 API 更容易适应其他结构和类型，它们形状相似但可能缺少一个或两个字段。你不希望维护不同的类型（参见
+    [Recipe 12.1](ch12.html#ch12_low_maintenance_types)），而是希望从原始模型中派生它们，该模型仍在使用中。
+- en: 'TypeScript has a built-in helper type called `Partial<T>` that modifies all
+    properties to be optional:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 有一个内置的辅助类型叫做 `Partial<T>`，可以将所有属性修改为可选的：
+- en: '[PRE1]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'It’s a *mapped type* that maps out over all keys and uses the *optional mapped
+    type modifier* to set each property to optional. The first step in making a `SetOptional`
+    type is to reduce the set of keys that can be set as optional:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个 *映射类型*，它在所有键上进行映射，并使用 *可选映射类型修饰符* 将每个属性设置为可选的。制作 `SetOptional` 类型的第一步是减少可以设置为可选的键集：
+- en: '[PRE2]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Note
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The *optional mapped type modifier* applies the symbol for an optional property—the
+    question mark—to a set of properties. You learned about mapped type modifiers
+    in [Recipe 4.5](ch04.html#ch04_new_object_types).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*可选映射类型修饰符*会将一个可选属性的符号（问号）应用于一组属性。你在 [Recipe 4.5](ch04.html#ch04_new_object_types)
+    中学习了关于映射类型修饰符的内容。'
+- en: 'In `SelectPartial<T, K extends keyof T>`, we don’t map over all keys, just
+    a subset of keys provided. With the `extends keyof T` generic constraint, we make
+    sure that we pass only valid property keys. If we apply `SelectPartial` to `Person`
+    to select `"age"`, we end up with a type where we see *only* the `age` property,
+    which is set to optional:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`SelectPartial<T, K extends keyof T>`中，我们不会映射所有键，只映射提供的键的子集。通过`extends keyof
+    T`泛型约束，我们确保仅传递有效的属性键。如果我们将`SelectPartial`应用于`Person`来选择`"age"`，我们最终得到的类型将仅显示`age`属性，并将其设置为可选：
+- en: '[PRE3]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'The first half is done: everything we want to set as optional is optional.
+    But the rest of the properties are missing. Let’s get them back to the object
+    type.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一步已经完成：我们希望设置为可选的所有内容都是可选的。但是其余的属性却丢失了。让我们将它们还原到对象类型中。
+- en: The easiest way of extending an existing object type with more properties is
+    to create an intersection type with another object type. So in our case, we take
+    what we’ve written in `SelectPartial` and intersect it with a type that includes
+    all remaining keys.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展现有对象类型并添加更多属性的最简单方法是创建与另一个对象类型的交集类型。因此，在我们的情况下，我们将`SelectPartial`中编写的内容与包含所有剩余键的类型相交。
+- en: 'We can get all remaining keys by using the `Exclude` helper type. `Exclude<T,
+    U>` is a *conditional type* that compares two sets. If elements from set `T` are
+    in `U`, they will be removed using `never`; otherwise, they stay in the type:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过使用`Exclude`辅助类型获取所有剩余的键。`Exclude<T, U>`是一种*条件类型*，用于比较两个集合。如果集合`T`中的元素在`U`中，则使用`never`将它们移除；否则，它们保留在类型中：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'This works in contrast to `Extract<T, U>` which we described in [Recipe 5.3](ch05.html#ch05_grouping_elements).
+    `Exclude<T, U>` is a *distributive conditional type* (see [Recipe 5.2](ch05.html#ch05_filtering_never))
+    and distributes the conditional type over every element of a union:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与我们在[食谱 5.3](ch05.html#ch05_grouping_elements)中描述的`Extract<T, U>`相反。`Exclude<T,
+    U>`是一种*分布条件类型*（见[食谱 5.2](ch05.html#ch05_filtering_never)），它将条件类型应用于联合类型的每个元素：
+- en: '[PRE5]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'This is exactly what we want! In `SetOptional`, we create one type that *picks*
+    all selected keys and makes them optional, then we *exclude* the same keys from
+    the bigger set of all of the object’s keys:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们想要的！在`SetOptional`中，我们创建一个类型，*挑选*所有选定的键并使它们可选，然后从所有对象键的更大集合中*排除*相同的键：
+- en: '[PRE6]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'The intersection of both types is the new object type, which we can use with
+    any model we like:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两种类型的交集是新的对象类型，我们可以将其用于任何我们喜欢的模型：
+- en: '[PRE7]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'If we want to make more than one key optional, we need to provide a union type
+    with all desired property keys:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要使多个键可选，我们需要提供一个包含所有期望属性键的联合类型：
+- en: '[PRE8]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'TypeScript not only allows you to define types like this yourself but also
+    has a set of built-in helper types that you can easily combine for similar effect.
+    We could write the same type `SetOptional` solely based on helper types:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript不仅允许您自己定义这样的类型，还提供了一组内置的辅助类型，您可以轻松地结合使用它们来达到类似的效果。我们可以仅基于辅助类型编写完全相同的`SetOptional`类型：
+- en: '[PRE9]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '`Pick<T, K>` selects keys `K` from object `T`.'
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Pick<T, K>`从对象`T`中选择键`K`。'
+- en: '`Omit<T, K>` selects everything but `K` from object `T` (using `Exclude` under
+    the hood).'
+  id: totrans-37
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Omit<T, K>`从对象`T`中选择除了`K`之外的所有内容（在内部使用`Exclude`）。'
+- en: And we already learned what `Partial<T>` does.
+  id: totrans-38
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 而我们已经了解了`Partial<T>`的作用。
+- en: Depending on how you like to read types, this combination of helper types can
+    be easier to read and understand, especially since the built-in types are much
+    better known among developers.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据您喜欢阅读类型的方式，这些辅助类型的组合可能更易于阅读和理解，特别是因为内置类型在开发者中更为广为人知。
+- en: 'There is only one problem: if you hover over your newly generated types, TypeScript
+    will show you how the type is made, not what the actual properties are. With the
+    `Remap` helper type from [Recipe 8.3](#ch08_remapping), we can make our types
+    more readable and usable:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有一个问题：如果您悬停在新生成的类型上，TypeScript将向您显示类型的构建方式，而不是实际的属性。通过来自[食谱 8.3](#ch08_remapping)的`Remap`辅助类型，我们可以使我们的类型更易读和可用：
+- en: '[PRE10]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'If you think about your type arguments as a function interface, you might want
+    to think about your type parameters as well. One optimization you could do is
+    to set the second argument—the selected object keys—to a default value:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您将您的类型参数视为函数接口，您可能也希望考虑您的类型参数。您可以进行的一个优化是将第二个参数——所选对象键——设置为默认值：
+- en: '[PRE11]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: With `K extends keyof T = keyof T`, we can make sure that we set all property
+    keys as optional, and only select specific ones if we need them. Our helper type
+    just became a little bit more flexible.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过`K extends keyof T = keyof T`，我们可以确保将所有属性键都设置为可选，并且仅在需要时选择特定的键。我们的辅助类型刚刚变得更加灵活。
+- en: 'In the same vein, you can start creating types for other situations, like `SetRequired`,
+    where you want to make sure that some keys are definitely required:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，您还可以开始为其他情况创建类型，比如 `SetRequired`，在这种情况下，您希望确保某些键绝对是必需的：
+- en: '[PRE12]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Or `OnlyRequired`, where all keys you provide are required, but the rest are
+    optional:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者 `OnlyRequired`，在这种情况下，你提供的所有键都是必需的，但其余的是可选的：
+- en: '[PRE13]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The best thing: you end up with an arsenal of helper types that can be used
+    throughout multiple projects.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最好的一点是：您最终会拥有一整套辅助类型，可以在多个项目中使用。
+- en: 8.2 Modifying Nested Objects
+  id: totrans-50
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.2 修改嵌套对象
+- en: Problem
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Object helper types like `Partial`, `Required`, and `Readonly` modify only the
+    first level of an object and won’t touch nested object properties.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像 `Partial`、`Required` 和 `Readonly` 这样的对象辅助类型仅修改对象的第一层级，并且不会触及嵌套对象属性。
+- en: Solution
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create recursive helper types that do the same operation on nested objects.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建递归辅助类型，在嵌套对象上执行相同操作。
+- en: Discussion
+  id: totrans-55
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Say that your application has different settings that can be configured by
+    users. To make it easy for you to extend settings over time, you store only the
+    difference between a set of defaults and the settings your user configured:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你的应用程序具有可以由用户配置的不同设置。为了使您能够随时间轻松扩展设置，您只存储一组默认设置与用户配置的设置之间的差异：
+- en: '[PRE14]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'The function `applySettings` takes both the defaults and the settings from
+    your users. You defined them as `Partial<Settings>`, since the user needs to provide
+    only *some* keys; the rest will be taken from the default settings:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数 `applySettings` 接受默认设置和用户设置。您将它们定义为 `Partial<Settings>`，因为用户只需要提供*一些*键；其余的将从默认设置中获取：
+- en: '[PRE15]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'This works really well if you need to set certain properties on the first level:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你需要在第一层级设置某些属性，这种方法非常有效：
+- en: '[PRE16]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'But this causes problems if you want to modify specific properties deeper down
+    in your object, like setting `subtitles` to `active`:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果你想修改对象更深层次的特定属性，比如将 `subtitles` 设置为 `active`，就会遇到问题：
+- en: '[PRE17]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: TypeScript complains that for `subtitles` you need to provide the entire object.
+    This is because `Partial<T>`—like its siblings `Required<T>` and `Readonly<T>`—modifies
+    only the first level of an object. Nested objects will be treated as simple values.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 提醒我们，对于 `subtitles`，你需要提供整个对象。这是因为 `Partial<T>` ——就像它的兄弟 `Required<T>`
+    和 `Readonly<T>` 一样——仅修改对象的第一层级。嵌套对象将被视为简单值。
+- en: 'To change this, we need to create a new type called `DeepPartial<T>`, which
+    recursively goes through every property and applies the *optional mapped type
+    modifier* for each level:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要解决这个问题，我们需要创建一个名为 `DeepPartial<T>` 的新类型，它会递归地遍历每个属性，并为每个级别应用*可选映射类型修改器*：
+- en: '[PRE18]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'The first draft already works well, thanks to TypeScript stopping recursion
+    at primitive values, but it has the potential to result in unreadable output.
+    A simple condition that checks that we go deep only if we are dealing with an
+    object makes our type much more robust and the result more readable:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个草案已经运行良好，感谢 TypeScript 在原始值上停止递归，但是它可能会导致无法阅读的输出。一个简单的条件检查，只有在处理对象时我们才会深入，使我们的类型更加健壮，结果更易读：
+- en: '[PRE19]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'For example, `DeepPartial<Settings>` results in the following output:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，`DeepPartial<Settings>` 会得到以下输出：
+- en: '[PRE20]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'This is exactly what we’ve been aiming for. If we use `DeepPartial<T>` in `ap⁠ply​Set⁠tin⁠gs`,
+    we see that the actual usage of `applySettings` works, but TypeScript greets us
+    with another error:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们的目标所在。如果我们在 `applySettings` 中使用 `DeepPartial<T>`，我们会发现 `applySettings`
+    的实际使用有效，但 TypeScript 会提示我们另一个错误：
+- en: '[PRE21]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Here, TypeScript complains that it can’t merge the two objects into something
+    that results in `Settings`, as some of the `DeepPartial` set elements might not
+    be assignable to `Settings`. And this is true! Object merge using destructuring
+    also works only on the first level, just like `Partial<T>` has defined for us.
+    This means that if we called `applySettings` like before, we would get a totally
+    different type than for `settings`:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，TypeScript 抱怨它无法将两个对象合并为 `Settings` 的结果，因为一些 `DeepPartial` 设置元素可能无法分配给 `Settings`。这是真的！对象合并使用解构也仅在第一级上有效，就像
+    `Partial<T>` 为我们所定义的那样。这意味着如果我们像之前那样调用 `applySettings`，我们将得到一个与 `settings` 完全不同的类型：
+- en: '[PRE22]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '`color` is all gone! This is one situation where TypeScript’s type might be
+    unintuitive at first: why do object modification types go only one level deep?
+    Because JavaScript goes only one level deep! But ultimately, they point out bugs
+    you wouldn’t have caught otherwise.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`color`都消失了！这是一个情况，TypeScript的类型可能一开始不直观：为什么对象修改类型只深入一层？因为JavaScript也只深入一层！但最终，它们指出了您否则可能不会发现的错误。'
+- en: 'To circumvent this situation, you need to apply your settings recursively.
+    This can be nasty to implement yourself, so we resort to `lodash` and its `merge`
+    function for this functionality:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了避免这种情况，您需要递归地应用您的设置。自己实现这一功能可能会很麻烦，因此我们借助`lodash`和其`merge`函数来实现：
+- en: '[PRE23]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '`merge` defines its interface to produce an intersection of two objects:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`merge`定义了其接口以生成两个对象的交集：'
+- en: '[PRE24]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Again, exactly what we are looking for. An intersection of `Settings` and `De⁠ep​Par⁠tia⁠l<Set⁠tin⁠gs>`
+    also produces an intersection of both, which is—due to the nature of the types—`Settings`
+    again.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次强调，这正是我们寻求的。`Settings`和`De⁠ep​Par⁠tia⁠l<Set⁠tin⁠gs>`的交集也生成了两者的交集，这是由于类型的性质，再次是`Settings`。
+- en: So we end up with expressive types that tell us exactly what to expect, correct
+    results for the output, and another helper type for our arsenal. You can create
+    `DeepReadonly` and `DeepRequired` similarly.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们最终得到了表达力强的类型，准确预期输出的结果，以及我们工具库中的另一个辅助类型。你可以类似地创建`DeepReadonly`和`DeepRequired`。
+- en: 8.3 Remapping Types
+  id: totrans-82
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.3 重新映射类型
+- en: Problem
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Constructing types gives you flexible, self-maintaining types, but the editor
+    hints leave a lot to be desired.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建类型为您提供了灵活、自我维护的类型，但编辑器提示还有很大的改进空间。
+- en: Solution
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `Remap<T>` and `DeepRemap<T>` helper types to improve editor hints.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Remap<T>`和`DeepRemap<T>`辅助类型来改善编辑器提示。
+- en: Discussion
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you use TypeScript’s type system to construct new types, by using helper
+    types, complex conditional types, or even simple intersections, you might end
+    up with editor hints that are hard to decipher.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用TypeScript的类型系统来构建新类型时，通过使用辅助类型、复杂条件类型，甚至简单的交集，您可能会得到难以解读的编辑器提示。
+- en: 'Let’s look at `OnlyRequired` from [Recipe 8.1](#ch08_one_optional). The type
+    uses four helper types and one intersection to construct a new type in which all
+    keys provided as the second type parameter are set to required, while all others
+    are set to optional:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看一看来自[Recipe 8.1](#ch08_one_optional)的`OnlyRequired`。该类型使用四个辅助类型和一个交集来构建一个新类型，在这个新类型中，第二个类型参数中提供的所有键都设置为必需，而其他所有键则设置为可选：
+- en: '[PRE25]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'This way of writing types gives you a good idea of what’s happening. You can
+    read the functionality based on how helper types are composed with one another.
+    However, when you are actually using the types on your models, you might want
+    to know more than the actual construction of the type:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种类型编写方式使您对发生的情况有很好的理解。您可以根据辅助类型如何与彼此组合来读取功能。然而，当您实际在模型上使用这些类型时，您可能希望了解更多，而不仅仅是类型的实际构造：
+- en: '[PRE26]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: If you hover over `NameRequired`, you see that TypeScript gives you information
+    on how the type was constructed based on the parameters you provide, but the editor
+    hint won’t show you the result, the final type being constructed with those helper
+    types. You can see the editor’s feedback in [Figure 8-1](#img-remap).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您将鼠标悬停在`NameRequired`上，您会看到TypeScript提供了有关如何基于您提供的参数构造类型的信息，但是编辑器提示不会显示结果，最终类型是如何使用这些辅助类型构建的。您可以在[图8-1](#img-remap)中看到编辑器的反馈。
+- en: '![tscb 0801](assets/tscb_0801.png)'
+  id: totrans-94
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tscb 0801](assets/tscb_0801.png)'
+- en: Figure 8-1\. Editor hints on complex types expand very shallowly; without knowing
+    the types underneath and their functionality, it becomes hard to understand the
+    result
+  id: totrans-95
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图8-1\. 复杂类型的编辑器提示扩展非常浅；如果不了解底层类型及其功能，理解结果就变得困难。
+- en: 'To make the final result look like an actual type and to spell out all the
+    properties, we have to use a simple yet effective type called `Remap`:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使最终结果看起来像实际类型并拼写出所有属性，我们必须使用一种简单而有效的类型称为`Remap`：
+- en: '[PRE27]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '`Remap<T>` is just an object type that goes through every property and maps
+    it to the value defined. No modifications, no filters, just putting out what’s
+    being put in. TypeScript will print out every property of mapped types, so instead
+    of seeing the construction, you see the actual type, as shown in [Figure 8-2](#img-remap2).'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Remap<T>`只是一个对象类型，遍历每个属性并将其映射到定义的值。没有修改，没有过滤，只是将输入放出。TypeScript将打印出映射类型的每个属性，因此您看到的是实际类型，如[图8-2](#img-remap2)所示。'
+- en: '![tscb 0802](assets/tscb_0802.png)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tscb 0802](assets/tscb_0802.png)'
+- en: Figure 8-2\. With `Remap<T>`, the presentation of `NameRequired` becomes much
+    more readable
+  id: totrans-100
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2。使用`Remap<T>`，`NameRequired`的展示变得更加可读
+- en: 'Beautiful! This has become a staple in TypeScript utility type libraries. Some
+    call it `Debug`; others call it `Simplify`. `Remap` is just another name for the
+    same tool and the same effect: getting an idea of what your result will look like.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！这已经成为TypeScript实用类型库中的一个基本功能。有些人称其为`Debug`，其他人称其为`Simplify`。`Remap`只是同一个工具和同一个效果的另一个名称：了解您的结果将会是什么样子。
+- en: 'Like other mapped types `Partial<T>`, `Readonly<T>`, and `Required<T>`, `Remap<T>`
+    also works on the first level only. A nested type like `Settings` that includes
+    the `Subtitles` type will be remapped to the same output, and the editor feedback
+    will be the same:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其他映射类型`Partial<T>`、`Readonly<T>`和`Required<T>`一样，`Remap<T>`也仅在第一级上工作。包含`Subtitles`类型的`Settings`等嵌套类型将被重新映射为相同的输出，并且编辑器反馈将是相同的：
+- en: '[PRE28]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'But also, as shown in [Recipe 8.2](#ch08_nested_objects), we can create a recursive
+    variation that remaps *all* nested object types:'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，正如[食谱 8.2](#ch08_nested_objects)所示，我们可以创建一个递归变体来重新映射*所有*嵌套对象类型：
+- en: '[PRE29]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Applying `DeepRemap<T>` to `Settings` will also expand `Subtitles`:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`DeepRemap<T>`应用于`Settings`也将扩展`Subtitles`：
+- en: '[PRE30]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Using `Remap` is mostly a matter of taste. Sometimes you want to know about
+    the implementation, and sometimes the terse view of nested types is more readable
+    than the expanded versions. But in other scenarios, you actually care about the
+    result itself. In those cases, having a `Remap<T>` helper type handy and available
+    is definitely helpful.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Remap`主要是一种品味问题。有时您想了解实现，有时嵌套类型的简洁视图比扩展版本更可读。但在其他情况下，实际上您关心的是结果本身。在这些情况下，拥有一个可用的`Remap<T>`辅助类型肯定是有帮助的。
+- en: 8.4 Getting All Required Keys
+  id: totrans-109
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.4 获取所有必需的键
+- en: Problem
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a type that extracts all *required* properties from an object.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望创建一种类型，从对象中提取所有*必需*属性。
+- en: Solution
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a mapped helper type `GetRequired<T>` that filters keys based on a subtype
+    check against its required counterpart.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个映射辅助类型`GetRequired<T>`，根据其必需对应项的子类型检查来过滤键。
+- en: Discussion
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Optional properties have a tremendous effect on type compatibility. A simple
+    type modifier, the question mark, widens the original type significantly. They
+    allow us to define fields that might be there, but they can be used only if we
+    do additional checks.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可选属性对类型兼容性有很大影响。一个简单的类型修饰符，问号，显著扩展了原始类型。它们允许我们定义可能存在的字段，但只有在进行额外检查时才能使用。
+- en: 'This means we can make our functions and interfaces compatible with types that
+    lack certain properties entirely:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们可以使我们的函数和接口与完全缺少某些属性的类型兼容：
+- en: '[PRE31]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: We see that `age` is defined in `Person` but not at all defined in `Student`.
+    Since it’s optional, it doesn’t keep us from using `printPerson` with objects
+    of type `Student`. The set of compatible values is wider, as we can use objects
+    of types that drop `age` entirely.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们看到`age`在`Person`中定义，但在`Student`中根本没有定义。由于它是可选的，这并不妨碍我们使用`printPerson`来处理`Student`类型的对象。兼容值集更广泛，因为我们可以使用完全省略`age`的类型对象。
+- en: TypeScript solves that by attaching `undefined` to properties that are optional.
+    This is the truest representation of “it might be there.”
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript通过将`undefined`附加到可选属性来解决了这个问题。这是“可能存在”的真实表示。
+- en: 'This fact is important if we want to check if property keys are required or
+    not. Let’s start by doing the most basic check. We have an object and want to
+    check if all keys are required. We use the helper type `Required<T>`, which modifies
+    all properties to be required. The simplest check is to see if an object type—for
+    example, `Name`—is a subset of its `Required<T>` counterpart:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们想要检查属性键是否是必需的或不是必需的，这个事实就很重要。让我们从做最基本的检查开始。我们有一个对象，并希望检查所有键是否都是必需的。我们使用辅助类型`Required<T>`，将所有属性修改为必需的。最简单的检查是查看对象类型（例如`Name`）是否是其`Required<T>`对应项的子集：
+- en: '[PRE32]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Here, `Test` results in `true`, because if we change all properties to `required`
+    using `Required<T>`, we still get the same type. However, things change if we
+    introduce an optional property:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，如果我们使用`Required<T>`将所有属性更改为`required`，`Test`结果为`true`，因为我们仍然得到相同的类型。但是，如果我们引入一个可选属性，情况就会改变：
+- en: '[PRE33]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Here, `Test` results in `false`, because type `Person` with the optional property
+    `age` accepts a much broader set of values than `Required<Person>`, where `age`
+    needs to be set. Contrary to this check, if we swap `Person` and `Required<Person>`,
+    we can see that the narrower type `Required<Person>` is in fact a subset of `Person`:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`Test`的结果为`false`，因为带有可选属性`age`的类型`Person`接受比`Required<Person>`更广泛的值集合，其中`age`需要被设置。与此检查相反，如果我们交换`Person`和`Required<Person>`，我们可以看到更窄的类型`Required<Person>`实际上是`Person`的子集：
+- en: '[PRE34]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: What we’ve checked so far is if the entire object has the required keys. But
+    what we actually want is to get an object that includes only property keys that
+    are set to required. This means we need to do this check with each property key.
+    The need to iterate the same check over a set of keys is a good indicator for
+    a mapped type.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们所检查的是整个对象是否具有所需的键。但实际上我们想要的是获取一个仅包含已设置为必需的属性键的对象。这意味着我们需要对每个属性键进行这种检查。需要在一组键上进行相同检查的需求是映射类型的一个很好的指标。
+- en: 'Our next step is to create a mapped type that does the subset check for each
+    property, to see if the resulting values include `undefined`:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的下一步是创建一个映射类型，对每个属性进行子集检查，以查看结果值是否包括`undefined`：
+- en: '[PRE35]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'This is a good guess but gives us results that don’t work. Each property resolves
+    to `true`, meaning that the subset checks only for the value types *without* `undefined`.
+    This is because `Required<T>` works on objects, not on primitive types. Something
+    that gets us more robust results is checking if `Person[K]` includes any *nullable*
+    values. `NonNullable<T>` removes `undefined` and `null`:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个很好的猜测，但给出的结果却不起作用。每个属性都解析为`true`，意味着子集检查仅针对*没有*`undefined`的值类型。这是因为`Required<T>`作用于对象，而不是基本类型。我们需要更健壮的结果，即检查`Person[K]`是否包含任何*可为空*的值。`NonNullable<T>`移除了`undefined`和`null`：
+- en: '[PRE36]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: That’s better, but still not where we want it to be. `undefined` is back again,
+    as it’s being added by the property modifier. Also, the property is still in the
+    type, and we want to get rid of it.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做更好了，但还不是我们想要的。`undefined`又回来了，因为它被属性修饰符添加了。此外，属性仍然存在于类型中，而我们希望摆脱它。
+- en: 'What we need to do is reduce the set of possible keys. So instead of checking
+    for the values, we do a conditional check on each property while we are mapping
+    out keys. We check if `Person[K]` is a subset of `Required<Person>[K]`, doing
+    a proper check against the bigger subset. If this is the case, we print out the
+    key `K`; otherwise, we drop the property using `never` (see [Recipe 5.2](ch05.html#ch05_filtering_never)):'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要做的是减少可能键的集合。因此，我们不是检查值，而是在映射键时对每个属性进行条件检查。我们检查`Person[K]`是否是`Required<Person>[K]`的子集，对更大的子集进行适当的检查。如果是这种情况，我们打印出键`K`；否则，我们使用`never`来删除属性（见[Recipe
+    5.2](ch05.html#ch05_filtering_never)）：
+- en: '[PRE37]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'This gives us the results we want. Now we substitute `Person` for a generic
+    type parameter and our helper type `GetRequired<T>` is done:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这给了我们想要的结果。现在我们用一个泛型类型参数替换`Person`，并完成了我们的辅助类型`GetRequired<T>`：
+- en: '[PRE38]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'From here on, we can derive variations like `GetOptional<T>`. However, checking
+    if something is optional is not as easy as checking if some property keys are
+    required, but we can use `GetRequired<T>` and a `keyof` operator to get all the
+    required property keys:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里开始，我们可以派生出像`GetOptional<T>`这样的变体。然而，检查某些内容是否可选并不像检查某些属性键是否必需那么容易，但我们可以使用`GetRequired<T>`和`keyof`运算符来获取所有必需的属性键：
+- en: '[PRE39]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'After that, we use the `RequiredKeys<T>` to *omit* them from our target object:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们使用`RequiredKeys<T>`来*省略*它们从我们的目标对象中：
+- en: '[PRE40]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: Again, a combination of multiple helper types produces derived, self-maintaining
+    types.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，多个辅助类型的组合产生了衍生的、自我维护的类型。
+- en: 8.5 Allowing at Least One Property
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.5 允许至少一个属性
+- en: Problem
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a type for which you want to make sure that at least one property is
+    set.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你有一个类型，你希望确保至少设置一个属性。
+- en: Solution
+  id: totrans-144
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `Split<T>` helper type that splits an object into a union of one-property
+    objects.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`Split<T>`辅助类型，将对象拆分为单属性对象的并集。
+- en: Discussion
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Your application stores a set of URLs—for example, for video formats—in an
+    object where each key identifies a different format:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你的应用程序在一个对象中存储一组URL，例如视频格式，在这个对象中，每个键标识不同的格式：
+- en: '[PRE41]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: You want to create a function `loadVideo` that can load any of those video format
+    URLs but needs to load at least one URL.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想创建一个能够加载任何视频格式URL的函数`loadVideo`，但需要至少加载一个URL。
+- en: 'If `loadVideo` accepts parameters of type `VideoFormatURLs`, you need to provide
+    *all* video format URLs:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`loadVideo`接受类型为`VideoFormatURLs`的参数，你需要提供*所有*视频格式URL：
+- en: '[PRE42]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'But some videos might not exist, so a subset of all available types is actually
+    what you’re looking for. `Partial<VideoFormatURLs>` gives you that:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是有些视频可能不存在，因此实际上你要找的是所有可用类型的子集。`Partial<VideoFormatURLs>`正是给你这个的：
+- en: '[PRE43]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'But since all keys are optional, you would also allow the empty object as a
+    valid parameter:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但由于所有键都是可选的，你还将允许空对象作为有效参数：
+- en: '[PRE44]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: This results in undefined behavior. You want to have at least one URL so you
+    can load that video.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这导致了未定义行为。你希望至少有一个 URL，这样你就可以加载那个视频。
+- en: 'We have to find a type expressing that we expect at least one of the available
+    video formats: a type that allows us to pass all of them and some of them but
+    also prevents us from passing none.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要找到一个类型，表示我们希望至少有一个可用的视频格式：这种类型允许我们通过所有格式和其中一些格式，但也防止我们通过没有格式的情况。
+- en: 'Let’s start with the “only one” cases. Instead of finding one type, let’s create
+    a union type that combines all situations where there’s only one property set:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从“只有一个”情况开始。我们不是找到一种类型，而是创建一个联合类型，其中组合了只有一个属性设置的所有情况：
+- en: '[PRE45]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'This allows us to pass in objects that only have one property set. Next, let’s
+    add the situations where we have two properties set:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使我们能够传递只有一个属性设置的对象。接下来，让我们添加具有两个属性设置的情况：
+- en: '[PRE46]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: Wait! That’s the same type! But that’s the way union types work. If they aren’t
+    discriminated (see [Recipe 3.2](ch03.html#ch03_item_discriminated_unions)), union
+    types will allow for values that are located at all intersections of the original
+    set, as shown in [Figure 8-3](#img-split-type).
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 等等！那不是相同的类型吗？但这就是联合类型的工作方式。如果它们没有被区分（参见[Recipe 3.2](ch03.html#ch03_item_discriminated_unions)），联合类型将允许位于原始集合交集中的值，如[Figure 8-3](#img-split-type)所示。
+- en: '![tscb 0803](assets/tscb_0803.png)'
+  id: totrans-163
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tscb 0803](assets/tscb_0803.png)'
+- en: Figure 8-3\. The union type `AvailableVideoFormats`
+  id: totrans-164
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图8-3。联合类型`AvailableVideoFormats`
+- en: Each union member defines a set of possible values. The intersections describe
+    the values where both types overlap. All possible combinations can be expressed
+    with this union.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个联合成员定义了一组可能的值。交集描述了两种类型重叠的值。所有可能的组合都可以用这个联合来表示。
+- en: So now that we know the type, it would be fantastic to derive it from the original
+    type. We want to split an object type into a union of types where each member
+    contains exactly one property.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们知道了类型，从原始类型中派生出来将是很棒的。我们希望将对象类型拆分为包含恰好一个属性的类型联合。
+- en: 'One way to get a union type related to `VideoFormatURLs` is to use the `keyof`
+    operator:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 获取与`VideoFormatURLs`相关的联合类型的一种方法是使用`keyof`操作符：
+- en: '[PRE47]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'This yields `"format360p" | "format480p" | "format720p" | "format1080p"`, a
+    union of the keys. We can use the `keyof` operator to index access the original
+    type:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这产生了`"format360p" | "format480p" | "format720p" | "format1080p"`，这是键的联合。我们可以使用`keyof`操作符索引访问原始类型：
+- en: '[PRE48]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: This yields `URL`, which is just one type, but in reality it is a union of the
+    types of values. Now we only need to find a way to get proper values that represent
+    an actual object type and are related to each property key.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这产生了`URL`，它只是一种类型，但实际上它是值类型的一个联合。现在我们只需要找到一种方法，以获取表示实际对象类型并与每个属性键相关联的正确值。
+- en: 'Read this phrase again: “related to each property key.” This calls for a mapped
+    type! We can map through all `VideoFormatURLs` to get the property key to the
+    righthand side of the object:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次阅读这句话：“与每个属性键相关”。这需要一个映射类型！我们可以通过所有`VideoFormatURLs`映射，将属性键映射到对象的右侧：
+- en: '[PRE49]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'With that, we can index access the mapped type and get value types for each
+    element. But we’re not only setting the key to the righthand side but also creating
+    another object type that takes this string as a property key and maps it to the
+    respective value type:'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，我们可以再次使用索引访问映射类型，并获取每个元素的值类型。但我们不仅将键设置为右侧，而且还创建了另一个对象类型，将此字符串作为属性键，并将其映射到相应的值类型：
+- en: '[PRE50]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Now we can use index access again to grep each value type from the righthand
+    side into a union:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以再次使用索引访问，从右侧获取每个值类型并形成一个联合：
+- en: '[PRE51]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'And that’s what we’ve been looking for! As a next step, we take the concrete
+    types and substitute them with generics, resulting in the `Split<T>` helper type:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们一直在寻找的！作为下一步，我们将具体类型替换为泛型，并得到`Split<T>`辅助类型：
+- en: '[PRE52]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'Another helper type in our arsenal. Using it with `loadVideo` gives us exactly
+    the behavior we have been aiming for:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们武器库中的另一个辅助类型。与`loadVideo`一起使用它，正好得到了我们一直期望的行为：
+- en: '[PRE53]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: '`Split<T>` is a nice way to see how basic type system functionality can change
+    the behavior of your interfaces significantly, and how some simple typing techniques
+    like mapped types, index access types, and property keys can be used to get a
+    tiny yet powerful helper type.'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Split<T>` 是查看基本类型系统功能如何显著更改接口行为的好方法，以及如何使用一些简单的类型技术如映射类型、索引访问类型和属性键来获得一个小而强大的辅助类型。'
+- en: 8.6 Allowing Exactly One and All or None
+  id: totrans-183
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.6 允许确切一个和全部或无
+- en: Problem
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Next to requiring *at least one* like in [Recipe 8.5](#ch08_splitting_types),
+    you also want to provide scenarios where users provide *exactly one* or *all or
+    none*.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了要求 *至少一个* 参数像 [Recipe 8.5](#ch08_splitting_types) 中一样，您还希望提供用户提供 *确切一个* 或
+    *全部或无* 的情景。
+- en: Solution
+  id: totrans-186
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create `ExactlyOne<T>` and `AllOrNone<T, K>`. Both rely on the *optional never*
+    technique in combination with a derivate of `Split<T>`.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建 `ExactlyOne<T>` 和 `AllOrNone<T, K>`。两者都依赖于 *可选的 never* 技术，结合 `Split<T>` 的衍生。
+- en: Discussion
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: With `Split<T>` from [Recipe 8.5](#ch08_splitting_types) we create a nice helper
+    type that makes it possible to describe the scenario where we want *at least one*
+    parameter provided. This is something that `Partial<T>` can’t provide for us,
+    but regular union types can.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Split<T>` 自 [Recipe 8.5](#ch08_splitting_types)，我们创建了一个很好的辅助类型，可以描述我们希望至少提供一个参数的场景。这是
+    `Partial<T>` 无法为我们提供的，但常规的联合类型可以。
+- en: Starting from this idea we, might also run into scenarios where we want our
+    users to provide *exactly one*, making sure they don’t add too many options.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这个想法开始，我们可能也会遇到需要用户提供 *确切一个* 参数的场景，确保他们不会添加过多选项。
+- en: One technique that can be used here is optional never, which we learned in [Recipe
+    3.8](ch03.html#ch03_item_optional_never). Next to all the properties you want
+    to allow, you set all the properties you don’t want to allow to optional and their
+    value to `never`. This means the moment you write the property name, TypeScript
+    wants you to set its value to something that is compatible with `never`, which
+    you can’t, as the `never` has no values.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里可以使用的一种技术是可选的 `never`，我们在 [Recipe 3.8](ch03.html#ch03_item_optional_never)
+    中学到了它。除了允许的所有属性外，您将不想允许的所有属性设置为可选，并将它们的值设置为 `never`。这意味着一旦您写下属性名，TypeScript 将要求您将其值设置为与
+    `never` 兼容的某些内容，但您无法这样做，因为 `never` 没有值。
+- en: 'A union type where we put all property names in an *exclusive or* relation
+    is the key. We get a union type with each property already with `Split<T>`:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将所有属性名称放在 *排他或* 关系中的联合类型是关键。我们得到了一个联合类型，其中每个属性都已经使用 `Split<T>`：
+- en: '[PRE54]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'All we need to do is to intersect each element with the remaining keys and
+    set them to optional never:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们所需做的就是与剩余的键交集，并将它们设置为可选的 `never`：
+- en: '[PRE55]'
+  id: totrans-195
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'With that, the resulting type is more extensive but tells us exactly which
+    properties to exclude:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，生成的类型更加详尽，但告诉我们要排除哪些属性：
+- en: '[PRE56]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'And it works as expected:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并且它按预期工作：
+- en: '[PRE57]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: '`ExactlyOne<T>` is so much like `Split<T>` that we could think of extending
+    `Split<T>` with the functionality to include the optional never pattern:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ExactlyOne<T>` 与 `Split<T>` 如此相似，我们可以考虑扩展 `Split<T>`，以包括可选的 never 模式功能。'
+- en: '[PRE58]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: We add a new generic type parameter `OptionalNever`, which we default to `false`.
+    We then intersect the part where we create new objects with a conditional type
+    that checks if the parameter `OptionalNever` is actually false. If so, we intersect
+    with the empty object (leaving the original object intact); otherwise, we add
+    the optional never part to the object. `ExactlyOne<T>` is refactored to `Split<T,
+    true>`, where we activate the `OptionalNever` flag.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们添加了一个新的泛型类型参数 `OptionalNever`，默认为 `false`。然后，我们与一个条件类型相交，检查参数 `OptionalNever`
+    是否实际上为 false。如果是这样，我们与空对象相交（保留原始对象）；否则，我们向对象添加可选的 `never` 部分。`ExactlyOne<T>` 被重构为
+    `Split<T, true>`，在这里我们激活了 `OptionalNever` 标志。
+- en: 'Another scenario very similar to `Split<T>` or `ExactlyOne<T>` is to provide
+    all arguments or no arguments. Think of splitting video formats into standard
+    definition (SD: 360p and 480p) and high definition (HD: 720p and 1080p). In your
+    app, you want to make sure that if your users provide SD formats, they should
+    provide all possible formats. It’s OK to have a single HD format.'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个与 `Split<T>` 或 `ExactlyOne<T>` 非常相似的场景是提供所有参数或不提供任何参数。考虑将视频格式分为标准定义（SD：360p
+    和 480p）和高清晰度（HD：720p 和 1080p）。在您的应用程序中，您希望确保如果用户提供了 SD 格式，则应该提供所有可能的格式。单个 HD 格式是可以接受的。
+- en: 'This is also where the optional never technique comes in. We define a type
+    that *requires* all selected keys or sets them to `never` if only one is provided:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这也是可选的永远技术的应用之处。我们定义了一个类型，*要求*所有选定的键或如果只提供一个则将它们设置为`never`：
+- en: '[PRE59]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'If you want to make sure that you provide also *all* HD formats, add the rest
+    to it via an intersection:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您希望确保还提供了*所有*高清格式，请通过交集将其余部分添加到其中：
+- en: '[PRE60]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'Or if HD formats are totally optional, add them via a `Partial<T>`:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，如果高清格式完全是可选的，则通过`Partial<T>`添加它们：
+- en: '[PRE61]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'But then you run into the same problem as in [Recipe 8.5](#ch08_splitting_types),
+    where you can provide values that don’t include any formats at all. Intersecting
+    the *all or none* variation with `Split<T>` is the solution we are aiming for:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但然后您会遇到与[Recipe 8.5](#ch08_splitting_types)中相同的问题，您可以提供不包含任何格式的值。与`Split<T>`相交的*全有或全无*变体是我们的目标解决方案：
+- en: '[PRE62]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'And it works as intended:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它如预期般工作：
+- en: '[PRE63]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'If we look closely at what `AllOrNone` does, we can easily rewrite it with
+    built-in helper types:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们仔细查看`AllOrNone`的作用，我们可以轻松使用内置的辅助类型重写它：
+- en: '[PRE64]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'This is arguably more readable but also more to the point of metaprogramming
+    in the type system. You have a set of helper types, and you can combine them to
+    create new helper types: almost like a functional programming language, but on
+    sets of values, in the type system.'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能更易读，但更偏向于类型系统中的元编程要点。你有一组辅助类型，可以组合它们来创建新的辅助类型：几乎像是一种函数式编程语言，但针对值的集合，在类型系统中实现。
+- en: 8.7 Converting Union to Intersection Types
+  id: totrans-217
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.7 将联合类型转换为交集类型
+- en: Problem
+  id: totrans-218
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Your model is defined as a union type of several variants. To derive other types
+    from it, you first need to convert the union type to an intersection type.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的模型被定义为多个变体的联合类型。要从中派生其他类型，首先需要将联合类型转换为交集类型。
+- en: Solution
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `UnionToIntersection<T>` helper type that uses contravariant positions.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`UnionToIntersection<T>`辅助类型，该类型使用逆变位。
+- en: Discussion
+  id: totrans-222
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In [Recipe 8.5](#ch08_splitting_types) we discussed how we can split a model
+    type into a union of its variants. Depending on how your application works, you
+    may want to define the model as a union type of several variants right from the
+    beginning:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[Recipe 8.5](#ch08_splitting_types)中，我们讨论了如何将模型类型分割成其变体的联合体。根据您的应用程序的工作方式，您可能希望从一开始就将模型定义为多个变体的联合类型：
+- en: '[PRE65]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'The type `Video` allows you to define several formats but requires you to define
+    at least one:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型`Video`允许您定义多种格式，但要求至少定义一种：
+- en: '[PRE66]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'However, putting them in a union has some side effects—for example, when you
+    need all available keys:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，将它们放在一个联合体中也会带来一些副作用，例如当你需要所有可用的键时：
+- en: '[PRE67]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'You might expect `FormatKeys` to provide a union type of all keys that are
+    nested in `urls`. Index access on a union type, however, tries to find the lowest
+    common denominator. And in this case, there is none. To get a union type of all
+    format keys, you need to have all keys within one type:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能期望`FormatKeys`提供一个嵌套在`urls`中的所有键的联合类型。然而，联合类型的索引访问试图找到最低公共分母。在这种情况下，不存在这样的最低公共分母。要获得所有格式键的联合类型，你需要将所有键放在一个类型中：
+- en: '[PRE68]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: A way to create an object like this is to modify the union type to an intersection
+    type.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建类似这样的对象的一种方法是将联合类型修改为交集类型。
+- en: Note
+  id: totrans-232
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In [Recipe 8.5](#ch08_splitting_types), modeling data in a single type was the
+    way to go; in this recipe, we see that modeling data as a union type is more to
+    our liking. In reality, there is no single answer to how you define your models.
+    Use the representation that best fits your application domain and that doesn’t
+    get in your way too much. The important thing is to be able to derive other types
+    as you need them. This reduces maintenance and allows you to create more robust
+    types. In [Chapter 12](ch12.html#ch12) and especially [Recipe 12.1](ch12.html#ch12_low_maintenance_types)
+    we will look at the principle of “low maintenance types.”
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[Recipe 8.5](#ch08_splitting_types)中，将数据建模为单一类型是正确的方式；而在这个配方中，我们看到将数据建模为联合类型更符合我们的喜好。事实上，关于如何定义您的模型并没有一个单一的答案。使用最适合您应用程序领域的表示方法，而且不会太过于阻碍您。重要的是能够根据需要派生其他类型。这样可以减少维护工作并允许您创建更加健壮的类型。在[第12章](ch12.html#ch12)和特别是[Recipe
+    12.1](ch12.html#ch12_low_maintenance_types)中，我们将介绍“低维护类型”的原则。
+- en: 'Converting a union type to an intersection type is a peculiar task in TypeScript
+    and requires some deep knowledge of the inner workings of the type system. To
+    learn all these concepts, we look at the finished type, and then see what happens
+    under the hood:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将联合类型转换为交集类型是 TypeScript 中一个特殊的任务，需要对类型系统内部工作原理有深入的了解。要学习所有这些概念，我们看看完成的类型，然后看看在幕后发生了什么：
+- en: '[PRE69]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'There is a *lot* to unpack here:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有很多需要理解的内容：
+- en: We have two conditional types. The first one seems to always result in the `true`
+    branch, so why do we need it?
+  id: totrans-237
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们有两种条件类型。第一个似乎总是返回`true`分支，那我们为什么需要它呢？
+- en: The first conditional type wraps the type in a function argument, and the second
+    conditional type unwraps it again. Why is this necessary?
+  id: totrans-238
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 第一个条件类型将类型包装在函数参数中，第二个条件类型则再次解包它。为什么这是必要的？
+- en: And how do both conditional types transform a union type to an intersection
+    type?
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 这两种条件类型如何将联合类型转换为交集类型？
+- en: Let’s analyze `UnionToIntersection<T>` step by step.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们逐步分析`UnionToIntersection<T>`。
+- en: 'In the first conditional within `UnionToIntersection<T>`, we use the generic
+    type argument as a *naked type*:'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`UnionToIntersection<T>`中的第一个条件中，我们将泛型类型参数用作*裸类型*：
+- en: '[PRE70]'
+  id: totrans-242
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: 'This means we check if `T` is in a subtype condition without wrapping it in
+    some other type:'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们检查`T`是否处于某种子类型条件中，而不将其包装在其他类型中：
+- en: '[PRE71]'
+  id: totrans-244
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'Naked types in conditional types have a certain feature. If `T` is a union,
+    they run the conditional type for each constituent of the union. So with a naked
+    type, a *conditional of union types becomes a union of conditional types*:'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在条件类型中，裸类型具有一定的特性。如果`T`是一个联合类型，它们会为联合的每个成员运行条件类型。因此，使用裸类型时，*联合类型的条件变成了条件类型的联合*：
+- en: '[PRE72]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: 'As compared to the non-naked version:'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与非裸版本相比：
+- en: '[PRE73]'
+  id: totrans-248
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: Subtle, but considerably different for complex types!
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 微妙之处，在复杂类型中显著不同！
+- en: 'In our example, we use the naked type and ask if it extends `any` (which it
+    always does; `any` is the allow-it-all top type):'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的示例中，我们使用裸类型，并询问它是否扩展了`any`（它总是这样的；`any`是允许一切的顶级类型）：
+- en: '[PRE74]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: Since this condition is always true, we wrap our generic type in a function,
+    where `T` is the type of the function’s parameter. But why are we doing that?
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于这个条件总是为真，我们将我们的泛型类型包装在一个函数中，其中`T`是函数参数的类型。但为什么我们要这样做呢？
+- en: 'This leads to the second condition:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这导致了第二个条件：
+- en: '[PRE75]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: As the first condition always yields true, meaning that we wrap our type in
+    a function type, the other condition also always yields true. We are basically
+    checking if the type we just created is a subtype of itself. But instead of passing
+    through `T`, we infer a new type `R`, and return the inferred type.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于第一个条件总是为真，意味着我们将我们的类型包装在一个函数类型中，另一个条件也总是为真。我们基本上是在检查我们刚刚创建的类型是否是其自身的子类型。但是，我们不是直接通过`T`，而是推断出一个新的类型`R`，并返回推断出的类型。
+- en: What we do is wrap and unwrap type `T` via a function type.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们所做的是通过函数类型包装和解包类型`T`。
+- en: Doing this via function arguments brings the new inferred type `R` in a *contravariant
+    position*.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过函数参数执行此操作将新推断出的类型`R`置于*逆变位置*。
+- en: 'So what does *contravariance* mean? The opposite of *contravariance* is *covariance*,
+    and what you would expect from normal subtyping:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么*逆变性*意味着什么？*逆变性*的相反是*协变性*，与正常的子类型化预期相反：
+- en: '[PRE76]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: '`string` is a subtype of `string | number`; all elements of `string` appear
+    in `string | number`, so we can assign `b` to `c`. `c` still behaves as we originally
+    intended. This is covariance.'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`string`是`string | number`的子类型；`string`的所有元素都出现在`string | number`中，所以我们可以将`b`分配给`c`。`c`仍然表现出我们最初的意图。这就是协变性。'
+- en: 'This, on the other hand, won’t work:'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种情况却行不通：
+- en: '[PRE77]'
+  id: totrans-262
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: We can’t assign `f` to `g`, because then we would also be able to call `f` with
+    a number! We miss part of the contract of `g`. This is contravariance.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不能将`f`分配给`g`，因为那样我们还可以用一个数字来调用`f`！我们遗漏了`g`的一部分契约。这就是逆变性。
+- en: 'The interesting thing is that contravariance effectively works like an intersection:
+    if `f` accepts `string` and `g` accepts `string | number`, the type that is accepted
+    by both is `(string | number) & string`, which is `string`.'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是逆变性实际上像交集一样工作：如果`f`接受`string`并且`g`接受`string | number`，那么被两者接受的类型是`(string
+    | number) & string`，即`string`。
+- en: When we put types in contravariant positions within a conditional type, TypeScript
+    creates an *intersection* out of it. Meaning that since we *infer* from a function
+    argument, TypeScript knows that we have to fulfill the complete contract, creating
+    an intersection of all constituents in the union.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们将类型放在条件类型的逆变位置时，TypeScript 将其创建为一个*交集*。这意味着由于我们从函数参数*推断*，TypeScript 知道我们必须满足完整的约定，从而创建联合的所有组成部分的交集。
+- en: Basically, *union to intersection*.
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基本上，*联合到交集*。
+- en: 'Let’s run it through:'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过一下：
+- en: '[PRE78]'
+  id: totrans-268
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: 'We have a naked type; this means we can do a union of conditionals:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们有一个裸类型；这意味着我们可以对条件进行联合：
+- en: '[PRE79]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: 'Let’s expand `UnionToIntersection<T>`:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们扩展 `UnionToIntersection<T>`：
+- en: '[PRE80]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: 'And evaluate the first conditional:'
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后评估第一个条件：
+- en: '[PRE81]'
+  id: totrans-274
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: 'Let’s evaluate conditional two, where we infer `R`:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们评估第二个条件，我们推断 `R`：
+- en: '[PRE82]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE82]'
+- en: 'But wait! `R` is inferred from a contravariant position. We have to make an
+    intersection; otherwise, we lose type compatibility:'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但等等！`R` 是从逆变位置推断出来的。我们必须做一个交集，否则会失去类型兼容性：
+- en: '[PRE83]'
+  id: totrans-278
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE83]'
+- en: 'And that’s what we have been looking for! So, applied to our original example:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们一直在寻找的！因此，应用到我们的原始示例中：
+- en: '[PRE84]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE84]'
+- en: '`FormatKeys` is now `"format320p" | "format480p" | "format720p" | "format1080p"#`.
+    Whenever we add another format to the original union, the `FormatKeys` type updates
+    automatically. Maintain once; use everywhere.'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FormatKeys` 现在是 `"format320p" | "format480p" | "format720p" | "format1080p"#`。每当我们向原始联合添加另一个格式时，`FormatKeys`
+    类型会自动更新。只需维护一次，随处使用。'
+- en: 8.8 Using type-fest
+  id: totrans-282
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 8.8 使用 type-fest
+- en: Problem
+  id: totrans-283
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You love your helper types so much that you want to create a utility library
+    for easy access.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你非常喜欢你的辅助类型，以至于你想创建一个实用库以便轻松访问。
+- en: Solution
+  id: totrans-285
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Chances are *type-fest* already has everything you need.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Type-fest* 很可能已经包含你所需的一切。'
+- en: Discussion
+  id: totrans-287
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The whole idea of this chapter was to introduce you to a couple of useful helper
+    types that are not part of standard Typescript but have proven to be highly flexible
+    for many scenarios: single-purpose generic helper types that can be combined and
+    composed to derive types based on your existing models. You write your models
+    once, and all other types get updated automatically. This idea of having *low
+    maintenance types*, by deriving types from others, is unique to TypeScript and
+    appreciated by tons of developers who create complex applications or libraries.'
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章的整个目的是介绍几个有用的辅助类型，这些类型并不是 TypeScript 标准的一部分，但已被证明对许多场景非常灵活：单一目的的通用辅助类型，可以组合和组成，从而基于现有模型导出类型。你只需写一次你的模型，所有其他类型就会自动更新。这种从其他类型派生类型的*低维护类型*的理念是
+    TypeScript 的独特之处，被许多开发人员赞赏，他们创建复杂的应用程序或库。
+- en: You might end up using your helper types a lot, so you start out combining them
+    in a utility library for easy access, but chances are one of the existing libraries
+    already has everything you need. Using a well-defined set of helper types is nothing
+    new, and plenty out there give you everything you’ve seen in this chapter. Sometimes
+    it’s exactly the same but under a different name; other times it’s a similar idea
+    but solved differently. The basics are most likely covered by all type libraries,
+    but one library, [*type-fest*](https://oreil.ly/Cw4Kc), is not only useful but
+    actively maintained, well documented, and widely used.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能经常使用你的辅助类型，所以你开始将它们结合在一个实用库中以便轻松访问，但很可能已经有现有的库包含了你所需的一切。使用一组定义良好的辅助类型并不新鲜，市面上有很多可以提供本章中所见的所有东西的库。有时它们完全相同，只是名字不同；其他时候，它们可能是相似的想法但解决方式不同。大多数类型库基本上都覆盖了基础知识，但一个库，[*type-fest*](https://oreil.ly/Cw4Kc)，不仅有用而且积极维护，文档完善且广泛使用。
+- en: '*Type-fest* has a few aspects that make it stand out. First, it’s extensively
+    documented. Not only does its documentation include the *usage* of a certain helper
+    type, but it also includes use cases and scenarios that tell you where you might
+    want to use this helper type. One example is `Integer<T>`, which makes sure that
+    the number you provide does not have any decimals.'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Type-fest* 有几个方面使其脱颖而出。首先，它有详尽的文档。它的文档不仅包括某个辅助类型的*使用*，还包括使用案例和场景，告诉你何时可能需要使用这个辅助类型。一个例子是
+    `Integer<T>`，它确保你提供的数字没有任何小数。'
+- en: 'This is a utility type that almost made it into *TypeScript Cookbook*, but
+    I saw that giving you the snippet from *type-fest* tells you everything you need
+    to know about the type:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个几乎进入 *TypeScript Cookbook* 的实用类型，但我发现提供来自 *type-fest* 的片段告诉你关于这种类型的所有需要知道的信息：
+- en: '[PRE85]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE85]'
+- en: import type {Integer} from 'type-fest';
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: import type {Integer} from 'type-fest';
+- en: 'declare function setYear<T extends number>(length: Integer<T>): void;'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '声明一个函数`setYear<T extends number>(length: Integer<T>): void;`'
+- en: '[PRE86]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE86]'
+- en: The rest of the file deals with negative integers, non-negative integers, floating
+    point numbers, and so on. It’s a real treasure trove of information if you want
+    to know more about how types are constructed.
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的其余部分涉及负整数、非负整数、浮点数等。如果你想进一步了解类型的构建方式，这是一个真正的宝藏信息。
+- en: 'Second, *type-fest* deals with edge cases. In [Recipe 8.2](#ch08_nested_objects),
+    we learned about recursive types and defined `DeepPartial<T>`. Its *type-fest*
+    counterpart, `PartialDeep<T>`, is a bit more extensive:'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二，*type-fest*处理边缘情况。在[Recipe 8.2](#ch08_nested_objects)中，我们学习了递归类型并定义了`DeepPartial<T>`。它的*type-fest*对应物，`PartialDeep<T>`，则更为广泛：
+- en: '[PRE87]'
+  id: totrans-298
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE87]'
+- en: There is no need to go through the entirety of this implementation, but it should
+    give you an idea about how hardened their implementations for certain utility
+    types are.
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不需要完整了解这个实现，但它应该给你一个关于它们为某些实用类型提供了多么坚固的实现的概念。
+- en: Note
+  id: totrans-300
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`PartialDeep<T>` is extensive and deals with all possible edge cases, but it
+    also comes at a cost of being complex and hard to swallow for the TypeScript type-checker.
+    Depending on your use case, the simpler version from [Recipe 8.2](#ch08_nested_objects)
+    might be the one you’re looking for.'
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`PartialDeep<T>`非常广泛并处理所有可能的边缘情况，但也因为对 TypeScript 类型检查器而言过于复杂和难以理解。根据你的使用情况，也许[Recipe
+    8.2](#ch08_nested_objects)中更简单的版本才是你需要的。'
+- en: 'Third, they don’t add helper types just for the sake of adding them. Their
+    *Readme* file has a list of declined types and the reasoning behind the decline:
+    either the use cases are limited or better alternatives exist. Just like everything,
+    they document their choices really, really well.'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三，他们不是为了添加而添加帮助类型。他们的*Readme*文件列出了已拒绝类型及其背后的原因：要么使用案例有限，要么存在更好的替代方案。就像所有东西一样，他们对自己的选择做了非常非常好的文档记录。
+- en: Fourth, *type-fest* educates about existing helper types. Helper types have
+    existed in TypeScript forever but barely have been documented in the past. Years
+    ago, [my blog](https://oreil.ly/eRtx9) attempted to be a resource on built-in
+    helper types, until the [official documentation added a chapter on utility types](https://oreil.ly/K5cXq).
+    Utility types are not something that you easily pick up just by using TypeScript.
+    You need to understand that they exist and need to read up on them. *type-fest*
+    has an entire section dedicated to built-ins, with examples and use cases.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第四，*type-fest*教育关于现有的帮助类型。帮助类型在 TypeScript 中一直存在，但过去几乎没有被文档化。多年前，[我的博客](https://oreil.ly/eRtx9)试图成为内置帮助类型的资源，直到[官方文档增加了一个实用类型章节](https://oreil.ly/K5cXq)。实用类型不是你只需使用
+    TypeScript 就能轻松掌握的东西。你需要意识到它们的存在，并需要深入阅读。*type-fest*有一个专门介绍内置类型的部分，包含示例和用例。
+- en: Last, but not least, it’s widely adopted and developed by reliable open source
+    developers. Its creator, [Sindre Sorhus](https://oreil.ly/thSin), has worked on
+    open source projects for decades and has a track record of fantastic projects.
+    *type-fest* is just another stroke of genius. Chances are a lot of your work relies
+    on his work.
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后但并非最不重要的是，它被可靠的开源开发者广泛采用并开发。它的创造者[Sindre Sorhus](https://oreil.ly/thSin)已经为开源项目工作了几十年，并拥有许多出色的项目记录。*type-fest*只是他的又一杰作。很可能你的很多工作都依赖于他的工作。
+- en: With *type-fest* you get another resource of helper types you can add to your
+    project. Decide for yourself if you want to keep a small set of helper types or
+    if you rely on the implementations by the community.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过*type-fest*，你可以获得另一个可以添加到项目中的帮助类型资源。你可以自行决定是保持一小组帮助类型还是依赖社区的实现。

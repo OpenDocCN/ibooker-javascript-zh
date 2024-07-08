@@ -1,0 +1,2645 @@
+- en: Chapter 9\. Accessibility
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第九章 可访问性
+- en: This was a challenging chapter to write because other than wearing glasses and
+    contact lenses, neither of us needs to use special accessibility equipment or
+    software. We have tried to bring together a collection of tools and techniques
+    in this chapter that will ideally help you find some of the more obvious accessibility
+    problems in your code.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写这一章节很有挑战性，因为除了戴眼镜和隐形眼镜外，我们两个都不需要使用特殊的无障碍设备或软件。我们在本章中尝试汇集了一些工具和技术，希望能帮助您找到代码中一些更为明显的无障碍问题。
+- en: We look at how you can use landmarks and ARIA roles, which will add meaning
+    and structure to your pages that would otherwise come only from visual grouping.
+    We then have several recipes that show how to run manual and automated audits
+    on your application, look for glitches in code with static analysis, and find
+    runtime errors by automating browsers.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将讨论如何使用地标和 ARIA 角色，这将为您的页面增加意义和结构，否则这些只能通过视觉分组来实现。然后我们提供了几个操作步骤，展示如何对应用进行手动和自动化审核，通过静态分析查找代码中的问题，并通过自动化浏览器查找运行时错误。
+- en: 'We then look at some of the more technical issues involved in creating custom
+    dialogs (hint: try to use prebuilt ones from libraries), and finally, we build
+    a simple screen reader.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将深入讨论创建自定义对话框涉及的一些更为技术性的问题（提示：尝试使用来自库的预构建对话框），最后，我们构建一个简单的屏幕阅读器。
+- en: 'For a more in-depth look at accessibility, be sure to check the [Web Content
+    Accessibility Guidelines (WCAG)](https://oreil.ly/ie0aT), which provide three
+    conformance levels: A, AA, and AAA. AAA is the highest level of conformance.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 欲深入了解无障碍性，请务必查看 [Web Content Accessibility Guidelines (WCAG)](https://oreil.ly/ie0aT)，提供了三个符合级别：A、AA
+    和 AAA。AAA 是最高的符合级别。
+- en: If you are writing professional software, you will ideally find these recipes
+    helpful. But nothing can replace the experience of someone who has to live with
+    the issues caused by inaccessible software every day of their lives. Accessible
+    software is simply good software. It maximizes your market and forces you to think
+    more deeply about design. We would recommend, at the least, having an accessibility
+    audit run on your code. You can contact organizations like [AbilityNet](https://oreil.ly/N7XkH)
+    in the UK, or just search for *accessibility software testing* wherever you are,
+    and you will find that is the most efficient way to track down problems with your
+    code.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您正在编写专业软件，理想情况下，您会发现这些操作步骤很有帮助。但没有什么可以取代那些每天都要与不可访问软件问题共存的人的经验。无障碍软件就是好软件。它扩展了您的市场，并迫使您更深入地考虑设计问题。我们建议至少对您的代码运行一次可访问性审核。您可以联系类似
+    [AbilityNet](https://oreil.ly/N7XkH) 这样的组织，或者无论您身在何处，只需搜索 *无障碍软件测试*，您就会发现这是追踪代码问题的最有效方式。
+- en: Use Landmarks
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用地标
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Let’s consider the application in [Figure 9-1](#ch09_image_1). It’s a simple
+    application for creating and managing tasks.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑 [图 9-1](#ch09_image_1) 中的应用程序。这是一个用于创建和管理任务的简单应用程序。
+- en: '![](Images/recb_0901.png)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0901.png)'
+- en: Figure 9-1\. The example *tasks* application
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-1\. *任务* 应用示例
+- en: 'If someone can see the application, they will easily distinguish between the
+    main content (the tasks) and all of the other stuff around the edge: the links
+    to other pages, the headings, the copyright, etc.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果有人能看到应用程序，他们将轻松区分主要内容（任务）和页面边缘的所有其他内容：链接到其他页面、标题、版权等等。
+- en: 'Let’s look at the code for the main `App` component of this application:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看此应用程序的主要 `App` 组件的代码：
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: The problem is that if you rely on a device to read the page to you, it can
+    be hard to understand the page’s structure. Which parts are the navigation links?
+    Where is the main content on the page? The parsing that the human eye performs
+    (see [Figure 9-2](#ch09_image_2)) is difficult to replicate if you can’t assess
+    the spatial grouping of the interface.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果依赖设备朗读页面，理解页面结构可能会很困难。导航链接在哪里？页面的主要内容又在哪里？人眼进行的分析（见 [图 9-2](#ch09_image_2)）如果无法评估界面的空间分组，则难以复制。
+- en: So, how can we get around this problem? What can we use instead of visual grouping
+    to make the structure of a page more understandable?
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，我们该如何解决这个问题？我们可以用什么来替代视觉分组，使页面的结构更易于理解？
+- en: '![](Images/recb_0902.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0902.png)'
+- en: Figure 9-2\. Sighted viewers can quickly identify the sections of the page spatially
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-2\. 视觉观众可以迅速识别页面的各个部分
+- en: Solution
+  id: totrans-18
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We are going to introduce *landmarks* to our code. Landmarks are HTML elements
+    that we can use to group parts of our interface structurally to mirror how they’re
+    grouped visually. Landmarks are also helpful when designing a page because they
+    force you to think about the functions of the various types of page content.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在我们的代码中引入 *地标*。地标是我们可以使用的 HTML 元素，用于结构上地组织我们的界面，以反映它们在视觉上的组织方式。地标在设计页面时也很有帮助，因为它们迫使您考虑各种类型页面内容的功能。
+- en: 'Let’s begin by highlighting the *header*. This part of the page identifies
+    what the page is about. We would typically use an `h1` heading for this, but we
+    might also include commonly used tools, or perhaps a logo. We can identify the
+    header using the `header` tag:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从 *header* 开始突出显示。页面的这一部分标识页面的主题。通常我们会使用 `h1` 标题来表示，但我们也可能包括常用工具，或者一个标志。我们可以使用
+    `header` 标签来标识页眉：
+- en: '[PRE1]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: We should always have an `h1` heading on the page, and we should use lower-level
+    headings to structure the content of the rest of the page without skipping any
+    levels. For example, you should never have an `h1` heading and an `h3` heading
+    without an `h2` heading somewhere between the two. Headings are a handy navigation
+    device for people using screen readers, including functions that allow the user
+    to skip backward and forward between headings.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们页面上应该始终有一个 `h1` 标题，并且应该使用较低级别的标题来结构化页面的其余内容，而不跳过任何级别。例如，您不应该在两个 `h1` 标题之间有一个
+    `h3` 标题而没有 `h2` 标题。标题是屏幕阅读器用户的便捷导航设备，包括允许用户在标题之间向前跳转和向后跳转的功能。
+- en: Next, we need to think about *navigation*. Navigation can come in many forms.
+    It might be a list of links (as here), or it could be a series of menus or a sidebar.
+    The navigation is a block of components that allow you to visit the major parts
+    of a website. You will almost certainly have other links on the page that are
+    not part of the navigation.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要考虑 *导航*。导航可以采用多种形式。它可能是一系列链接的列表（如此处），或者可能是一系列菜单或侧边栏。导航是一个允许您访问网站主要部分的组件块。您页面上几乎肯定会有其他不属于导航的链接。
+- en: 'We can use the `nav` landmark to identify the navigation of our page:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `nav` 地标来标识页面的导航：
+- en: '[PRE2]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: The crucial part of a page is the content. In our tasks application, the content
+    is the collection of tasks. The main content is what the user primarily wants
+    to read and interact with on the page. Occasionally, the main content might also
+    include tools—such as the floating “add” button in the tasks application—but these
+    don’t have to be in the main content, and we can move them to somewhere in the
+    header.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面的关键部分是内容。在我们的任务应用程序中，内容就是任务的集合。主要内容是用户主要想要阅读和与页面交互的内容。偶尔，主要内容还可能包括工具，比如任务应用程序中的浮动“添加”按钮，但这些不一定要在主要内容中，并且我们可以将它们移动到页眉的某个位置。
+- en: 'We can group together the main content of the page with the `main` tag:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `main` 标签将页面的主要内容分组在一起：
+- en: '[PRE3]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Finally, we have the web page’s *metadata*: the data about data. In the task
+    application, the copyright notice at the bottom of the page is an example of metadata.
+    You will often find metadata placed in a group at the bottom of a page, and so
+    it is grouped in a `footer` tag:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们有网页的 *元数据*：关于数据的数据。在任务应用程序中，页面底部的版权声明就是元数据的一个例子。通常会将元数据放在页面底部的一个组中，因此它被分组在
+    `footer` 标签中：
+- en: '[PRE4]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'There are still a couple things left from our original `App` component:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有几件事情留在我们原始的 `App` 组件中：
+- en: '[PRE5]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The `TaskForm` is a modal dialog that appears when the user wants to create
+    or edit a task (see [Figure 9-3](#ch09_image_3)).
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`TaskForm` 是一个模态对话框，当用户想要创建或编辑任务时出现（见 [Figure 9-3](#ch09_image_3)）。'
+- en: '![](Images/recb_0903.png)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0903.png)'
+- en: Figure 9-3\. The `TaskForm` is a modal dialog that appears above other content
+  id: totrans-35
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 9-3\. `TaskForm` 是一个模态对话框，显示在其他内容上方。
+- en: The `ModalQuestion` is a confirmation box that appears if a user tries to delete
+    a task (see [Figure 9-4](#ch09_image_4)).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ModalQuestion` 是一个确认框，如果用户尝试删除任务时会出现（见 [Figure 9-4](#ch09_image_4)）。'
+- en: '![](Images/recb_0904.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0904.png)'
+- en: Figure 9-4\. A modal question box asks the user to confirm the deletion of a
+    task
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 9-4\. 模态问题框询问用户确认删除任务。
+- en: These two components will appear only when needed. When the page is in its normal
+    state, the modals will not appear in the page’s structure, so they don’t have
+    to be included in a landmark. We will see elsewhere in this chapter that there
+    are other ways of dealing with dynamic content, such as modals, that will make
+    them more accessible to your audience.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个组件只会在需要时显示。在页面处于正常状态时，模态框不会出现在页面结构中，因此不必包含在地标中。我们将在本章的其他地方看到处理动态内容（如模态框）的其他方法，这将使它们对您的受众更具可访问性。
+- en: 'This is what the final form of our `App` component looks like:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们的`App`组件的最终形式：
+- en: '[PRE6]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Discussion
+  id: totrans-42
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Landmarks are part of HTML5 and so are natively supported in browsers. This
+    means that you can start using them without needing to add special tooling or
+    support libraries.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 地标是HTML5的一部分，因此在浏览器中原生支持。这意味着您可以开始使用它们，而无需添加特殊的工具或支持库。
+- en: You will find that some automated accessibility tools might complain about landmarks
+    rendered by React applications. The standard guidelines state that *all* content
+    in the body of a web page should be inside a landmark. But most React applications
+    render their content (including any landmarks) inside a single `div`, which instantly
+    breaks the rules.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您会发现一些自动辅助工具可能会抱怨由React应用程序渲染的地标。标准指南指出，网页正文中的*所有*内容都应该在一个地标内。但大多数React应用程序将它们的内容（包括任何地标）渲染在一个单独的`div`中，这立即违反了规则。
+- en: It is probably safe to ignore the issue. So long as the landmarks exist and
+    they are all at the same level, it shouldn’t matter that they are wrapped in an
+    additional `div`.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 忽略这个问题可能是安全的。只要地标存在且它们在同一级别，它们被包装在额外的`div`中就不会有问题。
+- en: You can download the source for this recipe from the [GitHub site].
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub site]下载此配方的源代码。
+- en: Apply Roles, Alts, and Titles
+  id: totrans-47
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 应用角色、替代文本和标题
+- en: Problem
+  id: totrans-48
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: It’s common to have components in applications that behave like buttons, even
+    if they’re not buttons. Likewise, you might have components that look like pop-up
+    dialog boxes without actually being dialog boxes. Or you might have collections
+    of data structurally similar to lists that don’t use the `ol` and `ul` tags.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序中常见的组件可能表现得像按钮，即使它们并不是按钮。同样，您可能有类似对话框的组件，而实际上并不是对话框。或者您可能有结构类似于列表但不使用`ol`和`ul`标签的数据集合。
+- en: Creating components that behave like standard UI elements isn’t a problem if
+    you can see the visual styling of the component. If something looks like a button
+    to a user, they will treat it as a button, regardless of its implementation.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您可以看到组件的视觉样式，创建行为像标准UI元素的组件就不是问题。如果某些东西对用户来说看起来像一个按钮，他们会将其视为按钮，而不管其实现方式如何。
+- en: But there’s a problem if someone can’t see the visual styling of a component.
+    Instead, you need to describe the purpose of a component for people who can’t
+    see it.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果有人看不到组件的视觉样式，就会出现问题。相反，您需要为无法看到的人描述组件的目的。
+- en: Solution
+  id: totrans-52
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We’re going to look at using *roles* within the application. The *role* describes
+    the meaning of a component: it tells the user what purpose it serves. Roles are
+    part of the semantics of a web page and so are similar to the semantic landmarks
+    that we discuss in [“Use Landmarks”](#ch09-01).'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将讨论在应用程序中使用*角色*。*角色*描述了组件的含义：它告诉用户它的目的是什么。角色是网页语义的一部分，因此类似于我们在[“使用地标”](#ch09-01)中讨论的语义地标。
+- en: 'Here is a list of some typical roles that you can apply to rendered HTML:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里列出了一些您可以应用于渲染HTML的典型角色：
+- en: '| Role name | Purpose |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| Role name | Purpose |'
+- en: '| --- | --- |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| alert | Tells the user that something has happened. |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| alert | 告诉用户发生了某事。 |'
+- en: '| article | Large block of text content, like a news story. |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| article | 大块的文本内容，比如新闻报道。 |'
+- en: '| button | Something you can click to do something. |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| button | 可以点击以执行某些操作的内容。 |'
+- en: '| checkbox | A user-selectable true/false value. |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| checkbox | 用户可选择的真/假值。 |'
+- en: '| comment | Like a user-submitted comment or reaction. |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| comment | 类似于用户提交的评论或反应。 |'
+- en: '| complementary | Additional information, perhaps in a sidebar. |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| complementary | 补充信息，可能在侧边栏中。 |'
+- en: '| contentinfo | Copyright notices, author names, publication dates. |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| contentinfo | 版权声明、作者姓名、出版日期等。 |'
+- en: '| dialog | Something floats over the other content. Often modal. |'
+  id: totrans-64
+  prefs: []
+  type: TYPE_TB
+  zh: '| dialog | 浮在其他内容之上的东西。通常是模态框。 |'
+- en: '| feed | Common in blogs. It’s a list of articles. |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| feed | 在博客中常见，是文章的列表。 |'
+- en: '| figure | An illustration. |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| figure | 插图。 |'
+- en: '| list | A sequential group of things. |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| list | 一组顺序排列的事物。 |'
+- en: '| listitem | Each of the things in a list. |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| listitem | 列表中的每个事物。 |'
+- en: '| search | A search field. |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| 搜索 | 搜索字段。 |'
+- en: '| menu | A sequence of options, typically used for navigation. |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| 菜单 | 一系列选项，通常用于导航。 |'
+- en: '| menuitem | An item on a menu. |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| 菜单项 | 菜单中的项。 |'
+- en: 'You apply roles to elements with the `role` attribute. Let’s consider the `Task`
+    component from the example application in this chapter. The `Task` component renders
+    each of the tasks as a small panel, with a Delete button:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将角色应用于具有`role`属性的元素。让我们考虑本章示例应用程序中的`Task`组件。`Task`组件将每个任务渲染为一个小面板，并带有一个删除按钮：
+- en: '[PRE7]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: We group tasks on the page under headings that describe the context in which
+    a person would perform the task. For example, you might have a series of tasks
+    grouped under the heading Phone (see [Figure 9-5](#ch09_image_5)).
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在页面上根据描述人们执行任务的上下文将任务分组在一起。例如，您可能会在“Phone”标题下分组一系列任务（见[图 9-5](#ch09_image_5)）。
+- en: '![](Images/recb_0901.png)'
+  id: totrans-75
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0901.png)'
+- en: Figure 9-5\. Each group contains a list of tasks
+  id: totrans-76
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-5\. 每个组包含任务列表
+- en: 'So, the tasks appear to match the `listitem` role. They are things that appear
+    inside an ordered collection. We could therefore add that role to the first `div`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，任务似乎与`listitem`角色相匹配。它们是出现在有序集合内部的事物。因此，我们可以将该角色添加到第一个`div`中：
+- en: '[PRE8]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'If we stopped there, we would have a problem. *Roles have rules*. You cannot
+    apply the `listitem` role to a component unless it appears inside something with
+    a `list` role. So if we are going to mark our `Task` components as `listitems`,
+    we will also need to give the `TaskList` parent a `list` role:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们就此止步，我们会遇到问题。*角色有规则*。你不能将`listitem`角色应用于组件，除非它出现在具有`list`角色的某物内部。因此，如果我们要将我们的`Task`组件标记为`listitems`，我们还需要给`TaskList`父元素一个`list`角色：
+- en: '[PRE9]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Using `list` and `listitem` roles is perfectly valid. But it is probably far
+    better in practice if we have HTML that behaves like a list to change the markup
+    and use real `ul` and `li` tags. From an accessibility point of view, it probably
+    makes no difference. But it is always good to avoid filling your HTML with endless
+    `div` tags. In general, if you can use a real HTML tag instead of a role, it’s
+    probably best to do so.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`list`和`listitem`角色是完全有效的。但是实践中，如果我们有行为像列表的HTML，最好改变标记并使用真正的`ul`和`li`标签。从可访问性的角度来看，可能没有什么区别。但是总是避免在HTML中填充无尽的`div`标签是一种好习惯。通常情况下，如果可以使用真正的HTML标签而不是角色，那可能是最好的选择。
+- en: 'Let’s remove the `list` role from `TaskList` and make a real `ul`:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从`TaskList`中移除`list`角色，并创建一个真正的`ul`：
+- en: '[PRE10]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Then we can replace the `listitem` role in `Task` with a `li` tag:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们可以在`Task`中用`li`标签替换`listitem`角色：
+- en: '[PRE11]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Using `li` tags will mean that we have to make a few CSS style changes to remove
+    the list bullet points, but the code will be easier to read for any developer
+    (and it may be you) who looks at it in the future.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`li`标签意味着我们需要进行一些CSS样式更改来移除列表项目符号，但是对于未来的任何开发人员（可能包括你自己）来说，代码将更易于阅读。
+- en: 'Next, let’s take a look at the navigation section of the example application.
+    It has a series of links that you might almost think of as a menu of options:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们来看看示例应用程序的导航部分。它有一系列链接，你几乎可以把它们看作是选项菜单：
+- en: '[PRE12]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'So, should you apply the `menu` and `menuitem` roles here? The answer to this
+    is: almost certainly *no*.'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以，在这里应用`menu`和`menuitem`角色吗？答案几乎肯定是*不*。
+- en: Menus and menu items have expected behavior. A user who arrives at a menu will
+    probably expect it to pop up if they select it. Once the menu is visible, they
+    will probably use the arrow keys to navigate the options rather than move around
+    with the Tab key.^([1](ch09.xhtml#idm46634389781320))
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 菜单和菜单项具有预期行为。用户到达菜单时，可能期望如果选择它，则弹出菜单。一旦菜单可见，他们可能会使用箭头键浏览选项，而不是用Tab键移动。^([1](ch09.xhtml#idm46634389781320))
+- en: Now let’s take a look at the + button in our example application that allows
+    a user to create a new task by displaying a pop-up task form (see [Figure 9-6](#ch09_image_6)).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们来看看我们示例应用程序中的+按钮，它允许用户通过显示弹出式任务表单来创建新任务（见[图 9-6](#ch09_image_6)）。
+- en: '![](Images/recb_0906.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0906.png)'
+- en: Figure 9-6\. A new task form appears when the user clicks the *+* button
+  id: totrans-93
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-6\. 用户点击*+*按钮后会出现一个新任务表单
+- en: 'This is the code for the button:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是按钮的代码：
+- en: '[PRE13]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Do we need to apply the `button` role? No. The element is already a button.
+    But we can provide some additional information about what the user can expect
+    to happen if they click the button. A pop-up will appear. We can make that explicit
+    in the HTML with the `aria-haspopup` attribute:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们是否需要应用`button`角色？不需要。该元素已经是一个按钮。但我们可以提供关于用户点击按钮后可以期待发生什么的一些额外信息。将弹出窗口显式显示在HTML中，使用`aria-haspopup`属性：
+- en: '[PRE14]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: The value of the `aria-haspopup` attribute has to match the role of the component
+    that will appear as a result. In this case, we’re going to display a dialog. You
+    can also set the `aria-haspopup` attribute to the value `true`. Still, a screen
+    reader will interpret this as a `menu` because components with associated pop-ups
+    typically are used to open menus.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`aria-haspopup`属性的值必须与作为结果显示的组件的角色相匹配。在这种情况下，我们将显示一个对话框。您还可以将`aria-haspopup`属性设置为值`true`。但是屏幕阅读器将其解释为`menu`，因为通常与弹出窗口相关的组件用于打开菜单。'
+- en: 'Because we’ve set `aria-haspopup` to `dialog`, we will also need to make sure
+    the `TaskForm` that appears has the role `dialog`. This is the current code for
+    the `TaskForm`:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们将`aria-haspopup`设置为`dialog`，所以我们还需要确保显示的`TaskForm`具有`dialog`角色。这是当前`TaskForm`的代码：
+- en: '[PRE15]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'We will wrap the `TaskForm` in a `Modal` component, like this:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将`TaskForm`包装在`Modal`组件中，如下所示：
+- en: '[PRE16]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'There are two parts to this `Modal` component:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个`Modal`组件分为两部分：
+- en: An external `Modal` wrapper, which is there to shade the other content of the
+    page and is a semi-transparent layer
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个外部的`Modal`包装器，用于遮蔽页面的其他内容，是一个半透明的层
+- en: An inner `Modal-dialog` `div`, which displays the contents in what looks like
+    a window
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个内部`Modal-dialog` `div`，显示的内容看起来像一个窗口
+- en: Because the `Modal` class is reusable and might be used in things other than
+    *dialogs* (such as *alerts*), we will give the `Modal` class an additional `title`
+    property, which will be applied to the `Modal-dialog`. The `title` will make the
+    purpose of the dialog clear to anyone with a screen reader.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为`Modal`类可重用，可能会用于除*对话框*（例如*警报*）之外的其他内容，因此我们将为`Modal`类添加一个额外的`title`属性，该属性将应用于`Modal-dialog`。`title`将使屏幕阅读器用户清楚地了解对话框的目的。
+- en: 'This gives us our updated `Modal` component:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这给我们带来了更新后的`Modal`组件：
+- en: '[PRE17]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Here is our updated `TaskForm` component:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们更新后的`TaskForm`组件：
+- en: '[PRE18]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Finally, let’s consider the Delete button that appears next to each `Task`
+    and looks like a small trash can:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们考虑每个`Task`旁边出现的删除按钮，看起来像一个小垃圾桶：
+- en: '[PRE19]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The trash can icon is working as a button, so we’ve given it that role. The
+    trash can already has an `aria-haspopup` because a dialog will ask the user to
+    confirm the deletion.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 垃圾桶图标作为按钮工作，因此我们赋予它该角色。垃圾桶已经具有`aria-haspopup`，因为对话框会要求用户确认删除。
+- en: 'But just like in the case of the lists and list items, it is often better to
+    implement buttons as buttons. We can rewrite this component as a `button` wrapping
+    an image:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但就像列表和列表项的情况一样，将按钮实现为按钮通常更好。我们可以将此组件重写为包装图像的`button`：
+- en: '[PRE20]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Not only will this be clearer to developers, but it will also be automatically
+    tabbable.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这不仅对开发人员更清晰，而且也是可自动使用的。
+- en: Discussion
+  id: totrans-117
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Roles overlap in some ways with landmarks. There are landmark roles available,
+    like `main` and `header`. But they serve two different purposes. Landmarks are,
+    as the name suggests, ways of highlighting major parts of a web page. Roles, in
+    contrast, describe the intended behavior of some part of the interface. In both
+    cases, landmarks and roles are there to provide additional meaning to a web page.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 角色在某些方面与地标重叠。有可用的地标角色，如`main`和`header`。但它们有两种不同的用途。地标是如其名，用于突出显示网页的重要部分。角色则描述接口某些部分的预期行为。在这两种情况下，地标和角色都旨在为网页提供额外的含义。
+- en: If your interface contains components that behave like standard HTML elements,
+    such as lists, it is often better to style the standard HTML markup than re-create
+    the elements with custom code.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的界面包含行为类似标准HTML元素的组件，例如列表，通常最好样式化标准HTML标记，而不是使用自定义代码重新创建元素。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Check Accessibility with ESlint
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用ESlint检查辅助功能
+- en: Problem
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: If you don’t need to use any accessibility equipment, it can be challenging
+    to identify accessibility problems.^([2](ch09.xhtml#idm46634389084008)) In the
+    heat of development, it’s also easy to acquire regression issues that break the
+    accessibility of code that you’ve previously tested.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你不需要使用任何可访问性设备，识别可访问性问题可能会很具有挑战性。^([2](ch09.xhtml#idm46634389084008))在开发的热情中，还很容易出现破坏你之前测试过的代码可访问性的回归问题。
+- en: What you need is a way to quickly and easily find accessibility problems as
+    you create them. You need a process that is continuously watching your code as
+    you type and flagging them immediately while you still remember what you did.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你创建代码时，你需要一种快速而简便地找出可访问性问题的方式。你需要一个可以在你输入代码时持续监控并立即标记问题的流程，这样你还记得你做了什么。
+- en: Solution
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to see how you can configure the `eslint` tool to find the more
+    obvious accessibility problems in code.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将看看如何配置`eslint`工具以查找代码中更明显的可访问性问题。
+- en: '`eslint` is a tool that performs static analysis on your code. It will find
+    unused variables, missing dependencies in `useEffect` calls, and so on. If you
+    created your application with `create-react-app`, you probably have `eslint` running
+    continuously on your application. The development server will rerun `eslint` each
+    time the code needs recompiling, and any `eslint` errors will appear in the server
+    window.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`eslint`是一个对你的代码进行静态分析的工具。它会找出未使用的变量，在`useEffect`调用中缺少的依赖等问题。如果你用`create-react-app`创建了你的应用程序，可能已经在你的应用上持续运行`eslint`。开发服务器将在每次代码需要重新编译时重新运行`eslint`，任何`eslint`错误都将出现在服务器窗口中。'
+- en: 'If you don’t already have `eslint` installed, you can install it with this
+    command:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你还没有安装`eslint`，你可以使用以下命令进行安装：
+- en: '[PRE21]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Or you can use its `yarn` equivalent. `eslint` can be extended with *plugins*.
+    A plugin is a collection of rules that `eslint` will apply to static code as it
+    is saved. There is a plugin specifically created to check for accessibility problems.
+    It’s called jsx-a11y, and you can install it with the following:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者你可以使用它的`yarn`等效方式。`eslint`可以通过*插件*进行扩展。插件是一组规则，`eslint`将在保存静态代码时应用这些规则。有一个专门用来检查可访问性问题的插件。它被称为jsx-a11y，你可以使用以下命令安装它：
+- en: '[PRE22]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: If you want to be able to run `eslint` manually, you can add a script to your
+    *package.json* file:^([3](ch09.xhtml#idm46634389065672))
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想手动运行`eslint`，你可以将一个脚本添加到你的*package.json*文件中：^([3](ch09.xhtml#idm46634389065672))
+- en: '[PRE23]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Before we can use the jsx-a11y plugin, we will need to configure it. We can
+    do this by updating the `eslintConfig` section of *package.json*:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们可以使用jsx-a11y插件之前，我们需要对其进行配置。我们可以通过更新*package.json*中的`eslintConfig`部分来实现这一点：
+- en: '[PRE24]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: This configuration will tell `eslint` to use the new plugin, and it will also
+    enable a set of recommended accessibility rules.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个配置将告诉`eslint`使用新的插件，并启用一组推荐的可访问性规则。
+- en: 'You can also, if you choose, configure the way each of the rules works by adding
+    additional configuration to the `rules` section. And we’re going to do that now,
+    by disabling one of the rules:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你选择，你也可以通过向`rules`部分添加额外配置来配置每个规则的工作方式。我们现在将通过禁用其中一个规则来实现这一点：
+- en: '[PRE25]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Disabling rules might seem like a bad idea, but there is a reason why you might
+    want to disable the `no-onchange` rule specifically.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 禁用规则可能看起来不是一个好主意，但有一个特定的理由你可能想要禁用`no-onchange`规则。
+- en: The jsx-a11y developers created the `no-onchange` rule because of a problem
+    with old browsers, which implemented `onchange` in disparate ways. Some would
+    generate an `onChange` event every time the user typed a character into an input
+    field. Others would generate the event only when the user left the field. The
+    different behaviors caused a huge number of problems for people using accessibility
+    tools.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: jsx-a11y开发人员创建了`no-onchange`规则，因为旧版浏览器存在问题，它们以不同的方式实现了`onchange`。一些浏览器在用户每次在输入字段中键入字符时都会生成一个`onChange`事件。其他浏览器仅在用户离开字段时生成事件。这些不同的行为给使用可访问性工具的人们带来了大量问题。
+- en: 'The solution was to replace all `onChange` handlers with `onBlur` handlers,
+    which meant that *all* browsers would fire field change events consistently: when
+    the user left the field.'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案是将所有的`onChange`处理程序替换为`onBlur`处理程序，这意味着*所有*浏览器在用户离开字段时会触发字段更改事件。
+- en: 'But this rule is entirely out-of-date now and is deprecated in the plugin.
+    If you try to replace all of the `onChange` handlers in your React code with `onBlur`
+    handlers, you will change significantly how your application works. You will also
+    be going away from the standard way React tracks the state of form fields: to
+    use `onChange`.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是现在这条规则已经完全过时，并且在插件中已被弃用。如果您尝试将 React 代码中所有的 `onChange` 处理程序替换为 `onBlur` 处理程序，将会显著改变应用程序的工作方式。您还将远离
+    React 用于跟踪表单字段状态的标准方法：使用 `onChange`。
+- en: So, in this *one* case, it is a good idea to disable the rule.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在这 *一* 情况下，禁用规则是一个好主意。
+- en: 'We can now run `eslint`, with our accessibility rules enabled:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以运行 `eslint`，并启用我们的可访问性规则：
+- en: '[PRE26]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'In an earlier version of the application, `eslint` found a number of errors:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在应用程序的早期版本中，`eslint` 发现了一些错误：
+- en: '[PRE27]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'To see what the cause of these errors, let’s take a look at the *Task.js* source
+    code:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看这些错误的原因，让我们看一下 *Task.js* 的源代码：
+- en: '[PRE28]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: The `Task` component displays the details of a task inside a small card panel
+    (see [Figure 9-7](#ch09_image_7)).
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Task` 组件在一个小卡片面板内显示任务的详细信息（参见 [图 9-7](#ch09_image_7)）。'
+- en: '![](Images/recb_0907.png)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0907.png)'
+- en: Figure 9-7\. The app displays tasks in separate panels, each with a delete button
+  id: totrans-152
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-7\. 应用程序在单独的面板中显示任务，每个面板都有一个删除按钮
+- en: If the user clicks a task, they will open a form that will allow them to edit
+    the task’s details. The code that does this is the `onClick` handler on the `Task-contents`
+    `div`.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户点击一个任务，他们将打开一个表单，允许他们编辑任务的细节。完成此操作的代码是 `Task-contents` `div` 上的 `onClick`
+    处理程序。
+- en: 'To understand why `eslint` is unhappy, let’s first look at this error:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解为什么 `eslint` 不高兴，让我们先看看这个错误：
+- en: '[PRE29]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Elements like `div`s are *static*. They have no built-in interactive behavior.
+    By default, they are just things that layout other things. `eslint` is unhappy
+    because the `onClick` handler suggests that this particular `div` is actually
+    being used as an *active* component. If someone is using an accessibility device,
+    we will need to tell them the purpose of this component. `eslint` expects us to
+    do that by giving the `div` a *role*.^([4](ch09.xhtml#idm46634388735016))
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像 `div` 这样的元素是 *静态* 的。它们没有内置的交互行为。默认情况下，它们只是布局其他内容的东西。`eslint` 不高兴是因为 `onClick`
+    处理程序表明这个特定的 `div` 实际上被用作 *活动* 组件。如果有人使用辅助功能设备，我们需要告诉他们此组件的目的。`eslint` 希望我们通过给
+    `div` 分配一个 *role* 来做到这一点。^([4](ch09.xhtml#idm46634388735016))
+- en: 'We will give this `div` a role of `button` to indicate that the user will use
+    the component by clicking it. When we click a task, we will display a pop-up edit
+    window, so we will also give the `div` an `aria-haspopup` attribute to tell the
+    user that clicking the task will open a dialog:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将为这个 `div` 元素设置 `button` 角色，以指示用户通过点击来使用该组件。当我们点击一个任务时，将显示一个弹出的编辑窗口，因此我们还会给
+    `div` 元素添加 `aria-haspopup` 属性，告知用户点击任务将打开一个对话框：
+- en: '[PRE30]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: It is often better to convert an element to a native `button` tag rather than
+    use the `button` role. However, in this case, the `div` is wrapping a reasonably
+    large block of HTML text, so it makes more sense to provide a role rather than
+    deal with the styling consequences of making a gray button look like a card.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将元素转换为原生 `button` 标签通常比使用 `button` 角色更好。但在这种情况下，`div` 元素包裹了一块相当大的 HTML 文本块，因此提供角色而不是处理将灰色按钮看起来像卡片的样式后果更有意义。
+- en: 'If we run `eslint` again, we still have two errors. But one of them is new:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们再次运行 `eslint`，我们仍然有两个错误。但其中一个是新的：
+- en: '[PRE31]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'We’ve said that the task behaves like a button. But: roles have rules. If we
+    want something to be treated like a button, it must behave like a button. One
+    thing that buttons can do is be *tabbed* to. They need to be able to receive focus
+    from the keyboard. We can do that by adding a `tabIndex` attribute:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们说任务的行为像一个按钮。但是：角色有规则。如果我们希望某物被视为按钮，它必须表现得像按钮一样。按钮可以做的一件事是可以被 *切换* 到。它们需要能够从键盘接收焦点。我们可以通过添加
+    `tabIndex` 属性来实现这一点：
+- en: '[PRE32]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Setting `tabIndex` to `0` means that our task will become part of the tab sequence
+    of the page.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 `tabIndex` 设置为 `0` 意味着我们的任务将成为页面的标签顺序的一部分。
+- en: '`tabIndex` can have several values: –1 means that it can be focused programmatically
+    only; 0 means that it is an ordinary tabbable component. If an element has a tabbable
+    value greater than 0, it means the focus system should give it a higher priority.
+    It would be best if you generally avoided values greater than 0, as they can cause
+    accessibility problems.^([5](ch09.xhtml#idm46634388558776))'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`tabIndex`可以有几个值：-1表示只能通过程序设置焦点；0表示它是一个普通的可标记组件。如果一个元素的可标记值大于0，这意味着焦点系统应该给它更高的优先级。通常应避免使用大于0的值，因为它们可能会引起可访问性问题。^([5](ch09.xhtml#idm46634388558776))'
+- en: 'If we run `eslint` again, we have just one error:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们再次运行`eslint`，我们只有一个错误：
+- en: '[PRE33]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: This error means that we have an `onClick` event to say what happens if someone
+    clicks the task with a mouse, but we have no code to respond to the keyboard.
+    If someone is unable to use the mouse, they will be unable to edit a task.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个错误意味着我们有一个`onClick`事件来定义鼠标点击任务时发生的操作，但是我们没有代码来响应键盘。如果有人无法使用鼠标，他们将无法编辑任务。
+- en: 'So we will need to add some sort of key-event handler. We’ll add code to call
+    the edit event if the user presses the Enter key or presses the spacebar:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们需要添加某种键盘事件处理程序。我们将添加代码以在用户按Enter键或空格键时调用编辑事件：
+- en: '[PRE34]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Adding the keyboard handler will fix the remaining error.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加键盘处理程序将修复剩余的错误。
+- en: Each of the rules in jsx-a11y has an associated [page on GitHub](https://oreil.ly/uo7Ry),
+    providing more details about why code might break a rule and what you can do to
+    fix it.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: jsx-a11y中的每个规则都有一个关联的[GitHub页面](https://oreil.ly/uo7Ry)，详细说明代码可能违反规则的原因以及如何修复它。
+- en: Discussion
+  id: totrans-173
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: jsx-a11y is probably one of the most useful plugins available for `eslint`.
+    Often, lint rules will check for good programming practice and can find a few
+    coding issues. But the jsx-a11y plugin can genuinely change the design of your
+    application.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: jsx-a11y可能是`eslint`中最有用的插件之一。通常，lint规则会检查良好的编程实践并可以找到一些编码问题。但是jsx-a11y插件可以真正改变应用程序的设计。
+- en: Making sure your application allows keyboard navigation is important not only
+    for people using accessibility tools, but it’s also useful for people who might
+    use your application frequently. If someone uses an application for a long time,
+    they will often prefer to use a keyboard instead of a mouse because a keyboard
+    requires less movement and is more precise.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保您的应用程序允许键盘导航对于使用辅助工具的人来说很重要，但对于经常使用您的应用程序的人来说也很有用。如果有人长时间使用应用程序，他们通常会更喜欢使用键盘而不是鼠标，因为键盘需要更少的移动并且更精确。
+- en: 'We’ve also looked at how setting `tabIndex` can give elements keyboard focus.
+    Some browsers—notably Firefox—provide subtle indicators to show which elements
+    have keyboard focus. If you want to make it clear to users where the focus currently
+    is, consider adding some top-level CSS to your application:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还看过如何设置`tabIndex`来给元素添加键盘焦点。一些浏览器，特别是Firefox，会提供微妙的指示器来显示当前具有键盘焦点的元素。如果您希望清楚地向用户显示当前焦点在哪里，请考虑在您的应用程序中添加一些顶级CSS：
+- en: '[PRE35]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: This style rule will add a discernible outline to any component with keyboard
+    focus. Some users will be more likely to choose keyboard navigation once they
+    can see it is available.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个样式规则将为任何具有键盘焦点的组件添加一个可识别的轮廓。一些用户更有可能选择键盘导航，一旦他们看到它是可用的。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub站点](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Use Axe DevTools at Runtime
+  id: totrans-180
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在运行时使用Axe DevTools
+- en: Problem
+  id: totrans-181
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Static code analysis tools, like `eslint`, can be used to uncover many accessibility
+    problems. But static analysis is limited. It will often miss errors that occur
+    at runtime.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态代码分析工具，如`eslint`，可以用于发现许多可访问性问题。但是静态分析是有限的。它通常会忽略运行时发生的错误。
+- en: Code might dynamically behave in a way that a static analysis tool could not
+    predict. We need to check the accessibility of an application when it is up and
+    running in a web browser.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码可能以动态方式行为，静态分析工具无法预测。我们需要在Web浏览器中运行应用程序时检查其可访问性。
+- en: Solution
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to install the axe DevTools plugin. This is available for both [Firefox](https://oreil.ly/S1TcB)
+    and [Chrome](https://oreil.ly/MhiK0).
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将安装axe DevTools插件。这个插件在[Firefox](https://oreil.ly/S1TcB)和[Chrome](https://oreil.ly/MhiK0)中都可用。
+- en: Once it’s installed, you will have an additional tab in the browser’s developer
+    console (see [Figure 9-8](#ch09_image_8)).
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完成后，您将在浏览器开发者控制台中多一个选项卡（见[图 9-8](#ch09_image_8)）。
+- en: '![](Images/recb_0908.png)'
+  id: totrans-187
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0908.png)'
+- en: Figure 9-8\. The axe DevTools in the developer console
+  id: totrans-188
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-8\. 开发者控制台中的axe DevTools。
+- en: To see how it works, let’s mess up some of the code in the example task application
+    we are using throughout this chapter.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了看到它的工作原理，让我们在本章中始终使用的示例任务应用程序中搞乱一些代码。
+- en: 'The application includes a pop-up `TaskForm` component. This component has
+    been given a `dialog` role, but we can modify it to have some invalid value:'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序包含一个弹出式`TaskForm`组件。此组件已被赋予`dialog`角色，但我们可以修改它以具有一些无效值：
+- en: '[PRE36]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: If you open *http://localhost:3000* and click the button to create a task, you
+    will see the task form (see [Figure 9-9](#ch09_image_9)).
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您打开*http://localhost:3000*并单击按钮以创建任务，您将看到任务表单（参见[图 9-9](#ch09_image_9)）。
+- en: '![](Images/recb_0906.png)'
+  id: totrans-193
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0906.png)'
+- en: Figure 9-9\. The new task form appears when you press the *+* button
+  id: totrans-194
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-9\. 按下*+*按钮后会出现新的任务表单。
+- en: If we now open the developer tools window in the browser, switch to the axe
+    DevTools tab, and run an audit on the page, you will see two errors (see [Figure 9-10](#ch09_image_10)).
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在在浏览器中打开开发者工具窗口，切换到axe DevTools选项卡，并在页面上运行审核，您将看到两个错误（参见[图 9-10](#ch09_image_10)）。
+- en: '![](Images/recb_0910.png)'
+  id: totrans-196
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0910.png)'
+- en: Figure 9-10\. Setting an invalid value in the modal causes two errors
+  id: totrans-197
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-10\. 在模态框中设置无效值会导致两个错误。
+- en: There are two errors because, first, the dialog does not contain a valid *role*.
+    Second, the modal no longer has a `dialog` role, which means it no longer acts
+    as a landmark. Some roles, such as `dialog`, mark an element as a vital landmark
+    element within the page. Every part of the application must appear inside a landmark.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两个错误，首先，对话框不包含有效的*role*。其次，模态框不再具有`dialog`角色，这意味着它不再作为页面中的重要地标。某些角色，如`dialog`，标记元素作为页面中重要的地标元素。应用程序的每个部分必须出现在一个地标内。
+- en: If you reset the code and refresh the DevTools audit, the errors will disappear.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您重置代码并刷新DevTools的审计，则错误将消失。
+- en: You could imagine that some future static code analysis might include a scan
+    of all code that checks for invalid `role` values.^([6](ch09.xhtml#idm46634388266296))
+    However, DevTools can also check for other, more subtle problems.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以想象，一些未来的静态代码分析可能包括扫描检查所有代码，以检查无效的`role`值。^([6](ch09.xhtml#idm46634388266296))
+    然而，DevTools也可以检查其他更微妙的问题。
+- en: 'In the example application, edit the *App.css* file, and add some code to change
+    the color of the main heading:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在示例应用程序中，编辑*App.css*文件，并添加一些代码以更改主标题的颜色：
+- en: '[PRE37]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: '![](Images/recb_0911.png)'
+  id: totrans-203
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0911.png)'
+- en: Figure 9-11\. The result of changing the color of the first-level heading
+  id: totrans-204
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-11\. 改变一级标题的颜色的结果。
+- en: 'The result doesn’t appear to be too drastic (see [Figure 9-11](#ch09_image_11)),
+    but it does cause DevTools to display this error:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果似乎并不太严重（参见[图 9-11](#ch09_image_11)），但是这确实导致DevTools显示此错误：
+- en: '[PRE38]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: The Chrome browser makes it relatively easy to fix contrast errors from within
+    the developer console. If you inspect the `h1` heading, examine the `color` style
+    of the element, and then click the small color panel, you will see the contrast
+    problem reported in [Figure 9-12](#ch09_image_12).
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Chrome浏览器在开发者控制台内部相对容易修复对比度错误。如果您检查`h1`标题，检查元素的`color`样式，然后点击小颜色面板，您将看到在[图 9-12](#ch09_image_12)中报告的对比度问题。
+- en: '![](Images/recb_0912.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0912.png)'
+- en: Figure 9-12\. View the contrast by clicking the small gray square in the color
+    property
+  id: totrans-209
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-12\. 点击颜色属性中的小灰色方块查看对比度。
+- en: If you now open the Contrast section, you can adjust the color to meet both
+    AA and AAA accessibility standards for contrast (see [Figure 9-13](#ch09_image_13)).
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您现在打开对比度部分，您可以调整颜色以满足AA和AAA的无障碍标准（参见[图 9-13](#ch09_image_13)）。
+- en: '![](Images/recb_0913.png)'
+  id: totrans-211
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0913.png)'
+- en: Figure 9-13\. Open the contrast ratio to adjust the color to meet accessibility
+    standards
+  id: totrans-212
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-13\. 打开对比度比率以调整颜色以满足无障碍标准。
+- en: Chrome suggests changing the color from `#949494` to `#767676`. The difference
+    is not hugely noticeable for most people but will be significantly easier to read
+    for the users who are less sensitive to contrast (see [Figure 9-14](#ch09_image_14)).
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Chrome建议将颜色从`#949494`改为`#767676`。对于大多数人来说，这种差异并不是很明显，但对于对比度较低的用户来说，阅读将显著更容易（参见[图
+    9-14](#ch09_image_14)）。
+- en: '![](Images/recb_0914.png)'
+  id: totrans-214
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0914.png)'
+- en: Figure 9-14\. The result of changing the contrast to meet the AAA standard
+  id: totrans-215
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-14\. 改变对比度以满足AAA标准的结果。
+- en: Sometimes, Chrome will not display the contrast information if it cannot identify
+    a specific background color. You can avoid this problem by temporarily assigning
+    a `backgroundColor` to the element you are checking.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，如果Chrome无法识别特定的背景颜色，它将不显示对比信息。您可以通过临时为您检查的元素分配`backgroundColor`来避免此问题。
+- en: Discussion
+  id: totrans-217
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The axe DevTools extension is straightforward to use and can find many issues
+    that a static analysis tool will miss.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: axe DevTools扩展程序易于使用，并且可以找到许多静态分析工具无法找到的问题。
+- en: It does rely on the developer manually checking for errors, but we will see
+    in the next chapter that there are ways of automating browser-based accessibility
+    tests.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它确实依赖于开发人员手动检查错误，但我们将在下一章中看到，有方法可以自动化基于浏览器的可访问性测试。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/0GfgA)下载此示例代码。
+- en: Automate Browser Testing with Cypress Axe
+  id: totrans-221
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Cypress Axe自动化浏览器测试
+- en: Problem
+  id: totrans-222
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: The previous recipe made clear that some accessibility problems appear only
+    at runtime in a real web browser and so can’t be found with static analysis.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前一个示例清楚地表明，一些可访问性问题只会在真实的Web浏览器中的运行时才会出现，因此无法通过静态分析找到。
+- en: If we rely on manual browser testing, we will likely acquire regression issues.
+    It would be much better to automate the kinds of manual checks that tools like
+    axe DevTools allow us to perform inside a browser.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们依赖于手动浏览器测试，很可能会出现回归问题。更好的做法是自动化像axe DevTools这样的工具允许我们在浏览器内执行的手动检查。
+- en: Solution
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We will examine how to automate browser accessibility testing with a plugin
+    for the Cypress testing framework called `cypress-axe`. The `cypress-axe` plugin
+    uses the same `axe-core` library as axe DevTools. Still, because we can use `cypress-axe`
+    in browser-level tests, we can automate the auditing process so that an integration
+    server can instantly find regression errors.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将研究如何使用Cypress测试框架的插件`cypress-axe`自动化浏览器可访问性测试。`cypress-axe`插件使用与axe DevTools相同的`axe-core`库。但因为我们可以在浏览器级别的测试中使用`cypress-axe`，所以我们可以自动化审核过程，以便集成服务器可以立即发现回归错误。
+- en: 'We will need to have Cypress and the `axe-core` library installed in our application:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要在我们的应用程序中安装Cypress和`axe-core`库：
+- en: '[PRE39]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'We can then install the `cypress-axe` extension:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以安装`cypress-axe`扩展程序：
+- en: '[PRE40]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'If this is the first time you’ve installed Cypress, you will need to run the
+    Cypress application, which will create the appropriate directories and initial
+    code that you can use as the basis of your tests. You can start Cypress with this
+    command:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这是您第一次安装Cypress，您需要运行Cypress应用程序，它将创建适当的目录和初始代码，供您用作测试的基础。您可以使用以下命令启动Cypress：
+- en: '[PRE41]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'We’ll need to configure the `cypress-axe` plugin. Edit the *cypress/support/index.js*
+    file, and add this line of code:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要配置`cypress-axe`插件。编辑*cypress/support/index.js*文件，并添加这一行代码：
+- en: '[PRE42]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'We will also need to add a couple of hooks that will allow us to record errors
+    during a test run. We can do this by editing the *cypress/plugins/index.js* file
+    and adding this code:'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要添加一些钩子，允许我们在测试运行期间记录错误。我们可以通过编辑*cypress/plugins/index.js*文件并添加以下代码来实现这一点：
+- en: '[PRE43]'
+  id: totrans-236
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: You can then remove all of the example tests from the *cypress/integration*
+    directory and create a new file called *cypress/integration/accessibility.js*:^([7](ch09.xhtml#idm46634387988088))
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您可以删除*cypress/integration*目录下的所有示例测试，并创建一个名为*cypress/integration/accessibility.js*的新文件:^([7](ch09.xhtml#idm46634387988088))
+- en: '[PRE44]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: This is based on the [example code](https://oreil.ly/2Exyx) from the `cypress-axe`
+    repository.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这基于来自`cypress-axe`存储库的[示例代码](https://oreil.ly/2Exyx)。
+- en: The test is inside the `describe` function. The `terminalLog` function is used
+    to report errors.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试位于`describe`函数内。`terminalLog`函数用于报告错误。
+- en: 'The test has this structure:'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试具有以下结构：
+- en: Opens the page at */*.
+  id: totrans-242
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 打开页面在*/*。
+- en: Injects the `axe-core` library into the page
+  id: totrans-243
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将`axe-core`库注入页面中
+- en: Runs an audit of the page
+  id: totrans-244
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 运行页面的审核
+- en: The `axe-core` library doing most of the work is the same library used by other
+    tools, such as the axe DevTools browser extension. The `axe-core` library will
+    examine the current DOM and check it against its rule base. It will then report
+    any failures it finds.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 做大部分工作的`axe-core`库是其他工具（如axe DevTools浏览器扩展）所使用的相同库。`axe-core`库将检查当前DOM并根据其规则集检查它。然后，它将报告它发现的任何失败。
+- en: The `cypress-axe` plugin injects the axe-core library into the browser and uses
+    the `checkA11y` command to run an audit. It sends the issues to the `terminalLog`
+    function.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cypress-axe`插件将axe-core库注入浏览器，并使用`checkA11y`命令运行审核。它将问题发送到`terminalLog`函数。'
+- en: If you run this test in Cypress, by double-clicking *accessibility.js*, it will
+    pass (see [Figure 9-15](#ch09_image_15)).
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在Cypress中双击*accessibility.js*运行此测试，它将通过（参见[图9-15](#ch09_image_15)）。
+- en: 'So, let’s create a problem. Let’s add a second test:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，让我们创建一个问题。让我们添加第二个测试：
+- en: '[PRE45]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: '![](Images/recb_0915.png)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0915.png)'
+- en: Figure 9-15\. The code passing the accessibility test
+  id: totrans-251
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-15\. 通过可访问性测试的代码
+- en: The test opens the application, clicks the + button to open the form to create
+    a task, and then performs an audit.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试打开应用程序，单击+按钮以打开创建任务的表单，然后执行审核。
+- en: 'In its current form, the application will also pass this test. So, let’s modify
+    the `TaskForm` in the example application to have an invalid `role` value:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在当前形式下，应用程序也将通过此测试。因此，让我们修改示例应用程序中的`TaskForm`，使其具有无效的`role`值：
+- en: '[PRE46]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: If you rerun the test, it will now fail. You need to run the test with the JavaScript
+    console open (see [Figure 9-16](#ch09_image_16)) to see the failure inside a console
+    table.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果重新运行测试，它现在将失败。您需要在打开JavaScript控制台时运行测试（参见[图9-16](#ch09_image_16)），以在控制台表格中看到失败。
+- en: '![](Images/recb_0916.png)'
+  id: totrans-256
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0916.png)'
+- en: Figure 9-16\. You will find the details of failures if the console is open during
+    the test
+  id: totrans-257
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-16\. 如果测试期间打开控制台，您将找到失败的详细信息
+- en: Discussion
+  id: totrans-258
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: For a great introduction to accessibility audits and cypress-axe testing, see
+    [Marcy Sutton’s talk](https://oreil.ly/nS6R2) at the ReactJS Girls Conference.
+    The talk first introduced us to the plugin, and we’ve been using it ever since.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关可访问性审核和cypress-axe测试的出色介绍，请参见[马西·萨顿（Marcy Sutton）的演讲](https://oreil.ly/nS6R2)，她在ReactJS
+    Girls Conference上介绍了该插件，并且自那以后我们一直在使用它。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Add Skip Buttons
+  id: totrans-261
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加跳过按钮
+- en: Problem
+  id: totrans-262
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Pages often have a bunch of content right at the start. There might navigation
+    links, quick-action menus, links to social media accounts, search fields, etc.
+    If you can use a mouse and see the page, this won’t be a problem. You will probably
+    mentally filter them out and start using the main content of the page.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面通常在开始时有大量内容。可能有导航链接、快速操作菜单、社交媒体账号链接、搜索字段等。如果您可以使用鼠标并查看页面，这不会成为问题。您可能会在心理上过滤它们，并开始使用页面的主要内容。
+- en: But if you are using a screen reader, you might have to listen to details of
+    each one of those initial elements on each page you visit. Modern screen reader
+    technology often allows users to automatically navigate through sections and headings,
+    but it can still take some time to figure out where the important things start.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果您使用屏幕阅读器，则可能需要听取您访问的每个页面上这些初始元素的详细信息。现代屏幕阅读器技术通常允许用户自动浏览部分和标题，但仍可能需要一些时间才能找到重要内容的位置。
+- en: That’s why many websites include hidden links and button that typically include
+    text like “Skip to content” that allows keyboard users to get to the critical
+    start of the page.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，许多网站包含隐藏的链接和按钮，通常包含文本如“跳转到内容”，使键盘用户能够快速到达页面的关键部分。
+- en: One example is YouTube. If you open YouTube and then hit the Tab key a few times,
+    you see a button appear (see [Figure 9-17](#ch09_image_17)), which will move the
+    keyboard focus to the main content if you hit the spacebar.
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个例子是YouTube。如果打开YouTube然后按Tab键几次，您会看到一个按钮出现（参见[图9-17](#ch09_image_17)），如果按空格键，它将将键盘焦点移动到主内容。
+- en: '![](Images/recb_0917.png)'
+  id: totrans-267
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0917.png)'
+- en: Figure 9-17\. YouTube displays a skip button if you press Tab three times
+  id: totrans-268
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-17\. 如果按Tab键三次，YouTube将显示跳过按钮
+- en: How do you create a button that appears only when you Tab to it?
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何创建一个仅在Tab到达时才出现的按钮？
+- en: Solution
+  id: totrans-270
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: This recipe contains a reusable `SkipButton` component that we can include on
+    pretty much any page without breaking the design or layout.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例包含一个可重用的`SkipButton`组件，我们可以将其几乎添加到任何页面而不会破坏设计或布局。
+- en: 'It needs to have several features:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它需要具有几个特性：
+- en: It needs to be hidden unless we tab into it. We don’t just want a transparent
+    button, just in case the user hits it if they accidentally click that part of
+    the screen.
+  id: totrans-273
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它需要隐藏，除非我们Tab进入。我们不只想要一个透明按钮，以防用户在意外点击屏幕的这部分时按到它。
+- en: It needs to float above the page content so that we don’t need to leave space
+    for it in the layout.
+  id: totrans-274
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它需要浮动在页面内容的上方，这样我们就不需要在布局中为它留出空间。
+- en: It needs to work as an accessible button. That means it has to be recognized
+    by screen readers and behave how a button behaves. If we hit the Enter key or
+    spacebar when it’s focused, we want it to work.
+  id: totrans-275
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它需要作为一个可访问的按钮工作。这意味着它必须被屏幕阅读器识别，并且表现出按钮的行为。如果我们在它获得焦点时按下Enter键或空格键，我们希望它能起作用。
+- en: It needs to disappear once we’ve used it.
+  id: totrans-276
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它需要在我们使用它之后消失。
+- en: We’ll add a few other requirements along the way, but this should get us started.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这个过程中会添加一些其他要求，但这应该能让我们开始。
+- en: 'Let’s start by creating a new component, called `SkipButton`. We’ll make it
+    return a single `div` and allow it to include any children that are passed to
+    it:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先创建一个名为`SkipButton`的新组件。我们将使其返回一个单一的`div`，并允许它包含任何传递给它的子元素：
+- en: '[PRE47]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: The component will also accept a class name and any other properties that a
+    parent might care to pass.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该组件还将接受一个类名和任何父组件可能想要传递的其他属性。
+- en: 'We want screen readers to see it as an actual `button`. We could do this by
+    replacing the `div` with a `button`, but we’ll keep it as a `div` so that the
+    styling is a little easier to apply. However, we will give it a `role` of `button`
+    and—because roles have rules—we will also give it a `tabIndex` value of `0`. That’s
+    something that we’d need to do anyway, because we want the user to be able to
+    Tab to it:'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望屏幕阅读器将其视为一个实际的`button`。我们可以通过用`button`替换`div`来实现这一点，但我们将保持它为`div`，以便样式更容易应用。然而，我们会给它一个`role`为`button`，并且——因为角色有规则——我们还会给它一个`tabIndex`值为`0`。这是我们无论如何都需要做的事情，因为我们希望用户能够通过Tab键访问它：
+- en: '[PRE48]'
+  id: totrans-282
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'We need the button to do something when it’s clicked. Or rather, we need it
+    to do something when the user presses the Enter key or the spacebar. So, we’ll
+    allow it to accept a property called `onClick`, but then we’ll attach it to an
+    event handler that will trigger if the user presses the Enter key or spacebar:'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当点击按钮时，我们希望它执行某些操作。或者更确切地说，我们希望在用户按下Enter键或空格键时执行某些操作。因此，我们将允许它接受一个名为`onClick`的属性，然后将其附加到一个事件处理程序上，该处理程序将在用户按下Enter键或空格键时触发：
+- en: '[PRE49]'
+  id: totrans-284
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: Of course, we could have named this property `onKeyDown`, but buttons generally
+    have `onClicks`, and that will likely be easier to remember when we come to use
+    it.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，我们可以将这个属性命名为`onKeyDown`，但是按钮通常有`onClick`，在使用时更容易记住。
+- en: 'There’s one final thing that we’ll do to the component: we’ll allow it to accept
+    a reference, which will be useful when we reuse the component in the next recipe.'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将在组件中做的一件事情是：允许它接受一个引用，在我们在下一个示例中重用组件时会很有用。
+- en: You can’t pass references in the same way that you’d pass most other properties.
+    The React renderer uses references to keep track of the generated elements in
+    the DOM.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你不能像传递大多数其他属性那样传递引用。React渲染器使用引用来跟踪在DOM中生成的元素。
+- en: 'If we want a component to accept a reference object, we’ll need to wrap everything
+    in a call to React’s `forwardRef` function. The `forwardRef` function returns
+    a wrapped version of your component, extracting the reference from the parent
+    component and passing it explicitly to the component it wraps. That sounds a little
+    complicated, but it just means this:'
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们希望一个组件接受一个引用对象，我们需要将所有内容包裹在调用React的`forwardRef`函数中。`forwardRef`函数返回你的组件的包装版本，从父组件中提取引用并显式地传递给它包装的组件。这听起来有点复杂，但实际上就是这样：
+- en: '[PRE50]'
+  id: totrans-289
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: That’s our completed `SkipButton`, complete with an import of some style information.
+    It’s just a button. The rest is down to styling in the *SkipButton.css* file.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们完成的`SkipButton`，包含一些样式信息的导入。它只是一个按钮。其余的就是在*SkipButton.css*文件中进行样式设置。
+- en: 'We want the button to float above the other content in the page, so we’ll set
+    the `z-index` to something really high:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望按钮浮动在页面其他内容的上方，因此我们将`z-index`设置为非常高的值：
+- en: '[PRE51]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: We want to hide the button until the user has tabbed into it. We could try to
+    make it transparent, but that will have two problems. First, it might position
+    itself in front of something clickable. It would block the clicks unless we also
+    went to the trouble of setting `pointer-events` to `none`. Second, if the button
+    is transparent but still on the screen, it might be seen as extra screen clutter
+    for a screen reader to handle. If a screen reader is converting the screen spatially
+    into braille, the user would hear “Skip to content” in the middle of some other
+    piece of text.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望在用户按下 Tab 键进入按钮之前隐藏该按钮。我们可以尝试将其设置为透明，但这会带来两个问题。首先，它可能会挡住某些可点击的内容。除非我们还将`pointer-events`设置为`none`，否则会阻挡点击事件。其次，如果按钮虽然透明但仍然在屏幕上显示，对于屏幕阅读器来说可能会被视为额外的屏幕杂乱，因为如果屏幕阅读器将屏幕空间转换为点字，用户可能会在其他文本中听到“跳转到内容”。
+- en: 'So instead, we’ll put the button way off screen until we need it:'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们将按钮放在屏幕之外，直到需要它为止：
+- en: '[PRE52]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'So, what happens when someone tabs into the button? We can set styles that
+    are applied only when the button has focus:'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，当有人按 Tab 键进入按钮时会发生什么？我们可以设置仅在按钮获得焦点时应用的样式：
+- en: '[PRE53]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'Beyond that, we can just add some pure visual styling. It’s important to remember
+    that not everyone using this button is going to be using a screen reader. Some
+    will want to use keyboard navigation because they are unable to use a mouse, or
+    else they might just want to navigate with a keyboard because they find it faster:'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们可以添加一些纯视觉样式。重要的是要记住，并非每个使用此按钮的人都会使用屏幕阅读器。有些人会选择使用键盘导航，因为他们无法使用鼠标，或者因为他们觉得键盘导航更快：
+- en: '[PRE54]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'We can now insert the `SkipButton` somewhere near the start of the page. It
+    won’t be visible until the user tabs into it, but positioning does matter. We
+    want it to be within two or three Tabs from the start of the page. We’ll add it
+    to the `header` section:'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以将`SkipButton`插入到页面的开头某处。在用户按下 Tab 键进入之前，它不会可见，但位置很重要。我们希望它在页面的前两到三个 Tab
+    处。我们将其添加到`header`部分：
+- en: '[PRE55]'
+  id: totrans-301
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: We’re just using `document.querySelector` here to find the element that will
+    receive the focus. You could choose to reference the element you want to skip
+    to or else navigate to a location. In practice, we’ve found that a simple `document.querySelector`
+    is the most straightforward approach. It allows you to easily refer to elements
+    that might not be in the current component. And it doesn’t rely on navigating
+    to an anchor within a page, which might break if the application changes its routing
+    method.
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们只是使用 `document.querySelector` 来找到将接收焦点的元素。您可以选择引用要跳转到的元素，或者导航到一个位置。在实践中，我们发现使用简单的
+    `document.querySelector` 是最直接的方法。它允许您轻松引用可能不在当前组件中的元素。并且不依赖于导航到页面内锚点，如果应用程序更改其路由方法可能会导致断裂。
+- en: If you open the example application in a browser and then press Tab, you will
+    see the `SkipButton` (see [Figure 9-18](#ch09_image_18)).
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在浏览器中打开示例应用程序，然后按 Tab 键，您将看到`SkipButton`（见[图 9-18](#ch09_image_18)）。
+- en: '![](Images/recb_0918.png)'
+  id: totrans-304
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0918.png)'
+- en: Figure 9-18\. The skip button appears over the main heading if you press the
+    Tab key
+  id: totrans-305
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-18\. 如果按下 Tab 键，跳过按钮将出现在主标题上方。
+- en: Discussion
+  id: totrans-306
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It’s a good idea to place the `SkipButton` within three Tabs of the start of
+    the page, and it’s helpful if the number of *Tabs* needed is the same on every
+    page in your application. The user will then soon learn how to skip to the critical
+    part of each page. We’ve found that `SkipButton`s are also popular with people
+    who find using a keyboard more productive.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`SkipButton`放在页面开头的前三个 Tab 处是个好主意，如果每个页面中所需的*Tab*数量相同，用户很快就能学会如何跳转到每个页面的关键部分。我们发现，喜欢使用键盘更加高效的人群也很喜欢`SkipButton`。
+- en: You could create a standard `SkipButton` for each page that also moved the focus
+    to the first tabbable item on the `main` section of the page.^([8](ch09.xhtml#idm46634386852088))
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以为每个页面创建一个标准的`SkipButton`，还可以将焦点移动到页面`main`部分的第一个可标签化项上。^([8](ch09.xhtml#idm46634386852088))
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Add Skip Regions
+  id: totrans-310
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加跳过区域
+- en: Problem
+  id: totrans-311
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: We saw in the previous recipe that *skip buttons* are helpful if a user wants
+    to quickly get past all of the headers and navigation at the start of a page and
+    get into the main content.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一个示例中，我们看到*跳过按钮*对于用户想要快速跳过页面开头的所有标题和导航，直接进入主要内容是很有帮助的。
+- en: However, even within the main content, there may be times where it would be
+    helpful for a user to skip past a set of components. Consider the example tasks
+    application that we are using throughout this chapter. A user can create a reasonably
+    large number of tasks in different groups (see [Figure 9-19](#ch09_image_19)).
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，即使在主内容中，有时候用户跳过一些组件集合会更有帮助。考虑本章中我们一直在使用的示例任务应用程序。用户可以在不同组中创建相当多的任务（见[图 9-19](#ch09_image_19)）。
+- en: '![](Images/recb_0901.png)'
+  id: totrans-314
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0901.png)'
+- en: Figure 9-19\. The example application displays a set of tasks, broken into groups
+  id: totrans-315
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-19\. 该示例应用程序显示了一组任务，分成了几个组
+- en: 'If they want to get to the `Shopping` tasks, they would potentially have to
+    skip past 14 other tasks. And each one of those tasks would have two focus points:
+    the task itself and the task’s delete button. That means skipping past 28 focus
+    points, even after getting into the content of the page.'
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果他们想要进入 `Shopping` 任务，他们可能需要跳过其他 14 个任务。每个任务都有两个焦点：任务本身和任务的删除按钮。这意味着即使进入页面内容后，仍然需要跳过
+    28 个焦点。
+- en: What can we do to make it easier for a user to skip past a collection of components?
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们能做些什么来使用户更容易跳过一系列组件？
+- en: Solution
+  id: totrans-318
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to use the `SkipButton` component we created in the previous recipe
+    to create skip-regions.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用之前创建的 `SkipButton` 组件来创建跳过区域。
+- en: If we tab forward into some section of the main content of the page, such as
+    the Office tasks, we want a button to appear that allows the user to skip past
+    the Office tasks entirely (see [Figure 9-20](#ch09_image_20)).
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们向前切换到页面主内容的某个部分，比如办公任务，我们希望出现一个按钮，允许用户完全跳过办公任务（见[图 9-20](#ch09_image_20)）。
+- en: '![](Images/recb_0920.png)'
+  id: totrans-321
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0920.png)'
+- en: Figure 9-20\. We want a skip button to appear when we tab forward into a group
+  id: totrans-322
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-20\. 我们希望在向前切换到一个组时出现一个跳过按钮
+- en: Conversely, if they are tabbing backward into the Office section, we want a
+    button to appear that allows them to skip before the Office tasks (see [Figure 9-21](#ch09_image_21)).
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，如果他们向后切换到办公室部分，我们希望出现一个按钮，允许他们在办公室任务之前跳过（见[图 9-21](#ch09_image_21)）。
+- en: We only want these buttons to appear when entering a region and not when we’re
+    leaving. That means the Skip Office button appears only when we tab forward, and
+    the Skip before Office appears only when we tab backward.
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们只希望在进入一个区域时显示这些按钮，而在离开时不显示。这意味着当我们向前切换标签时只显示“跳过办公室”按钮，并且在向后切换标签时只显示“在办公室之前跳过”按钮。
+- en: '![](Images/recb_0921.png)'
+  id: totrans-325
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0921.png)'
+- en: Figure 9-21\. A skip button should also appear when we tab back into a group
+  id: totrans-326
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-21\. 当我们向后切换到一个组时，也应该出现一个跳过按钮
+- en: 'Before looking at the implementation, let’s look at how we will use a skip-region
+    before getting into the gory details of the implementation. Our task application
+    renders a series of groups of tasks using the `TasksContexts` component:'
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在看具体实现之前，让我们看看如何在进入实现细节的血腥细节之前使用跳过区域。我们的任务应用程序使用 `TasksContexts` 组件渲染一系列任务组：
+- en: '[PRE56]'
+  id: totrans-328
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'Each “context” (group of tasks, for shopping, office, research, etc.) has a
+    heading and a list of tasks. We want the user to be able to skip over each of
+    the groups. We’ll wrap each of the task-groups in a new component called `Skip`,
+    like this:'
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个“上下文”（如购物、办公、研究等任务组）都有一个标题和一组任务。我们希望用户能够跳过每个任务组。我们将每个任务组包装在一个名为 `Skip` 的新组件中，如下所示：
+- en: '[PRE57]'
+  id: totrans-330
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: If we wrap some tasks in our (as yet nonexistent) `Skip` component, the user
+    will see the `SkipButtons` magically appear and disappear each time they enter
+    the group of tasks.
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们把一些任务包装在我们（尚不存在的）`Skip` 组件中，用户进入任务组时将会看到 `SkipButtons` 神奇地出现和消失。
+- en: All we need to pass to the `Skip` component is a name, which it will use in
+    the “Skip…” and “Skip before…” text.
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们只需要传递一个名称给 `Skip` 组件，它将用于“跳过…”和“在…之前跳过…”文本中。
+- en: 'Now, to create the `Skip` component, let’s begin with a simple component that
+    renders two `SkipButtons` and any child components it’s been given:'
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，要创建 `Skip` 组件，让我们从一个简单的组件开始，它渲染两个 `SkipButtons` 和它所接收到的任何子组件：
+- en: '[PRE58]'
+  id: totrans-334
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'We have created two references that will allow us to keep track of each of
+    the buttons. When a user clicks the `startButton`, the focus will skip to the
+    `endButton`, and vice versa:'
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们创建了两个引用，用于跟踪每个按钮。当用户点击 `startButton` 时，焦点将跳转到 `endButton`，反之亦然：
+- en: '[PRE59]'
+  id: totrans-336
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: If we run this code, we will see the `SkipButton` when we enter a set of tasks,
+    and we click Enter, the focus will shift to the `SkipButton` at the end of the
+    list of tasks.
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们运行此代码，当我们进入一组任务时，我们会看到`SkipButton`，并且当我们点击Enter键时，焦点将移动到任务列表末尾的`SkipButton`。
+- en: However, instead of jumping to the `endButton`, we want to focus on whatever
+    comes *after* the `endButton`. It’s as if we want to jump to the button at the
+    end of the list and then immediately press Tab to get to the next thing. And we
+    can do that if we create a function that will programmatically perform a Tab operation:^([9](ch09.xhtml#idm46634386097672))
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，我们不是要跳到`endButton`，而是想要聚焦于`endButton`后面的内容。就像我们希望跳到列表末尾的按钮，然后立即按Tab键到达下一个内容。如果我们创建一个函数来执行Tab操作，我们就可以做到这一点：^([9](ch09.xhtml#idm46634386097672))
+- en: '[PRE60]'
+  id: totrans-339
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: This code finds all of the elements in the DOM that we can navigate to with
+    the Tab key. It then searches through the list until it finds the element that
+    currently has focus, and then it sets the focus to the next element.
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码查找DOM中所有可以使用Tab键导航到的元素。然后它在列表中搜索，直到找到当前具有焦点的元素，然后将焦点设置为下一个元素。
+- en: 'We can write a similar function called `focusPreviousElement`, which programmatically
+    performs a back-Tab. We can then add our `Skip` component:'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以编写一个类似的函数称为`focusPreviousElement`，用于程序化地执行反向Tab操作。然后我们可以添加我们的`Skip`组件：
+- en: '[PRE61]'
+  id: totrans-342
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: When we enter a group of tasks—such as Office—we see a `SkipButton`, which will
+    let us skip past the group entirely, onto whatever follows.
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们进入一组任务（例如办公室）时，我们会看到一个`SkipButton`，它让我们可以跳过整个组，继续到接下来的内容。
+- en: 'We have just one more feature to add. We only want the `SkipButton`s to appear
+    when we are entering a skip-region, not when we’re leaving one. We can do this
+    by keeping a state variable called `inside` updated with whether the focus is
+    currently inside or outside the current component:'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们只需再添加一个功能。我们只希望在进入跳过区域时显示`SkipButton`，而不是在离开时显示。我们可以通过保持一个名为`inside`的状态变量来实现这一点，该变量跟踪当前组件内外焦点的状态：
+- en: '[PRE62]'
+  id: totrans-345
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: Our skip-region is now complete. If a user tabs into a group of tasks, a `SkipButton`
+    appears. They can use the button to skip past that group and on to the next.
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的跳过区域现在已经完成。如果用户通过Tab键进入任务组，将会出现一个`SkipButton`。他们可以使用该按钮跳过该组，并继续进行下一步操作。
+- en: Discussion
+  id: totrans-347
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: It would help if you were careful about applying skip-regions too often. They
+    are best used to skip past many components that the user would otherwise need
+    to tab through.
+  id: totrans-348
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在过多应用跳过区域时，您需要谨慎。最好的用法是用于跳过用户否则需要通过Tab键浏览的许多组件。
+- en: There are other approaches you can take. For example, suppose your page contains
+    a series of headings and subheadings. In that case, you might consider adding
+    `SkipBut⁠tons` that allow the user to skip to the next heading (if they are tabbing
+    forward) or the previous heading (if they are tabbing backward).
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以采取其他方法。例如，如果您的页面包含一系列标题和副标题，您可以考虑添加`SkipButton`，使用户可以跳转到下一个标题（如果他们向前Tab）或上一个标题（如果他们向后Tab）。
+- en: Some users will have accessibility software that allows them to skip past groups
+    and sections of components without any additional code required in the application.
+    In those cases, the `SkipButton`s will not appear on the page, and the user will
+    ignore them entirely.
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些用户将使用辅助功能软件，使其能够跳过组和组件的部分，而无需在应用程序中添加任何额外的代码。在这些情况下，`SkipButton`不会显示在页面上，并且用户将完全忽略它们。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-351
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Capture Scope in Modals
+  id: totrans-352
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 捕捉模态中的范围
+- en: Problem
+  id: totrans-353
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: React applications frequently display pop-ups. For example, the example tasks
+    application used in this chapter displays a pop-up dialog box when you click a
+    task. The dialog box allows the user to edit the task’s details (see [Figure 9-22](#ch09_image_22)).
+  id: totrans-354
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React应用程序经常显示弹出窗口。例如，在本章中使用的示例任务应用程序在单击任务时显示弹出对话框。该对话框允许用户编辑任务的详细信息（见[图9-22](#ch09_image_22)）。
+- en: '![](Images/recb_0922.png)'
+  id: totrans-355
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0922.png)'
+- en: Figure 9-22\. A edit dialog appears when the user clicks a task
+  id: totrans-356
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-22\. 用户单击任务后会出现编辑对话框
+- en: 'These pop-ups are frequently *modal*, which means we will either interact with
+    them or dismiss them before returning to the rest of the application. However,
+    there can be a problem with custom modal dialogs: the focus can escape from them.'
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些弹出窗口通常是*模态*的，这意味着我们要么与它们交互，要么在返回应用程序的其余部分之前将其关闭。但是，自定义模态对话框可能会存在一个问题：焦点可能会从中逃逸。
+- en: Let’s look at the task form from the example application. An earlier version
+    of the code suffered from this leaky-focus problem. If the user clicked a task,
+    they would see the task form, and the first field would instantly grab the focus.
+    But if the user then pressed back-Tab, the focus would shift into the other items
+    in the background (see [Figure 9-23](#ch09_image_23)).
+  id: totrans-358
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看一下示例应用程序中的任务表单。早期版本的代码存在这个泄漏焦点的问题。如果用户点击一个任务，他们将看到任务表单，第一个字段将立即获得焦点。但如果用户按回Tab键，则焦点将移动到背景中的其他项目中（见[图9-23](#ch09_image_23)）。
+- en: '![](Images/recb_0923.png)'
+  id: totrans-359
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0923.png)'
+- en: Figure 9-23\. Pressing back-Tab moves the focus out of the dialog and on to
+    the *Charts* task
+  id: totrans-360
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-23。按回Tab键将焦点移出对话框，转到*Charts*任务。
+- en: If you can see where the focus has gone, then this is a slightly odd feature.
+    But this would be a significant source of confusion for anyone using accessibility
+    software, who might be completely unaware that the modal dialog is still on the
+    screen. If someone can see the screen but cannot use a mouse, the experience might
+    be even stranger. The user might be able to focus on a component that is hidden
+    by the dialog.
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您能看到焦点已经转移到了哪里，这是一个稍微奇怪的功能。但对于使用可访问性软件的人来说，这可能是一个重大的困惑源，他们可能完全不知道模态对话框仍然在屏幕上。如果有人可以看到屏幕但无法使用鼠标，则体验可能会更加奇怪。用户可能能够聚焦到被对话框隐藏的组件上。
+- en: We need a way of trapping the focus within a set of components so that the user
+    cannot accidentally move into components that are supposed to be out of reach.
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要一种方法来限制焦点在一组组件内，以便用户不能意外地移动到本应不可及的组件中。
+- en: Solution
+  id: totrans-363
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We will install the React Focus Lock library, which will trap the focus into
+    a small subset of components. We will install it with this command:'
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将安装React Focus Lock库，它将限制焦点在一小部分组件内。您可以使用以下命令安装它：
+- en: '[PRE63]'
+  id: totrans-365
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: The React Focus Lock library works by wrapping a set of components inside a
+    `ReactFocusLock`, which will watch the focus, waiting for it to move outside of
+    itself. If that happens, it will immediately move the focus back inside.
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Focus Lock库通过在`ReactFocusLock`中包装一组组件来工作，它将监视焦点，并等待焦点移动到其外部。如果发生这种情况，它将立即将焦点移回内部。
+- en: 'The modal in our example application is created with the `Modal` component:'
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们示例应用中的模态框是使用`Modal`组件创建的：
+- en: '[PRE64]'
+  id: totrans-368
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'We pass the entire contents of the modal as child components. We can use the
+    React Focus Lock library to trap the focus within those child components by wrapping
+    them in a `ReactFocusLock`:'
+  id: totrans-369
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将模态框的整个内容作为子组件传递。我们可以使用React Focus Lock库通过将它们包装在`ReactFocusLock`中来将焦点限制在这些子组件内部：
+- en: '[PRE65]'
+  id: totrans-370
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: Now, if a user opens the `TaskForm` and starts hitting the Tab key, they will
+    cycle through the buttons and fields within the dialog box. If they Tab past the
+    last button, they will move to the first field, and vice versa.
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果用户打开`TaskForm`并开始按Tab键，他们将在对话框内循环浏览按钮和字段。如果他们在最后一个按钮后按Tab键，则将移动到第一个字段，反之亦然。
+- en: 'The library works by creating a hidden button with `tabIndex` set to 1, breaking
+    the tabindex rule in axe-core, stating that no tabindex should be greater than
+    0\. If this causes a problem, then you can disable the tabindex rule. For example,
+    in cypress-axe, you can run `cy.configureAxe({rules: [{ id: ''tabindex'', enabled:
+    false }]})` before performing an audit on the page.'
+  id: totrans-372
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '该库的工作原理是创建一个隐藏的按钮，其中`tabIndex`设置为1，违反了axe-core的tabindex规则，该规则指出tabindex不应大于0。如果这造成问题，您可以禁用tabindex规则。例如，在cypress-axe中，在执行页面审核之前，您可以运行`cy.configureAxe({rules:
+    [{ id: ''tabindex'', enabled: false }]})`。'
+- en: Discussion
+  id: totrans-373
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Our example application uses a custom-mode dialog box and, in so doing, demonstrates
+    why that is often a bad idea. If you use dialog boxes and other components from
+    libraries like Material UI, you will often get many accessibility features for
+    free. Also, libraries will often create floating elements outside of the “root”
+    `div` of the React application. They will then set the `aria-hidden` attribute
+    of the entire “root” `div` to `true`, which effectively hides the whole rest of
+    the application from screen readers and other accessibility software.
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用程序使用自定义模式对话框，从而展示了为何这通常是一个不好的做法。如果您使用来自Material UI等库的对话框和其他组件，通常会免费获得许多可访问性功能。此外，库通常会在React应用程序的“root”
+    `div`之外创建浮动元素。然后，它们将整个“root” `div`的`aria-hidden`属性设置为`true`，有效地隐藏了屏幕阅读器和其他可访问性软件的整个应用程序余下的部分。
+- en: For an excellent example of an accessible modal, take a look at [React Modal](https://oreil.ly/2nI5x)
+    from the ReactJS team.
+  id: totrans-375
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看一个无障碍模态的优秀示例，请看来自ReactJS团队的[React Modal](https://oreil.ly/2nI5x)。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: Create a Page Reader with the Speech API
+  id: totrans-377
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Speech API创建页面阅读器
+- en: Problem
+  id: totrans-378
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You can use many tools to check for accessibility, but it is hard to get a feel
+    for what it is like for a person with particular needs to use your application.
+    That is why the best way to create an accessible application is to involve people
+    who have to use accessibility devices to build and test your code.
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用许多工具来检查无障碍性，但是了解特定需求人员如何使用您的应用程序是很困难的。这就是为什么创建无障碍应用程序的最佳方法是让必须使用辅助设备的人士参与建立和测试您的代码。
+- en: For the rest of us, getting a “feel” for the experience of using the application
+    with accessibility software is still helpful. But there are problems. Braille
+    readers rely on the ability of the user to read Braille. Software that reads out
+    your application is a good option, but most screen readers are pretty expensive.
+    The Mac comes with a built-in screen reader called VoiceOver, which has a whole
+    host of features that allow you to skip around a screen. But not everyone uses
+    a Mac.
+  id: totrans-380
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们其他人来说，通过辅助软件体验使用应用程序的“感觉”仍然是有帮助的。但是存在问题。盲文阅读器依赖用户阅读盲文的能力。能够读取您应用程序内容的软件是一个不错的选择，但大多数屏幕阅读器价格昂贵。Mac
+    自带名为VoiceOver的内置屏幕阅读器，具有许多功能，可以让您在屏幕上跳转。但并非每个人都使用Mac。
+- en: Chrome has an extension called ChromeVox, which works well, but it’s available
+    only for Chrome and no longer appears to be actively developed.
+  id: totrans-381
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Chrome 有一个名为ChromeVox的扩展，效果很好，但只适用于Chrome，并且似乎不再积极开发。
+- en: In addition to all of those issues, screen readers will want to tell you about
+    *everything*. You might want to use the screen reader to see what some part of
+    your application is like to use, but it will continue to read to you when you
+    switch back to your IDE or some reference material in another browser tab.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了所有这些问题外，屏幕阅读器还会想要告诉您有关*一切*的信息。您可能希望使用屏幕阅读器查看应用程序的某些部分是什么样子，但当您切换回IDE或其他浏览器标签中的一些参考材料时，它将继续朗读给您。
+- en: Even with all of those issues, it is still worth trying to experience an audio
+    version of your application. If nothing else, it will give you some sense of what
+    a poor job most of us do at writing software that people can use.
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管存在所有这些问题，尝试体验应用程序的音频版本仍然值得一试。至少，它会让您对我们大多数人在编写可供人们使用的软件方面表现得多么糟糕有所了解。
+- en: What can we do to try our application with a screen reader?
+  id: totrans-384
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以做些什么来尝试使用屏幕阅读器测试我们的应用程序？
+- en: Solution
+  id: totrans-385
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to create a simple screen reader—a very, *very* simple screen reader.
+    It won’t be professional quality, but it will provide some sense of using our
+    application with only a keyboard and audio feedback. It will also work on our
+    local React application and won’t affect our machine’s other pages or desktop
+    applications. It’s called TalkToMe.^([10](ch09.xhtml#idm46634385084376))
+  id: totrans-386
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个简单的屏幕阅读器——非常、*非常*简单的屏幕阅读器。它不会达到专业质量，但它会通过键盘和音频反馈来提供使用应用程序的一些体验。它还将在我们的本地
+    React 应用程序上运行，并且不会影响我们机器上的其他页面或桌面应用程序。它被称为TalkToMe。^([10](ch09.xhtml#idm46634385084376))
+- en: 'We will add a small amount of code to the example tasks application we are
+    using throughout this chapter. We don’t want the screen reader code to be included
+    in the production version of our code, so we’ll begin by adding a file called
+    *talkToMe.js* to the main source folder:'
+  id: totrans-387
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在本章中始终使用的示例任务应用程序中添加少量代码。我们不希望屏幕阅读器代码包含在我们代码的生产版本中，因此我们将首先在主源文件夹中添加一个名为*talkToMe.js*的文件：
+- en: '[PRE66]'
+  id: totrans-388
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: By checking the `NODE_ENV` value, we can limit the code to our development environment.
+    We’re also checking for the session-storage variable called `talkToMe`. We will
+    run the screen reader only if this exists and has the value `"true"`.
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过检查`NODE_ENV`值，我们可以将代码限制在开发环境中运行。我们还检查了名为`talkToMe`的会话存储变量。只有当此变量存在且具有值`"true"`时，我们才会运行屏幕阅读器。
+- en: We need the code to read out the details of the current element that has the
+    focus. Focus events don’t bubble, which means we cannot simply attach an `onFocus`
+    event handler to a high-level element and start tracking focus.
+  id: totrans-390
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要代码来读取具有焦点的当前元素的详细信息。焦点事件不会冒泡，这意味着我们不能简单地将`onFocus`事件处理程序附加到高级元素并开始跟踪焦点。
+- en: 'However, we *can* listen to `focusin` events. We can attach a `focusin` listener
+    to the `document` object, and it will be called every time the user moves to a
+    new component:'
+  id: totrans-391
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，我们*可以*侦听`focusin`事件。我们可以将`focusin`侦听器附加到`document`对象上，每当用户移动到新组件时，它将被调用：
+- en: '[PRE67]'
+  id: totrans-392
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: Notice that we do an additional check for the `talkToMe` item, just in case
+    the user has switched it off while using the application.
+  id: totrans-393
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们对`talkToMe`项目进行了额外的检查，以防用户在使用应用程序时关闭了它。
+- en: 'We need some way of describing the currently focused element. This function
+    will provide a rough description of the current element, based upon its name,
+    its role, and so on:'
+  id: totrans-394
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要一些方法来描述当前聚焦的元素。此函数将基于其名称、角色等提供当前元素的粗略描述：
+- en: '[PRE68]'
+  id: totrans-395
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'We can get now get a description of the currently focused element:'
+  id: totrans-396
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以获取当前聚焦元素的描述：
+- en: '[PRE69]'
+  id: totrans-397
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'Now we need to convert the text of the description into speech. For this, we
+    can use the Web Speech API, which most browsers now include. The speech synthesizer
+    accepts an object called an *utterance*:'
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要将描述的文本转换为语音。为此，我们可以使用现在大多数浏览器都包含的Web Speech API。语音合成器接受一个称为*utterance*的对象：
+- en: '[PRE70]'
+  id: totrans-399
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: 'Before we start to read out a piece of text, we first need to check if we are
+    already in the process of reading something else. If we are, we will cancel the
+    old utterance and begin the new one, which will allow the user to quickly skip
+    from component to component as soon as they have heard enough information:'
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开始朗读文本片段之前，我们首先需要检查是否已经在处理其他内容。如果是这样，我们将取消旧的朗读并开始新的朗读，这将允许用户在听到足够的信息后快速跳转到组件：
+- en: '[PRE71]'
+  id: totrans-401
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'This gives us the final version of `talkToMe`:'
+  id: totrans-402
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这给了我们最终版本的`talkToMe`：
+- en: '[PRE72]'
+  id: totrans-403
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: 'We can now add `talkToMe` to our application, by calling it from the *index.js*
+    file at the top of our application:'
+  id: totrans-404
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以通过在应用程序的*index.js*文件顶部调用它来添加`talkToMe`：
+- en: '[PRE73]'
+  id: totrans-405
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: If you now open your application in a browser, open the developer console, and
+    create a new session-storage variable called `talkToMe` set to the string “true,”
+    you should now hear elements described as you Tab between them.
+  id: totrans-406
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在在浏览器中打开应用程序，打开开发者控制台，并创建一个名为`talkToMe`的新会话存储变量，将其设置为字符串“true”，则在按Tab键切换元素时，您应该听到元素的描述。
+- en: Discussion
+  id: totrans-407
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The *talkToMe* screen reader is little more than a toy, but it will help you
+    create concise titles and other metadata in your code, stressing how important
+    it is to “front-load” information in descriptions. The sooner the user can decide
+    that an element is not what they’re looking for, the sooner they can move on.
+    It will also make it abundantly clear which parts of your application are challenging
+    to navigate and allow you to try your application without looking at the screen.
+  id: totrans-408
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*talkToMe*屏幕阅读器只不过是一个玩具，但它将帮助您在代码中创建简明的标题和其他元数据，强调“前置加载”信息的重要性。用户越早能决定某个元素不是他们正在寻找的，他们就越快可以继续。它还将清楚地显示出您的应用程序中哪些部分难以导航，并允许您在不查看屏幕的情况下尝试应用程序。'
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/0GfgA).
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/0GfgA)下载此示例的源代码。
+- en: ^([1](ch09.xhtml#idm46634389781320-marker)) For an interesting discussion on
+    the issues surrounding menus and menu items, see [this article](https://oreil.ly/i8AMI)
+    by Adrian Roselli.
+  id: totrans-410
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch09.xhtml#idm46634389781320-marker)) 有关围绕菜单和菜单项问题的有趣讨论，请参见Adrian Roselli的[这篇文章](https://oreil.ly/i8AMI)。
+- en: ^([2](ch09.xhtml#idm46634389084008-marker)) We found this ourselves while writing
+    this chapter. As a result, we have undoubtedly missed many, many accessibility
+    issues in the example application.
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch09.xhtml#idm46634389084008-marker)) 在撰写本章时，我们自己发现了这一点。因此，在示例应用程序中，我们无疑错过了许多无障碍问题。
+- en: ^([3](ch09.xhtml#idm46634389065672-marker)) Particularly useful if you want
+    to check your code in pre-commit Git hooks or on an integration server.
+  id: totrans-412
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch09.xhtml#idm46634389065672-marker)) 如果您想在预提交Git钩子或集成服务器上检查代码，这将特别有用。
+- en: ^([4](ch09.xhtml#idm46634388735016-marker)) See [“Apply Roles, Alts, and Titles”](#ch09-02)
+    for details on roles and their uses.
+  id: totrans-413
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch09.xhtml#idm46634388735016-marker)) 有关角色及其用途的详细信息，请参见[“应用角色、替代文本和标题”](#ch09-02)。
+- en: ^([5](ch09.xhtml#idm46634388558776-marker)) See the issues involving values
+    greater than zero in [“Capture Scope in Modals”](#ch09-08).
+  id: totrans-414
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch09.xhtml#idm46634388558776-marker)) 参见[“在模态框中捕获范围”](#ch09-08)中涉及大于零值的问题。
+- en: ^([6](ch09.xhtml#idm46634388266296-marker)) By the time you read this book,
+    such a rule might exist.
+  id: totrans-415
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch09.xhtml#idm46634388266296-marker)) 当你阅读本书时，这样的规则可能已经存在。
+- en: ^([7](ch09.xhtml#idm46634387988088-marker)) You can call this file whatever
+    you like, so long as it has a *.js* extension and is inside the integration directory.
+  id: totrans-416
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch09.xhtml#idm46634387988088-marker)) 您可以根据需要为此文件命名，只要它具有 *.js* 扩展名并且位于集成目录内。
+- en: ^([8](ch09.xhtml#idm46634386852088-marker)) See [“Use Landmarks”](#ch09-01)
+    for more information about `main` sections.
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch09.xhtml#idm46634386852088-marker)) 有关 `main` 部分的更多信息，请参阅 [“使用地标”](#ch09-01)。
+- en: ^([9](ch09.xhtml#idm46634386097672-marker)) This is based on an answer to a
+    question on [StackOverflow](https://oreil.ly/Li5sB) by user [Radek](https://oreil.ly/5p8nS).
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch09.xhtml#idm46634386097672-marker)) 这是基于用户 [Radek](https://oreil.ly/5p8nS)
+    在 [StackOverflow](https://oreil.ly/Li5sB) 上回答的问题的答案。
+- en: ^([10](ch09.xhtml#idm46634385084376-marker)) Thanks to Terry Tibbs for his help
+    in writing this tool.
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([10](ch09.xhtml#idm46634385084376-marker)) 感谢 Terry Tibbs 在编写此工具时提供的帮助。

@@ -1,0 +1,1601 @@
+- en: Chapter 4\. Interaction Design
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第4章 交互设计
+- en: In this chapter, we look at some recipes that address a bunch of typical interface
+    problems. How do you deal with errors? How do you help people use your system?
+    How do you create complex input sequences without writing a bunch of spaghetti
+    code?
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨一些解决典型界面问题的配方。如何处理错误？如何帮助人们使用您的系统？如何在不编写大量混乱代码的情况下创建复杂的输入序列？
+- en: This is a collection of tips that we’ve found useful, time and again. At the
+    end of the chapter, we look at various ways of adding animation to your application.
+    We take a low-tech approach where possible, and ideally, the recipes we include
+    will add meaning to your interface designs with a minimum of fuss.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一些我们一次又一次发现有用的技巧集合。在本章末尾，我们将探讨向应用程序添加动画的各种方法。我们尽可能采取低技术的方法，理想情况下，我们包含的配方将以最少的麻烦为界面设计增添意义。
+- en: Build a Centralized Error Handler
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 构建一个集中式错误处理程序
+- en: Problem
+  id: totrans-4
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'It’s hard to define precisely what makes good software good. But one thing
+    that most excellent software has in common is how it responds to errors and exceptions.
+    There will always be exceptional, unexpected situations when people are running
+    your code: the network can disappear, the server can crash, the storage can become
+    corrupted. It’s important to consider how you should deal with these situations
+    when they occur.'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很难准确定义什么使得良好的软件变得优秀。但大多数优秀的软件共同点之一是它们如何响应错误和异常。当人们运行您的代码时，总会出现异常的、意外的情况：网络可能会消失，服务器可能会崩溃，存储可能会损坏。重要的是考虑在这些情况发生时应该如何处理。
+- en: One approach that is almost certain to fail is to ignore the fact that error
+    conditions occur and to hide the gory details of what went wrong. Somewhere, somehow,
+    you need to leave a trail of evidence that you can use to prevent that error from
+    happening again.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 几乎肯定会失败的一个方法是忽视错误条件的发生并隐藏发生了什么错误的细节。无论何时何地，您都需要留下一串证据，以便您可以防止再次发生该错误。
+- en: When we’re writing server code, we might log the error details and return an
+    appropriate message to a request. But if we’re writing client code, we need a
+    plan for how we’ll deal with local errors. We might choose to display the crash’s
+    details to the user and ask them to file an error report. We might use a third-party
+    service like [Sentry.io](https://sentry.io) to log the details remotely.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们编写服务器代码时，我们可能会记录错误详细信息并返回一个适当的响应消息。但是，如果我们编写客户端代码，我们需要一个处理本地错误的计划。我们可以选择向用户显示崩溃的详细信息，并要求他们提交错误报告。我们也可以使用像[Sentry.io](https://sentry.io)这样的第三方服务远程记录详细信息。
+- en: Whatever our code does, it should be consistent. But how can we handle exceptions
+    consistently in a React application?
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论我们的代码做什么，它应该是一致的。但是在React应用程序中如何一致地处理异常？
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'In this recipe, we’re going to look at one way of creating a centralized error
+    handler. To be clear: this code won’t automatically capture all exceptions. It
+    still needs to be added explicitly to JavaScript `catch` blocks. It’s also not
+    a replacement for dealing with any error from which we can otherwise recover.
+    If an order fails because the server is down for maintenance, it is much better
+    to ask the user to try again later.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个配方中，我们将看一种创建集中式错误处理程序的方式。明确一点：这段代码不会自动捕获所有异常。它仍然需要明确添加到JavaScript的`catch`块中。它也不能替代从其他方面可以恢复的任何错误处理。如果一个订单失败是因为服务器正在进行维护，最好是告诉用户稍后再试。
+- en: But this technique helps catch any errors for which we have not previously planned.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是这种技术有助于捕捉我们之前未计划的任何错误。
+- en: 'As a general principle, when something goes wrong, there are three things that
+    you should tell the user:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为一个通则，当出现问题时，有三件事情你应该告诉用户：
+- en: What happened
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 发生了什么
+- en: Why it happened
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为什么会发生
+- en: What they should do about it
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 他们应该如何应对
+- en: 'In the example we show here, we’re going to handle errors by displaying a dialog
+    box that shows the details of a JavaScript `Error` object and asks the user to
+    email the contents to systems support. We want a simple error-handler function
+    that we can call when an error happens:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们展示的示例中，我们将通过显示对话框来处理错误，该对话框显示JavaScript `Error` 对象的详细信息，并要求用户将内容发送到系统支持的邮箱。我们希望有一个简单的错误处理函数，当出现错误时我们可以调用它：
+- en: '[PRE0]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: If we want to make the function readily available across the entire application,
+    the usual way is by using a *context*. A context is a kind of scope that we can
+    wrap around a set of React components. Anything we put into that context is available
+    to all the child components. We will use our context to store the error-handler
+    function that we can run when an error occurs.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们希望使函数在整个应用程序中都能够轻松使用，则通常的方法是使用*上下文*。上下文是一种我们可以在一组React组件周围包装的范围。我们放入该上下文的任何内容都可用于所有子组件。我们将使用我们的上下文来存储错误处理程序函数，当出现错误时我们可以运行它。
+- en: 'We’ll call our context `ErrorHandlerContext`:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将称我们的上下文为`ErrorHandlerContext`：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'To allow us to make the context available to a set of components, let’s create
+    an `ErrorHandlerProvider` component that will create an instance of the context
+    and make it available to any child components we pass to it:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了让上下文在一组组件中可用，让我们创建一个`ErrorHandlerProvider`组件，该组件将创建一个上下文实例，并使其对我们传递给它的任何子组件可用：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Now we need some code that says what to do when we call the error-handler function.
+    In our case, we need some code that will respond to an error report by displaying
+    a dialog box containing all of the error details. If you want to handle errors
+    differently, this is the code you need to modify:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要一些代码来说明当调用错误处理程序时应该做什么。在我们的情况下，我们需要一些代码来响应错误报告，并显示包含所有错误详情的对话框。如果您希望以不同方式处理错误，这就是您需要修改的代码：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: The `ErrorContainer` displays the details using an `ErrorDialog`. We won’t go
+    into the details of the code for `ErrorDialog` here as this is the code that you
+    are most likely to replace with your implementation.^([1](ch04.xhtml#idm46634420299832))
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ErrorContainer`使用`ErrorDialog`显示详细信息。我们不会在此处详细介绍`ErrorDialog`的代码，因为这是您最有可能用自己实现替换的代码。^([1](ch04.xhtml#idm46634420299832))'
+- en: 'We need to wrap the bulk of our application in an `ErrorContainer`. Any components
+    inside the `ErrorContainer` will be able to call the error handler:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要将应用程序的大部分内容包装在`ErrorContainer`中。`ErrorContainer`内的任何组件都可以调用错误处理程序：
+- en: '[PRE4]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'How does a component use the error handler? We’ll create a custom hook called
+    `useErrorHandler()`, which will get the error-handler function out of the context
+    and return it:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件如何使用错误处理程序？我们将创建一个名为`useErrorHandler()`的自定义钩子，它将从上下文中获取错误处理程序函数并返回它：
+- en: '[PRE5]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'That’s quite a complex set of code, but now we come to use the error handler;
+    it’s very simple. This example code makes a network request when a user clicks
+    a button. If the network request fails, then the details of the error are passed
+    to the error handler:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一组相当复杂的代码，但现在我们来使用错误处理程序；这非常简单。此示例代码在用户单击按钮时进行网络请求。如果网络请求失败，则将错误的详细信息传递给错误处理程序：
+- en: '[PRE6]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: You can see what the app looks like in [Figure 4-1](#ch04_image_1).
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以在[图 4-1](#ch04_image_1)中看到应用程序的外观。
+- en: '![](Images/recb_0401.png)'
+  id: totrans-33
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0401.png)'
+- en: Figure 4-1\. The time-recording app
+  id: totrans-34
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-1\. 记时应用程序
+- en: When you click the button, the network request fails because the server code
+    doesn’t exist. [Figure 4-2](#ch04_image_2) shows the error dialog that appears.
+    Notice that it shows what went wrong, why it went wrong, and what the user should
+    do about it.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你点击按钮时，由于服务器代码不存在，网络请求失败。[图 4-2](#ch04_image_2)显示了出现的错误对话框。注意，它显示了出错的原因、原因以及用户应该如何处理。
+- en: '![](Images/recb_0402.png)'
+  id: totrans-36
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0402.png)'
+- en: Figure 4-2\. When the network request throws an exception, we pass it to the
+    error handler
+  id: totrans-37
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-2\. 当网络请求抛出异常时，我们将其传递给错误处理程序
+- en: Discussion
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Of all the recipes that we’ve created over the years, this one has saved the
+    most time. During development, code often breaks, and if the only evidence of
+    a failure is a stack trace hidden away inside the JavaScript console, you are
+    likely to miss it.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们多年来创建的所有示例中，这个示例节省了最多的时间。在开发过程中，代码经常会出现问题，如果失败的唯一证据是隐藏在JavaScript控制台中的堆栈跟踪，您很可能会错过它。
+- en: Significantly, when some piece of infrastructure (networks, gateways, servers,
+    databases) fails, this small amount of code can save you untold hours tracking
+    down the cause.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当某个基础设施（网络、网关、服务器、数据库）出现故障时，这段小代码可以节省大量时间用于追踪故障原因。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/wUM7Q).
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub 网站](https://oreil.ly/wUM7Q)下载此示例的源代码。
+- en: Create an Interactive Help Guide
+  id: totrans-42
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个交互式帮助指南
+- en: Problem
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Tim Berners-Lee deliberately designed the web to have very few features. It
+    has a simple protocol (HTTP), and it originally had a straightforward markup language
+    (HTML). The lack of complexity meant that new users of websites immediately knew
+    how to use them. If you saw something that looked like a hyperlink, you could
+    click on it and go to another page.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 蒂姆·伯纳斯-李（Tim Berners-Lee）特意设计了具有极少特性的Web。它有一个简单的协议（HTTP），最初有一个简单的标记语言（HTML）。缺乏复杂性意味着网站的新用户立即知道如何使用它们。如果您看到类似超链接的东西，您可以单击它并转到另一页。
+- en: But rich JavaScript applications have changed all that. No longer are web applications
+    a collection of hyperlinked web pages. Instead, they resemble old desktop applications;
+    they are more powerful and feature-rich, but the downside is that they are now
+    far more complex to use.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，富JavaScript应用程序改变了一切。现在的Web应用程序不再是超链接网页的集合。相反，它们类似于旧桌面应用程序；它们更强大且功能丰富，但缺点是现在使用起来更加复杂。
+- en: How do you build an interactive guide into your application?
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何在您的应用程序中构建交互式指南？
+- en: Solution
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: We’re going to build a simple help system that you can overlay onto an existing
+    application. When the user opens the help, they will see a series of pop-up notes
+    that describe how to use the various features they can see on the page, as shown
+    in [Figure 4-3](#ch04_image_3).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将构建一个简单的帮助系统，可以覆盖到现有应用程序上。当用户打开帮助时，他们将看到一系列弹出式说明，描述如何使用页面上可见的各种功能，如[图 4-3](#ch04_image_3)所示。
+- en: '![](Images/recb_0403.png)'
+  id: totrans-49
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0403.png)'
+- en: Figure 4-3\. Show a sequence of help messages when the user asks
+  id: totrans-50
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-3\. 当用户询问时显示一系列帮助消息
+- en: 'We want something that will be easy to maintain and will provide help only
+    for visible components. That sounds like quite a big task, so let’s begin by first
+    constructing a component that will display a pop-up help message:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望能够轻松维护并且只为可见组件提供帮助。这听起来是一项相当大的任务，所以让我们首先构建一个能够显示弹出帮助消息的组件：
+- en: '[PRE7]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: We’re using the `Popper` component from the `@material-ui` library. The `Popper`
+    component can be anchored on the page, next to some other component. Our `HelpBub⁠ble`
+    takes a `forElement` string, which will represent a CSS selector such as `.class-name`
+    or `#some-id`. We will use selectors to associate things on the screen with pop-up
+    messages.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在使用`@material-ui`库中的`Popper`组件。`Popper`组件可以在页面上的其他组件旁边锚定。我们的`HelpBubble`采用一个`forElement`字符串，该字符串将代表一个CSS选择器，如`.class-name`或`#some-id`。我们将使用选择器将屏幕上的事物与弹出消息关联起来。
+- en: 'Now that we have a pop-up message component, we’ll need something that coordinates
+    a sequence of `HelpBubbles`. We’ll call this the `HelpSequence`:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了一个弹出消息组件，我们需要一个协调一系列`HelpBubbles`的东西。我们将其称为`HelpSequence`：
+- en: '[PRE8]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'The `HelpSequence` takes an array of JavaScript objects like this:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`HelpSequence`接受一个像这样的JavaScript对象数组：'
+- en: '[PRE9]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: and converts it into a dynamic sequence of `HelpBubbles`. It will show a `HelpBubble`
+    only if it can find an element that matches the `forElement` selector. It then
+    places the `HelpBubble` next to the element and shows the help text.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并将其转换为动态序列的`HelpBubbles`。仅当它可以找到与`forElement`选择器匹配的元素时，它才会显示`HelpBubble`。然后，它将`HelpBubble`放置在元素旁边并显示帮助文本。
+- en: 'Let’s add a `HelpSequence` to the default *App.js* code generated by `create-react-app`:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们向由`create-react-app`生成的默认*App.js*代码添加一个`HelpSequence`：
+- en: '[PRE10]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: To begin with, we cannot see anything different other than a help button (see
+    [Figure 4-4](#ch04_image_4)).
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初，我们除了一个帮助按钮之外什么也看不到（见[图 4-4](#ch04_image_4)）。
+- en: '![](Images/recb_0404.png)'
+  id: totrans-62
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0404.png)'
+- en: Figure 4-4\. The application, when it first loads
+  id: totrans-63
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-4\. 应用程序在首次加载时
+- en: When the user clicks the help button, the first help topic appears, as shown
+    in [Figure 4-5](#ch04_image_5).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击帮助按钮时，第一个帮助主题将显示，如[图 4-5](#ch04_image_5)所示。
+- en: '![](Images/recb_0403.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0403.png)'
+- en: Figure 4-5\. When the user clicks the help button, the help bubble appears for
+    the first match
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-5\. 当用户点击帮助按钮时，帮助气泡将出现在第一个匹配项上。
+- en: '[Figure 4-6](#ch04_image_6) shows the help moving to the next element when
+    the user clicks Next. The user can continue to move from item to item until there
+    are no more matching elements visible.'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 4-6](#ch04_image_6)显示了当用户点击“下一个”时帮助移动到下一个元素。用户可以继续从一个项目移动到另一个项目，直到没有更多匹配的可见元素。'
+- en: '![](Images/recb_0406.png)'
+  id: totrans-68
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0406.png)'
+- en: Figure 4-6\. The final element has a *Finish* button
+  id: totrans-69
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-6\. 最后一个元素有一个*完成*按钮
+- en: Discussion
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Adding interactive help to your application makes your user interface *discoverable*.
+    Developers spend a lot of their time adding functionality to applications that
+    people might never use, simply because they don’t know that it’s there.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向应用程序添加交互式帮助使用户界面*可发现*。开发人员花费大量时间向应用程序添加功能，而用户可能永远不知道它存在，仅仅是因为他们不知道它的存在。
+- en: The implementation in this recipe displays the help as simple plain text. You
+    might consider using Markdown, as that will allow for a richer experience, and
+    help topics can then include links to other more expansive help pages.^([2](ch04.xhtml#idm46634418710008))
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例中的实现将帮助显示为简单的纯文本。您可以考虑使用 Markdown，因为这将允许更丰富的体验，帮助主题可以包含链接到其他更详细的帮助页面。^([2](ch04.xhtml#idm46634418710008))
+- en: The help topics are automatically limited to just those elements that are visible
+    on the page. You could choose to create either a separate help sequence for each
+    page or a single large help sequence that will automatically adapt to the user’s
+    current view of the interface.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 帮助主题自动限制为页面上可见的元素。您可以选择为每个页面创建一个单独的帮助序列，或者创建一个单一的大帮助序列，它将自动适应用户当前界面的视图。
+- en: Finally, a help system like this is ideally suited for storage in a headless
+    CMS, which will allow you to update help dynamically, without the need to create
+    a new deployment each time.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，像这样的帮助系统非常适合存储在无头 CMS 中，这样可以动态更新帮助内容，而无需每次创建新的部署。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/CsiMN).
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub 网站](https://oreil.ly/CsiMN)下载此示例的源代码。
+- en: Use Reducers for Complex Interactions
+  id: totrans-76
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 用于复杂交互的 Reducer。
+- en: Problem
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Applications frequently need users to follow a sequence of actions. They might
+    be completing the steps in a wizard, or they might need to log in and confirm
+    some dangerous operation (see [Figure 4-7](#ch04_image_7)).
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序经常需要用户按照一系列操作。他们可能正在完成向导中的步骤，或者他们可能需要登录并确认某些危险操作（参见[图 4-7](#ch04_image_7)）。
+- en: '![](Images/recb_0407.png)'
+  id: totrans-79
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0407.png)'
+- en: Figure 4-7\. This deletion process requires logging in and then confirming the
+    deletion
+  id: totrans-80
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-7\. 这个删除过程需要登录然后确认删除。
+- en: Not only will the user need to perform a sequence of steps, but the steps might
+    be conditional. If the user has logged in recently, they perhaps don’t need to
+    log in again. They might want to cancel partway through the sequence.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户不仅需要执行一系列步骤，这些步骤可能是有条件的。如果用户最近已经登录过，他们可能不需要再次登录。他们可能希望在序列的中途取消操作。
+- en: If you model the complex sequences inside your components, you can soon find
+    your application is full of spaghetti code.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在组件内建模复杂的序列，很快您的应用程序可能就会充满混乱的代码。
+- en: Solution
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案。
+- en: We are going to use a reducer to manage a complex sequence of operations. We
+    introduced reducers for managing state in [Chapter 3](ch03.xhtml#chapter03). A
+    *reducer* is a function that accepts a state object and an action. The reducer
+    uses the action to decide how to change the state, and it must have no side effects.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用一个 Reducer 来管理一系列复杂的操作。我们在[第 3 章](ch03.xhtml#chapter03)介绍了用于管理状态的 Reducer。*Reducer*是一个接受状态对象和动作的函数。Reducer
+    使用动作来决定如何更改状态，并且它不能有副作用。
+- en: Because reducers have no user-interface code, they are perfect for managing
+    gnarly pieces of interrelated state without worrying about the visual appearance.
+    They are particularly amenable to unit testing.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 Reducer 没有用户界面代码，它们非常适合管理复杂的相互关联的状态片段，而不用担心视觉外观。它们特别适合单元测试。
+- en: 'For example, let’s say we implement the deletion sequence mentioned at the
+    start of this recipe. We can begin in classic test-driven style by writing a unit
+    test:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设我们实现了在本示例开头提到的删除序列。我们可以通过经典的测试驱动风格开始，编写一个单元测试：
+- en: '[PRE11]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Here our reducer function is going to be called `deletionReducer`. We pass
+    it an empty object (`{}`) and an action that says we want to start the deletion
+    process (`{type: ''START_DELETION''}`). We then say that we expect the new version
+    of the state to have a `showLogin` value of `true`, a `showConfirmation` value
+    of `false`, and so on.'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们的减少函数将被称为`deletionReducer`。我们向它传递一个空对象（`{}`）和一个指示我们要开始删除过程的动作（`{type: ''START_DELETION''}`）。然后我们说我们期望状态的新版本具有`showLogin`值为`true`，`showConfirmation`值为`false`，等等。'
+- en: 'We can then implement the code for a reducer to do just that:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以实现一个 Reducer 的代码来做到这一点：
+- en: '[PRE12]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: At first, we are merely setting the state attributes to values that pass the
+    test. As we add more and more tests, our reducer improves as it handles more situations.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初，我们只是将状态属性设置为通过测试的值。随着我们添加更多的测试，我们的减速器在处理更多情况时得到改进。
+- en: Eventually, we get something that looks like this:^([3](ch04.xhtml#idm46634418414536))
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，我们得到了类似这样的东西：^([3](ch04.xhtml#idm46634418414536))
+- en: '[PRE13]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Although this code is complicated, you can write it quickly if you create the
+    tests first.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管此代码复杂，但如果您首先创建测试，可以快速编写它。
+- en: 'Now that we have the reducer, we can use it in our application:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了减速器，可以在我们的应用程序中使用它：
+- en: '[PRE14]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Most of this code is purely creating the user interface for each of the dialogs
+    in the sequence. There is virtually no logic in this component. It just does what
+    the reducer tells it. It will take the user through the *happy path* of logging
+    in and confirming the deletion (see [Figure 4-8](#ch04_image_8)).
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码的大部分只是为序列中的每个对话框创建用户界面。在这个组件中几乎没有逻辑。它只是按照减速器告诉它做的事情。它将用户带过*快乐路径*，登录并确认删除（参见[图
+    4-8](#ch04_image_8)）。
+- en: '![](Images/recb_0407.png)'
+  id: totrans-98
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0407.png)'
+- en: Figure 4-8\. The final result
+  id: totrans-99
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-8\. 最终结果
+- en: But [Figure 4-9](#ch04_image_9) shows it also handles all of the edge cases,
+    such as invalid passwords and cancellation.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是[图 4-9](#ch04_image_9)显示它也处理了所有的边缘情况，比如无效密码和取消。
+- en: '![](Images/recb_0409.png)'
+  id: totrans-101
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0409.png)'
+- en: Figure 4-9\. The edge cases are all handled by the reducer
+  id: totrans-102
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-9\. 缩小处理的边缘情况均由减速器处理
+- en: Discussion
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: There are times when reducers can make your code convoluted; if you have few
+    pieces of state with few interactions between them, you probably don’t need a
+    reducer. But if you find yourself drawing a flowchart or a state diagram to describe
+    a sequence of user interactions, that’s a sign that you might need a reducer.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时减速器会使您的代码变得复杂；如果您的状态片段很少并且它们之间的交互也很少，您可能不需要一个减速器。但是，如果您发现自己在绘制流程图或状态图来描述一系列用户交互的顺序，那就是您可能需要减速器的信号。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/hfqLn).
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub网站](https://oreil.ly/hfqLn)下载此示例的源代码。
+- en: Add Keyboard Interaction
+  id: totrans-106
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加键盘交互
+- en: Problem
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Power users like to use keyboards for frequently used operations. React components
+    can respond to keyboard events, but only when they (or their children) have focus.
+    What do you do if you want your component to respond to events at the document
+    level?
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 电源用户喜欢使用键盘进行频繁使用的操作。React组件可以响应键盘事件，但仅当它们（或它们的子组件）具有焦点时。如果您希望组件在文档级别响应事件，该怎么办？
+- en: Solution
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'We’re going to create a key-listener hook to listen for `keydown` events at
+    the `document` level. Still, it could be easily modified to listen for any other
+    JavaScript event in the DOM. This is the hook:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个键监听器钩子，以监听`document`级别的`keydown`事件。但是，可以轻松修改以便在DOM中监听任何其他JavaScript事件。这是钩子：
+- en: '[PRE15]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The hook accepts a callback function and registers it for `keydown` events on
+    the `document` object. At the end of the `useEffect`, it returns a function that
+    will unregister the callback. If the callback function we pass in changes, we
+    will first unregister the old function before registering the new one.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该钩子接受一个回调函数并在`document`对象上注册它以监听`keydown`事件。在`useEffect`结束时，它返回一个函数，该函数将注销回调。如果我们传入的回调函数发生变化，我们将首先注销旧函数，然后注册新函数。
+- en: 'How do we use the hook? Here is an example. See if you notice the little coding
+    wrinkle we have to deal with:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们如何使用这个钩子？这里有一个例子。看看你是否注意到我们必须处理的小编码瑕疵：
+- en: '[PRE16]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: This code listens for the user pressing the left/right cursor keys. Our `onKeyDown`
+    function says what should happen when those key clicks occur, but notice that
+    we’ve wrapped it in a `useCallback`. If we *didn’t* do that, the browser would
+    re-create the `onKeyDown` function each time it rendered the `App` component.
+    The new function would do the same as the old `onKeyDown` function, but it would
+    live in a different place in memory, and the `useKeyListener` would keep unregistering
+    and re-registering it.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码监听用户按左/右光标键。我们的`onKeyDown`函数说明了这些按键点击发生时应该发生什么，但请注意，我们已经将其包装在`useCallback`中。如果我们*没有*这样做，浏览器将在每次渲染`App`组件时重新创建`onKeyDown`函数。新函数将与旧的`onKeyDown`函数执行相同的操作，但它会存在于内存中的不同位置，而`useKeyListener`将不断注销和重新注册它。
+- en: If you forget to wrap your callback function in a `useCallback`, it may result
+    in a blizzard of render calls, which might slow your application down.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您忘记在`useCallback`中包装回调函数，可能会导致大量的渲染调用，从而减慢应用程序的速度。
+- en: By using `useCallback`, we can ensure that we only create the function if `setAngle`
+    changes.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`useCallback`，我们可以确保只在`setAngle`发生变化时创建该函数。
+- en: If you run the application, you will see an arrow on the screen. If you press
+    the left/right cursor keys ([Figure 4-10](#ch04_image_10)), you can rotate the
+    image. If you press the Escape key, you can reset it to vertical.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您运行该应用程序，您将在屏幕上看到一个箭头。如果您按左/右箭头键（参见[图4-10](#ch04_image_10)），您可以旋转图像。如果您按Escape键，则可以将其重置为垂直状态。
+- en: '![](Images/recb_0410.png)'
+  id: totrans-119
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0410.png)'
+- en: Figure 4-10\. Pressing the left/right/Escape keys causes the arrow to rotate
+  id: totrans-120
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-10\. 按下左/右/Escape键会导致箭头旋转
+- en: Discussion
+  id: totrans-121
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: We are careful in the `useKeyListener` function to only listen to events that
+    originated at the `body` level. If the user clicks the arrow keys in a text field,
+    the browser won’t send those events to your code.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在`useKeyListener`函数中小心地只监听源自`body`级别的事件。如果用户在文本字段中点击箭头键，浏览器不会将这些事件发送到你的代码。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/VIY1O).
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub网站](https://oreil.ly/VIY1O)下载这个示例的源代码。
+- en: Use Markdown for Rich Content
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Markdown进行富内容处理
+- en: Problem
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: If your application allows users to provide large blocks of text content, it
+    would be helpful if that content could also include formatted text, links, and
+    so forth. However, allowing users to pass in such horrors as raw HTML can lead
+    to security flaws and untold misery for developers.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的应用允许用户提供大块文本内容，那么让这些内容包含格式化文本、链接等将会很有帮助。然而，允许用户传递原始的HTML等内容可能会导致安全漏洞，并给开发人员带来无法预料的痛苦。
+- en: How do you allow users to post rich content without undermining the security
+    of your application?
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何让用户发布富文本内容而不损害应用程序的安全性？
+- en: Solution
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Markdown is an excellent way of allowing users to post rich content into your
+    application safely. To see how to use Markdown in your application, let’s consider
+    this simple application, which allows a user to post a timestamped series of messages
+    into a list:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Markdown是一种安全地允许用户向您的应用程序发布富内容的绝佳方式。要了解如何在您的应用程序中使用Markdown，请考虑这个简单的应用程序，它允许用户在列表中发布带有时间戳的一系列消息：
+- en: '[PRE17]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: When you run the application ([Figure 4-11](#ch04_image_11)), you see a large
+    text area. When you post a plain-text message, the app preserves white space and
+    line breaks.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您运行该应用程序时（参见[图4-11](#ch04_image_11)），您会看到一个大文本区域。当您发布纯文本消息时，应用程序会保留空格和换行符。
+- en: '![](Images/recb_0411.png)'
+  id: totrans-132
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0411.png)'
+- en: Figure 4-11\. A user enters text into a text area, and it gets posted as a plain-text
+    message
+  id: totrans-133
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-11\. 用户在文本区域输入文本，然后将其作为纯文本消息发布
+- en: If your application contains a text area, it’s worth considering allowing the
+    user to enter Markdown content.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的应用程序包含文本区域，考虑允许用户输入Markdown内容是值得的。
+- en: There are many, many Markdown libraries available, but most of them are wrappers
+    for `react-markdown` or a syntax highlighter like [PrismJS](https://prismjs.com)
+    or [CodeMirror](https://codemirror.net).
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多Markdown库可供选择，但大多数都是`react-markdown`的包装器或语法高亮器，如[PrismJS](https://prismjs.com)或[CodeMirror](https://codemirror.net)。
+- en: 'We’ll look at a library called `react-md-editor` that adds extra features to
+    `react-markdown` and allows you to display Markdown and edit it. We will begin
+    by installing the library:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将查看一个名为`react-md-editor`的库，它为`react-markdown`添加了额外的功能，并允许您显示和编辑Markdown。我们将从安装该库开始：
+- en: '[PRE18]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'We’ll now convert our plain-text area to a Markdown editor and convert the
+    posted messages from Markdown to HTML:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将将我们的纯文本区域转换为Markdown编辑器，并将发布的消息从Markdown转换为HTML：
+- en: '[PRE19]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Converting plain text to Markdown is a small change with a significant return.
+    As you can see in [Figure 4-12](#ch04_image_12), the user can apply rich formatting
+    to a message and choose to edit it full-screen before posting it.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将纯文本转换为Markdown是一个小改变，却有很大的回报。正如您在[图4-12](#ch04_image_12)中所看到的，用户可以对消息应用丰富的格式，并选择在发布之前在全屏模式下进行编辑。
+- en: '![](Images/recb_0412.png)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0412.png)'
+- en: Figure 4-12\. The Markdown editor shows a preview as you type and also allows
+    you to work full-screen
+  id: totrans-142
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-12\. Markdown编辑器在您输入时显示预览，并允许您全屏工作
+- en: Discussion
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Adding Markdown to an application is quick and improves the user’s experience
+    with minimal effort. For more details on Markdown, see [John Gruber’s original
+    guide](https://oreil.ly/2EE9x).
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将Markdown添加到应用程序中非常快速，并且可以通过最小的努力来改善用户体验。有关Markdown的更多详情，请参阅[约翰·格鲁伯的原始指南](https://oreil.ly/2EE9x)。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/S0n7x).
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub网站](https://oreil.ly/S0n7x)下载这个示例的源代码。
+- en: Animate with CSS Classes
+  id: totrans-146
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用CSS类进行动画处理
+- en: Problem
+  id: totrans-147
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to add a small amount of simple animation to your application, but
+    you don’t want to increase your application size by installing a third-party library.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想给你的应用程序添加一点简单的动画效果，但又不想通过安装第三方库来增加应用程序的大小。
+- en: Solution
+  id: totrans-149
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Most of the animation you are ever likely to need in a React application will
+    probably not require a third-party animation library. That’s because CSS animation
+    now gives browsers the native ability to animate CSS properties with minimal effort.
+    It takes very little code, and the animation is smooth because the graphics hardware
+    will generate it. GPU animation uses less power, making it more appropriate for
+    mobile devices.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 应用程序中，大多数你可能需要的动画可能不需要第三方动画库。这是因为现在 CSS 动画使得浏览器具有用极少代码实现 CSS 属性动画的能力。它只需很少的代码，并且由于图形硬件生成动画非常流畅。GPU
+    动画消耗的能量更少，更适合移动设备。
+- en: If you are looking to add animation to your React application, begin with CSS
+    animation before looking elsewhere.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想在你的 React 应用程序中添加动画，先从 CSS 动画开始，然后再看其他地方。
+- en: How does CSS animation work? It uses a CSS property called `transition`. Let’s
+    say we want to create an expandable information panel. When the user clicks the
+    button, the panel opens smoothly. When they click it again, it closes smoothly,
+    as shown in [Figure 4-13](#ch04_image_13).
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS 动画如何工作？它使用了一个叫做 `transition` 的 CSS 属性。假设我们想创建一个可扩展的信息面板。当用户点击按钮时，面板会平滑地打开。当他们再次点击时，它会平滑地关闭，如图
+    [Figure 4-13](#ch04_image_13) 所示。
+- en: '![](Images/recb_0413.png)'
+  id: totrans-153
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0413.png)'
+- en: Figure 4-13\. Simple CSS animation will smoothly expand and contract the panel
+  id: totrans-154
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-13\. 简单的 CSS 动画会平滑地展开和收缩面板
+- en: 'We can create this effect using the CSS `transition` property:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 CSS 的 `transition` 属性来创建这种效果：
+- en: '[PRE20]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: This CSS specifies a `height`, as well as a `transition` property. This combination
+    translates to “Whatever your current height, animate to my preferred height during
+    the next half-second.”
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 CSS 指定了 `height` 和 `transition` 属性。这个组合意味着“无论当前的高度如何，在下半秒内动画到我的首选高度。”
+- en: 'The animation will occur whenever the `height` of the element changes, such
+    as when an additional CSS rule becomes valid. For example, if we have an extra
+    CSS class-name with a different height, the transition property will animate the
+    height change when an element switches to a different class:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素的 `height` 改变时（例如当额外的 CSS 规则变为有效时），动画将会发生。例如，如果我们有一个额外的 CSS 类名，其高度不同，`transition`
+    属性将在元素切换到不同类时动画高度变化：
+- en: '[PRE21]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: This class name structure is an example of block element modifier (BEM) naming.
+    The *block* is the component (`InfoPanel`), the *element* is a thing inside the
+    block (`details`), and the *modifier* says something about the element’s current
+    state (`closed`). The BEM convention reduces the chances of name clashes in your
+    code.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个类名结构是块元素修饰符（BEM）命名的一个例子。*块* 是组件（`InfoPanel`），*元素* 是块内的东西（`details`），*修饰符*
+    描述了元素的当前状态（`closed`）。BEM 规范减少了代码中名称冲突的可能性。
+- en: If an `InfoPanel-details` element suddenly acquires an additional `.InfoPanel-details-closed`
+    class, the `height` will change from `350px` to `0`, and the `transition` property
+    will smoothly shrink the element. Conversely, if the component *loses* the `.InfoPanel-details-closed`
+    class, the element will expand again.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个 `InfoPanel-details` 元素突然获得了额外的 `.InfoPanel-details-closed` 类，`height` 将从
+    `350px` 变为 `0`，并且 `transition` 属性将平滑地收缩该元素。相反，如果组件*失去* `.InfoPanel-details-closed`
+    类，则元素将再次展开。
+- en: 'That means that we can defer the hard work to CSS, and all we need to do in
+    our React code is add or remove the class to an element:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们可以将繁重的工作推迟到 CSS 上，而我们在 React 代码中所需做的只是向元素添加或移除类：
+- en: '[PRE22]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Discussion
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: We have frequently seen many projects bundle in third-party component libraries
+    to use some small widget that expands or contracts its contents. As you can see,
+    such animation is trivial to include.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们经常看到许多项目打包第三方组件库，以使用一些小部件来展开或收缩其内容。正如你所见，这样的动画非常容易包含。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/FKnIc).
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub 网站](https://oreil.ly/FKnIc)下载这个配方的源代码。
+- en: Animate with React Animation
+  id: totrans-167
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 React 动画
+- en: Problem
+  id: totrans-168
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: CSS animations are very low-tech and will be appropriate for most animations
+    that you are likely to need.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS 动画非常简单，并且适用于大多数你可能需要的动画效果。
+- en: However, they require you to understand a lot about the various CSS properties
+    and the effects of animating them. If you want to illustrate an item being deleted
+    by it rapidly expanding and becoming transparent, how do you do that?
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，它们要求您理解各种 CSS 属性及其动画效果。如果您想通过快速扩展并变成透明来说明删除项目，您该如何做？
+- en: Libraries such as [Animate.css](https://animate.style) contain a whole host
+    of pre-canned CSS animations, but they often require more advanced CSS animation
+    concepts like keyframes and are not particularly tuned for React. How can we add
+    CSS library animations to a React application?
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 诸如 [Animate.css](https://animate.style) 这样的库包含大量预设的 CSS 动画，但它们通常需要更高级的 CSS 动画概念，如关键帧，并且不特别适合
+    React。我们如何将 CSS 库动画添加到 React 应用程序中？
+- en: Solution
+  id: totrans-172
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The React Animations library is a React wrapper for the Animate.css library.
+    It will efficiently add animated styling to your components without generating
+    unnecessary renders or significantly increasing the size of the generated DOM.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Animations 库是 Animate.css 库的 React 包装器。它会有效地向您的组件添加动画样式，而不会产生不必要的渲染或显著增加生成的
+    DOM 的大小。
+- en: It’s able to work so efficiently because React Animations works with a CSS-in-JS
+    library. CSS-in-JS is a technique for coding your style information directly in
+    your JavaScript code. React will let you add your style attributes as React components,
+    but CSS-in-JS does this more efficiently, dynamically creating shared style elements
+    in the `head` of the page.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它能如此高效地工作，因为 React Animations 与 CSS-in-JS 库配合使用。CSS-in-JS 是一种直接在 JavaScript
+    代码中编写样式信息的技术。React 将允许您将样式属性添加为 React 组件，但是 CSS-in-JS 更加高效，动态创建页面头部的共享样式元素。
+- en: There are several CSS-in-JS libraries to choose from, but in this recipe, we’re
+    going to use one called [Radium](https://oreil.ly/oNBEl).
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有几个 CSS-in-JS 库可供选择，但在本示例中，我们将使用一个称为 [Radium](https://oreil.ly/oNBEl) 的库。
+- en: 'Let’s begin by installing Radium and React Animations:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从安装 Radium 和 React Animations 开始：
+- en: '[PRE23]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Our example application ([Figure 4-14](#ch04_image_14)) will run an animation
+    each time we add an image item to the collection.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的示例应用（[图 4-14](#ch04_image_14)）每次向集合添加图像项时都会运行一个动画。
+- en: '![](Images/recb_0414.png)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0414.png)'
+- en: Figure 4-14\. Clicking the Add button will load a new image from picsum.photos
+  id: totrans-180
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-14\. 单击“添加”按钮将从 picsum.photos 加载新图像
+- en: Likewise, when a user clicks an image, it shows a fade-out animation before
+    removing the images from the list, as shown in [Figure 4-15](#ch04_image_15).^([4](ch04.xhtml#idm46634416427016))
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样地，当用户点击图像时，会显示一个淡出动画，然后从列表中移除图像，如 [图 4-15](#ch04_image_15) 所示。^([4](ch04.xhtml#idm46634416427016))
+- en: '![](Images/recb_0415.png)'
+  id: totrans-182
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0415.png)'
+- en: Figure 4-15\. If we click the fifth image, it will fade out from the list and
+    disappear
+  id: totrans-183
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-15\. 如果单击第五张图像，它将从列表中淡出并消失
+- en: 'We’ll begin by importing some animations and helper code from Radium:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从 Radium 中导入一些动画和辅助代码：
+- en: '[PRE24]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: From React Animations we get `pulse`, `zoomOut`, and `shake` animations. We
+    are going to use the `pulse` animation when we add an image. We’ll use a *combined*
+    animation of `zoomOut` and `shake` when we remove an image. We can combine animations
+    using React Animations’ `merge` function.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 React Animations 中获取 `pulse`、`zoomOut` 和 `shake` 动画。当我们添加图像时，我们将使用 `pulse`
+    动画。当我们移除图像时，我们将使用 `zoomOut` 和 `shake` 的*合并*动画。我们可以使用 React Animations 的 `merge`
+    函数组合动画。
+- en: The `styles` generate all of the CSS styles needed to run each of these half-second
+    animations. The call to `Radium.keyframes()` handles all of the animation details
+    for us.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`styles` 生成运行这些半秒动画所需的所有 CSS 样式。对 `Radium.keyframes()` 的调用为我们处理所有动画细节。'
+- en: We must know when an animation has completely ended. If we delete an image before
+    the deletion-animation completes, there would be no image to animate.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们必须知道动画何时完全结束。如果我们在删除动画完成之前删除图像，就不会有图像可以动画化。
+- en: 'We can keep track of CSS animations by passing an `onAnimationEnd` callback
+    to any element we are going to animate. For each item in our image collection,
+    we are going to track three things:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过向要动画化的任何元素传递 `onAnimationEnd` 回调来跟踪 CSS 动画。对于我们图像集合中的每个项目，我们将跟踪三件事：
+- en: The URL of the image it represents
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它表示的图像的 URL
+- en: A Boolean value that will be true while the “created” animation is running
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个布尔值，在“created”动画运行时为真
+- en: A Boolean value that will be true while the “deleted” animation is running
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个布尔值，在“deleted”动画运行时为真
+- en: 'Here is the example code to animate images into and out of the collection:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是将图像动画化进出集合的示例代码：
+- en: '[PRE25]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Discussion
+  id: totrans-195
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'When choosing which animation to use, we should first ask: what will this animation
+    mean?'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在选择要使用的动画时，我们首先应该问：这个动画意味着什么？
+- en: All animation should have meaning. It can show something existential (creation
+    or deletion). It might indicate a change of state (becoming enabled or disabled).
+    It might zoom in to show detail or zoom out to reveal a broader context. Or it
+    might illustrate a limit or boundary (a spring-back animation at the end of a
+    long list) or allow a user to express a preference (swiping left or right).
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有的动画都应该有意义。它可以展示某种存在（创建或删除）。它可能指示状态的变化（启用或禁用）。它可能放大以显示细节或缩小以揭示更广泛的背景。或者它可能说明限制或边界（在长列表末尾的弹簧回弹动画）或允许用户表达偏好（向左或向右滑动）。
+- en: Animation should also be short. Most animations should probably be over in half
+    a second so that the user can experience the meaning of the animation without
+    being consciously aware of its appearance.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画应该也要简短。大多数动画可能在半秒内完成，这样用户可以体验动画的含义，而无需过于关注其外观。
+- en: An animation should never be merely *attractive*.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画永远不应该仅仅是*吸引人*。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/rRK8F).
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从[GitHub站点](https://oreil.ly/rRK8F)下载此配方的源代码。
+- en: Animate Infographics with TweenOne
+  id: totrans-201
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用TweenOne动画信息图表
+- en: Problem
+  id: totrans-202
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: CSS animations are smooth and highly efficient. Browsers might defer CSS animations
+    to the graphics hardware at the compositing stage, which means that not only are
+    the animations running at machine-code speeds, but the machine-code itself is
+    not running on the CPU.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS动画流畅而高效。浏览器可能会将CSS动画延迟到合成阶段的图形硬件上，这意味着动画不仅以机器码速度运行，而且机器码本身不在CPU上运行。
+- en: However, the downside to running CSS animations on graphics hardware is that
+    your application code won’t know what’s happening *during* an animation. You can
+    track when an animation has started, ended, or is repeated (`onAnimationStart`,
+    `onAni⁠ma⁠tionEnd`, `onAnimationIteration`), but everything that happens in between
+    is a mystery.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，将CSS动画运行在图形硬件上的缺点是，在动画*期间*，您的应用程序代码不会知道发生了什么。您可以跟踪动画何时开始，结束或重复（`onAnimationStart`，`onAni⁠ma⁠tionEnd`，`onAnimationIteration`），但其中发生的一切是个谜。
+- en: If you are animating an infographic, you may want to animate the numbers on
+    a bar chart as the bars grow or shrink. Or, if you are writing an application
+    to track cyclists, you might want to show the current altitude as the bicycle
+    animates its way up and down the terrain.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你正在制作信息图表动画，可能希望在条形图的柱子增长或缩小时动画化数字。或者，如果你正在编写一个跟踪骑行者的应用程序，你可能希望在自行车穿越地形时显示当前的海拔高度。
+- en: But how do you create animations that you can *listen* to while they are happening?
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，您如何创建可以在发生时*侦听*的动画？
+- en: Solution
+  id: totrans-207
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The TweenOne library creates animations with JavaScript, which means you can
+    track them as they happen, frame by frame.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TweenOne库使用JavaScript创建动画，这意味着您可以帧-by-帧地跟踪它们发生的过程。
+- en: 'Let’s begin by installing the TweenOne library:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从安装TweenOne库开始：
+- en: '[PRE26]'
+  id: totrans-210
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: TweenOne works with CSS, but it doesn’t use CSS animations. Instead, it generates
+    CSS transforms, which it updates many times each second.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TweenOne与CSS一起工作，但它不使用CSS动画。相反，它生成CSS转换，并且每秒更新多次。
+- en: 'You need to wrap the thing you want to animate in a `<TweenOne/>` element.
+    For example, let’s say we want to animate a `rect` inside an SVG:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要将想要动画化的对象包裹在一个`<TweenOne/>`元素中。例如，假设我们想要在SVG中动画化一个`rect`：
+- en: '[PRE27]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '`TweenOne` takes an element name and an object that will describe the animation
+    to perform. We’ll come to what that animation object looks like shortly.'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`TweenOne`接受一个元素名称和一个描述要执行的动画的对象。我们将很快看到这个动画对象的样子。'
+- en: TweenOne will use the element name (`g` in this case) to generate a wrapper
+    around the animated thing. This wrapper will have a style attribute that will
+    include a set of CSS transforms to move and rotate the contents somewhere.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TweenOne将使用元素名称（本例中为`g`）生成包裹在动画对象周围的包装器。此包装器将具有一个样式属性，其中包括一组CSS转换，用于将内容移动和旋转到某个位置。
+- en: 'So in our example, at some point in the animation, the DOM might look like
+    this:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在我们的例子中，动画的某个时刻，DOM可能看起来像这样：
+- en: '[PRE28]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Although you can create similar effects to CSS animations, the TweenOne library
+    works differently. Instead of handing the animation to the hardware, the TweenOne
+    library uses JavaScript to create each frame, which has two consequences. First,
+    it uses more CPU power (bad), and second, we can track the animation while it’s
+    happening (good).
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管您可以创建类似于 CSS 动画的效果，但 TweenOne 库的工作方式不同。TweenOne 库不会将动画交给硬件处理，而是使用 JavaScript
+    逐帧创建动画，这有两个后果。首先，它会使用更多的 CPU 资源（不好），其次，我们可以跟踪动画的进行（好）。
+- en: 'If we pass `TweenOne` an `onUpdate` callback, we will be sent information about
+    the animation on every single frame:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们向 `TweenOne` 传递一个 `onUpdate` 回调，我们将收到有关每一帧动画的信息：
+- en: '[PRE29]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: The `info` object passed to `onUpdate` has a `ratio` value between 0 and 1,
+    representing the proportion of the way the TweenOne element is through an animation.
+    We can use the `ratio` to animate text that is associated with the graphics.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传递给 `onUpdate` 的 `info` 对象有一个 `ratio` 值，介于0到1之间，表示 TweenOne 元素在动画中的位置比例。我们可以使用
+    `ratio` 来动画化与图形关联的文本。
+- en: For example, if we build an animated dashboard that shows vehicles on a race
+    track, we can use `onUpdate` to show each car’s speed and distance as it animates.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果我们构建一个动画仪表板，显示赛道上的车辆，我们可以使用 `onUpdate` 显示每辆车的速度和距离随着动画的进行。
+- en: 'We’ll create the visuals for this example in SVG. First, let’s create a string
+    containing an SVG path, which represents the track:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在 SVG 中创建此示例的可视化内容。首先，让我们创建一个包含 SVG 路径的字符串，代表赛道：
+- en: '[PRE30]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'This is a greatly truncated version of the actual path that we’ll use. We can
+    import the path string from *track.js* like this:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是我们将使用的实际路径的大大简化版本。我们可以像这样从 *track.js* 导入路径字符串：
+- en: '[PRE31]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'To display the track inside a React component, we can render an `svg` element:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在 React 组件内显示轨道，我们可以渲染一个 `svg` 元素：
+- en: '[PRE32]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'We can add a couple of rectangles for the vehicle—a red one for the body and
+    a white one for the windshield:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以为车辆添加一对矩形——一个红色用于车身，一个白色用于挡风玻璃：
+- en: '[PRE33]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: '[Figure 4-16](#ch04_image_16) shows the track with the vehicle at the top-left
+    corner.'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 4-16](#ch04_image_16) 显示了顶部左侧带有车辆的轨道。'
+- en: '![](Images/recb_0416.png)'
+  id: totrans-232
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0416.png)'
+- en: Figure 4-16\. The static image with a tiny vehicle at the top left
+  id: totrans-233
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-16\. 左上角带有微小车辆的静态图像
+- en: But how do we animate the vehicle around the track? TweenOne makes this easy
+    because it contains a plugin to generate animations that follow SVG path strings.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，我们如何使车辆在赛道周围动起来呢？TweenOne 让这变得很容易，因为它包含一个插件，用于生成遵循 SVG 路径字符串的动画。
+- en: '[PRE34]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'We’ve configured TweenOne for use with SVG path animations. That means we can
+    look at how to describe an animation for TweenOne. We do it with a simple JavaScript
+    object:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经配置了 TweenOne 用于 SVG 路径动画。这意味着我们可以看看如何描述 TweenOne 的动画。我们用一个简单的 JavaScript
+    对象来做到这一点：
+- en: '[PRE35]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'We tell TweenOne two things with this object: first, we’re telling it to generate
+    translates and rotations that follow the `path` string that we’ve imported from
+    *track.js*. Second, we’re saying that we want the animation to loop infinitely
+    by setting the `repeat` count to –1.'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这个对象告诉 TweenOne 两件事：首先，我们告诉它生成跟随我们从 *track.js* 导入的 `path` 字符串的平移和旋转。其次，我们通过将
+    `repeat` 计数设置为-1，表示我们希望动画无限循环。
+- en: 'We can use this as the basis of animation for our vehicle:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以将其作为我们车辆动画的基础：
+- en: '[PRE36]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'Notice that we’re using the spread operator to provide an additional animation
+    parameter: `duration`. A value of 16000 means we want the animation to take 16
+    seconds.'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们使用展开运算符提供了额外的动画参数：`duration`。值为16000表示我们希望动画持续16秒。
+- en: 'We can add a second vehicle and use the `onUpdate` callback method to create
+    a very rudimentary set of faked telemetry statistics for each one as they move
+    around the track. Here is the completed code:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以添加第二辆车，并使用 `onUpdate` 回调方法为每辆车创建一个非常基本的虚拟遥测统计信息。以下是完成的代码：
+- en: '[PRE37]'
+  id: totrans-243
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: '[Figure 4-17](#ch04_image_17) shows the animation. The vehicles follow the
+    path of the race track, rotating to face the direction of travel.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 4-17](#ch04_image_17) 显示了动画。车辆沿着赛道的路径移动，并旋转以面向行驶方向。'
+- en: '![](Images/recb_0417.png)'
+  id: totrans-245
+  prefs: []
+  type: TYPE_IMG
+  zh: '![](Images/recb_0417.png)'
+- en: Figure 4-17\. Our final animation with telemetry generated from the current
+    animation state
+  id: totrans-246
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-17\. 从当前动画状态生成的遥测的最终动画
+- en: Discussion
+  id: totrans-247
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: CSS animations are what you should use for most UI animation. However, in the
+    case of infographics, you often need to synchronize the text and the graphics.
+    TweenOne makes that possible, at the cost of greater CPU usage.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS动画是大多数UI动画应该使用的技术。然而，在信息图表的情况下，通常需要同步文本和图形。TweenOne可以实现这一点，但会增加CPU使用率的成本。
+- en: You can download the source for this recipe from the [GitHub site](https://oreil.ly/8l7Vp).
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从[GitHub网站](https://oreil.ly/8l7Vp)下载此配方的源代码。
+- en: ^([1](ch04.xhtml#idm46634420299832-marker)) You can download all source code
+    for this recipe on the [GitHub repository](https://oreil.ly/wUM7Q).
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch04.xhtml#idm46634420299832-marker)) 你可以在[GitHub仓库](https://oreil.ly/wUM7Q)上下载此配方的所有源代码。
+- en: ^([2](ch04.xhtml#idm46634418710008-marker)) See [“Use Markdown for Rich Content”](#ch04-05)
+    for details on how to use Markdown in your application.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch04.xhtml#idm46634418710008-marker)) 详细了解如何在您的应用程序中使用Markdown，请参阅[“使用Markdown创建丰富内容”](#ch04-05)。
+- en: ^([3](ch04.xhtml#idm46634418414536-marker)) See the [GitHub repository](https://oreil.ly/DCGIv)
+    for the tests we used to drive out this code.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch04.xhtml#idm46634418414536-marker)) 参见[GitHub仓库](https://oreil.ly/DCGIv)以获取我们用于驱动此代码的测试。
+- en: ^([4](ch04.xhtml#idm46634416427016-marker)) Paper books are beautiful things,
+    but to fully experience the animation effect, see the complete code on [GitHub](https://oreil.ly/OcAqo).
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch04.xhtml#idm46634416427016-marker)) 纸质书籍是美好的事物，但要完全体验动画效果，请在[GitHub](https://oreil.ly/OcAqo)上查看完整的代码。

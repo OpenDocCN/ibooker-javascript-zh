@@ -1,0 +1,1492 @@
+- en: Chapter 7\. Variadic Tuple Types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章 可变元组类型
+- en: Tuple types are arrays with a fixed length and where every type of each element
+    is defined. Tuples are heavily used in libraries like React as it’s easy to destructure
+    and name elements, but outside of React they also have gained recognition as a
+    nice alternative to objects.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 元组类型是长度固定且每个元素类型已定义的数组。元组在像 React 这样的库中被广泛使用，因为易于解构和命名元素，但除了 React 外，它们也因为是对象的良好替代品而受到认可。
+- en: A *variadic tuple type* is a tuple type that has the same properties—defined
+    length and the type of each element is known—but where the *exact shape* is yet
+    to be defined. They basically tell the type system that there will be some elements,
+    but we don’t know yet which ones they will be. They are generic and meant to be
+    substituted with real types.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*可变元组类型* 是一种具有相同属性（定义长度和每个元素的类型已知），但其*确切形状*尚未定义的元组类型。它们基本上告诉类型系统会有一些元素，但我们还不知道它们将是哪些元素。它们是泛型的，旨在用真实类型替换。'
+- en: What sounds like a fairly boring feature is much more exciting when we understand
+    that tuple types can also be used to describe function signatures, as tuples can
+    be spread out to function calls as arguments. This means we can use variadic tuple
+    types to get the most information out of functions and function calls, and functions
+    that accept functions as parameters.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们理解到元组类型也可以用于描述函数签名时，听起来像是一个相当无聊的功能，变得更加令人兴奋，因为元组可以展开到函数调用中作为参数。这意味着我们可以使用可变元组类型从函数和函数调用中获取最多的信息，以及接受函数作为参数的函数。
+- en: This chapter provides a lot of use cases on how we can use variadic tuple types
+    to describe several scenarios where we use functions as parameters and need to
+    get the most information from them. Without variadic tuple types, these scenarios
+    would be hard to develop or outright impossible. After reading through, you will
+    see variadic tuple types as a key feature for functional programming patterns.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章提供了许多用例，展示了我们如何使用可变元组类型来描述使用函数作为参数并需要从中获取最多信息的几种场景。如果没有可变元组类型，这些场景将很难开发或根本不可能。阅读完后，您将会将可变元组类型视为函数式编程模式的关键特性。
+- en: 7.1 Typing a concat Function
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.1 类型化 concat 函数
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a `concat` function that takes two arrays and concatenates them. You
+    want to have exact types, but using function overloads is too cumbersome.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你有一个`concat`函数，它接受两个数组并将它们连接起来。你想要确切的类型，但使用函数重载太过繁琐。
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use variadic tuple types.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用可变元组类型。
+- en: Discussion
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: '`concat` is a lovely helper function that takes two arrays and combines them.
+    It uses array spreading and is short, nice, and readable:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`concat` 是一个可爱的辅助函数，它接受两个数组并将它们组合在一起。它使用数组展开，简短、优雅且可读：'
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Creating types for this function can be hard, especially if you have certain
+    expectations from your types. Passing in two arrays is easy, but what should the
+    return type look like? Are you happy with a single array type in return, or do
+    you want to know the types of each element in this array?
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为这个函数创建类型可能很难，特别是如果你对你的类型有特定的期望。传入两个数组很容易，但返回类型应该是什么样的？你是否满意返回单个数组类型，还是想知道返回数组中每个元素的类型？
+- en: 'Let’s go for the latter: we want tuples so we know the type of each element
+    we pass to this function. To correctly type a function like this so that it takes
+    all possible edge cases into account, we would end up in a sea of overloads:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们选择后者：我们想要元组，这样我们就知道将传递给此函数的每个元素的类型。为了正确地为这样的函数打上类型标记，以便考虑到所有可能的边界情况，我们最终会陷入一堆重载之中：
+- en: '[PRE1]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'And this only takes into account arrays that have up to six elements. The combinations
+    for typing a function like this with overloads is exhausting. But there is an
+    easier way: variadic tuple types.'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这仅考虑了具有多达六个元素的数组。为像这样的函数编写类型重载是非常耗费精力的。但有一种更简单的方法：可变元组类型。
+- en: 'A tuple type in TypeScript is an array with the following features:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 中的元组类型是具有以下特征的数组：
+- en: The length of the array is defined.
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组的长度是定义好的。
+- en: The type of each element is known (and does not have to be the same).
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 每个元素的类型是已知的（且不必相同）。
+- en: 'For example, this is a tuple type:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，这是一个元组类型：
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'A *variadic* tuple type is a tuple type that has the same properties—defined
+    length and the type of each element is known—but where the *exact shape* is yet
+    to be defined. Since we don’t know the type and length yet, we can only use variadic
+    tuple types in generics:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*可变元组*类型是一种元组类型，具有相同的属性——定义长度和每个元素的类型已知——但*确切形状*尚未定义。由于我们还不知道类型和长度，所以只能在泛型中使用可变元组类型：'
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'This is similar to rest elements in functions, but the big difference is that
+    variadic tuple types can happen anywhere in the tuple, and multiple times:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这类似于函数中的剩余元素，但其主要区别在于可变元组类型可以在元组中的任何位置和多次出现：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'When we apply this to the `concat` function, we have to introduce two generic
+    parameters, one for each array. Both need to be constrained to arrays. Then, we
+    can create a return type that combines both array types in a newly created tuple
+    type:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们将其应用于`concat`函数时，我们必须引入两个泛型参数，每个数组一个。两者都需要约束为数组。然后，我们可以创建一个返回类型，将两个数组类型组合成一个新创建的元组类型：
+- en: '[PRE5]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The syntax is beautiful; it’s very similar to the actual concatenation in JavaScript.
+    The result is also really good: we get a `(string | number)[]`, which is already
+    something we can work with.'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语法非常美观；它与 JavaScript 中实际的串联非常相似。结果也非常好：我们得到了一个`(string | number)[]`，这已经是我们可以使用的内容。
+- en: 'But we work with tuple types. If we want to know *exactly* which elements we
+    are concatenating, we have to transform the array types into tuple types, by spreading
+    out the generic array type into a tuple type:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们使用的是元组类型。如果我们想要确切地了解我们正在连接的哪些元素，我们必须将数组类型转换为元组类型，通过将泛型数组类型展开为元组类型：
+- en: '[PRE6]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'And with that, we also get a tuple type in return:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并且，作为返回值，我们也得到一个元组类型：
+- en: '[PRE7]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'The good news is that we don’t lose anything. If we pass arrays where we don’t
+    know each element up front, we still get array types in return:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好消息是我们不会丢失任何东西。如果我们传递的是我们还不知道每个元素的数组，我们仍然会得到数组类型作为返回值：
+- en: '[PRE8]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Being able to describe this behavior in a single type is definitely much more
+    flexible and readable than writing every possible combination in a function overload.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 能够用单一类型描述这种行为显然比在函数重载中写入每种可能的组合更加灵活和可读。
+- en: 7.2 Typing a promisify Function
+  id: totrans-36
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.2 给 promisify 函数添加类型
+- en: Problem
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to convert callback-style functions to Promises and have them perfectly
+    typed.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望将回调样式的函数转换为 Promises，并完全对其进行类型化。
+- en: Solution
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Function arguments are tuple types. Make them generic using variadic tuple types.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数参数是元组类型。使用可变元组类型使它们成为泛型。
+- en: Discussion
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Before Promises were a thing in JavaScript it was very common to do asynchronous
+    programming using callbacks. Functions would usually take a list of arguments,
+    followed by a callback function that would be executed once the results were there,
+    such as functions to load a file or do a very simplified HTTP request:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，Promises 成为一种事物之前，使用回调进行异步编程非常常见。函数通常会接受一系列参数，然后是一个回调函数，一旦结果出现，就会执行该函数，例如用于加载文件或进行非常简化的
+    HTTP 请求的函数：
+- en: '[PRE9]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Both follow the same pattern: arguments first, a callback with the result last.
+    This works but can be clumsy if you have lots of asynchronous calls that result
+    in callbacks within callbacks, also known as the [“the pyramid of doom”](https://oreil.ly/Ye3Qr):'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两者都遵循相同的模式：首先是参数，最后是带有结果的回调。这种方法有效，但如果有大量异步调用，其中包含回调中的回调，也被称为[“噩梦金字塔”](https://oreil.ly/Ye3Qr)，可能会显得笨拙：
+- en: '[PRE10]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Promises take care of that. Not only do they find a way to chain asynchronous
+    calls instead of nesting them, they also are the gateway for `async`/`await`,
+    allowing us to write asynchronous code in a synchronous form:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Promises 负责处理这一切。它们不仅找到了一种方法来链式调用异步调用而不是嵌套它们，而且它们还是`async`/`await`的门户，使我们能够以同步形式编写异步代码。
+- en: '[PRE11]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Much nicer! Thankfully, it is possible to convert every function that adheres
+    to the callback pattern to a `Promise`. We want to create a `promisify` function
+    to do that for us automatically:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好多了！幸运的是，我们可以将符合回调模式的每个函数都转换为`Promise`。我们希望创建一个`promisify`函数来自动为我们完成这项工作：
+- en: '[PRE12]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: But how do we type this? Variadic tuple types to the rescue!
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是我们如何对其进行类型化呢？可变元组类型来拯救我们！
+- en: 'Every function head can be described as a tuple type. For example:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个函数头都可以描述为一个元组类型。例如：
+- en: '[PRE13]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'is the same as:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像是：
+- en: '[PRE14]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'And we can be very flexible in defining it:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并且我们可以在定义时非常灵活地进行定义：
+- en: '[PRE15]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: This is also known as a *rest element*, something we have in JavaScript that
+    allows you to define functions with an almost limitless argument list, where the
+    last element, the rest element, sucks all excess arguments in.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这也被称为 *剩余元素*，在 JavaScript 中我们拥有它，允许你定义具有几乎无限参数列表的函数，其中最后一个元素，剩余元素，吸收了所有多余的参数。
+- en: 'For example, this generic tuple function takes an argument list of any type
+    and creates a tuple out of it:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，这个通用元组函数接受任何类型的参数列表，并将其创建为元组：
+- en: '[PRE16]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: The thing is, rest elements always have to be last. In JavaScript, it’s not
+    possible to define an almost endless argument list somewhere in between. With
+    variadic tuple types, however, we can do this in TypeScript!
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题是，其余元素必须始终位于最后。在 JavaScript 中，不可能在中间定义一个几乎无限的参数列表。然而，使用可变元组类型，我们可以在 TypeScript
+    中实现这一点！
+- en: 'Let’s look again at the `loadFile` and `request` functions again. If we described
+    the parameters of both functions as tuples, they would look like this:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们再次看看 `loadFile` 和 `request` 函数。如果我们将两个函数的参数描述为元组，它们会是这样的：
+- en: '[PRE17]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Let’s look for similarities. Both end with a callback with a varying result
+    type. We can align the types for both callbacks by substituting the variations
+    with a generic one. Later, in usage, we substitute generics for actual types.
+    So `JSON` and `File` become the generic type parameter `Res`.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们寻找相似之处。两者都以具有不同结果类型的回调结束。我们可以通过用一个通用的结果类型替代这些变化来对齐两个回调的类型。稍后在使用中，我们将泛型替换为实际类型。因此，`JSON`
+    和 `File` 变成了泛型类型参数 `Res`。
+- en: 'Now for the parameters *before* `Res`. They are arguably totally different,
+    but even they have something in common: they are elements within a tuple. This
+    calls for a variadic tuple. We know they will have a concrete length and concrete
+    types, but right now we just take a placeholder for them. Let’s call them `Args`.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在来看看 *在* `Res` 之前的参数。它们可能完全不同，但它们甚至有一些共同点：它们是元组内的元素。这就需要用到可变元组。我们知道它们将具有具体的长度和具体的类型，但现在我们只是用一个占位符来表示它们。让我们称之为
+    `Args`。
+- en: 'So a function type describing both function signatures could look like this:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，描述两个函数签名的函数类型可能如下所示：
+- en: '[PRE18]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Take your new type for a spin:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让你的新类型试试水：
+- en: '[PRE19]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: This is exactly what we need for the `promisify` function. We are able to extract
+    all relevant parameters—the ones before the callback and the result type—and bring
+    them into a new order.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是我们需要的 `promisify` 函数。我们能够提取所有相关参数——即回调之前的参数和结果类型——并将它们组织成新的顺序。
+- en: 'Let’s start by inlining the newly created function type directly into the function
+    signature of `promisify`:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先直接将新创建的函数类型内联到 `promisify` 的函数签名中：
+- en: '[PRE20]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '`promisify` now reads:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在 `promisify` 看起来是这样的：
+- en: 'There are two generic type parameters: `Args`, which needs to be an array (or
+    tuple), and `Res`.'
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 有两个泛型类型参数：`Args`，它需要是一个数组（或元组），以及 `Res`。
+- en: The parameter of `promisify` is a function where the first arguments are the
+    elements of `Args` and the last argument is a function with a parameter of type
+    `Res`.
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`promisify` 的参数是一个函数，其中前几个参数是 `Args` 的元素，最后一个参数是具有类型 `Res` 的函数。'
+- en: '`promisify` returns a function that takes `Args` for parameters and returns
+    a `Promise` of `Res`.'
+  id: totrans-75
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`promisify` 返回一个接受 `Args` 作为参数并返回 `Res` 的 `Promise` 的函数。'
+- en: If you try out the new typings for `promisify`, you can see that we get exactly
+    the type we want.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你尝试使用 `promisify` 的新类型，你会发现我们确实得到了想要的类型。
+- en: 'But it gets even better. If you look at the function signature, it’s absolutely
+    clear which arguments we expect, even if they are variadic and will be substituted
+    with real types. We can use the same types for the implementation of `promisify`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但情况会更好。如果你看一下函数签名，那么我们期望的参数显而易见，即使它们是可变的，并将被实际类型替代。我们可以在 `promisify` 的实现中使用相同的类型：
+- en: '[PRE21]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: So what does it do?
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以它的作用是什么？
+- en: '[![1](assets/1.png)](#co_variadic_tuple_types_CO1-1)'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_variadic_tuple_types_CO1-1)'
+- en: We return a function that accepts all parameters except for the callback.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们返回一个接受除回调外的所有参数的函数。
+- en: '[![2](assets/2.png)](#co_variadic_tuple_types_CO1-2)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_variadic_tuple_types_CO1-2)'
+- en: This function returns a newly created `Promise`.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个函数返回一个新创建的 `Promise`。
+- en: '[![3](assets/3.png)](#co_variadic_tuple_types_CO1-3)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_variadic_tuple_types_CO1-3)'
+- en: Since we don’t have a callback yet, we need to construct it. What does it do?
+    It calls the `resolve` function from the `Promise`, producing a result.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们还没有一个回调函数，我们需要构建它。它的作用是什么？它调用 `Promise` 中的 `resolve` 函数，生成一个结果。
+- en: '[![4](assets/4.png)](#co_variadic_tuple_types_CO1-4)'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_variadic_tuple_types_CO1-4)'
+- en: What has been split needs to be brought back together! We add the callback to
+    the arguments and call the original function.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已分割的内容需要重新组合！我们将回调函数添加到参数中，并调用原始函数。
+- en: And that’s it. A working `promisify` function for functions that adhere to the
+    callback pattern. Perfectly typed. And we even keep the parameter names.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样。一个用于符合回调模式函数的工作`promisify`函数。完美地类型化。而且我们甚至保留了参数名。
+- en: 7.3 Typing a curry Function
+  id: totrans-89
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.3 编写柯里化函数的类型
+- en: Problem
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You write a `curry` function. *Currying* is a technique that converts a function
+    that takes several arguments into a sequence of functions that each takes a single
+    argument.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写一个`curry`函数。*柯里化*是一种将接受多个参数的函数转换为一系列每个仅接受单个参数的函数的技术。
+- en: You want to provide excellent types.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望提供优秀的类型。
+- en: Solution
+  id: totrans-93
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Combine conditional types with variadic tuple types, always shaving off the
+    first parameter.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结合条件类型和可变参数元组类型，始终剥离第一个参数。
+- en: Discussion
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Currying is a very well-known technique in functional programming. Currying
+    converts a function that takes several arguments into a sequence of functions
+    that each takes a single argument.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 柯里化（Currying）是函数式编程中非常著名的技术。柯里化将接受多个参数的函数转换为一系列每个仅接受单个参数的函数。
+- en: 'The underlying concept is called “partial application of function arguments.”
+    We use it to maximize the reuse of functions. The “Hello, World!” of currying
+    implements an `add` function that can partially apply the second argument later:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其基本概念被称为“函数参数的部分应用”。我们用它来最大化函数的复用。柯里化的“Hello, World!”示例实现了一个可以稍后部分应用第二个参数的`add`函数：
+- en: '[PRE22]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: What feels arbitrary at first is useful when you work with long argument lists.
+    The following generalized function either adds or removes classes to an `HTMLElement`.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初看起来随意的东西在处理长参数列表时非常有用。下面这个通用函数要么添加要么移除`HTMLElement`的类。
+- en: 'We can prepare everything except for the final event:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以准备好所有内容，除了最终事件：
+- en: '[PRE23]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: This way, we can reuse `removeToggle` for several events on several elements.
+    We can also use `applyClass` for many other situations.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，我们可以为多个元素上的多个事件重复使用`removeToggle`。我们也可以在许多其他情况下使用`applyClass`。
+- en: Currying is a fundamental concept of the programming language Haskell and gives
+    a nod to the mathematician Haskell Brooks Curry, the namesake for both the programming
+    language and the technique. In Haskell, every operation is curried, and programmers
+    make good use of it.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 柯里化是编程语言Haskell的基本概念，向数学家Haskell Brooks Curry致敬，为编程语言和技术命名。在Haskell中，每个操作都是柯里化的，并且程序员能够充分利用它。
+- en: 'JavaScript borrows heavily from functional programming languages, and it is
+    possible to implement partial application with its built-in functionality of binding:'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript在很大程度上借鉴了函数式编程语言，可以利用其内置的绑定功能实现部分应用：
+- en: '[PRE24]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Since functions are first-class citizens in JavaScript, we can create a `curry`
+    function that takes a function as an argument and collects all arguments before
+    executing it:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于JavaScript中函数是一等公民，我们可以创建一个`curry`函数，它接受一个函数作为参数，并在执行之前收集所有参数：
+- en: '[PRE25]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: The trick is that every function stores the number of defined arguments in its
+    `length` property. That’s how we can recursively collect all necessary arguments
+    before applying them to the function passed.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 技巧在于每个函数都在其`length`属性中存储了定义参数的数量。这就是我们如何递归地收集所有必要的参数，然后将它们应用于传递的函数的方法。
+- en: 'So what’s missing? Types! Let’s create a type that works for a currying pattern
+    where every sequenced function can take exactly one argument. We do this by creating
+    a conditional type that does the inverse of what the `curried` function inside
+    the `curry` function does: removing arguments.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么还缺什么？类型！让我们创建一个类型，适用于每个顺序函数都可以接受恰好一个参数的柯里化模式。我们通过创建一个条件类型来实现这一点，该类型执行与`curry`函数内部的`curried`函数相反的操作：移除参数。
+- en: 'So let’s create a `Curried<F>` type. The first thing is to check if the type
+    is indeed a function:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，让我们创建一个`Curried<F>`类型。首先要检查类型是否确实是一个函数：
+- en: '[PRE26]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'We also infer the arguments as `A` and the return type as `R`. Next step, we
+    shave off the first parameter as `F`, and store all remaining parameters in `L`
+    (for *last*):'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还推断出参数为`A`，返回类型为`R`。下一步，我们将第一个参数作为`F`剥离，并将所有剩余参数存储在`L`中（用于*last*）：
+- en: '[PRE27]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Should there be no arguments, we return a function that takes no arguments.
+    Last check: we check if the remaining parameters are empty. This means we reached
+    the end of removing arguments from the argument list:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有参数，我们返回一个不带参数的函数。最后检查：我们检查剩余参数是否为空。这意味着我们已经达到了从参数列表中移除参数的末端：
+- en: '[PRE28]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Should some parameters remain, we call the `Curried` type again, but with the
+    remaining parameters. This way, we shave off a parameter step by step, and if
+    you take a good look, you can see that the process is almost identical to what
+    we do in the `curried` function. Where we deconstruct parameters in `Curried<F>`,
+    we collect them again in `curried(fn)`.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果某些参数保留下来，我们再次调用`Curried`类型，但带上剩余的参数。这样，我们逐步去除一个参数，如果你仔细观察，你会发现这个过程几乎与`curried`函数中所做的相同。在`Curried<F>`中我们解构参数，而在`curried(fn)`中我们重新收集它们。
+- en: 'With the type done, let’s add it to `curry`:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了类型完成后，让我们把它添加到`curry`中：
+- en: '[PRE29]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: We need a few assertions and some `any` because of the flexible nature of the
+    type. But with `as` and `any` as keywords, we mark which portions are considered
+    unsafe types.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于类型的灵活性，我们需要一些断言和`any`。但通过`as`和`any`关键字，我们标记了哪些部分被认为是不安全的类型。
+- en: And that’s it! We can get curried away!
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！我们可以很轻松地进行函数柯里化！
+- en: 7.4 Typing a Flexible curry Function
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.4 创建一个灵活的`curry`函数的类型
+- en: Problem
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: The `curry` function from [Recipe 7.3](#ch07_currying) allows for an arbitrary
+    number of arguments to be passed, but your typings allow you to take only one
+    argument at a time.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自[第7.3节的`curry`函数](#ch07_currying)允许传递任意数量的参数，但你的类型定义只允许一次接收一个参数。
+- en: Solution
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Extend your typings to create function overloads for all possible tuple combinations.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展您的类型以创建所有可能元组组合的函数重载。
+- en: Discussion
+  id: totrans-126
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In [Recipe 7.3](#ch07_currying) we ended up with function types that allow
+    us to apply function arguments one at a time:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第7.3节的配方](#ch07_currying)中，我们最终得到了允许我们逐个应用函数参数的函数类型：
+- en: '[PRE30]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'However, the `curry` function itself can take an arbitrary list of arguments:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，`curry`函数本身可以接受任意列表的参数：
+- en: '[PRE31]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: This allows us to work on the same use cases but with a lot fewer function invocations.
+    So let’s adapt our types to take advantage of the full `curry` experience.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使我们能够处理相同的用例，但调用函数的次数大大减少了。因此，让我们调整我们的类型以充分利用完整的`curry`体验。
+- en: Note
+  id: totrans-132
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This example illustrates really well how the type system works as just a thin
+    layer on top of JavaScript. By adding assertions and `any` at the right positions,
+    we effectively define how `curry` should work, whereas the function itself is
+    much more flexible. Be aware that when you define complex types on top of complex
+    functionality, you might cheat your way to the goal, and it’s in your hands how
+    the types work in the end. Test accordingly.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例非常好地说明了类型系统如何仅作为JavaScript之上的薄层工作。通过在正确位置添加断言和`any`，我们有效地定义了`curry`的工作方式，而函数本身则更加灵活。请注意，当您在复杂功能的基础上定义复杂类型时，可能会以某种方式达到目标，而最终如何工作则取决于您。请相应地进行测试。
+- en: 'Our goal is to create a type that can produce all possible function signatures
+    for every partial application. For the `addThree` function, all possible types
+    would look like this:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的目标是创建一个类型，可以为每个部分应用生成所有可能的函数签名。对于`addThree`函数，所有可能的类型看起来像这样：
+- en: '[PRE32]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: See also [Figure 7-1](#img-curry-illustration) for a visualization of all possible
+    call graphs.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另请参见[图 7-1](#img-curry-illustration)，显示所有可能调用图的可视化。
+- en: '![tscb 0701](assets/tscb_0701.png)'
+  id: totrans-137
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tscb 0701](assets/tscb_0701.png)'
+- en: Figure 7-1\. A graph showing all possible function call combinations of `addThree`
+    when curried; there are three branches to start, with a possible fourth branch
+  id: totrans-138
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. 显示`addThree`在柯里化时所有可能函数调用组合的图表；从三个分支开始，可能还有第四个分支
+- en: 'The first thing we do is to slightly adapt the way we call the `Curried` helper
+    type. In the original type, we do the inference of function arguments and return
+    types *in* the helper type. Now we need to carry along the return value over multiple
+    type invocations, so we extract the return type and arguments directly in the
+    `curry` function:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先要做的是稍微调整我们调用`Curried`辅助类型的方式。在原始类型中，我们在辅助类型中进行函数参数和返回类型的推断。现在，我们需要在多个类型调用中传递返回值，因此我们直接从`curry`函数中提取返回类型和参数：
+- en: '[PRE33]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Next, we redefine the `Curried` type. It now features two generic type parameters:
+    `A` for arguments, `R` for the return type. As a first step, we check if the arguments
+    contain tuple elements. We extract the first element `F` and all remaining elements
+    `L`. If there are no elements left, we return the return type `R`:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们重新定义`Curried`类型。现在它包含两个泛型类型参数：`A`代表参数，`R`代表返回类型。作为第一步，我们检查参数是否包含元组元素。我们提取第一个元素`F`和所有剩余的元素`L`。如果没有剩余元素，我们返回返回类型`R`：
+- en: '[PRE34]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: It’s not possible to extract multiple tuples via the rest operator. That’s why
+    we still need to shave off the first element and collect the remaining elements
+    in `L`. But that’s OK; we need at least *one* parameter to effectively do partial
+    application.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不可能通过剩余运算符提取多个元组。这就是为什么我们仍然需要去掉第一个元素并收集`L`中的剩余元素。但没关系，我们至少需要*一个*参数来有效地执行部分应用。
+- en: When we are in the `true` branch, we create the function definitions. In the
+    previous example, we returned a function that returns a recursive call; now we
+    need to provide all possible partial applications.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们处于`true`分支时，我们创建函数定义。在前面的例子中，我们返回了一个返回递归调用的函数；现在我们需要提供所有可能的部分应用程序。
+- en: 'Since function arguments are nothing but tuple types (see [Recipe 7.2](#ch07_promisify)),
+    arguments of function overloads can be described as a union of tuple types. A
+    type `Overloads` takes a tuple of function arguments and creates all partial applications:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于函数参数仅仅是元组类型（参见[Recipe 7.2](#ch07_promisify)），函数重载的参数可以描述为元组类型的并集。类型`Overloads`接受函数参数的元组并创建所有的部分应用程序：
+- en: '[PRE35]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'If we pass a tuple, we get a union starting from the empty tuple and then growing
+    to one argument, then to two arguments, etc., and up to a tuple that includes
+    all arguments:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们传递一个元组，我们将从空元组开始，并逐步增长到一个参数，然后到两个参数，依此类推，直到包含所有参数的元组：
+- en: '[PRE36]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'Now that we can define all overloads, we take the remaining arguments of the
+    original functions’ argument list and create all possible function calls that
+    also include the first argument:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以定义所有的重载，我们获取原始函数参数列表的剩余参数，并创建所有可能的函数调用，这些调用也包括第一个参数：
+- en: '[PRE37]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Applied to the `addThree` example from before, this part would create the first
+    argument `F` as `number` and then combine it with `[]`, `[number]`, and `[number,
+    number]`.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用于之前的`addThree`示例，这部分会将第一个参数`F`创建为`number`，然后与`[]`、`[number]`和`[number, number]`组合。
+- en: Now for the return type. This is again a recursive call to `Curried`, just like
+    in [Recipe 7.2](#ch07_promisify). Remember, we chain functions in a sequence.
+    We pass in the same return type—we need to get there eventually—but also need
+    to pass all remaining arguments that we haven’t spread out in the function overloads.
+    So if we call `addThree` only with `number`, the two remaining numbers need to
+    be arguments of the next iteration of `Curried`. This is how we create a tree
+    of possible invocations.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是返回类型的问题。这再次是对`Curried`的递归调用，就像在[Recipe 7.2](#ch07_promisify)中一样。请记住，我们按顺序链接函数。我们传入相同的返回类型——最终我们需要到达那里——但也需要传递我们在函数重载中尚未展开的所有剩余参数。因此，如果我们只使用`number`调用`addThree`，则下一次`Curried`的迭代需要这两个剩余数字作为参数。这是我们如何创建可能调用的树。
+- en: 'To get to the possible combinations, we need to remove the arguments we already
+    described in the function signature from the remaining arguments. A helper type
+    `Remove<T, U>` goes through both tuples and shaves off one element each, until
+    one of the two tuples runs out of elements:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要到达可能的组合，我们需要从剩余的参数中删除我们已在函数签名中描述的参数。一个辅助类型`Remove<T, U>`遍历这两个元组，并每次去掉一个元素，直到其中一个元组耗尽为止：
+- en: '[PRE38]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Wiring that up to `Curried`, and we get the final result:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将其应用于`Curried`，我们得到最终结果：
+- en: '[PRE39]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: '`Curried<A, R>` now produces the same call graph as described in [Figure 7-1](#img-curry-illustration)
+    but is flexible for all possible functions that we pass in `curry`. Proper type
+    safety for maximum flexibility (shout-out to GitHub user Akira Matsuzaki who provided
+    the missing piece in their Type Challenges solution).'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Curried<A, R>`现在产生与[Figure 7-1](#img-curry-illustration)中描述的调用图相同的结果，但对我们传递给`curry`的所有可能函数都很灵活。最大灵活性的类型安全（向提供了他们在类型挑战解决方案中提供了缺失部分的GitHub用户Akira
+    Matsuzaki致敬）。'
+- en: 7.5 Typing the Simplest curry function
+  id: totrans-158
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.5 Typing the Simplest curry function
+- en: Problem
+  id: totrans-159
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: The `curry` functions and their typings are impressive but come with a lot of
+    caveats. Are there any simpler solutions?
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`curry`函数及其类型令人印象深刻，但伴随着许多注意事项。是否有更简单的解决方案？'
+- en: Solution
+  id: totrans-161
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `curry` function with only a single sequential step. TypeScript can
+    figure out the proper types on its own.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个仅有单一顺序步骤的`curry`函数。TypeScript能够自行确定适当的类型。
+- en: Discussion
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In the last piece of the `curry` trilogy, I want you to sit back and think
+    a bit about what we saw in Recipes [7.3](#ch07_currying) and [7.4](#ch07_flexible_currying).
+    We created very complex types that work almost like the actual implementation
+    through TypeScript’s metaprogramming features. And while the results are impressive,
+    there are some caveats we have to think about:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在柯里化三部曲的最后一部分中，我希望你坐下来思考一下我们在Recipes [7.3](#ch07_currying)和[7.4](#ch07_flexible_currying)中看到的内容。我们通过TypeScript的元编程特性创建了非常复杂的类型，几乎与实际实现一样工作。尽管结果令人印象深刻，但我们必须考虑一些注意事项：
+- en: The way the types are implemented for both Recipes [7.3](#ch07_currying) and
+    [7.4](#ch07_flexible_currying) is a bit different, but the results vary a lot!
+    Still, the `curry` function underneath stays the same. The only way this works
+    is by using `any` in arguments and type assertions for the return type. What this
+    means is that we effectively disable type-checking by forcing TypeScript to adhere
+    to our view of the world. It’s great that TypeScript can do that, and at times
+    it’s also necessary (such as the creation of new objects), but it can backfire,
+    especially when both implementation and types get very complex. Tests for both
+    types and implementation are a must. We talk about testing types in [Recipe 12.4](ch12.html#ch12_testing_types).
+  id: totrans-165
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为了Recipes [7.3](#ch07_currying)和[7.4](#ch07_flexible_currying)中的类型实现，实现的方式有些不同，但结果差异很大！然而，`curry`函数的底层实现保持不变。这样做的唯一方法是在参数中使用`any`和在返回类型上进行类型断言。这意味着我们通过强制TypeScript遵循我们的世界观，有效地禁用了类型检查。TypeScript能够做到这一点非常棒，有时也是必要的（例如创建新对象），但它也可能适得其反，特别是当实现和类型变得非常复杂时。测试类型和实现都是必须的。我们在[Recipe
+    12.4](ch12.html#ch12_testing_types)中讨论测试类型。
+- en: You lose information. Especially when currying, keeping argument names is essential
+    to know which arguments already have applied. The solutions in the earlier recipes
+    couldn’t keep argument names but defaulted to a generic-sounding `a` or `args`.
+    If your argument types are, for example, all strings, you can’t say which string
+    you are currently writing.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你会丢失信息。特别是在柯里化时，保持参数名对于知道哪些参数已经应用是至关重要的。之前的解决方案无法保留参数名，而是默认为通用的`a`或`args`。例如，如果你的参数类型全都是字符串，你无法知道你当前正在写哪个字符串。
+- en: While the result in [Recipe 7.4](#ch07_flexible_currying) gives you proper type-checking,
+    autocomplete is limited because of the nature of the type. You know only that
+    a second argument is needed the moment you type it. One of TypeScript’s main features
+    is giving you the right tooling and information to make you more productive. The
+    flexible `Curried` type reduces your productivity to guesswork again.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 虽然[Recipe 7.4](#ch07_flexible_currying)中的结果提供了适当的类型检查，但由于类型的特性，自动补全受到限制。你只知道在键入它的时刻需要第二个参数。TypeScript的一个主要功能是提供正确的工具和信息，使你更加高效。灵活的`Curried`类型再次将你的生产力降低到猜测的程度。
+- en: 'Again, while those types are impressive, there is no denying that they come
+    with some huge trade-offs. This raises the question: should we even go for it?
+    I think it really depends on what you try to achieve.'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这些类型令人印象深刻，但不可否认它们伴随着一些巨大的权衡。这引发了一个问题：我们应该选择它吗？我认为这实际取决于你试图达成什么。
+- en: In the case of currying and partial application, there are two camps. The first
+    camp loves functional programming patterns and tries to leverage JavaScript’s
+    functional capabilities to the max. They want to reuse partial applications as
+    much as possible and need advanced currying functionalities. The other camp sees
+    the benefit of functional programming patterns in certain situations—for example,
+    waiting for the final parameter to give the same function to multiple events.
+    They often are happy with applying as much as possible, but then provide the rest
+    in a second step.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在柯里化和部分应用的情况下，存在两个派别。第一派喜欢函数式编程模式，并尽可能利用JavaScript的函数能力。他们希望尽可能多地重用部分应用，并需要先进的柯里化功能。另一派看到了在特定情况下函数式编程模式的好处，例如，等待最终参数将相同函数提供给多个事件。他们通常乐意尽可能多地应用，然后在第二步提供其余部分。
+- en: 'We have dealt with only the first camp until now. If you’re in the second camp,
+    you most likely only need a currying function that applies a few parameters partially,
+    so you can pass in the rest in a second step: no sequence of parameters of one
+    argument, and no flexible application of as many arguments as you like. An ideal
+    interface would look like this:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们只处理了第一类营地。如果你属于第二类营地，你很可能只需要一个部分应用参数的柯里化函数，这样你可以在第二步中传递其余的参数：不是一个参数的参数序列，也不是灵活应用任意多个参数。一个理想的接口看起来像这样：
+- en: '[PRE40]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: '`curry` is a function that takes another function `f` as an argument and then
+    a sequence `t` of parameters of `f`. It returns a function that takes the remaining
+    parameters `u` of `f`, which calls `f` with all possible parameters. The function
+    could look like this in JavaScript:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`curry` 是一个函数，它接受另一个函数 `f` 作为参数，然后是 `f` 的一系列参数 `t`。它返回一个函数，该函数接受 `f` 的剩余参数
+    `u`，并调用 `f` 以所有可能的参数。该函数在 JavaScript 中可能看起来像这样：'
+- en: '[PRE41]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: Thanks to the rest and spread operator, `curry` becomes a one-liner. Now let’s
+    type this! We will have to use generics, as we deal with parameters that we don’t
+    know yet. There’s the return type `R`, as well as both parts of the function’s
+    arguments, `T` and `U`. The latter are variadic tuple types and need to be defined
+    as such.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于剩余和展开运算符，`curry` 成为了一个一行代码的函数。现在让我们给它加上类型！我们将不得不使用泛型，因为我们处理的是尚不知道的参数。这里有返回类型
+    `R`，以及函数参数 `T` 和 `U` 的两个部分。后者是变长元组类型，需要如此定义。
+- en: 'With a generic type parameter `T` and `U` comprising the arguments of `f`,
+    a type for `f` looks like this:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用泛型类型参数 `T` 和 `U` 来组成 `f` 的参数，`f` 的类型看起来像这样：
+- en: '[PRE42]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Function arguments can be described as tuples, and here we say those function
+    arguments should be split into two parts. Let’s inline this type to `curry` and
+    use another generic type parameter for the return type `R`:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数参数可以描述为元组，这里我们说这些函数参数应该分成两部分。让我们将这种类型内联到 `curry` 中，并为返回类型 `R` 使用另一个泛型类型参数：
+- en: '[PRE43]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'And that’s all the types we need: simple, straightforward, and the types look
+    very similar to the actual implementation. With a few variadic tuple types, TypeScript
+    gives us:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们需要的所有类型：简单、直接，类型看起来非常类似于实际实现。通过一些变长元组类型，TypeScript 给我们提供了：
+- en: 100% type safety. TypeScript directly infers the generic types from your usage,
+    and they are correct. No laboriously crafted types through conditional types and
+    recursion.
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 100% 类型安全。TypeScript 直接从你的使用中推断出泛型类型，并且它们是正确的。没有通过条件类型和递归繁琐地构造类型。
+- en: We get autocomplete for all possible solutions. The moment you add a `,` to
+    announce the next step of your arguments, TypeScript will adapt types and give
+    you a hint about what to expect.
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们获得了所有可能解决方案的自动完成。当你添加一个`,`来宣布你的参数的下一步时，TypeScript 将调整类型并给出提示，告诉你可以期待什么。
+- en: We don’t lose any information. Since we don’t construct new types, TypeScript
+    keeps the labels from the original type, and we know which arguments to expect.
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们不会丢失任何信息。由于我们不构建新类型，TypeScript 会保留原始类型的标签，我们知道可以期待哪些参数。
+- en: Yes, `curry` is not as flexible as the original version, but for a lot of use
+    cases, this might be the right choice. It’s all about the trade-offs we accept
+    for our use case.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是的，`curry` 不像原始版本那样灵活，但对于许多用例而言，这可能是正确的选择。这完全取决于我们为我们的用例接受的权衡。
+- en: Tip
+  id: totrans-184
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: 'If you work with tuples a lot, you can name the elements of your tuple types:
+    `type Person = [name: string, age: number];`. Those labels are just annotations
+    and are removed after transpilation.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果你经常使用元组，你可以为元组类型的元素命名：`type Person = [name: string, age: number];`。这些标签只是注释，在转译后会被移除。'
+- en: Ultimately, the `curry` function and its many different implementations stand
+    for the many ways you can use TypeScript to solve a particular problem. You can
+    go all out with the type system and use it for very complex and elaborate types,
+    or you can reduce the scope a bit and let the compiler do the work for you. Your
+    choice depends on your goals and what you try to achieve.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，`curry` 函数及其许多不同的实现代表了你可以使用 TypeScript 解决特定问题的许多方法。你可以全力投入类型系统，并用它来处理非常复杂和精细的类型，或者你可以稍微减少范围，让编译器为你完成工作。你的选择取决于你的目标和你试图实现的内容。
+- en: 7.6 Creating an Enum from a Tuple
+  id: totrans-187
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.6 从元组创建枚举
+- en: Problem
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You like how enums make it easy to select valid values, but after reading [Recipe
+    3.12](ch03.html#ch03_item_enums) you don’t want to deal with all their caveats.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你喜欢枚举如何简化选择有效值，但在阅读[Recipe 3.12](ch03.html#ch03_item_enums)之后，你可能不想处理它们的所有警告。
+- en: Solution
+  id: totrans-190
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create your enums from a tuple. Use conditional types, variadic tuple types,
+    and the `"length"` property to type the data structure.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从元组创建您的枚举。使用条件类型、可变元组类型和`"length"`属性来为数据结构添加类型。
+- en: Discussion
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In [Recipe 3.12](ch03.html#ch03_item_enums) we discussed all possible caveats
+    when using number and string enums. We ended up with a pattern that is much closer
+    to the type system but gives you the same developer experience as regular enums:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[Recipe 3.12](ch03.html#ch03_item_enums)中，我们讨论了在使用数字和字符串枚举时可能遇到的所有注意事项。我们最终得出的模式更接近类型系统，但给您提供了与常规枚举相同的开发者体验：
+- en: '[PRE44]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'It’s a very straightforward pattern with no surprises, but it can result in
+    a lot of work for you if you are dealing with lots of entries, especially if you
+    want to have string enums:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个非常直接的模式，没有任何意外，但如果您处理大量条目，特别是想要有字符串枚举时，可能需要为此付出很多工作：
+- en: '[PRE45]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'There is duplication, which may result in typos, which may lead to undefined
+    behavior. A helper function that creates an enum like this for you helps deal
+    with redundancy and duplication. Let’s say you have a collection of items like
+    this:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存在重复，这可能导致拼写错误，进而导致未定义的行为。一个为您创建这种枚举的辅助函数可以帮助处理冗余和重复。假设您有这样一组项目：
+- en: '[PRE46]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'A helper function `createEnum` iterates through every item, creating an object
+    with capitalized keys that point either to a string value or to a number value,
+    depending on your input parameters:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辅助函数`createEnum`遍历每个项，创建一个对象，其中包含大写的键，指向字符串值或数字值，具体取决于您的输入参数：
+- en: '[PRE47]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Let’s create types for this! We need to take care of two things:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们为此创建类型！我们需要处理两件事：
+- en: Create an object from a tuple. The keys are capitalized.
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 从元组创建一个对象。键都是大写的。
+- en: Set the values of each property key to either a string value or a number value.
+    The number values should start at 0 and increase by one with each step.
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将每个属性键的值设置为字符串值或数字值。数字值应从0开始，并随每一步递增。
+- en: To create object keys, we need a union type we can map out. To get all object
+    keys, we need to convert our tuple to a union type. A helper type `TupleToUnion`
+    takes a string tuple and converts it to a union type. Why only string tuples?
+    Because we need object keys, and string keys are the easiest to use.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建对象键，我们需要一个可以映射出的联合类型。为了获取所有对象键，我们需要将元组转换为联合类型。辅助类型`TupleToUnion`接受一个字符串元组并将其转换为联合类型。为什么只有字符串元组？因为我们需要对象键，而字符串键最容易使用。
+- en: '`TupleToUnion<T>` is a recursive type. Like we did in other lessons, we are
+    shaving off single elements—this time at the end of the tuple—and then calling
+    the type again with the remaining elements. We put each call in a union, effectively
+    getting a union type of tuple elements:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`TupleToUnion<T>` 是一个递归类型。就像我们在其他课程中所做的那样，我们一直在削减单个元素——这次是元组末尾的元素——然后再次调用剩余元素的类型。我们将每次调用放入一个联合类型中，有效地得到了元组元素的联合类型：'
+- en: '[PRE48]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'With a map type and a string manipulation type, we can create the string enum
+    version of `Enum<T>`:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助映射类型和字符串操作类型，我们可以创建`Enum<T>`的字符串枚举版本：
+- en: '[PRE49]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'For the number enum version, we need to get a numerical representation of each
+    value. If we think about it, we have already stored it somewhere in our original
+    data. Let’s look at how `TupleToUnion` deals with a four-element tuple:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于数字枚举版本，我们需要获取每个值的数字表示。如果我们仔细想一想，我们已经在原始数据中的某个地方存储了它。让我们看看`TupleToUnion`如何处理一个四元素元组：
+- en: '[PRE50]'
+  id: totrans-210
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'If you look closely, you can see that the length of the tuple is decreasing
+    with each call. First, it’s three elements, then two, then one, and ultimately
+    there are no elements left. Tuples are defined by the length of the array and
+    the type at each position in the array. TypeScript stores the length as a number
+    for tuples, accessible via the `"length"` property:'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您仔细观察，可以看到每次调用时元组的长度在减少。首先是三个元素，然后是两个，然后是一个，最后没有元素了。元组由数组的长度和数组中每个位置的类型定义。TypeScript将元组的长度存储为一个数字，可通过`"length"`属性访问：
+- en: '[PRE51]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'So with each recursive call, we can get the length of the remaining elements
+    and use this as a value for the enum. Instead of just returning the enum keys,
+    we return an object with the key and its possible number value:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，通过每次递归调用，我们可以获得剩余元素的长度，并将其作为枚举的值。我们不仅返回枚举键，还返回一个对象，其中包含键及其可能的数字值：
+- en: '[PRE52]'
+  id: totrans-214
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'We use this newly created object to decide whether we want to have number values
+    or string values in our enum:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用这个新创建的对象来决定我们的枚举中是要有数字值还是字符串值：
+- en: '[PRE53]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'And that’s it! We wire up our new `Enum<T, N>` type to the `createEnum` function:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！我们将新的`Enum<T, N>`类型连接到`createEnum`函数：
+- en: '[PRE54]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: Being able to access the length of a tuple within the type system is one of
+    the hidden gems in TypeScript. This allows for many things, as shown in this example,
+    but also fun stuff like implementing calculators in the type system. As with all
+    advanced features in TypeScript, use them wisely.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 能够在类型系统中访问元组的长度是TypeScript中的一个隐藏宝石。这允许许多事情，如本例所示，以及实现计算器在类型系统中的有趣功能。与TypeScript中所有高级特性一样，明智地使用它们。
+- en: 7.7 Splitting All Elements of a Function Signature
+  id: totrans-220
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 7.7 分割函数签名的所有元素
+- en: Problem
+  id: totrans-221
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You know how to grab argument types and return types from functions within a
+    function, but you want to use the same types outside as well.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你知道如何在函数内部获取参数类型和返回类型，但你也想在外部使用相同的类型。
+- en: Solution
+  id: totrans-223
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the built-in `Parameters<F>` and `ReturnType<F>` helper types.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用内置的`Parameters<F>`和`ReturnType<F>`辅助类型。
+- en: Discussion
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'In this chapter, we have dealt with helper functions and how they can grab
+    information from functions that are arguments. For example, this `defer` function
+    takes a function and all its arguments and returns another function that will
+    execute it. With some generic types, we can capture everything we need:'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们处理了辅助函数以及它们如何从作为参数的函数中获取信息。例如，这个`defer`函数接受一个函数及其所有参数，并返回另一个将执行它的函数。通过一些泛型类型，我们可以捕获所有需要的内容：
+- en: '[PRE55]'
+  id: totrans-227
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'This works great if we pass functions as arguments because we can easily pick
+    the details and reuse them. But certain scenarios need a function’s arguments
+    and its return type outside of a generic function. Thankfully, we can leverage
+    some built-in TypeScript helper types. With `Parameters<F>` we get a function’s
+    arguments as a tuple; with `ReturnType<F>` we get the return type of a function.
+    So the `defer` function from before could be written like:'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们将函数作为参数传递，这将非常有效，因为我们可以轻松地提取详细信息并重复使用它们。但某些情况需要一个函数的参数及其返回类型在泛型函数之外。幸运的是，我们可以利用一些内置的TypeScript辅助类型。使用`Parameters<F>`我们获取一个函数的参数作为元组；使用`ReturnType<F>`我们获取一个函数的返回类型。因此，之前的`defer`函数可以这样编写：
+- en: '[PRE56]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'Both `Parameters<F>` and `ReturnType<F>` are conditional types that rely on
+    function/tuple types and are very similar. In `Parameters<F>` we infer the arguments,
+    and in `ReturnType<F>` we infer the return type:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Parameters<F>`和`ReturnType<F>`都是条件类型，依赖于函数/元组类型，非常相似。在`Parameters<F>`中，我们推断参数，在`ReturnType<F>`中，我们推断返回类型：'
+- en: '[PRE57]'
+  id: totrans-231
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'We can use those helper types, for example, to prepare function arguments outside
+    of functions. Take this `search` function:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用这些辅助类型，例如，在函数外部准备函数参数。以这个`search`函数为例：
+- en: '[PRE58]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'With `Parameters<typeof search>` we get an idea of which parameters to expect.
+    We define them outside of the function call and spread them as arguments when
+    calling:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Parameters<typeof search>`我们可以了解期望的参数。我们在函数调用之外定义它们，并在调用时将它们作为参数展开：
+- en: '[PRE59]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: Both helpers come in handy when you generate new types as well; see [Recipe
+    4.8](ch04.html#ch04_this_type) for an example.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你生成新类型时，这两个辅助函数也很有用；参见[Recipe 4.8](ch04.html#ch04_this_type)作为一个例子。

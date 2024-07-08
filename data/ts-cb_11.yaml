@@ -1,0 +1,1670 @@
+- en: Chapter 10\. TypeScript and React
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第10章 TypeScript和React
+- en: React is arguably one of the most popular JavaScript libraries in recent years.
+    Its simple approach to the composition of components has changed the way we write
+    frontend (and, to an extent, backend) applications, allowing you to declaratively
+    write UI code using a JavaScript syntax extension called JSX. Not only was this
+    simple principle easy to pick up and understand, but it also influenced dozens
+    of other libraries.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 近年来，React可以说是最受欢迎的JavaScript库之一。其简单的组件组合方法改变了我们编写前端（以及在某种程度上后端）应用程序的方式，允许你使用一种称为JSX的JavaScript语法扩展来声明性地编写UI代码。这个简单的原则不仅易于掌握和理解，而且还影响了其他数十个库。
+- en: JSX is undoubtedly a game changer in the JavaScript world, and with TypeScript’s
+    goal to cater to all JavaScript developers, JSX found its way into TypeScript.
+    In fact, TypeScript is a full-fledged JSX compiler. If you have no need for additional
+    bundling or extra tooling, TypeScript is all you need to get your React app going.
+    TypeScript is also immensely popular. At the time of writing, the React typings
+    on NPM clocked 20 million downloads per week. The fantastic tooling with VS Code
+    and the excellent types made TypeScript the first choice for React developers
+    around the globe.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JSX无疑是JavaScript世界的一个重大变革，并且随着TypeScript致力于服务于所有JavaScript开发者的目标，JSX也进入了TypeScript的领域。事实上，TypeScript是一个功能齐全的JSX编译器。如果你不需要额外的捆绑或额外的工具，TypeScript就足以启动你的React应用程序。在写作时，React的类型定义每周在NPM上下载量达到2000万次。VS
+    Code提供的出色工具和优秀的类型使得TypeScript成为全球React开发者的首选。
+- en: 'While TypeScript’s popularity among React developers continues unabated, one
+    circumstance makes the use of TypeScript with React a bit difficult: TypeScript
+    isn’t the React team’s first choice. While other JSX-based libraries are now mostly
+    written *in* TypeScript and therefore provide excellent types out of the box,
+    the React team works with their own static type-checker called [Flow](https://flow.org),
+    which is similar to, but ultimately incompatible with, TypeScript. This means
+    the React types millions of developers rely on are made subsequently by a group
+    of community contributors and published on Definitely Typed. While `@types/react`
+    are considered to be excellent, they are still just the best effort to type a
+    library as complex as React. This inevitably leads to gaps. For the places where
+    those gaps become visible, this chapter will be your guide.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管TypeScript在React开发者中的流行度依然不减，但有一个情况使得与React一起使用TypeScript略显困难：TypeScript并不是React团队的首选。尽管现在其他基于JSX的库大多都是用TypeScript编写的，因此提供了出色的类型支持，但React团队使用他们自己的静态类型检查器[Flow](https://flow.org)，与TypeScript有些类似，但最终不兼容。这意味着数百万开发者依赖的React类型是由社区贡献者组成的小组后续创建，并发布在Definitely
+    Typed上。虽然`@types/react`被认为是非常优秀的，但它们仍然只是尽力去为像React这样复杂的库提供类型。这不可避免地导致一些缺陷。对于那些缺陷显现的地方，本章将为你提供指引。
+- en: In this chapter, we look at situations where React is supposed to be easy, but
+    TypeScript gives you a hard time by throwing complex error messages. We are going
+    to figure out what those messages mean, how you can work around them, and what
+    solutions help you in the long run. You will also learn about various development
+    patterns and their benefits, and how to use TypeScript’s built-in JSX support.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨React在理论上应该很容易，但TypeScript通过抛出复杂的错误信息让你感到困扰的情况。我们将弄清楚这些消息的含义，如何绕过它们，以及哪些解决方案能够从长远来看帮助你。你还将了解各种开发模式及其好处，以及如何使用TypeScript内置的JSX支持。
+- en: What you won’t get is a basic setup guide for React and TypeScript. The ecosystem
+    is so vast and rich, many roads lead to Rome. Pick your framework’s documentation
+    pages and look out for TypeScript. Also note that I assume some React experience
+    up front. In this chapter, we deal mostly with typing React.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你不会得到React和TypeScript的基本设置指南。生态系统如此广泛丰富，有很多条路可以通往罗马。选择你的框架文档页面，并寻找TypeScript相关内容。同时请注意，我假设你有一些React的使用经验。在本章中，我们主要讨论如何为React进行类型编写。
+- en: While there is a strong inclination toward React in this chapter, you will be
+    able to use certain learnings and apply them to other JSX-based frameworks and
+    libraries as well.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然本章倾向于使用React，但你也能够将某些学习内容应用到其他基于JSX的框架和库中。
+- en: 10.1 Writing Proxy Components
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.1 编写代理组件
+- en: Problem
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You write a lot of standard HTML components, but you don’t want to set all necessary
+    properties all the time.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你编写了很多标准的HTML组件，但不想一直设置所有必要的属性。
+- en: Solution
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create proxy components and apply a few patterns to make them usable for your
+    scenario.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建代理组件并应用一些模式，使它们适用于您的情况。
+- en: Discussion
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Most web applications use buttons. Buttons have a `type` property that defaults
+    to `submit`. This is a sensible default for forms where you perform an action
+    over HTTP, where you POST the contents to a server-side API. But when you just
+    want to have interactive elements on your site, the correct type for buttons is
+    `button`. This is not only an aesthetic choice but also important for accessibility:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数Web应用程序使用按钮。按钮具有默认为`submit`的`type`属性。这是表单的明智默认设置，在此类表单中，您通过HTTP执行操作，将内容POST到服务器端API。但是当您只是想在您的网站上有交互元素时，按钮的正确类型是`button`。这不仅是一种美学选择，而且对于可访问性也非常重要：
+- en: '[PRE0]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'When you write React, chances are you rarely submit a form to a server with
+    a `submit` type, but you interact with lots of `button`-type buttons. A good way
+    to deal with situations like these is to write proxy components. They mimic HTML
+    elements but preset a couple of properties:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您编写React时，很少会将表单提交到具有`submit`类型的服务器，而是与许多`button`类型的按钮交互。处理这类情况的一种好方法是编写代理组件。它们模仿HTML元素，但预设了一些属性：
+- en: '[PRE1]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The idea is that `Button` takes the same properties as the HTML `button`, and
+    the attributes are spread out to the HTML element. Spreading attributes to HTML
+    elements is a nice feature where you can make sure that you are able to set all
+    the HTML properties that an element has without knowing up front which you want
+    to set. But how do we type them?
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 思想是`Button`接受与HTML `button`相同的属性，并将属性展开到HTML元素中。将属性展开到HTML元素是一个很好的功能，您可以确保能够设置所有HTML元素具有的属性，而无需预先知道要设置哪些属性。但是我们如何对它们进行类型化？
+- en: All HTML elements that can be used in JSX are defined through intrinsic elements
+    in the `JSX` namespace. When you load React, the `JSX` namespace appears as a
+    global namespace in your file, and you can access all elements via index access.
+    So the correct prop types for `Button` are defined in `JSX.IntrinsicElements`.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以在JSX中使用的所有HTML元素都通过`JSX`命名空间中的内部元素定义。当您加载React时，`JSX`命名空间将出现为您文件中的全局命名空间，并且您可以通过索引访问所有元素。因此，`Button`的正确属性类型在`JSX.IntrinsicElements`中定义。
+- en: Note
+  id: totrans-19
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'An alternative to `JSX.IntrinsicElements` is `React.ElementType`, a generic
+    type within the React package, which also includes class and function components.
+    For proxy components, `JSX⁠.Int⁠rin⁠sic​Ele⁠ments` is sufficient and comes with
+    an extra benefit: your components stay compatible with other React-like frameworks
+    like Preact.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 替代`JSX.IntrinsicElements`的是`React.ElementType`，这是React包中的泛型类型，也包括类和函数组件。对于代理组件，`JSX⁠.Int⁠rin⁠sic​Ele⁠ments`已经足够，并且带来了额外的好处：您的组件与其他类似React的框架（如Preact）保持兼容。
+- en: '`JSX.IntrinsicElements` is a type within the global `JSX` namespace. Once this
+    namespace is in scope, TypeScript is able to pick up basic elements that are compatible
+    with your JSX-based framework:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`JSX.IntrinsicElements`是全局`JSX`命名空间中的一种类型。一旦这个命名空间在作用域内，TypeScript就能够捕捉与您的基于JSX的框架兼容的基本元素：'
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'This includes children: we spread them along! As you see, we set a button’s
+    type to `button`. Since props are just JavaScript objects, it’s possible to override
+    `type` by setting it as an attribute in props. If two keys with the same name
+    are defined, the last one wins. This may be desired behavior, but you alternatively
+    may want to prevent you and your colleagues from overriding `type`. With the `Omit<T,
+    K>` helper type, you can take all properties from a JSX `button` but drop keys
+    you don’t want to override:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这包括子元素：我们将它们展开！正如您所见，我们将按钮的类型设置为`button`。由于props只是JavaScript对象，因此可以通过将其设置为props中的属性来覆盖`type`。如果定义了两个同名的键，那么后者将覆盖前者。这可能是期望的行为，但您也可能希望阻止您和您的同事覆盖`type`。使用`Omit<T,
+    K>`辅助类型，您可以从JSX `button`中获取所有属性，但删除您不想覆盖的键：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'If you need `type` to be `submit`, you can create another proxy component:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您需要`type`为`submit`，您可以创建另一个代理组件：
+- en: '[PRE4]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'You can extend this idea of omitting properties if you want to preset even
+    more properties. Perhaps you adhere to a design system and don’t want class names
+    to be set arbitrarily:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以根据需要省略属性来扩展这个想法。也许您遵循设计系统，并不希望类名随意设置：
+- en: '[PRE5]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: This even allows you to reuse the `type` property name.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这甚至允许您重复使用`type`属性名。
+- en: We dropped some props from the type definition and preset them to sensible defaults.
+    Now we want to make sure our users don’t forget to set some props, such as the
+    `alt` attribute of an image or the `src` attribute.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从类型定义中删除了一些props，并将它们预设为合理的默认值。现在我们希望确保用户不要忘记设置一些props，比如图片的`alt`属性或`src`属性。
+- en: 'For that, we create a `MakeRequired` helper type that removes the optional
+    flag:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们创建一个`MakeRequired`辅助类型，移除可选标志：
+- en: '[PRE6]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'And build our own props:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并构建我们自己的props：
+- en: '[PRE7]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: With just a few changes to the original intrinsic element’s type and a proxy
+    component, we can ensure that our code becomes more robust, more accessible, and
+    less error prone.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过对原始内置元素类型和代理组件进行一些更改，我们可以确保我们的代码变得更加健壮、更易访问且错误更少。
+- en: 10.2 Writing Controlled Components
+  id: totrans-36
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.2 编写受控组件
+- en: Problem
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: 'Form elements like inputs add another complexity as we need to decide where
+    to manage state: in the browser or in React.'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像输入框这样的表单元素增加了另一种复杂性，因为我们需要决定在哪里管理状态：在浏览器中还是在React中。
+- en: Solution
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Write a proxy component that uses discriminated unions and the optional never
+    technique to ensure you won’t switch from uncontrolled to controlled at runtime.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写一个代理组件，使用区分联合和可选永不技巧，以确保在运行时不会从未受控切换到受控。
+- en: Discussion
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: React differentiates form elements between *controlled components* and *uncontrolled
+    components*. When you use regular form elements like `input`, `textarea`, or `select`,
+    you need to keep in mind that the underlying HTML elements control their own state.
+    Whereas in React, the state of an element is also defined *through* React.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 区分表单元素之间的 *受控组件* 和 *未受控组件*。当你使用像`input`、`textarea`或`select`这样的常规表单元素时，需要记住底层的HTML元素控制它们自己的状态。而在React中，元素的状态也是通过React来定义的
+    *。
+- en: If you set the `value` attribute, React assumes that the element’s value is
+    also controlled by React’s state management, which means you are not able to modifiy
+    this value unless you maintain the element’s state using `useState` and the associated
+    setter function.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你设置了`value`属性，React会认为该元素的值也由React的状态管理控制，这意味着除非你使用`useState`和相关的 setter 函数维护元素的状态，否则无法修改这个值。
+- en: 'There are two ways to deal with this. First, you can choose `defaultValue`
+    as a property instead of `value`. This will set the `value` of the input only
+    in the first rendering, and subsequently leaves everything in the hands of the
+    browser:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两种方法可以处理这一问题。首先，你可以选择`defaultValue`作为属性而不是`value`。这将只在第一次渲染时设置输入的`value`，随后将所有控制权交给浏览器：
+- en: '[PRE8]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Or you manage `value` interally via React’s state management. Usually, it’s
+    enough just to intersect the original input element’s props with our own type.
+    We drop `value` from the intrinsic elements and add it as a required `string`:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，你通过React的状态管理内部管理`value`。通常，只需将原始输入元素的props与我们自己的类型相交集就足够了。我们从内置元素中删除`value`，并将其添加为必需的`string`：
+- en: '[PRE9]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Then, we wrap the `input` element in a proxy component. It is not best practice
+    to keep state internally in a proxy component; rather, you should manage it from
+    the outside with `useState`. We also forward the `onChange` handler we pass from
+    the original input props:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将`input`元素包装在一个代理组件中。将状态保存在代理组件内部并不是最佳实践；相反，你应该使用`useState`从外部管理它。我们还将从原始输入props传递的`onChange`处理器进行转发：
+- en: '[PRE10]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'React raises an interesting warning when dealing with a switch from uncontrolled
+    to controlled at runtime:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 在运行时处理从未受控到受控的切换时会发出一个有趣的警告：
+- en: A component is changing an uncontrolled input to be controlled. This is likely
+    caused by the value changing from undefined to a defined value, which should not
+    happen. Decide between using a controlled or uncontrolled input element for the
+    lifetime of the component.
+  id: totrans-51
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 一个组件正在将未受控输入转换为受控输入。这很可能是由于值从未定义变为已定义值，应该避免这种情况。决定在组件的生命周期内使用受控还是未受控输入元素。
+- en: 'We can prevent this warning by making sure at compile time that we either always
+    provide a defined string `value` or provide a `defaultValue` instead, but not
+    both. This can be solved by using a discriminated union type using the optional
+    never technique (as seen in [Recipe 3.8](ch03.html#ch03_item_optional_never)),
+    and using the `OnlyRequired` helper type from [Recipe 8.1](ch08.html#ch08_one_optional)
+    to derive possible properties from `JSX.IntrinsicElements["input"]`:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过在编译时确保我们要么总是提供一个定义了的字符串`value`，要么提供一个`defaultValue`来防止这个警告，但不能两者都提供。这可以通过使用可选never技术来使用歧视联合类型来解决（如[Recipe
+    3.8](ch03.html#ch03_item_optional_never)中所示），并且使用`OnlyRequired`帮助类型从[Recipe 8.1](ch08.html#ch08_one_optional)派生可能的属性来控制`JSX.IntrinsicElements["input"]`：
+- en: '[PRE11]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: In all other cases, having an optional `value` or having a `defaultValue` and
+    trying to control values will be prohibited by the type system.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在所有其他情况下，具有可选的`value`或具有`defaultValue`并尝试控制值将被类型系统禁止。
+- en: 10.3 Typing Custom Hooks
+  id: totrans-55
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.3 类型化自定义钩子
+- en: Problem
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to define custom hooks and get proper types.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望定义自定义钩子并获得适当的类型。
+- en: Solution
+  id: totrans-58
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use tuple types or *const context*.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用元组类型或*const上下文*。
+- en: Discussion
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Let’s create a custom hook in React and stick to the naming convention as regular
+    React hooks do: returning an array (or tuple) that can be destructured. For example,
+    `useState`:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在React中创建一个自定义钩子，并遵循常规React钩子的命名约定：返回一个可以解构的数组（或元组）。例如，`useState`：
+- en: '[PRE12]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Why do we even use arrays? Because the array’s fields have no name, and you
+    can set names of your own:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么我们要使用数组？因为数组的字段没有名称，你可以设置自己的名称：
+- en: '[PRE13]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'So naturally, if you have a similar pattern, you also want to return an array.
+    A custom toggle hook might look like this:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，如果您有类似的模式，您也想返回一个数组。一个自定义切换钩子可能看起来像这样：
+- en: '[PRE14]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Nothing out of the ordinary. The only types we have to set are the types of
+    the input parameters. Let’s try it:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有什么特别的。我们唯一需要设置的类型是输入参数的类型。让我们试试吧：
+- en: '[PRE15]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'So why does this fail? The error message might be cryptic, but what we should
+    look out for is the first type, which is declared incompatible: `boolean | (()
+    => void)''`. This comes from returning an array: a list of any length that can
+    hold as many elements as virtually possible. From the return value in `useToggle`,
+    TypeScript infers an array type. Since the type of `value` is `boolean` (great!)
+    and the type of `toggleValue` is `(() => void)` (a function expected to return
+    nothing), TypeScript tells us that both types are possible in this array.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么为什么会失败？错误消息可能会很神秘，但我们应该注意的是第一种类型，它声明为不兼容：`boolean | (() => void)`。这是因为返回一个数组：一个可以容纳尽可能多元素的任意长度列表。从`useToggle`的返回值中，TypeScript推断出一个数组类型。由于`value`的类型是`boolean`（太好了！），而`toggleValue`的类型是`(()
+    => void)`（一个预期返回空的函数），TypeScript告诉我们在这个数组中可能存在这两种类型。
+- en: This is what breaks the compatibility with `onClick`. `onClick` expects a function.
+    That’s fine, but `toggleValue` (or `toggleVisible`) is a function. According to
+    TypeScript, however, it can also be a Boolean! TypeScript tells you to be explicit,
+    or at least to do type-checks.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是破坏与`onClick`兼容性的地方。`onClick`期望一个函数。这没问题，但`toggleValue`（或`toggleVisible`）是一个函数。然而，根据TypeScript的说法，它也可以是一个布尔值！TypeScript告诉你要明确，或至少要进行类型检查。
+- en: 'But we shouldn’t need to do extra type-checks. Our code is very clear. It’s
+    the types that are wrong. Because we’re not dealing with an array, let’s go for
+    a different name: tuple. While an array is a list of values that can be of any
+    length, we know exactly how many values we get in a tuple. Usually, we also know
+    the type of each element in a tuple.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但我们不应该需要进行额外的类型检查。我们的代码非常清晰。问题在于类型不正确。因为我们不处理一个数组，让我们换一个名字：元组。虽然数组是一个可以有任意长度值的值列表，但我们在元组中确切地知道有多少个值。通常，我们还知道元组中每个元素的类型。
+- en: 'So we shouldn’t return an array but a tuple at `useToggle`. The problem: in
+    JavaScript an array and a tuple are indistinguishable. In TypeScript’s type system,
+    we can distinguish them.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们不应该返回一个数组而是一个元组在`useToggle`。问题是：在JavaScript中，数组和元组是无法区分的。在TypeScript的类型系统中，我们可以区分它们。
+- en: 'First option: let’s be intentional with our return type. Since TypeScript—correctly!—infers
+    an array, we have to tell TypeScript that we are expecting a tuple:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个选择：让我们对返回类型有意识。由于TypeScript——正确地！——推断出一个数组，我们必须告诉TypeScript，我们期望一个元组：
+- en: '[PRE16]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: With `[boolean, () => void]` as a return type, TypeScript checks that we are
+    returning a tuple in this function. TypeScript does not infer, but rather makes
+    sure that your intended return type is matched by the actual values. And voilà,
+    your code doesn’t throw errors anymore.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以`[boolean, () => void]`作为返回类型，TypeScript检查我们在此函数中返回一个元组。TypeScript不会推断，而是确保您的预期返回类型与实际值匹配。这样一来，您的代码就不会再抛出错误了。
+- en: 'Second option: use *const context*. With a tuple, we know how many elements
+    we are expecting, and we know the type of these elements. This sounds like a job
+    for freezing the type with a `const` assertion:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个选项：使用*const context*。通过元组，我们知道我们期望的元素数量，并且知道这些元素的类型。这听起来像是使用`const`断言冻结类型的工作：
+- en: '[PRE17]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The return type is now `readonly [boolean, () => void]`, because `as const`
+    makes sure that your values are constant and not changeable. This type is a little
+    bit different semantically, but in reality you wouldn’t be able to change the
+    values you return outside of `useToggle`. So being `readonly` would be slightly
+    more correct.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在返回类型是`readonly [boolean, () => void]`，因为`as const`确保您的值是常量且不可更改。从语义上讲，这种类型略有不同，但实际上您无法在`useToggle`外部更改返回的值。因此，使用`readonly`会稍微更加正确。
+- en: 10.4 Typing Generic forwardRef Components
+  id: totrans-79
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.4 Typing Generic forwardRef Components
+- en: Problem
+  id: totrans-80
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You use `forwardRef` for your components, but you need them to be generic.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您为组件使用`forwardRef`，但需要它们是泛型的。
+- en: Solution
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: There are several solutions to this problem.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个问题有几种解决方案。
+- en: Discussion
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If you are creating component libraries and design systems in React, you might
+    already have fowarded `ref`s to the DOM elements inside your components.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在React中创建组件库和设计系统，可能已经将`ref`转发到组件内部的DOM元素。
+- en: 'This is especially useful if you wrap basic components or leaves in *proxy
+    components* (see [Recipe 10.1](#ch10_proxy_components)), but want to use the `ref`
+    property just like you’re used to:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别是当您包装基本组件或叶子节点在*代理组件*（参见[Recipe 10.1](#ch10_proxy_components)）中时，这尤其有用，但您希望像往常一样使用`ref`属性：
+- en: '[PRE18]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Providing types for `React.forwardRef` is usually pretty straightforward. The
+    types shipped by `@types/react` have generic type variables that you can set upon
+    calling `React.forwardRef`. In that case, explicitly annotating your types is
+    the way to go:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常为`React.forwardRef`提供类型通常非常简单。`@types/react`中提供的类型具有可以在调用`React.forwardRef`时设置的泛型类型变量。在这种情况下，显式注释您的类型是正确的做法：
+- en: '[PRE19]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'So far, so good. But things get a bit hairy if you have a component that accepts
+    generic properties. The following component produces a list of list items, where
+    you can select each row with a `button` element:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止一切都很好。但是，如果您有一个接受泛型属性的组件，情况会变得有些复杂。以下组件生成了一个列表项的列表，您可以使用`button`元素选择每一行：
+- en: '[PRE20]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'You want the extra type safety so you can work with a type-safe `item` in your
+    `on​Sel⁠ect` callback. Say you want to create a `ref` to the inner `ul` element:
+    how do you proceed? Let’s change the `ClickableList` component to an inner function
+    component that takes a `ForwardRef` and use it as an argument in the `React.forwardRef`
+    function:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望具有额外的类型安全性，以便在`on​Sel⁠ect`回调中使用类型安全的`item`。假设您想要创建一个指向内部`ul`元素的`ref`：该如何操作？让我们将`ClickableList`组件更改为一个接受`ForwardRef`的内部函数组件，并将其作为参数传递给`React.forwardRef`函数：
+- en: '[PRE21]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'This compiles but has one downside: we can’t assign a generic type variable
+    for `Cl⁠ick⁠ab⁠le​Li⁠st⁠Prop⁠s`. It becomes `unknown` by default. This is good
+    compared to `any` but also slightly annoying. When we use `ClickableList`, we
+    know which items to pass along, and we want to have them typed accordingly! So
+    how can we achieve this? The answer is tricky …​ and you have a couple of options.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样编译没有问题，但有一个缺点：我们无法为`Cl⁠ick⁠ab⁠le​Li⁠st⁠Prop⁠s`分配泛型类型变量。它默认变为`unknown`。与`any`相比这是好的，但也略微让人烦恼。当我们使用`ClickableList`时，我们知道要传递哪些项目，并且希望根据类型进行类型化！那么我们该如何实现呢？答案有些棘手……而且您有几个选项。
+- en: 'The first option is to do a type assertion that restores the original function
+    signature:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个选项是进行类型断言，恢复原始的函数签名：
+- en: '[PRE22]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Type assertions work great if you happen to have only a few situations where
+    you need generic `forwardRef` components, but they might be too clumsy when you
+    work with lots of them. Also, you introduce an unsafe operator for something that
+    should be default behavior.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您只有少数情况需要泛型`forwardRef`组件，类型断言效果很好，但当您处理大量这些组件时可能会显得笨拙。此外，您为应该是默认行为的事物引入了一个不安全的运算符。
+- en: 'The second option is to create custom references with wrapper components. While
+    `ref` is a reserved word for React components, you can use your own custom props
+    to mimic a similar behavior. This works just as well:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个选择是使用包装组件创建自定义引用。虽然`ref`是 React 组件的保留字，但你可以使用自定义属性来模拟类似的行为。这同样有效：
+- en: '[PRE23]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'You introduce a new API, however. For the record, there is also the possibility
+    of using a wrapper component that allows you to use `forwardRef` inside an *inner*
+    component and expose a custom `ref` property to the outside:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，你引入了一个新的 API。需要注意的是，还有使用包装组件的可能性，允许你在*内部*组件中使用`forwardRef`并向外部暴露自定义的`ref`属性：
+- en: '[PRE24]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Both are valid solutions if the only thing you want to achieve is passing that
+    ref. If you want to have a consistent API, you might look for something else.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你只想要传递那个引用，两者都是有效的解决方案。如果你想要一个一致的 API，你可能会寻找其他的解决方案。
+- en: The third and final option is to augment `forwardRef` with your own type definitions.
+    TypeScript has a feature called [*higher-order function type inference*](https://oreil.ly/rVsq9)
+    that allows propagating free type parameters to the outer function.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三种选择是用你自己的类型定义增强`forwardRef`。TypeScript 提供了一种称为[*higher-order function type
+    inference*](https://oreil.ly/rVsq9)的功能，允许将自由类型参数传播到外部函数。
+- en: This sounds a lot like what we want with `forwardRef` to begin with, but it
+    doesn’t work with our current typings. The reason is that higher-order function
+    type inference works only on plain function types. The function declarations inside
+    `forwardRef` also add properties for `defaultProps` and so on. These are relics
+    from the class component days, things you might not want to use anyway.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这听起来很像我们最初想要的`forwardRef`，但它与我们当前的类型定义不兼容。原因是高阶函数类型推断仅适用于普通函数类型。`forwardRef`内部的函数声明还会为`defaultProps`等添加属性。这些都是来自类组件时代的遗留物，也许你并不想使用它们。
+- en: So without the additional properties, it should be possible to use higher-order
+    function type inference!
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，不需要额外的属性，应该可以使用高阶函数类型推断！
+- en: 'We are using TypeScript, so we have the ability to redeclare and redefine global
+    `module`, `namespace`, and `interface` declarations on our own. Declaration merging
+    is a powerful tool, and we’re going to use it:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在使用 TypeScript，因此可以重新声明和重新定义自己的全局`module`、`namespace`和`interface`声明。声明合并是一个强大的工具，我们将要使用它：
+- en: '[PRE25]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'The nice thing about this solution is that you write regular JavaScript again
+    and work exclusively on a type level. Also, redeclarations are module scoped:
+    no interference with any `forwardRef` calls from other modules!'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个解决方案的好处是，你可以再次编写常规的 JavaScript，并且完全在类型层面上进行工作。另外，重新声明是模块作用域的：不会干扰来自其他模块的任何`forwardRef`调用！
+- en: 10.5 Providing Types for the Context API
+  id: totrans-109
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.5 为上下文 API 提供类型
+- en: Problem
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to use the context API for globals in your app, but you don’t know
+    the best way to deal with type definitions.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望在应用程序中使用上下文 API 进行全局管理，但你不知道如何处理类型定义的最佳方式。
+- en: Solution
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Either set default properties for context and let the type be inferred or create
+    a partial of your context’s properties and instantiate the generic type parameter
+    explicitly. If you don’t want to provide default values, but want to make sure
+    that all properties are provided, create a helper function.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要么为上下文设置默认属性并让类型推断，要么创建你上下文属性的部分并显式实例化泛型类型参数。如果你不想提供默认值，但希望确保所有属性都被提供，可以创建一个辅助函数。
+- en: Discussion
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'React’s context API allows you to share data on a global level. To use it,
+    you need two things:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的上下文 API 允许你在全局级别共享数据。为了使用它，你需要两件事：
+- en: Providers
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供者
+- en: Providers pass data to a subtree.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供者将数据传递给子树。
+- en: Consumers
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 消费者
+- en: Consumers are components that *consume* the passed data inside render props.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 消费者是在渲染属性内部*消费*传递的数据的组件。
+- en: With React’s typings, you can use context without doing anything else most of
+    the time. Everything is done using type inference and generics.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 React 的类型定义，大多数情况下可以直接使用上下文。一切都是通过类型推断和泛型完成的。
+- en: 'First, we create a context. Here, we want to store global application settings,
+    like a theme and the app’s language, along with the global state. When creating
+    a React context, we want to pass default properties:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们创建一个上下文。在这里，我们想要存储全局应用程序设置，如主题和应用程序的语言，以及全局状态。在创建 React 上下文时，我们希望传递默认属性：
+- en: '[PRE26]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'And with that, everything you need to do in terms of types is done for you.
+    We have three properties: `authenticated`, `lang`, and `theme`; they are of types
+    `boolean` and `string`. React’s typings take this information to provide you with
+    the correct types when you use them.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，您所需的所有类型操作都已完成。我们有三个属性：`authenticated`，`lang`和`theme`；它们的类型分别是`boolean`和`string`。当您使用它们时，React的类型信息将提供正确的类型。
+- en: 'Next, a component high up in your component tree needs to provide context—for
+    example, the application’s root component. This provider trickles down the values
+    you’ve set to every consumer below:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，组件树中高层次的组件需要提供上下文，例如应用程序的根组件。此提供程序将向下传播你设置的值到每个消费者：
+- en: '[PRE27]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Now, every component inside this tree can consume this context. You already
+    get type errors when you forget a property or use the wrong type:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，此树中的每个组件都可以消费此上下文。当您忘记一个属性或使用错误类型时，您将立即收到类型错误：
+- en: '[PRE28]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'Now, let’s consume our global state. Consuming context can be done via render
+    props. You can destructure your render props as deep as you like, to get only
+    the props you want to deal with:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们消费我们的全局状态。可以通过渲染道具来消费上下文。您可以深度解构您的渲染道具，以获取您想要处理的属性：
+- en: '[PRE29]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Another way of using context is via the respective `useContext` hook:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用上下文的另一种方法是通过相应的`useContext`钩子：
+- en: '[PRE30]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Because we defined our properties earlier with the right types, `authenticated`
+    is of type boolean at this point. Again, we didn’t have to do anything to get
+    this extra type safety.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们早些时候定义了正确类型的属性，此时`authenticated`是布尔类型。再次强调，我们不必采取任何措施来获得此额外类型安全性。
+- en: The whole previous example works best if we have default properties and values.
+    Sometimes you don’t have default values or you need to be more flexible in which
+    properties you want to set.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前面的整个示例在我们拥有默认属性和值时效果最佳。有时您没有默认值或需要更灵活地设置属性。
+- en: Instead of inferring everything from default values, we annotate the generic
+    type parameter explicitly, not with the full type, but with a `Partial`.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与从默认值推断一切不同，我们显式地注释泛型类型参数，而不是使用完整类型，而是使用`Partial`。
+- en: 'We create a type for the context’s props:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为上下文的 props 创建了一个类型：
+- en: '[PRE31]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'And initialize the new context:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并初始化新的上下文：
+- en: '[PRE32]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Changing the semantics of the context’s default properties has some side effects
+    on your components as well. Now you don’t need to provide every value; an empty
+    context object can do the same! All your properties are optional:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更改上下文默认属性的语义也会对您的组件产生一些副作用。现在您不需要提供每个值；空上下文对象也可以达到相同效果！您的所有属性都是可选的：
+- en: '[PRE33]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'This also means you need to check for every property if it’s defined. This
+    doesn’t change the code where you rely on `boolean` values, but every other property
+    needs to have another `undefined` check:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这也意味着您需要检查每个属性是否已定义。这不会更改您依赖`boolean`值的代码，但是其他每个属性都需要另一个`undefined`检查：
+- en: '[PRE34]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'If you can’t provide default values and want to make sure that all properties
+    are provided by a context provider, you can help yourself with a helper function.
+    Here, we want explicit generic instantiation to supply a type but give the right
+    type guards so that when consuming context, all possibly undefined values are
+    correctly set:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果无法提供默认值并希望确保所有属性由上下文提供者提供，则可以使用辅助函数来帮助自己。在这里，我们希望显式泛型实例化以提供类型，但提供正确的类型保护，以便在消费上下文时正确设置所有可能的未定义值。
+- en: '[PRE35]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: What’s going on in `createContext`?
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`createContext`中发生了什么？'
+- en: '[![1](assets/1.png)](#co_typescript_and_react_CO1-1)'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_typescript_and_react_CO1-1)'
+- en: We create a function that has no function arguments but generic type parameters.
+    Without the connection to function parameters, we can’t instantiate `Props` via
+    inference. This means that for `createContext` to provide proper types, we need
+    to explicitly instantiate it.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们创建了一个没有函数参数但有泛型类型参数的函数。如果没有与函数参数的连接，我们无法通过推断实例化`Props`。这意味着为了`createContext`提供正确的类型，我们需要显式实例化它。
+- en: '[![2](assets/2.png)](#co_typescript_and_react_CO1-2)'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_typescript_and_react_CO1-2)'
+- en: We create a context that allows for `Props` or `undefined`. With `undefined`
+    added to the type, we can pass `undefined` as value. No default values!
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们创建了一个允许`Props`或`undefined`的上下文。添加了`undefined`类型后，我们可以将`undefined`作为值传递。不设默认值！
+- en: '[![3](assets/3.png)](#co_typescript_and_react_CO1-3)'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_typescript_and_react_CO1-3)'
+- en: Inside `createContext`, we create a custom hook. This hook wraps `useContext`
+    using the newly created context `ctx`.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`createContext`内部，我们创建了一个自定义钩子。此钩子使用新创建的上下文`ctx`包装`useContext`。
+- en: '[![4](assets/4.png)](#co_typescript_and_react_CO1-4)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_typescript_and_react_CO1-4)'
+- en: Then we do a type guard where we check if the returned `Props` includes `undefined`.
+    Remember, when calling `createContext`, we instantiate the generic type parameter
+    with `Props | undefined`. This line removes `undefined` from the union type again.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们进行类型守卫，检查返回的 `Props` 是否包含 `undefined`。记住，调用 `createContext` 时，我们用 `Props
+    | undefined` 实例化泛型类型参数。此行再次从联合类型中移除 `undefined`。
+- en: '[![5](assets/5.png)](#co_typescript_and_react_CO1-5)'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_typescript_and_react_CO1-5)'
+- en: Which means that here, `c` is `Props`.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着在这里，`c` 就是 `Props`。
+- en: '[![6](assets/6.png)](#co_typescript_and_react_CO1-6)'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![6](assets/6.png)](#co_typescript_and_react_CO1-6)'
+- en: We assert that `ctx.Provider` doesn’t take `undefined` values. We call `as const`
+    to return `[useInnerContext, ctx.Provider]` as a tuple type.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们断言 `ctx.Provider` 不接受 `undefined` 值。我们使用 `as const` 来返回 `[useInnerContext,
+    ctx.Provider]` 作为元组类型。
+- en: 'Use `createContext` similar to `React.createContext`:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用类似于 `React.createContext` 的 `createContext`：
+- en: '[PRE36]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'When using `AppContextProvider`, we need to provide all values:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用 `AppContextProvider` 时，我们需要提供所有值：
+- en: '[PRE37]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Depending on your use case, you have exact types without too much overhead.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据您的用例，您可以在没有太多开销的情况下获得精确的类型。
+- en: 10.6 Typing Higher-Order Components
+  id: totrans-163
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.6 类型化高阶组件
+- en: Problem
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You are writing *higher-order components* to preset certain properties for other
+    components but don’t know how to type them.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在编写*高阶组件*以预设其他组件的某些属性，但不知道如何对其进行类型化。
+- en: Solution
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `React.ComponentType<P>` type from `@types/react` to define a component
+    that extends your preset attributes.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `@types/react` 中的 `React.ComponentType<P>` 类型来定义一个组件，该组件扩展了您的预设属性。
+- en: Discussion
+  id: totrans-168
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: React is influenced by functional programming, which we see in the way components
+    are designed (via functions), assembled (via composition), and updated (stateless,
+    unidirectional data flow). It didn’t take long for functional programming techniques
+    and paradigms to find their way into React development. One such technique is
+    higher-order components, which draw inspiration from *higher-order functions*.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 受函数式编程的影响，这在组件设计（通过函数）、组合（通过组合）和更新（无状态，单向数据流）方式中可以看出。函数式编程技术和范式迅速在 React
+    开发中找到了应用。其中一种技术是高阶组件，它从*高阶函数*中汲取灵感。
+- en: 'Higher-order functions accept one or more parameters to return a new function.
+    Sometimes those parameters are here to prefill certain other parameters, as we
+    see, for example, in all currying recipes from [Chapter 7](ch07.html#ch07). Higher-order
+    components are similar: they take one or more components and return themselves
+    another component. Usually, you create them to prefill certain properties where
+    you want to make sure they won’t be changed later on.'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 高阶函数接受一个或多个参数来返回一个新的函数。有时这些参数用于预填充其他参数，例如我们在[第7章](ch07.html#ch07)中看到的柯里化示例。高阶组件类似：它们接受一个或多个组件，并返回另一个组件。通常情况下，您创建它们来预填充某些属性，以确保稍后不会更改它们。
+- en: 'Think about a general-purpose `Card` component, which takes `title` and `content`
+    as strings:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一个通用的 `Card` 组件，它以字符串形式接受 `title` 和 `content`：
+- en: '[PRE38]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'You use this card to present certain events, like warnings, information bubbles,
+    and error messages. The most basic information card has `"Info"` as its title:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用此卡来显示某些事件，如警告、信息气泡和错误消息。最基本的信息卡将其标题设置为 `"Info"`：
+- en: '[PRE39]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'You could subset the properties of `Card` to allow for only a certain subset
+    of strings for `title`, but on the other hand, you want to be able to reuse `Card`
+    as much as possible. So you create a new component that already sets `title` to
+    `"Info"` and only allows for other properties to be set:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以对 `Card` 的属性进行子集化处理，以允许仅设置 `title` 的某个特定子集字符串，但另一方面，您希望尽可能地重用 `Card`。因此，您创建了一个新组件，它已将
+    `title` 设置为 `"Info"`，并且只允许设置其他属性：
+- en: '[PRE40]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'In other words, you *inject* a subset of properties and set the remaining ones
+    with the newly created component. A function `withInjectedProps` is easily written:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，您*注入*了一部分属性，并使用新创建的组件设置了剩余的属性。函数 `withInjectedProps` 可以轻松编写：
+- en: '[PRE41]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: It takes the `injected` props and a `Component` as parameters, returns a new
+    function component that takes the remaining props as parameters, and instantiates
+    the original component with merged properties.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它接受 `injected` 属性和 `Component` 作为参数，返回一个新的函数组件，该函数组件接受剩余的属性作为参数，并使用合并的属性实例化原始组件。
+- en: 'So how do we type `withInjectedProps`? Let’s look at the result and see what’s
+    inside:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么我们如何对 `withInjectedProps` 进行类型化呢？让我们看看结果，并了解其中的内容：
+- en: '[PRE42]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Here is what’s going on:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是发生的情况：
+- en: '[![1](assets/1.png)](#co_typescript_and_react_CO2-1)'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_typescript_and_react_CO2-1)'
+- en: We need to define two generic type parameters. `T` is for the props we already
+    inject; it extends from `{}` to make sure we only pass objects. `U` is a generic
+    type parameter for all props of `Component`. `U` *extends* `T`, which means that
+    `U` is a subset of `T`. This says that `U` has more properties than `T` but needs
+    to include what `T` already has defined.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要定义两个通用类型参数。`T` 是我们已经注入的 props，它扩展自 `{}` 以确保我们只传递对象。`U` 是 `Component` 的所有
+    props 的通用类型参数。`U` *扩展* `T`，这意味着 `U` 是 `T` 的一个子集。这表示 `U` 拥有比 `T` 更多的属性，但需要包括 `T`
+    已经定义的内容。
+- en: '[![2](assets/2.png)](#co_typescript_and_react_CO2-2)'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_typescript_and_react_CO2-2)'
+- en: We define `Component` to be of type `React.ComponentType<U>`. This includes
+    class components as well as function components and says that props will be set
+    to `U`. With the relationship of `T` and `U` and the way we defined the parameters
+    of `withInjectedProps`, we ensure that everything that will be passed for `Component`
+    defines a subset of properties for `Component` with `injected`. If we make a typo,
+    we quickly get the first error message!
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将 `Component` 定义为类型 `React.ComponentType<U>`。这包括类组件和函数组件，并表示 props 将设置为 `U`。通过
+    `T` 和 `U` 的关系以及我们定义 `withInjectedProps` 的参数方式，我们确保传递给 `Component` 的所有内容都定义了带有
+    `injected` 的 `Component` 属性的子集。如果我们打字错误，我们很快就会收到第一个错误信息！
+- en: '[![3](assets/3.png)](#co_typescript_and_react_CO2-3)'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_typescript_and_react_CO2-3)'
+- en: The function component that will be returned takes the remaining props. With
+    `Omit<U, keyof T>` we make sure that we don’t allow prefilled attributes to be
+    set again.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回的函数组件将接受剩余的 props。通过 `Omit<U, keyof T>`，我们确保不允许再次设置预填充的属性。
+- en: '[![4](assets/4.png)](#co_typescript_and_react_CO2-4)'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_typescript_and_react_CO2-4)'
+- en: Merging `T` and `Omit<U, keyof T>` should result in `U` again, but since generic
+    type parameters can be explicitly instantiated with something different, they
+    might not fit `Component` again. A type assertion helps ensure that the props
+    are actually what we want.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 合并 `T` 和 `Omit<U, keyof T>` 应该再次得到 `U`，但由于通用类型参数可以显式实例化为不同的内容，它们可能不再适合 `Component`。类型断言有助于确保
+    props 实际上是我们想要的。
+- en: 'And that’s it! With those new types, we get proper autocomplete and errors:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！有了这些新类型，我们可以得到适当的自动完成和错误提示：
+- en: '[PRE43]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: '`withInjectedProps` is so flexible that we can derive higher-order functions
+    that create higher-order components for various situations, like `withTitle`,
+    which is here to prefill `title` attributes of type `string`:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`withInjectedProps` 如此灵活，我们可以推导出创建各种情况下的高阶组件的高阶函数，比如 `withTitle`，它在这里用于预填充类型为
+    `string` 的 `title` 属性：'
+- en: '[PRE44]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: Your functional programming goodness knows no limits.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的函数式编程技能无限制。
+- en: 10.7 Typing Callbacks in React’s Synthetic Event System
+  id: totrans-196
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.7 React 合成事件系统中的回调函数类型化
+- en: Problem
+  id: totrans-197
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to get the best possible typings for all browser events in React and
+    use the type system to restrict your callbacks to compatible elements.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望为 React 中所有浏览器事件获得最佳可能的类型，并使用类型系统将您的回调限制在兼容的元素上。
+- en: Solution
+  id: totrans-199
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the event types of `@types/react` and specialize on components using generic
+    type parameters.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `@types/react` 的事件类型，并使用通用类型参数专门化组件。
+- en: Discussion
+  id: totrans-201
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Web applications become alive through user interaction. Every user interaction
+    triggers an event. Events are key, and TypeScript’s React typings have great support
+    for events, but they require you not to use the native events from *lib.dom.d.ts*.
+    If you do, React throws errors:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web 应用程序通过用户交互变得生动起来。每次用户交互都会触发一个事件。事件至关重要，而 TypeScript 的 React 类型支持很好，但要求您不要使用
+    *lib.dom.d.ts* 中的原生事件。如果使用，React 会抛出错误：
+- en: '[PRE45]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'React uses its own event system, which we refer to as *synthetic events*. Synthetic
+    events are cross-browser wrappers around the browser’s native event, with the
+    same interface as its native counterpart but aligned for compatibility. A change
+    to the type from `@types/react` makes your callbacks compatible again:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用自己的事件系统，我们称之为*合成事件*。合成事件是浏览器原生事件的跨浏览器包装器，具有与其原生对应物相同的接口，但为了兼容性进行了调整。从
+    `@types/react` 的类型更改可以使您的回调函数再次兼容：
+- en: '[PRE46]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: The browser’s `MouseEvent` and `React.MouseEvent` are different enough for TypeScript’s
+    *structural* type system, meaning that there are some missing properties in the
+    synthetic counterparts. You can see in the preceding error message that the original
+    `MouseEvent` has 18 properties more than `React.MouseEvent`, some of them arguably
+    important, like coordinates and offsets, which come in handy if, for example,
+    you want to draw on a canvas.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器的 `MouseEvent` 和 `React.MouseEvent` 在 TypeScript 的*结构*类型系统中有足够的差异，这意味着合成的对应物中缺少一些属性。您可以在前面的错误消息中看到，原始的
+    `MouseEvent` 比 `React.MouseEvent` 多了 18 个属性，其中一些可能很重要，比如坐标和偏移量，例如，如果您想在画布上绘图。
+- en: 'If you want to access properties from the original event, you can use the `nativeEvent`
+    property:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要访问原始事件的属性，可以使用 `nativeEvent` 属性：
+- en: '[PRE47]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Events supported are: `AnimationEvent`, `ChangeEvent`, `ClipboardEvent`, `Com⁠pos⁠iti⁠on​Ev⁠ent`,
+    `DragEvent`, `FocusEvent`, `FormEvent`, `KeyboardEvent`, `MouseEvent`, `Poi⁠nt⁠er​Ev⁠ent`,
+    `TouchEvent`, `TransitionEvent`, and `WheelEvent`, as well as `SyntheticEvent`
+    for all other events.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 支持的事件有：`AnimationEvent`、`ChangeEvent`、`ClipboardEvent`、`Com⁠pos⁠iti⁠on​Ev⁠ent`、`DragEvent`、`FocusEvent`、`FormEvent`、`KeyboardEvent`、`MouseEvent`、`Poi⁠nt⁠er​Ev⁠ent`、`TouchEvent`、`TransitionEvent`
+    和 `WheelEvent`，以及对所有其他事件使用 `SyntheticEvent`。
+- en: So far, we applied the correct types to make sure we don’t have any compiler
+    errors. Easy enough. But we’re using TypeScript not only to fulfill the ceremony
+    of applying types to keep the compiler from complaining but also to prevent situations
+    that might be problematic.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们应用了正确的类型以确保没有任何编译器错误。足够简单。但我们使用 TypeScript 不仅仅是为了执行类型应用的仪式以防止编译器投诉，而且是为了防止可能会有问题的情况发生。
+- en: Let’s think about a button again. Or a link (the `a` element). Those elements
+    are supposed to be clicked; that’s their purpose. But in the browser, click events
+    can be received by every element. Nothing keeps you from adding `onClick` to a
+    `div` element, the element that has the least semantic meaning of all elements,
+    and no assistive technology will tell you that a `div` can receive a `MouseEvent`
+    unless you add lots of attributes to it.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们再次考虑一个按钮。或者一个链接（`a` 元素）。这些元素被设计为可点击；这是它们的目的。但在浏览器中，点击事件可以被每个元素接收。没有任何东西阻止您向
+    `div` 元素添加 `onClick`，这是所有元素中语义含义最少的元素，也没有辅助技术会告诉您 `div` 可以接收 `MouseEvent`，除非您向其添加大量属性。
+- en: 'Wouldn’t it be great if we could keep our colleagues (and ourselves) from using
+    the defined event handlers on the *wrong* elements? `React.MouseEvent` is a generic
+    type that takes compatible elements as its first type. This is set to `Element`,
+    which is the base type for all elements in the browser. But you are able to define
+    a smaller set of compatible elements by subtyping this generic parameter:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们能阻止我们的同事（和我们自己）在*错误*的元素上使用定义的事件处理程序，那不是很棒吗？`React.MouseEvent` 是一个泛型类型，它将兼容的元素作为其第一个类型。这被设置为
+    `Element`，这是浏览器中所有元素的基本类型。但您可以通过子类型化此泛型参数来定义一个更小的兼容元素集合：
+- en: '[PRE48]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Although React’s types give you more flexibility in some areas, it lacks features
+    in others. For example, the browser native `InputEvent` is not supported in `@types/react`.
+    The synthetic event system is meant to be a cross-browser solution, and some of
+    React’s compatible browsers still lack implementation of `InputEvent`. Until they
+    catch up, it’s safe for you to use the base event `SyntheticEvent`:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 React 的类型在某些领域给您更多的灵活性，但在其他方面缺少一些功能。例如，浏览器原生的 `InputEvent` 在 `@types/react`
+    中不受支持。合成事件系统旨在成为跨浏览器的解决方案，而一些 React 兼容的浏览器仍然缺少对 `InputEvent` 的实现。在它们赶上之前，您可以安全地使用基础事件
+    `SyntheticEvent`：
+- en: '[PRE49]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: Now you get at least *some* type safety.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您至少获得了*某种*类型安全性。
+- en: 10.8 Typing Polymorphic Components
+  id: totrans-217
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 10.8 类型化多态组件
+- en: Problem
+  id: totrans-218
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You create a proxy component (see [Recipe 10.1](#ch10_proxy_components)) that
+    needs to behave as one of many different HTML elements. It’s hard to get the right
+    typings.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您创建了一个代理组件（参见 [Recipe 10.1](#ch10_proxy_components)），它需要作为许多不同 HTML 元素之一的行为。很难获得正确的类型。
+- en: Solution
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Assert forwarded properties as `any` or use the JSX factory `React.createElement`
+    directly.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言转发的属性为 `any` 或直接使用 JSX 工厂 `React.createElement`。
+- en: Discussion
+  id: totrans-222
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: A common pattern in React is to define polymorphic (or `as`) components, which
+    pre-define behavior but can act as different elements. Think of a call-to-action
+    button, or CTA, which can be a link to a website or an actual HTML button. If
+    you want to style them similarly, they should behave alike, but depending on the
+    context they should have the right HTML element for the right action.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React中的一个常见模式是定义多态（或`as`）组件，它们预定义行为，但可以作为不同的元素操作。想象一下调用到行动按钮或CTA，它可以是指向网站的链接或实际的HTML按钮。如果你想要将它们类似地样式化，它们应该行为相似，但根据上下文它们应该有适合正确操作的正确HTML元素。
+- en: Note
+  id: totrans-224
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Selecting the right element is an important accessibility factor. `a` and `button`
+    elements represent something users can click, but the semantics of `a` are fundamentally
+    different from the semantics of a `button`. `a` is short for anchor and needs
+    to have a reference (`href`) to a destination. A `button` can be clicked, but
+    the action is usually scripted via JavaScript. Both elements can look the same,
+    but they act differently. Not only do they act differently, but they also are
+    announced differently using assistive technologies, like screen readers. Think
+    about your users and select the right element for the right purpose.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择正确的元素是一个重要的辅助功能因素。`a`和`button`元素表示用户可以单击的东西，但`a`的语义与`button`的语义基本不同。`a`是锚点的缩写，需要有一个指向目标的引用(`href`)。`button`可以被点击，但通常通过JavaScript脚本化。这两个元素可能看起来相同，但它们的操作方式不同。它们不仅操作方式不同，而且在使用辅助技术（如屏幕阅读器）时也会以不同的方式进行通告。考虑你的用户，为合适的目的选择正确的元素。
+- en: 'The idea is that you have an `as` prop in your component that selects the element
+    type. Depending on the element type of `as`, you can forward properties that fit
+    the element type. Of course, you can combine this pattern with everything that
+    you have seen in [Recipe 10.1](#ch10_proxy_components):'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个想法是你在组件中有一个`as`属性，选择元素类型。根据`as`的元素类型，你可以转发适合该元素类型的属性。当然，你可以将这种模式与我们在[Recipe
+    10.1](https://wiki.example.org/ch10_proxy_components)中看到的所有内容结合起来。
+- en: '[PRE50]'
+  id: totrans-227
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'When throwing TypeScript into the mix, you want to make sure that you get autocomplete
+    for the right props and errors for the wrong properties. If you add an `href`
+    to a `button`, TypeScript should give you the correct squiggly lines:'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在混合使用TypeScript时，你希望确保你获得了正确的属性自动补全以及错误的属性报错。如果你向`button`添加了`href`，TypeScript应该给你正确的波浪线：
+- en: '[PRE51]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'Let’s try to type `Cta`. First, we develop the component without types at all.
+    In JavaScript, things don’t look too complicated:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们试着输入`Cta`。首先，我们在完全没有类型的情况下开发组件。在JavaScript中，事情看起来并不复杂：
+- en: '[PRE52]'
+  id: totrans-231
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: We extract the `as` prop and rename it as `Component`. This is a destructuring
+    mechanism from JavaScript that is syntactically similar to a TypeScript annotation
+    but works on destructured properties and not on the object itself (where you’d
+    need a type annotation). We rename it to an uppercase component so we can instantiate
+    it via JSX. The remaining props will be collected in `...props` and spread out
+    when creating the component. Note that you can also spread out children with `...props`,
+    a nice little side effect of JSX.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们提取`as`属性并将其重命名为`Component`。这是JavaScript中的解构机制，语法与TypeScript注解类似，但适用于解构属性而不是对象本身（在对象本身上，你需要类型注解）。我们将其重命名为大写组件，以便我们可以通过JSX实例化它。其余的属性将被收集到`...props`中，并在创建组件时展开。请注意，你也可以用`...props`展开子元素，这是JSX的一个不错的副作用。
+- en: 'When we want to type `Cta`, we create a `CtaProps` type that works on either
+    `"a"` elements or `"button"` elements and takes the remaining props from `JS⁠X.I⁠ntr⁠ins⁠ic​Ele⁠me⁠nts`,
+    similar to what we’ve seen in [Recipe 10.1](#ch10_proxy_components):'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们想要为`Cta`添加类型时，我们创建一个`CtaProps`类型，它适用于`"a"`元素或`"button"`元素，并从`JSX.IntrinsicElements`中获取剩余的属性，与我们在[Recipe
+    10.1](https://wiki.example.org/ch10_proxy_components)中看到的类似。
+- en: '[PRE53]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'When we wire up our types to `Cta`, we see that the function signature works
+    very well with just a few extra annotations. But when instantiating the component,
+    we get quite an elaborate error that tells us how much is going wrong:'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们将类型与`Cta`连接起来时，我们看到函数签名仅需少量额外的注解即可很好地工作。但是在实例化组件时，我们会得到一个非常复杂的错误，告诉我们出了多少问题：
+- en: '[PRE54]'
+  id: totrans-236
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: So where does this message come from? For TypeScript to work correctly with
+    JSX, we need to resort to type definitions in a global namespace called `JSX`.
+    If this namespace is in scope, TypeScript knows which elements that aren’t components
+    can be instantiated and which attributes they can accept. These are the `JS⁠X.I⁠ntr⁠ins⁠ic​Ele⁠men⁠ts`
+    we use in this example and in [Recipe 10.1](#ch10_proxy_components).
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么这个消息是从哪里来的呢？为了 TypeScript 正确地处理 JSX，我们需要在名为 `JSX` 的全局命名空间中使用类型定义。如果此命名空间在作用域内，TypeScript
+    就知道哪些不是组件的元素可以被实例化，以及它们可以接受哪些属性。这些是我们在本例中使用的 `JS⁠X.I⁠ntr⁠ins⁠ic​Ele⁠men⁠ts`，以及在[第10.1节](#ch10_proxy_components)中使用的内容。
+- en: 'One type that also needs to be defined is `LibraryManagedAttributes`. This
+    type is used to provide attributes that are defined either by the framework itself
+    (like `key`) or via means like `defaultProps`:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还需要定义的一个类型是 `LibraryManagedAttributes`。这种类型用于提供由框架本身定义的属性（如 `key`）或通过诸如 `defaultProps`
+    的方式定义的属性：
+- en: '[PRE55]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: React’s typings solve `LibraryManagedAttributes` by using a conditional type.
+    And as we see in [Recipe 12.7](ch12.html#ch12_overloads_vs_conditionals), conditional
+    types won’t be expanded with all possible variants of a union type when being
+    evaluated. This means that TypeScript won’t be able to check that your typings
+    fit the components because it won’t be able to evaluate `Lib⁠rary​Man⁠age⁠dAt⁠trib⁠utes`.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的类型定义通过使用条件类型解决了 `LibraryManagedAttributes`。正如我们在[第12.7节](ch12.html#ch12_overloads_vs_conditionals)中看到的那样，条件类型在被评估时不会扩展所有可能的联合类型变体。这意味着
+    TypeScript 将无法检查你的类型定义是否适合组件，因为它无法评估 `Lib⁠rary​Man⁠age⁠dAt⁠trib⁠utes`。
+- en: 'One workaround for this is to assert props to `any`:'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决此问题的一种方法是将 props 断言为 `any`：
+- en: '[PRE56]'
+  id: totrans-242
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: That works, but it is a sign of an *unsafe* operation that shouldn’t be unsafe.
+    Another way is to not use JSX in this case but use the JSX factory `React.createElement`.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那样虽然可行，但它是一个不安全操作的标志，不应该是不安全的。另一种方法是在这种情况下不使用 JSX，而是使用 JSX 工厂函数 `React.createElement`。
+- en: 'Every JSX call is syntactic sugar to a JSX factory call:'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个 JSX 调用都是对 JSX 工厂调用的语法糖：
+- en: '[PRE57]'
+  id: totrans-245
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: If you use nested components, the third parameter of `createElement` will contain
+    nested factory function calls. `React.createElement` is much easier to call than
+    JSX, and TypeScript won’t resort to the global `JSX` namespace when creating new
+    elements. Sounds like a perfect workaround for our needs.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用嵌套组件，`createElement` 的第三个参数将包含嵌套的工厂函数调用。与 JSX 相比，`React.createElement`
+    调用起来更加简单，当创建新元素时 TypeScript 不会使用全局的 `JSX` 命名空间。这听起来像是我们需要的一个完美的解决方案。
+- en: '`React.createElement` needs three arguments: the component, the props, and
+    the children. Right now, we’ve smuggled all child components with `props`, but
+    for `React.createElement` we need to be explicit. This also means that we need
+    to explicitly define `children`.'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.createElement` 需要三个参数：组件、props 和 children。现在，我们已经通过 `props` 携带了所有的子组件，但是对于
+    `React.createElement`，我们需要更加明确。这也意味着我们需要明确地定义 `children`。'
+- en: 'For that, we create a `WithChildren<T>` helper type. It takes an existing type
+    and adds optional children in the form of `React.ReactNode`:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们创建了一个 `WithChildren<T>` 辅助类型。它接受一个现有的类型，并以 `React.ReactNode` 的形式添加可选的子组件：
+- en: '[PRE58]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: '`WithChildren` is highly flexible. We can wrap the type of our props with it:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`WithChildren` 非常灵活。我们可以用它包装 props 的类型：'
+- en: '[PRE59]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'Or we can create a union:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者我们可以创建一个联合体：
+- en: '[PRE60]'
+  id: totrans-253
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'Since `T` is set to `{}` by default, the type becomes universally usable. This
+    makes it a lot easier for you to attach `children` whenever you need them. As
+    a next step, we destructure `children` out of `props` and pass all arguments into
+    `React.createElement`:'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 `T` 默认设置为 `{}`，该类型变得通用可用。这使得您在需要时更容易附加 `children`。作为下一步，我们从 `props` 中解构 `children`
+    并将所有参数传递给 `React.createElement`：
+- en: '[PRE61]'
+  id: totrans-255
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: And with that, your polymorphic component accepts the right parameters without
+    any errors.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，你的多态组件就可以接受正确的参数而没有任何错误。
