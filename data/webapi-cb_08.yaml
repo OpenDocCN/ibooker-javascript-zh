@@ -1,0 +1,1041 @@
+- en: Chapter 8\. The Web Animations API
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章。Web 动画 API
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 简介
+- en: There are a few different ways to animate elements in modern web browsers. [Chapter 1](ch01.html#ch_async)
+    had an example of using the `requestAnimationFrame` API to manually animate an
+    element (see [“Animating an Element with requestAnimationFrame”](ch01.html#requestAnimationFrame)).
+    This gives you a lot of control, but at a cost. It requires keeping track of timestamps
+    to calculate frame rates, and you must calculate each incremental change of the
+    animation in JavaScript.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代 Web 浏览器中有几种不同的元素动画方式。[第 1 章](ch01.html#ch_async) 中有一个使用 `requestAnimationFrame`
+    API 手动为元素创建动画的示例（参见 [“使用 requestAnimationFrame 进行元素动画”](ch01.html#requestAnimationFrame)）。这样做可以提供很多控制，但代价高昂。它需要跟踪时间戳以计算帧率，并且必须在
+    JavaScript 中计算每个增量动画变化。
+- en: Keyframe-Based Animation
+  id: totrans-3
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 基于关键帧的动画
+- en: CSS3 introduced keyframe animations. You specify the beginning style, ending
+    style, and a duration within CSS rules. The browser automatically interpolates,
+    or fills in, the intermediate frames of the animation. Animations are defined
+    with the `@keyframes` rule and used via the `animation` property. [Example 8-1](#css_animation)
+    defines a fade-in animation.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS3 引入了关键帧动画。您可以在 CSS 规则中指定起始样式、结束样式和持续时间。浏览器会自动插值或填充动画的中间帧。使用 `@keyframes`
+    规则定义动画，并通过 `animation` 属性使用。[示例 8-1](#css_animation) 定义了一个淡入动画。
+- en: Example 8-1\. Using a CSS keyframe animation
+  id: totrans-5
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-1。使用 CSS 关键帧动画
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: A fade-in animation starts with an opacity of 0 and ends with an opacity of
+    1\. When the animation runs, the browser calculates the intermediate style frames
+    over the course of 250 milliseconds. The animation starts as soon as the element
+    enters the DOM or the `some-element` class is applied.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渐变淡入动画从不透明度 0 开始，到不透明度 1 结束。当动画运行时，浏览器在 250 毫秒内计算中间样式帧。动画在元素进入 DOM 或应用 `some-element`
+    类时开始。
+- en: Keyframe Animation with JavaScript
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 JavaScript 进行关键帧动画
+- en: The Web Animations API lets you use keyframe animations in your JavaScript code.
+    The `Element` interface has an `animate` method where you can define the keyframes
+    and other options of the animation. [Example 8-2](#example8-2) shows the same
+    animation from [Example 8-1](#css_animation) using the Web Animations API.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web 动画 API 允许您在 JavaScript 代码中使用关键帧动画。`Element` 接口具有 `animate` 方法，您可以在其中定义动画的关键帧和其他选项。[示例 8-2](#example8-2)
+    展示了使用 Web 动画 API 从 [示例 8-1](#css_animation) 转换的相同动画。
+- en: Example 8-2\. Fading in with the Web Animations API
+  id: totrans-10
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-2。使用 Web 动画 API 渐变淡入
+- en: '[PRE1]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The result is the same. The element fades in over the course of 250 milliseconds.
+    In this case, the animation is triggered by the `element.animate` call.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果是相同的。元素在 250 毫秒内淡入。在这种情况下，动画由 `element.animate` 调用触发。
+- en: Animation Objects
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 动画对象
+- en: When you call `element.animate`, an `Animation` object is returned. This allows
+    you to pause, resume, cancel, or even reverse an animation. It also provides you
+    with a `Promise` that you can use to wait until the animation completes.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您调用 `element.animate` 时，将返回一个 `Animation` 对象。这允许您暂停、恢复、取消或反转动画。它还提供了一个 `Promise`，您可以使用它来等待动画完成。
+- en: Be careful what properties you animate. Some properties, like `height` or `padding`,
+    affect the layout of the rest of the page; animating them can cause performance
+    issues, and the animations are usually not smooth. The best properties to animate
+    are `opacity` and `transform`, as these don’t affect the page layout and can even
+    be accelerated by the system’s GPU.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要注意动画的属性。某些属性，如 `height` 或 `padding`，会影响页面的布局；对它们进行动画处理可能会导致性能问题，并且动画通常不够流畅。最佳的动画属性是
+    `opacity` 和 `transform`，因为它们不会影响页面布局，甚至可以由系统的 GPU 加速。
+- en: Applying a “Ripple” Effect on Click
+  id: totrans-16
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 点击时应用“波纹”效果
+- en: Problem
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to show a “ripple” animation when clicking a button, starting at the
+    position within the button that the user clicked.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当点击按钮时，您希望在按钮内从用户点击的位置开始显示“波纹”动画。
+- en: Solution
+  id: totrans-19
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: When the button is clicked, create a temporary child element for the “ripple”.
+    This is the element that will be animated.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当点击按钮时，为“波纹”创建一个临时子元素。这个元素将被动画化。
+- en: First, create some styles for the ripple element. The button also needs a couple
+    of styles applied (see [Example 8-3](#example8-3)).
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，为波纹元素创建一些样式。按钮还需要应用一些样式（参见 [示例 8-3](#example8-3)）。
+- en: Example 8-3\. Styles for the button and ripple elements
+  id: totrans-22
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-3。按钮和波纹元素的样式
+- en: '[PRE2]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: In the button’s click handler, dynamically create a new ripple element and add
+    it to the button, then update its position and perform the animation (see [Example 8-4](#example8-4)).
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在按钮的点击处理程序中，动态创建一个新的涟漪元素并将其添加到按钮，然后更新其位置并执行动画（参见 [Example 8-4](#example8-4)）。
+- en: Example 8-4\. Performing the ripple animation
+  id: totrans-25
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-4\. 执行涟漪动画
+- en: '[PRE3]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Discussion
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The ripple element is a circle, sized relative to the size of the button. You
+    achieve the ripple effect by animating its opacity and scale transform.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 涟漪元素是一个圆形，大小相对于按钮的大小。你通过动画其不透明度和比例变换来实现涟漪效果。
+- en: There are a few things here to point out about the element styles. First, the
+    button itself has its `position` set to `relative`. This is so that when you set
+    the ripple’s `absolute` position, it is relative to the button itself.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于元素样式，这里有几个要注意的地方。首先，按钮本身的 `position` 设置为 `relative`。这样当设置涟漪的 `absolute` 位置时，它相对于按钮本身定位。
+- en: 'The button also has `overflow: hidden`. This prevents the ripple effect from
+    being visible outside of the button.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '按钮还设置了 `overflow: hidden`。这会防止涟漪效果在按钮外部可见。'
+- en: 'You may also notice that the ripple has `pointer-events: none` set. Because
+    the ripple is inside the button, the browser delegates any click events on the
+    ripple up to the button. This means clicking the ripple triggers a new ripple,
+    but the position is wrong because it’s based on the click position within the
+    ripple rather than within the button.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '你可能还会注意到涟漪设置了 `pointer-events: none`。因为涟漪位于按钮内部，所以浏览器将任何点击事件委托给按钮。这意味着点击涟漪会触发新的涟漪，但位置不正确，因为它是基于涟漪内的点击位置而不是按钮内的点击位置。'
+- en: 'The easiest way to get around this is to set `pointer-events: none`, which
+    makes the ripple element ignore click events. If you click on a ripple while it
+    is animating, the click event goes to the button, which is what you want in order
+    to have the next ripple be positioned properly.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '解决这个问题最简单的方法是设置 `pointer-events: none`，这使得涟漪元素忽略点击事件。如果在涟漪动画正在进行时点击涟漪，点击事件会传递到按钮，这正是你希望的，以便下一个涟漪能正确定位。'
+- en: Next, the ripple code sets the top and left position such that the center of
+    the ripple is where you just clicked.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，涟漪代码设置了顶部和左侧位置，以便涟漪的中心位于你刚刚点击的地方。
+- en: Then the ripple is animated. The animation returned by `ripple.animate` has
+    a `finished` property, which is a `Promise` that you can wait for. Once this `Promise`
+    resolves, the ripple animation is complete and you can remove the element from
+    the DOM.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后涟漪被动画化。`ripple.animate` 返回的动画具有 `finished` 属性，这是一个 `Promise`，你可以等待它。一旦这个 `Promise`
+    解析完成，涟漪动画就完成了，你可以从 DOM 中移除元素。
+- en: If you click the button while a ripple is in progress, another ripple starts
+    and they’ll animate together—the first animation isn’t interrupted. This is more
+    difficult to achieve with regular CSS animations.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在涟漪进行中点击按钮，将会启动另一个涟漪，并且它们将一起动画化 —— 第一个动画不会被打断。这对于常规的 CSS 动画来说更难实现。
+- en: Starting and Stopping Animations
+  id: totrans-36
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 启动和停止动画
+- en: Problem
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to be able to programmatically start or stop an animation.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望能够以编程方式启动或停止动画。
+- en: Solution
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the animation’s `pause` and `play` functions (see [Example 8-5](#example8-5)).
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用动画的 `pause` 和 `play` 函数（参见 [Example 8-5](#example8-5)）。
+- en: Example 8-5\. Toggling an animation’s play state
+  id: totrans-41
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-5\. 切换动画的播放状态
+- en: '[PRE4]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Discussion
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The `Animation` object returned from an `element.animate` call has a `playState`
+    property, which you can use to determine if the animation is currently running
+    or not. If it is running, its value is the string `running`. Other values are:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 `element.animate` 调用返回的 `Animation` 对象具有 `playState` 属性，你可以用它来确定动画当前是否正在运行。如果正在运行，它的值是字符串
+    `running`。其他值包括：
+- en: '`paused`'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`paused`'
+- en: The animation was running, but was stopped before it finished.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画正在运行，但在完成之前停止了。
+- en: '`finished`'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`finished`'
+- en: The animation ran to completion and stopped.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画完成并停止了。
+- en: Depending on the `playState` property, the `toggleAnimation` function calls
+    either `pause` or `play` to set the desired animation state.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据 `playState` 属性，`toggleAnimation` 函数调用 `pause` 或 `play` 来设置所需的动画状态。
+- en: Animating DOM Insertion and Removal
+  id: totrans-50
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 动画 DOM 插入和移除
+- en: Problem
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to add to, or remove elements from, the DOM with an animation effect.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望通过动画效果向 DOM 添加或删除元素。
+- en: Solution
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The solution differs slightly for each operation.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个操作的解决方案略有不同。
+- en: For *adding* an element, add the element to the DOM first then immediately run
+    the animation (such as a fade in). Since only elements in the DOM can be animated,
+    you need to add it before running the animation (see [Example 8-6](#example8-6)).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于*添加*一个元素，首先将元素添加到DOM中，然后立即运行动画（例如淡入效果）。因为只有在DOM中的元素才能被动画化，所以您需要在运行动画之前添加它（参见[示例 8-6](#example8-6)）。
+- en: Example 8-6\. Showing an element with an animation
+  id: totrans-56
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-6\. 使用动画显示元素
+- en: '[PRE5]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: To *remove* an element, you need to run the animation *first* (such as a fade
+    out). Once the animation completes, immediately remove the element from the DOM
+    (see [Example 8-7](#example8-7)).
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要*移除*一个元素，您需要*先*运行动画（例如淡出）。一旦动画完成，立即从DOM中移除元素（参见[示例 8-7](#example8-7)）。
+- en: Example 8-7\. Removing an element with an animation
+  id: totrans-59
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-7\. 使用动画移除元素
+- en: '[PRE6]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Discussion
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you run the animation at the same time you add the element, it begins animating
+    from zero opacity before it has a chance to initially be rendered. This produces
+    the effect you want—an element that is hidden and fades into view.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您在添加元素的同时运行动画时，它会从零不透明度开始动画，然后再开始渲染。这会产生您想要的效果——一个隐藏的元素淡入视图。
+- en: When you’re removing the element, you can use the animation’s `finished` `Promise`
+    to wait until the animation is finished. You don’t want to remove the element
+    from the DOM until the animation is completely finished, otherwise the effect
+    could only run partially and the element would disappear.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您移除元素时，可以使用动画的`finished` `Promise`等待动画完成。在动画完全完成之前，不要将元素从DOM中移除，否则效果可能只运行部分并且元素会消失。
+- en: Reversing Animations
+  id: totrans-64
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 反向动画
+- en: Problem
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to cancel an in-progress animation, such as a hover effect, and smoothly
+    revert it back to the initial state.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要取消正在进行的动画，例如悬停效果，并平稳地恢复到初始状态。
+- en: Solution
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `Animation` object’s `reverse` method to start playing in the reverse
+    direction.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Animation`对象的`reverse`方法以反向播放。
+- en: You can keep track of the in-progress animation with a variable. When you change
+    the desired animation state, and this variable has a value, it means another animation
+    is already in progress and the browser should reverse it.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过变量跟踪正在进行的动画。当您更改所需的动画状态，并且此变量具有值时，意味着另一个动画已在进行中，浏览器应该将其反转。
+- en: In the example of a hover effect (see [Example 8-8](#example8-8)), you can start
+    the animation when the mouse hovers over the element.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在悬停效果的示例中（参见[示例 8-8](#example8-8)），您可以在鼠标悬停在元素上时启动动画。
+- en: Example 8-8\. The hover effect
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-8\. 悬停效果
+- en: '[PRE7]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: When the mouse moves away, the same logic applies (see [Example 8-9](#example8-9)).
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当鼠标移开时，同样的逻辑也适用（参见[示例 8-9](#example8-9)）。
+- en: Example 8-9\. Removing the hover effect
+  id: totrans-74
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-9\. 移除悬停效果
+- en: '[PRE8]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Discussion
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Since the keyframes are the same in each case (they only differ in their order),
+    you can have a single animation function that sets the animation’s `direction`
+    property. When the mouse hovers over the element, you want to run the element
+    in the `forward`, or normal, direction. When the mouse leaves, you’ll run the
+    same animation, but with the direction set to `reverse` (see [Example 8-10](#example8-10)).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于每种情况下关键帧相同（它们仅按其顺序不同），因此您可以拥有一个单一的动画函数来设置动画的`direction`属性。当鼠标悬停在元素上时，您希望以`forward`或正常方向运行元素。当鼠标离开时，您将运行相同的动画，但方向设置为`reverse`（参见[示例 8-10](#example8-10)）。
+- en: Example 8-10\. A single animation function
+  id: totrans-78
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-10\. 单一动画函数
+- en: '[PRE9]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: The result is the same as before. When you hover over the element, it starts
+    to increase in size due to the `scale(2)` transform. If you move the mouse away,
+    it starts shrinking again by reversing the animation’s direction.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果与以前相同。当您悬停在元素上时，由于`scale(2)`变换，它开始增大。如果您移开鼠标，则通过反转动画的方向开始缩小。
+- en: The difference is in the event handlers. They both call a single function, using
+    different values for the animation’s `direction` option.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 区别在于事件处理程序。它们都调用一个单一函数，使用不同的值作为动画的`direction`选项。
+- en: '[Example 8-8](#example8-8) sets the animation’s *fill* mode to `both`. The
+    animation’s fill mode determines the style of the element before and after the
+    animation. By default, the fill mode is `none`. This means that when the animation
+    completes, the element’s style jumps back to what it was before the animation.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 8-8](#example8-8) 将动画的*fill*模式设置为`both`。动画的填充模式决定了动画前后元素的样式。默认情况下，填充模式为`none`。这意味着当动画完成时，元素的样式会跳回到动画之前的状态。'
+- en: In practice, this means that when you hover over the element, it starts growing
+    until it reaches its final size, but then it immediately jumps back to its original
+    size, due to no fill mode being set.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实践中，这意味着当您悬停在元素上时，它开始增长直到达到最终大小，但由于未设置填充模式，它立即跳回到原始大小。
+- en: 'There are three options (other than `none`) for the fill mode:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 `none` 外，填充模式还有三个选项：
+- en: '`backward`'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`backward`'
+- en: The element’s style is set to the animation’s starting keyframe before the animation
+    starts. This is usually only applicable when using an animation delay, as it defines
+    what the element’s style is within the delay period.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在动画开始之前，元素的样式被设置为动画的起始关键帧。通常仅在使用动画延迟时适用，因为它定义了元素在延迟期间的样式。
+- en: '`forward`'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`forward`'
+- en: After the animation finishes, the ending keyframe styles remain applied.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画完成后，结束关键帧样式仍然被应用。
+- en: '`both`'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`both`'
+- en: Applies the rules of both `backward` and `forward`.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用了 `backward` 和 `forward` 的规则。
+- en: The animation in [Example 8-10](#example8-10) has no delay, so the `forward`
+    option is used to retain the style after the animation ends.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [Example 8-10](#example8-10) 中的动画没有延迟，因此使用 `forward` 选项保留动画结束后的样式。
+- en: Showing a Scroll Progress Indicator
+  id: totrans-92
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 显示滚动进度指示器
+- en: Problem
+  id: totrans-93
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to show a bar at the top of the page that moves as you scroll. As you
+    scroll down, the bar moves to the right.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要在页面顶部显示一个随滚动移动的条形条。随着向下滚动，该条形条向右移动。
+- en: Solution
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a scroll-linked animation by creating a `ScrollTimeline` and passing it
+    to the element’s `animate` method. To make the element grow from left to right,
+    you can animate the `transition` property from `scaleX(0)` to `scaleX(1)`.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过创建一个 `ScrollTimeline` 并将其传递给元素的 `animate` 方法来使用与滚动链接的动画。为了使元素从左向右增长，您可以将 `transition`
+    属性从 `scaleX(0)` 动画到 `scaleX(1)`。
+- en: Note
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/l-hvN)
+    for the latest compatibility data.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 API 可能尚未被所有浏览器支持。请查看[CanIUse](https://oreil.ly/l-hvN)获取最新的兼容性数据。
+- en: First, set some styles for the progress bar element, as shown in [Example 8-11](#example8-11).
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先为进度条元素设置一些样式，如 [Example 8-11](#example8-11) 所示。
+- en: Example 8-11\. Scroll progress bar styles
+  id: totrans-100
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-11\. 滚动进度条样式
+- en: '[PRE10]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'The `position: sticky` property ensures that the element remains visible as
+    you scroll down the page. Also, its initial style is set to `scaleX(0)`, which
+    effectively hides it. Without this, the bar would appear at its full width for
+    an instant then disappear. This ensures you won’t see the bar at all until you
+    scroll.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`position: sticky` 属性确保元素在向下滚动页面时保持可见。此外，其初始样式设置为 `scaleX(0)`，有效地将其隐藏。没有这个设置，条形条会在瞬间出现全宽然后消失。这确保了直到滚动时才会看到条形条。'
+- en: Next, create a `ScrollTimeline` object and pass it as the animation’s `timeline`
+    option, as shown in [Example 8-12](#code_scrollTimeline).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个 `ScrollTimeline` 对象，并将其作为动画的 `timeline` 选项传递，如 [Example 8-12](#code_scrollTimeline)
+    所示。
+- en: Example 8-12\. Creating the scroll timeline
+  id: totrans-104
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-12\. 创建滚动时间线
+- en: '[PRE11]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: You now have a scroll-linked animation.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您有了一个与滚动链接的动画。
+- en: Discussion
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An animation’s *timeline* is an object that implements the `AnimationTimeline`
+    interface. By default, an animation uses the document’s default timeline, which
+    is a `DocumentTimeline` object. This is a timeline that’s linked to elapsed time
+    on the clock. When you start an animation with the default timeline, it starts
+    at the initial keyframe and runs forward until it reaches the end (or you stop
+    it manually). Because this type of timeline is linked to elapsed time, it has
+    a defined start value and continuously increases as time passes.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动画的 *时间线* 是一个实现 `AnimationTimeline` 接口的对象。默认情况下，动画使用文档的默认时间线，即 `DocumentTimeline`
+    对象。这是一个与时钟上经过时间相关联的时间线。当您使用默认时间线启动动画时，它从初始关键帧开始向前运行，直到达到结束（或手动停止）。因为这种类型的时间线与经过的时间相关联，它具有定义的起始值，并且随着时间的推移不断增加。
+- en: However, a *scroll-linked* animation provides a timeline linked to the scroll
+    position. When you scroll all the way to the top, the scroll position is 0 and
+    the animation remains at its initial state. As you scroll down, the position increases
+    and the animation advances. Once you have scrolled all the way to the bottom,
+    the animation reaches its end. If you scroll back up, the animation runs in reverse.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，*与滚动链接的* 动画提供了一个与滚动位置相关联的时间线。当您滚动到顶部时，滚动位置为 0，动画保持在其初始状态。随着向下滚动，位置增加，动画前进。一旦您滚动到底部，动画达到结束。如果向上滚动，则动画反向运行。
+- en: A `ScrollTimeline` is given a source element. In [Example 8-12](#code_scrollTimeline),
+    the source is the document element (the `body` tag). You can pass any scrollable
+    element as the source, and the `ScrollTimeline` uses that element’s scroll position
+    to determine the current progress.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ScrollTimeline`被赋予一个源元素。在[示例 8-12](#code_scrollTimeline)中，源是文档元素（`body`标签）。您可以将任何可滚动元素作为源传递，并且`ScrollTimeline`使用该元素的滚动位置来确定当前进度。'
+- en: At the time of writing, `DocumentTimeline` is supported in all modern browsers
+    but `ScrollTimeline` is not. Be sure to always check browser support before using
+    a `ScrollTimeline`.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在撰写本文时，`DocumentTimeline`在所有现代浏览器中都受支持，但`ScrollTimeline`则不受支持。在使用`ScrollTimeline`之前，请务必检查浏览器支持情况。
+- en: Making an Element Bounce
+  id: totrans-112
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使元素弹跳
+- en: Problem
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to apply a momentary bouncing effect to an element.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要对一个元素应用短暂的弹跳效果。
+- en: Solution
+  id: totrans-115
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方法
+- en: Apply a series of animations, one after another. Use an animation’s `finished`
+    `Promise` to wait for it to finish before running the next one.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用一系列动画，依次执行。使用动画的`finished` `Promise`来等待其完成，然后再运行下一个动画。
+- en: The element moves up and down three times. On each pass, the element is moved
+    up the page by applying a `translateY` transform, then back down to its original
+    position. The first pass bounces the element by 40 pixels, the second by 20 pixels,
+    and the third by 10 pixels. This gives the appearance of gravity slowing the bounce
+    down each time. This can be done with a `for`-`of` loop (see [Example 8-13](#example8-13)).
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 元素上下移动三次。每次通过`translateY`变换将元素向页面上移动，然后回到原始位置。第一次移动使元素反弹40像素，第二次移动使元素反弹20像素，第三次移动使元素反弹10像素。这样看起来像是重力每次减慢反弹速度。这可以通过`for`-`of`循环来实现（见[示例 8-13](#example8-13)）。
+- en: Example 8-13\. Applying the bounce animations in series
+  id: totrans-118
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-13\. 串行应用弹跳动画
+- en: '[PRE12]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Discussion
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'This example demonstrates an advantage of the Web Animations API: dynamic keyframe
+    values. Each iteration through the loop uses a different `distance` value inside
+    the keyframe effect.'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本示例演示了 Web 动画 API 的一个优势：动态关键帧值。每次循环迭代都使用关键帧效果内部的不同`distance`值。
+- en: The `for`-`of` loop walks through the three distances (40px, 20px, and 10px)
+    and animates them in turn. In each iteration, it moves the element up by the given
+    distance and back down again. The key is the last line, where it references the
+    animation’s `finished` property. This ensures that the next loop iteration doesn’t
+    start until the current animation finishes. The result is the animations run in
+    series, one after the other, providing the bounce effect.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`for`-`of`循环遍历三个距离值（40px，20px 和 10px），依次对它们进行动画处理。在每次迭代中，它将元素向上移动给定的距离，然后再向下移动。关键在于最后一行，它引用了动画的`finished`属性。这确保了在当前动画完成之前不会开始下一个循环迭代。结果是动画依次串行运行，提供了弹跳效果。'
+- en: You may be wondering why this example uses a `for`-`of` loop rather than a `forEach()`
+    call on the array. Using `await` inside array methods such as `forEach` does not
+    work as you’d expect. These methods were not designed for asynchronous use. If
+    you used a `forEach` call, the `element.animate` calls would all be called immediately
+    after one another, resulting in only the last animation being played. Using a
+    `for`-`of` loop (a regular `for` loop would work as well) works as expected with
+    `async`/`await` and gives the desired result.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会想为什么本例中使用`for`-`of`循环而不是数组的`forEach()`方法。在诸如`forEach`之类的数组方法中使用`await`不会按预期工作。这些方法不是为异步使用而设计的。如果使用`forEach`调用，`element.animate`调用将会立即依次执行，结果只有最后一个动画会播放。使用`for`-`of`循环（普通的`for`循环也可以）与`async`/`await`一起按预期工作，并得到所需的结果。
+- en: Running Multiple Animations Simultaneously
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 同时运行多个动画
+- en: Problem
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to apply multiple transforms to an element using multiple animations.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要使用多个动画对一个元素应用多个变换。
+- en: Solution
+  id: totrans-127
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方法
+- en: Call `animate` on the element multiple times, with the different transform keyframes.
+    You must also specify the `composite` property to combine the transforms, as shown
+    in [Example 8-14](#example8-14).
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对元素多次调用`animate`，使用不同的变换关键帧。你还必须指定`composite`属性来组合这些变换，如[示例 8-14](#example8-14)所示。
+- en: Example 8-14\. Combining two transform animations
+  id: totrans-129
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-14\. 结合两个变换动画
+- en: '[PRE13]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: The `alternate` direction means the animation runs forward to completion, then
+    runs backward to completion. Because `iterations` is set to `Infinity`, the animation
+    runs forever.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`alternate`方向意味着动画正向运行完成，然后反向运行完成。因为`iterations`设置为`Infinity`，所以动画会无限循环运行。'
+- en: Discussion
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The key to this effect is the `composite` property added to the second animation.
+    If you don’t specify `composite: add`, you *only* see the `rotate` transform because
+    it overrides the `translateX` transform. The element would rotate but not move
+    horizontally.'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '此效果的关键在于第二个动画中添加的`composite`属性。如果不指定`composite: add`，则*仅*会看到`rotate`变换，因为它会覆盖`translateX`变换。元素会旋转但不会水平移动。'
+- en: This, in effect, combines both transforms into a single transform. Also note,
+    however, that these transforms are happening at different rates. The rotation
+    lasts for three seconds, while the translation lasts for five. The animations
+    use different easing functions as well. Despite the different options, the browser
+    smoothly combines the animations.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，这将两个变换组合成单个变换。但请注意，这些变换发生的速率不同。旋转持续三秒，而平移持续五秒。动画还使用不同的缓动函数。尽管有不同的选项，浏览器仍然平滑地组合这些动画。
+- en: Showing a Loading Animation
+  id: totrans-135
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 显示加载动画
+- en: Problem
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to show a loading indicator to the user while waiting for a network
+    request to complete.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在等待网络请求完成时，您希望向用户显示加载指示器。
+- en: Solution
+  id: totrans-138
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create and style the loading indicator, then apply an infinite rotation animation
+    to it until the `Promise` returned by `fetch` resolves.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建并设计加载指示器，然后对其应用无限旋转动画，直到由`fetch`返回的`Promise`解析。
+- en: To make a smooth effect, you can first apply a fade-in animation. Once the `Promise`
+    resolves, you can fade it out.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了产生流畅的效果，您可以首先应用一个淡入动画。一旦`Promise`解析完成，您可以将其淡出。
+- en: First, create a loader element and define some styles, as shown in [Example 8-15](#example8-15).
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，创建一个加载器元素并定义一些样式，如[示例 8-15](#example8-15)所示。
+- en: Example 8-15\. The loader element
+  id: totrans-142
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-15\. 加载器元素
+- en: '[PRE14]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: The loader is a ring with alternating border colors, as shown in [Figure 8-1](#loaderImage).
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 加载器是一个具有交替边框颜色的环，如[图 8-1](#loaderImage)所示。
+- en: '![The styled loader](assets/wacb_0801.png)'
+  id: totrans-145
+  prefs: []
+  type: TYPE_IMG
+  zh: '![风格化加载器](assets/wacb_0801.png)'
+- en: Figure 8-1\. The styled loader
+  id: totrans-146
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. 风格化加载器
+- en: Next, define a function that starts the animation and wait for the `Promise`,
+    as shown in [Example 8-16](#example8-16).
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，定义一个启动动画并等待`Promise`的函数，如[示例 8-16](#example8-16)所示。
+- en: Example 8-16\. The loader animations
+  id: totrans-148
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-16\. 加载器动画
+- en: '[PRE15]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You can now pass your `fetch` call as an argument to `showLoader`, as shown
+    in [Example 8-17](#example8-17).
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在可以将您的`fetch`调用作为参数传递给`showLoader`，如[示例 8-17](#example8-17)所示。
+- en: Example 8-17\. Using the loader
+  id: totrans-151
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-17\. 使用加载器
+- en: '[PRE16]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Discussion
+  id: totrans-153
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You don’t necessarily need the Web Animations API to create an animated loader—you
+    can do that with plain CSS. As this example shows, though, the Web Animations
+    API lets you combine multiple animations. The infinite spin animation continues
+    to run while the fade-in animation runs. This is a little tricky to do with regular
+    CSS animations.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您不一定需要Web动画API来创建动画加载器——您可以使用纯CSS来实现。但正如这个示例所示，Web动画API允许您结合多个动画。无限旋转动画继续运行，而淡入动画也在运行。这在常规CSS动画中有些棘手。
+- en: Respecting the User’s Animation Preference
+  id: totrans-155
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 尊重用户的动画偏好
+- en: Problem
+  id: totrans-156
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to tone down, or disable, animations if the user has configured their
+    operating system to reduce motion.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户已经配置操作系统减少动画，您希望减弱或禁用动画。
+- en: Solution
+  id: totrans-158
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `window.matchMedia` to check the `prefers-reduced-motion` media query (see
+    [Example 8-18](#example8-18)).
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`window.matchMedia`来检查`prefers-reduced-motion`媒体查询（参见[示例 8-18](#example8-18)）。
+- en: Example 8-18\. Using the prefers-reduced-motion media query
+  id: totrans-160
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-18\. 使用prefers-reduced-motion媒体查询
+- en: '[PRE17]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Discussion
+  id: totrans-162
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This is extremely important for accessibility. Users with epilepsy or vestibular
+    disorders could have seizures, migraines, or other ill effects triggered by a
+    large or fast-moving animation.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这对可访问性非常重要。癫痫或前庭障碍的用户可能会因大型或快速移动的动画而引发癫痫、偏头痛或其他不良反应。
+- en: You don’t necessarily have to disable animation altogether; you could instead
+    use a more subtle one. Suppose you are showing an element with a bounce effect
+    that looks really good but could be disorienting for some users. If the user has
+    reduced motion enabled, you could instead provide a simple fade-in animation.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您不一定需要完全禁用动画；您可以选择使用更为微妙的动画效果。假设您正在显示一个具有很好视觉效果的弹跳效果元素，但对某些用户可能会造成迷惑。如果用户启用了减少动画选项，您可以改为提供简单的淡入动画。

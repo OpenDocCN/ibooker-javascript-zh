@@ -1,0 +1,1221 @@
+- en: Chapter 7\. Forms
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章 表单
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 简介
+- en: Forms collect user input that is submitted to a remote URL or API endpoint.
+    Modern browsers have many built-in form input types for text, numbers, colors,
+    and more. A form is one of the main ways you get input from your user.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表单收集用户输入，并提交到远程 URL 或 API 端点。现代浏览器具有许多内置的表单输入类型，用于文本、数字、颜色等。表单是从用户获取输入的主要方式之一。
+- en: FormData
+  id: totrans-3
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: FormData
+- en: The FormData API provides a data model for accessing form data. It saves you
+    the trouble of having to look up individual DOM elements and get their values.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: FormData API 提供了一个访问表单数据的数据模型。它使您无需查找单个 DOM 元素并获取其值。
+- en: Even better, once you have a `FormData` object, you can pass it directly to
+    the Fetch API to submit the form. Before submission, you can alter or add to the
+    data in the `FormData` object.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的是，一旦您有了 `FormData` 对象，您可以直接将其传递给 Fetch API 来提交表单。在提交之前，您可以修改或添加 `FormData`
+    对象中的数据。
+- en: Validation
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 验证
+- en: To prevent users from sending invalid data, you can (and should) add client-side
+    validation for your forms. This could be something as simple as marking a field
+    as required, or more complex validation logic that involves coordinating multiple
+    form values or calling an API.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了防止用户发送无效数据，您可以（也应该）为您的表单添加客户端验证。这可能只是将字段标记为必填项，或者涉及协调多个表单值或调用 API 的更复杂验证逻辑。
+- en: In the past, a developer would usually need to reach for a JavaScript library
+    to perform form validation. This could cause headaches due to data duplication;
+    it exists in the form data and an in-memory object used by the validation library.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在过去，开发人员通常需要借助 JavaScript 库来执行表单验证。这可能会因为数据重复而引起头痛；它存在于表单数据中以及验证库使用的内存对象中。
+- en: 'HTML5 added more built-in validation options, such as:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTML5 添加了更多内置验证选项，例如：
+- en: Marking a field as required
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将字段标记为必填项
+- en: Specifying the minimum and maximum values in a number field
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在数字字段中指定最小和最大值
+- en: Specifying a regular expression to validate the field’s input
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 指定用于验证字段输入的正则表达式
+- en: These options are used as attributes on the `<input>` elements.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些选项用作 `<input>` 元素的属性。
+- en: The browser shows basic validation error messages (see [Figure 7-1](#browserValidation)),
+    but the style may not look good with your app’s design. You can use the Constraint
+    Validation API to inspect the built-in validation results as well as perform custom
+    validation logic and set your own validation messages.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器显示基本的验证错误消息（参见[图 7-1](#browserValidation)），但是其样式可能与您应用程序的设计不匹配。您可以使用约束验证
+    API 检查内置验证结果，还可以执行自定义验证逻辑并设置自己的验证消息。
+- en: '![A built-in validation message in Chrome](assets/wacb_0701.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Chrome 中的内置验证消息](assets/wacb_0701.png)'
+- en: Figure 7-1\. A built-in validation message in Chrome
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. Chrome 中的内置验证消息
+- en: To validate a form, you call its `checkValidity` method. All of the fields within
+    the form are validated. If all fields are valid, `checkValidity` returns `true`.
+    If one or more fields are invalid, `checkValidity` returns `false` and each invalid
+    field triggers an `invalid` event. You can also check a specific element by calling
+    `checkValidity` on the form field itself.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要验证表单，您可以调用其 `checkValidity` 方法。表单内的所有字段都将被验证。如果所有字段都有效，则 `checkValidity` 返回
+    `true`。如果一个或多个字段无效，则 `checkValidity` 返回 `false`，并且每个无效字段都会触发一个 `invalid` 事件。您也可以通过在表单字段本身上调用
+    `checkValidity` 来检查特定元素。
+- en: Every form field has a `validity` object that reflects the current validity
+    state. It has a boolean `valid`, which indicates the form’s overall validity state.
+    This object also has additional flags that tell you the nature of the validation
+    error.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个表单字段都有一个 `validity` 对象，反映了当前的有效性状态。它有一个布尔值 `valid`，指示表单的整体有效性状态。该对象还有其他标志，告诉您验证错误的性质。
+- en: Populating a Form Field from Local Storage
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从本地存储填充表单字段
+- en: Problem
+  id: totrans-20
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to remember a form field’s value in local storage. For example, you
+    may want to remember the user name entered in a login form.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望在本地存储中记住表单字段的值。例如，您可能希望记住登录表单中输入的用户名。
+- en: Solution
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: When submitting the form, use a `FormData` object to get the field value and
+    set it in local storage (see [Example 7-1](#code_rememberUsername)). Then, when
+    first loading the page, check for a remembered value. If you find a value, populate
+    the form field.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在提交表单时，使用 `FormData` 对象获取字段值并将其设置在本地存储中（参见[示例 7-1](#code_rememberUsername)）。然后，在首次加载页面时，检查是否存在记住的值。如果找到值，则填充表单字段。
+- en: Example 7-1\. Remembering the `username` field
+  id: totrans-24
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-1\. 记住 `username` 字段
+- en: '[PRE0]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Discussion
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you pass a form to the `FormData` constructor, it is populated with the
+    form’s current values. You can then use the `get` method to retrieve the desired
+    field and set it in local storage.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你将表单传递给 `FormData` 构造函数时，它会填充表单的当前值。然后，你可以使用 `get` 方法检索所需的字段，并将其设置在本地存储中。
+- en: Populating the form on load is a little different. A `FormData` object is not
+    kept in sync with the current form values; rather, it includes the form values
+    at the time the `FormData` object was created. The opposite is also true—if you
+    set a new value in the `FormData` object, it won’t be updated in the form itself.
+    Given this, a `FormData` object won’t help when populating the form. [Example 7-1](#code_rememberUsername)
+    uses the form’s `elements` property to look up the `username` field and set its
+    value that way.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在加载时填充表单有些不同。`FormData` 对象不会与当前表单值同步保持；相反，它包含创建 `FormData` 对象时的表单值。反之亦然——如果你在
+    `FormData` 对象中设置了新值，它不会更新到表单本身。鉴于此，`FormData` 对象在填充表单时并不会有所帮助。[Example 7-1](#code_rememberUsername)
+    使用表单的 `elements` 属性查找 `username` 字段并设置其值。
+- en: Submitting a Form with Fetch and the FormData API
+  id: totrans-29
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Fetch 和 FormData API 提交表单
+- en: Problem
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to submit a form using the Fetch API. You might want to do this to
+    add additional information to the form submission that wouldn’t be included by
+    the browser, or because the form submission might need an API token that is stored
+    in memory rather than entered in the form.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望使用 Fetch API 提交表单。可能是为了向表单提交添加额外信息，这些信息不会被浏览器包含，或者因为表单提交可能需要在内存中存储的 API 令牌而不是在表单中输入。
+- en: Another reason you might want to do this is to prevent the browser from redirecting
+    to a new page, or causing a full page refresh.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个你可能想这样做的原因是防止浏览器重定向到新页面，或导致完全页面刷新。
+- en: Solution
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `FormData` object containing the data to be submitted. Add the additional
+    required data, then submit the form with the Fetch API (see [Example 7-2](#example7-2)).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个包含要提交数据的 `FormData` 对象。添加额外所需的数据，然后使用 Fetch API 提交表单（参见 [Example 7-2](#example7-2)）。
+- en: Example 7-2\. Adding data with the FormData API
+  id: totrans-35
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-2\. 使用 FormData API 添加数据
+- en: '[PRE1]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Discussion
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Normally, when you click the Submit button, the browser gets the form data and
+    submits it for you. Here you don’t want that because you need to add the API token.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，当你点击提交按钮时，浏览器会获取表单数据并自动提交。但在这里你不想这样做，因为你需要添加 API 令牌。
+- en: The first thing the submit handler does is call `preventDefault` on the `submit`
+    event. This stops the browser from performing the default submit behavior so that
+    you can provide your custom logic. The default behavior here is a full page refresh,
+    which is probably not what you want.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提交处理程序首先在`submit`事件上调用`preventDefault`。这样可以阻止浏览器执行默认的提交行为，从而可以提供自定义逻辑。这里的默认行为是完全的页面刷新，这可能不是你想要的。
+- en: You can create a `FormData` object by passing the form object to the `FormData`
+    constructor. The resulting object will have the existing form data in it, at which
+    point you can add additional data like the API token.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过将表单对象传递给 `FormData` 构造函数来创建一个 `FormData` 对象。生成的对象将包含其中的现有表单数据，此时你可以添加额外的数据如
+    API 令牌。
+- en: Finally, you can pass the `FormData` object as the body of a POST request using
+    the Fetch API. When submitting a form this way, the body is *not* JSON; rather,
+    the browser submits it with a content type of `multipart/form-data`.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，你可以使用 Fetch API 将 `FormData` 对象作为 POST 请求的主体。以这种方式提交表单时，主体不是 JSON，而是使用 `multipart/form-data`
+    内容类型提交到浏览器。
+- en: 'Consider an object representing your form data:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个表示你的表单数据的对象：
+- en: '[PRE2]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'The equivalent request body looks something like this:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 等效的请求体看起来像这样：
+- en: '[PRE3]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Submitting a Form as JSON
+  id: totrans-46
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 提交表单作为 JSON
+- en: Problem
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to submit a form to an endpoint that expects JSON data.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望将表单提交到一个期望 JSON 数据的终端点。
+- en: Solution
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the FormData API to transform the form data into a JavaScript object, and
+    use the Fetch API to send it as JSON (see [Example 7-3](#example7-3)).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 FormData API 将表单数据转换为 JavaScript 对象，并使用 Fetch API 将其作为 JSON 发送（参见 [Example 7-3](#example7-3)）。
+- en: Example 7-3\. Submitting a form as JSON using Fetch
+  id: totrans-51
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-3\. 使用 Fetch 将表单作为 JSON 提交
+- en: '[PRE4]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Discussion
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This approach is similar to sending the `FormData` object directly. The only
+    differences are that you are converting the form data to JSON and sending it with
+    the correct `Content-Type` header.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法类似于直接发送 `FormData` 对象。唯一的区别是你正在将表单数据转换为 JSON 并使用正确的 `Content-Type` 标头进行发送。
+- en: You can perform the conversion by creating a new empty object and iterating
+    over the key/value pairs in the `FormData`. Each pair is copied into the object.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过创建一个新的空对象并迭代`FormData`中的键/值对来执行转换。每对键/值都会被复制到对象中。
+- en: A disadvantage of this approach is that you can’t use it with `FormData` having
+    multiple values bound to the same key. This happens when you have a group of checkboxes
+    with the same name; there are multiple entries with the same key.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的一个缺点是，你无法将其用于`FormData`，其中有多个值绑定到相同的键。当你有一个具有相同名称的复选框组时，就会出现这种情况；有多个具有相同键的条目。
+- en: You could enhance the conversion to detect this case and set an array of values,
+    as shown in [Example 7-4](#form_getAll).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以增强转换以检测这种情况，并设置一个值数组，就像[示例 7-4](#form_getAll)中所示。
+- en: Example 7-4\. Handling array form values
+  id: totrans-58
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-4\. 处理数组形式的数值
+- en: '[PRE5]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '[Example 7-4](#form_getAll) uses the `FormData`’s `getAll` function, which
+    returns an array containing all values bound to the given key. This lets you collect
+    all values for a given checkbox group into an array.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 7-4](#form_getAll) 使用`FormData`的`getAll`函数，该函数返回一个包含绑定到给定键的所有值的数组。这样你就可以将给定复选框组的所有值收集到一个数组中。'
+- en: '`getAll` always returns an array. If there’s only one value, it is an array
+    with one element. `toObject` checks for this scenario, and if the array only has
+    one element, it uses that element as the single value in the resulting object.
+    Otherwise, it uses the array of values.'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getAll`始终返回一个数组。如果只有一个值，则它是一个只有一个元素的数组。`toObject`检查这种情况，如果数组只有一个元素，则将该元素用作结果对象中的单个值。否则，它使用值数组。'
+- en: Making a Form Field Required
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使表单字段为必填项
+- en: Problem
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to require a form field to have a value, causing a validation error
+    if it is left blank.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要要求表单字段具有值，如果留空则引发验证错误。
+- en: Solution
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `required` attribute on the `<input>` element (see [Example 7-5](#example7-5)).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`<input>`元素上使用`required`属性（参见[示例 7-5](#example7-5)）。
+- en: Example 7-5\. A required field
+  id: totrans-67
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-5\. 必填字段
+- en: '[PRE6]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '[![1](assets/1.png)](#co_forms_CO1-1)'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_forms_CO1-1)'
+- en: The `required` attribute does not have a value.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`required`属性没有值。'
+- en: Discussion
+  id: totrans-71
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When a field is marked as `required`, it must have a value. If the field is
+    blank, its `validity.valid` property is `false` and its `validity.valueMissing`
+    property is `true`.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当字段标记为`required`时，它必须具有值。如果字段为空，则其`validity.valid`属性为`false`，其`validity.valueMissing`属性为`true`。
+- en: A required field is only considered empty if the value is an empty string. It
+    does not trim whitespace, so a value consisting of a few empty spaces is considered
+    valid.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有当值为空字符串时，必填字段才被视为空。它不会修剪空格，因此由几个空格组成的值被视为有效。
+- en: Constraining a Number Input
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 限制数字输入
+- en: Problem
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to specify a range of allowed values for a number input (`<input type=​"num⁠ber">`).
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要为数字输入指定一系列允许的值（`<input type=​"num⁠ber">`）。
+- en: Solution
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `min` and `max` properties to specify the allowed range (see [Example 7-6](#example7-6)).
+    These values are inclusive, meaning that the minimum and maximum values themselves
+    are allowed.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`min`和`max`属性来指定允许的范围（参见[示例 7-6](#example7-6)）。这些值是包容的，意味着最小值和最大值本身也是允许的。
+- en: Example 7-6\. Specifying a range for a number field
+  id: totrans-79
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-6\. 为数字字段指定范围
+- en: '[PRE7]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Discussion
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If a number input’s value is below the minimum or above the maximum, its `validity.valid`
+    property is `false`. If it’s below the minimum, the `rangeUnderflow` validity
+    flag is set. Similarly, if it exceeds the maximum, the `rangeOverflow` flag is
+    set instead.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果数字输入的值低于最小值或高于最大值，则其`validity.valid`属性为`false`。如果低于最小值，则设置`rangeUnderflow`有效性标志。同样，如果超过最大值，则设置`rangeOverflow`标志。
+- en: When you make an `input` of type `number`, the browser adds a spinner control—clickable
+    up and down arrows to increase and decrease the value. This spinner control enforces
+    the minimum and maximum values—it refuses to decrease the value if it’s already
+    at the minimum or increase the value if it’s already at the maximum. However,
+    a user is still free to type any value in the field. They can enter a number outside
+    of the allowed range, at which point the validity state is set accordingly.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你将`input`的类型设置为`number`时，浏览器会添加一个微调控件——可点击的上下箭头，用于增加和减少值。这个微调控件强制执行最小和最大值——如果值已经达到最小值，则拒绝减少值；如果值已经达到最大值，则拒绝增加值。然而，用户仍然可以在字段中输入任何值。他们可以输入超出允许范围的数字，此时验证状态会相应地设置。
+- en: If you want more fine-grained control over allowed values, you can also specify
+    a `step` value. This limits the allowed values so that the increment must be a
+    multiple of the step. Consider an input with a minimum of 0, a maximum of 4, and
+    a step of 2\. The only acceptable values for this field would be 0, 2, and 4.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您希望对允许的值进行更精细的控制，还可以指定`step`值。这将限制允许的值，使增量必须是步长的倍数。考虑一个最小值为0、最大值为4、步长为2的输入。该字段的唯一可接受值将是0、2和4。
+- en: Specifying a Validation Pattern
+  id: totrans-85
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 指定验证模式
+- en: Problem
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to limit a text field’s value so that it matches a certain pattern.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望限制文本字段的值，使其符合特定的模式。
+- en: Solution
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `pattern` attribute of the `input` to specify a regular expression (see
+    [Example 7-7](#example7-7)). The field is considered invalid unless its value
+    matches the regular expression.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`input`的`pattern`属性来指定正则表达式（参见[示例 7-7](#example7-7)）。除非其值与正则表达式匹配，否则该字段被视为无效。
+- en: Example 7-7\. Limiting a field to alphanumeric characters only
+  id: totrans-90
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-7\. 限制字段仅包含字母数字字符
+- en: '[PRE8]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The `username` field is invalid if it contains anything other than alphanumeric
+    characters. When invalid, the validity state’s `patternMismatch` flag is set.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`username`字段如果包含除了字母数字字符之外的任何内容则无效。当无效时，有效状态的`patternMismatch`标志被设置。'
+- en: Discussion
+  id: totrans-93
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This is a flexible validation option, second only to using your own custom validation
+    logic (see [“Using Custom Validation Logic”](#recipe_customValidation)).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一种灵活的验证选项，仅次于使用自定义验证逻辑（参见[“使用自定义验证逻辑”](#recipe_customValidation)）。
+- en: Tip
+  id: totrans-95
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Creating a regular expression to validate URLs or email addresses can be tricky.
+    To handle these cases, you can set the input’s `type` attribute to `url` or `email`,
+    and the browser will validate that the field is a valid URL or email address for
+    you.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建正则表达式以验证URL或电子邮件地址可能有些棘手。为处理这些情况，您可以将输入的`type`属性设置为`url`或`email`，浏览器将为您验证字段是否为有效的URL或电子邮件地址。
+- en: Validating Forms
+  id: totrans-97
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 验证表单
+- en: Problem
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to manage the form validation process and show your own error messages
+    in the UI.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望管理表单验证过程并在UI中显示自己的错误消息。
+- en: Solution
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the Constraint Validation API and the `invalid` event to detect and mark
+    invalid fields.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用约束验证API和`invalid`事件来检测和标记无效字段。
+- en: There are many ways to handle validation. Some websites are too eager and show
+    an error message before the user gets a chance to enter a value. Consider an input
+    of type `email`, which is considered invalid until a valid email address is entered.
+    If validation occurs immediately, the user sees an error about an invalid email
+    address before they’ve even finished typing it.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有很多方法可以处理验证。一些网站过于急于显示错误消息，甚至在用户有机会输入值之前就显示错误消息。考虑一个类型为`email`的输入，除非输入有效的电子邮件地址，否则被视为无效。如果立即进行验证，用户在完成输入之前就会看到关于无效电子邮件地址的错误。
+- en: 'To avoid this, the validation approach shown here only validates a field under
+    two conditions:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了避免这种情况，这里展示的验证方法仅在两种情况下验证字段：
+- en: When the form is submitted.
+  id: totrans-104
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当表单提交时。
+- en: If the field has been focused and then lost focus. These fields are considered
+    to have been “touched.”
+  id: totrans-105
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果字段已被聚焦然后失去焦点。这些字段被视为已被“触摸”。
+- en: First, you’ll need to disable the browser’s built-in validation UI by adding
+    the `novalidate` attribute to the form, as shown in [Example 7-8](#example7-8).
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，您需要通过向表单添加`novalidate`属性来禁用浏览器的内置验证UI，如[示例 7-8](#example7-8)所示。
+- en: Example 7-8\. Disabling the browser validation UI
+  id: totrans-107
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-8\. 禁用浏览器验证UI
+- en: '[PRE9]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Each field needs a placeholder element to contain the error message, as shown
+    in [Example 7-9](#example7-9).
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个字段都需要一个占位符元素来包含错误消息，如[示例 7-9](#example7-9)所示。
+- en: Example 7-9\. Adding error message placeholders
+  id: totrans-110
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-9\. 添加错误消息占位符
+- en: '[PRE10]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: In this example, an error message is associated with an input field by its ID.
+    The field with the ID `email` has an error message with ID `email-error`, a `name`
+    field has an error message `name-error`, and so on.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，通过ID将错误消息与输入字段关联起来。具有ID为`email`的字段具有ID为`email-error`的错误消息，`name`字段具有`name-error`的错误消息，依此类推。
+- en: 'With this validation approach, each form element listens for three events:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种验证方法，每个表单元素都监听三个事件：
+- en: '`invalid`'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`invalid`'
+- en: Triggered when the form is validated and the field is marked invalid. This sets
+    the error message.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当表单验证并且字段被标记为无效时触发。这会设置错误消息。
+- en: '`input`'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`input`'
+- en: Triggered when the value in the field changes. This performs revalidation if
+    necessary and clears the error message if the field becomes valid.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当字段值更改时触发。如果需要，执行重新验证，并在字段变为有效时清除错误消息。
+- en: '`blur`'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`blur`'
+- en: Triggered when the field loses focus. This sets a `data-should-validate` attribute
+    to mark the field as touched, after which it is validated in the `input` event
+    handler.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当字段失去焦点时触发。这会设置一个`data-should-validate`属性，标记字段为已触摸状态，随后在`input`事件处理程序中验证。
+- en: The validation code is shown in [Example 7-10](#code_validationFramework).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 验证代码显示在[示例 7-10](#code_validationFramework)中。
+- en: Example 7-10\. Setting up validation for a form field
+  id: totrans-121
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-10\. 设置表单字段的验证
+- en: '[PRE11]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Note
+  id: totrans-123
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'This example listens to the `input` event. If your form contains checkboxes
+    or radio buttons, you may need to listen for the `change` event instead for those
+    elements, depending on the browser. See the [article about `input` events from
+    MDN](https://oreil.ly/cFIjY):'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本示例监听`input`事件。如果您的表单包含复选框或单选按钮，则可能需要根据浏览器，改为监听这些元素的`change`事件。请参阅来自MDN的[关于`input`事件的文章](https://oreil.ly/cFIjY)：
+- en: For `<input>` elements with `type=checkbox` or `type=​radio`, the `input` event
+    should fire whenever a user toggles  the  control,  per  the  HTML  Living  Standard
+     specification. However, historically this has not always been the case. Check
+    compatibility, or use the `change` event instead for elements of these types.
+  id: totrans-125
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 对于带有`type=checkbox`或`type=​radio`的`<input>`元素，根据HTML Living Standard规范，`input`事件应在用户切换控件时触发。然而，从历史上看，这并非总是如此。检查兼容性，或者对于这些类型的元素，改为使用`change`事件。
+- en: To complete the basic validation framework, add the listeners to the form fields,
+    listen for the form’s `submit` event, and trigger validation (see [Example 7-11](#example7-11)).
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要完成基本的验证框架，请为表单字段添加监听器，监听表单的`submit`事件，并触发验证（参见[示例 7-11](#example7-11)）。
+- en: Example 7-11\. Triggering form validation
+  id: totrans-127
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-11\. 触发表单验证
+- en: '[PRE12]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Discussion
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This code sets up a good basic validation framework that handles the browser’s
+    built-in validation. Before submitting the form, it calls `checkValidity`, which
+    starts checking all of the inputs inside the form. The browser triggers an `invalid`
+    event for any input that fails validation. To handle this, you can listen for
+    the `invalid` event on the input elements themselves. From there, you can render
+    an appropriate error message.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码设置了一个良好的基本验证框架，处理了浏览器的内置验证。在提交表单之前，它调用`checkValidity`，开始检查表单内的所有输入。对于任何未通过验证的输入，浏览器会触发`invalid`事件。为处理此事件，您可以在输入元素本身上监听`invalid`事件。然后，您可以呈现适当的错误消息。
+- en: Once the user has validation errors, you want to clear them as soon as the fields
+    become valid. This is why `addValidation` listens for the `input` event—this is
+    triggered as soon as the user types something in the input field. From there,
+    you can immediately recheck the input’s validity. If it is now valid (`checkValidity`
+    returns `true`), you can clear the error message. An input is only revalidated
+    if the `data-should-validate` attribute is set to `true`. This attribute is added
+    when validation fails during form submission, or when an element loses focus.
+    This prevents validation errors from appearing before the user is done typing.
+    Once the field loses focus, it starts revalidating on every change.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户一旦出现验证错误，您希望在字段变为有效时立即清除这些错误。这就是为什么`addValidation`监听`input`事件的原因—这在用户在输入框中键入内容时立即触发。从那时起，您可以立即重新检查输入的有效性。如果现在有效（`checkValidity`返回`true`），则可以清除错误消息。只有当`data-should-validate`属性设置为`true`时，输入才会重新验证。此属性在表单提交期间验证失败时添加，或者在元素失去焦点时。这可以防止用户完成输入之前出现验证错误。一旦字段失去焦点，它会在每次更改时重新验证。
+- en: Using Custom Validation Logic
+  id: totrans-132
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用自定义验证逻辑
+- en: Problem
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to perform a validation check that is not supported by the Constraint
+    Validation API. For example, you want to validate that a password and password
+    confirmation field have the same value.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望执行一项不受约束验证API支持的验证检查。例如，您希望验证密码和密码确认字段具有相同的值。
+- en: Solution
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Perform the custom validation logic before calling `checkValidity` on the form.
+    If the custom validation check fails, call the input’s `setCustomValidity` method
+    to set an appropriate error message. If the check passes, clear any previously
+    set validation message (see [Example 7-12](#example7-12)).
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调用表单的`checkValidity`方法之前执行自定义验证逻辑。如果自定义验证未通过，请调用输入框的`setCustomValidity`方法设置适当的错误消息。如果验证通过，请清除先前设置的任何验证消息（参见[示例 7-12](#example7-12)）。
+- en: Example 7-12\. Using custom validation
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 7-12\. 使用自定义验证
+- en: '[PRE13]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Note
+  id: totrans-139
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you’re using the browser’s built-in validation UI, you need to call the form
+    field’s `reportValidity` method after setting a custom validity message. If you
+    are handling the validation UI yourself, this isn’t needed—but make sure to show
+    the error message in the appropriate place.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你正在使用浏览器内置的验证 UI，需要在设置自定义有效性消息后调用表单字段的`reportValidity`方法。如果你自己处理验证 UI，则不需要这样做，但确保在适当的位置显示错误消息。
+- en: Discussion
+  id: totrans-141
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you call `setCustomValidity` on an element with a non-empty string, the
+    element is now considered invalid.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你在具有非空字符串的元素上调用`setCustomValidity`时，该元素现在被认为是无效的。
+- en: The `validatePasswordsMatch` function examines the values of the `password`
+    and `confirmPassword` fields. If they don’t match, it calls `setCustomValidity`
+    on the `confirmPassword` field to set a validation error message. If they do match,
+    it sets it to an empty string, which marks the field as valid again.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`validatePasswordsMatch`函数检查`password`和`confirmPassword`字段的值。如果它们不匹配，则在`confirmPassword`字段上调用`setCustomValidity`设置验证错误消息。如果它们匹配，则将其设置为空字符串，这将重新标记字段为有效。'
+- en: The form’s submit handler calls `validatePasswordsMatch` before performing the
+    built-in validation. If the `validatePasswordsMatch` check fails, and a custom
+    validity is set, `form.checkValidity` fails and the `invalid` event fires on the
+    `confirmPassword` field just like any other invalid element.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表单的提交处理程序在执行内置验证之前调用`validatePasswordsMatch`。如果`validatePasswordsMatch`检查失败，并设置了自定义有效性，则`form.checkValidity`会失败，并且在`confirmPassword`字段上会触发`invalid`事件，就像其他无效元素一样。
+- en: Validating a Checkbox Group
+  id: totrans-145
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 验证复选框组
+- en: Problem
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to enforce that at least one checkbox in a group of checkboxes must
+    be checked. Setting the `required` attribute on checkboxes won’t help here because
+    it applies to that individual input only, not the group. The browser checks if
+    that input is checked and causes a validation error, even if other checkboxes
+    in the group are checked.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望强制要求在复选框组中至少选择一个复选框。在复选框上设置`required`属性在这里无效，因为它仅适用于单个输入，而不是整个组。浏览器检查是否选中了该输入，并导致验证错误，即使组中的其他复选框已被选中。
+- en: Solution
+  id: totrans-148
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a `FormData` object to get an array of all selected checkboxes, and set
+    a custom validation error if the array is empty.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`FormData`对象获取所有选中复选框的数组，并在数组为空时设置自定义验证错误。
+- en: When performing the custom validation, use the `FormData`’s `getAll` method
+    to get an array of the selected checkbox values (see [Example 7-13](#example7-13)).
+    If the array is empty, no checkboxes are selected, and this is a validation error.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在执行自定义验证时，使用`FormData`的`getAll`方法获取选中复选框值的数组（参见[Example 7-13](#example7-13)）。如果数组为空，则表示没有选择复选框，这是一个验证错误。
+- en: Example 7-13\. Validating a checkbox group
+  id: totrans-151
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 7-13\. 验证复选框组
+- en: '[PRE14]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: To keep the validation state of the whole group in one place, set the custom
+    validity message on the first checkbox only (assuming a name of `option1`). This
+    first checkbox serves as a container for the group’s validation message, which
+    is necessary because you can only set validity messages on actual `<input>` elements.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了将整个组的验证状态保持在一个地方，仅在第一个复选框上（假设名称为`option1`）设置自定义有效性消息。这个第一个复选框作为组的验证消息的容器是必要的，因为你只能在实际的`<input>`元素上设置有效性消息。
+- en: Then, listen for the `invalid` and `change` events. On the `invalid` event,
+    show the error message. On the `change` event (when a checkbox is toggled), perform
+    the custom validation and clear the error message if validation succeeds (see
+    [Example 7-14](#example7-14)).
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，监听`invalid`和`change`事件。在`invalid`事件上显示错误消息。在`change`事件（切换复选框时）上执行自定义验证，并在验证成功时清除错误消息（参见[Example 7-14](#example7-14)）。
+- en: Example 7-14\. Setting up checkbox validation
+  id: totrans-155
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 7-14\. 设置复选框验证
+- en: '[PRE15]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Finally, add validation to each checkbox field and call the `validateCheckboxes`
+    function before checking the form’s validity. [Example 7-15](#example7-15) expects
+    that you have an element with the ID `checkbox-error`. If there is a checkbox
+    validation error, the message will be set on that element.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，在检查表单有效性之前，为每个复选框字段添加验证，并在检查表单的有效性之前调用`validateCheckboxes`函数。[Example 7-15](#example7-15)
+    预期你有一个带有 ID `checkbox-error` 的元素。如果有复选框验证错误，则会在该元素上设置消息。
+- en: Example 7-15\. Validating the checkbox form
+  id: totrans-158
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 7-15\. 验证复选框表单
+- en: '[PRE16]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Discussion
+  id: totrans-160
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Using the `required` attribute on the checkboxes in the group won’t have the
+    desired effect. This is good for a single checkbox, like one requiring that a
+    user accept a license agreement, but when used on a group, it would make each
+    individual checkbox required, and form validation would fail unless *all* of them
+    were checked. Because there is no HTML element for a “checkbox group,” you’ll
+    need to do a little extra work to get the desired behavior.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在组中复选框上使用`required`属性不会产生预期效果。这对于单个复选框非常有效，比如要求用户接受许可协议的复选框，但是在组中使用时，会使每个单独的复选框都变为必填，除非*所有*复选框都被选中。由于没有用于“复选框组”的HTML元素，您需要做一些额外的工作来获得所需的行为。
+- en: This example picks the first checkbox in the group as a “container” for the
+    validation message. When the user toggles any of the checkboxes, the browser calls
+    the change handler and it looks to see if any of the checkboxes are checked. If
+    the selection array is empty, this is an error. The custom validity message is
+    always set on the first checkbox only. This is to ensure the message is always
+    shown and hidden when necessary.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例选择组中的第一个复选框作为验证消息的“容器”。当用户切换任何复选框时，浏览器调用更改处理程序并查看是否选中任何复选框。如果选择数组为空，则表示存在错误。自定义有效性消息始终仅在第一个复选框上设置。这是为了确保消息始终在需要时显示和隐藏。
+- en: Let’s look at what would happen if you instead applied the custom validity to
+    the checkbox being changed.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看如果您改为应用自定义有效性到更改复选框会发生什么。
+- en: If no options are checked and the user submits the form, each checkbox has a
+    custom validity error message now. All three options are invalid. If you then
+    go and check one of the checkboxes, the checkbox’s `change` event will fire and
+    check the checkbox group. Now there is an option selected, so it clears the custom
+    validity message. However, the other checkboxes are still in an error state. This
+    is essentially now equivalent to having set the `required` attribute on all the
+    checkboxes.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有选中任何选项并且用户提交表单，则现在每个复选框都有一个自定义有效性错误消息。现在，如果您选中其中一个复选框，复选框的`change`事件将触发并检查复选框组。现在已选择一个选项，因此清除自定义有效性消息。但是，其他复选框仍处于错误状态。这基本上等同于在所有复选框上设置`required`属性。
+- en: You could get around this by setting the validation message in *all* checkboxes
+    from the `validateCheckboxes` function, but it’s less work to just pick one and
+    use that as the target for all custom validation messages. The group as a whole
+    has a single error message element that gets populated with the validation error.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过在`validateCheckboxes`函数中为*所有*复选框设置验证消息来解决此问题，但选择一个并将其用作所有自定义验证消息的目标要少做些工作。整个组有一个单独的错误消息元素，用于显示验证错误。
+- en: Note
+  id: totrans-166
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Since this example manages its own validation message, make sure to include
+    the `novalidate` attribute on the containing form to avoid showing the browser’s
+    default validation UI along with your custom validation error.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于此示例管理其自己的验证消息，请确保在包含的表单上包含`novalidate`属性，以避免显示浏览器的默认验证UI和您的自定义验证错误。
+- en: Validating a Field Asynchronously
+  id: totrans-168
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 异步验证字段
+- en: Problem
+  id: totrans-169
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Your custom validation logic requires an asynchronous operation like making
+    a network request. For example, a user signup form has a password field. The signup
+    form must call an API to validate that the entered password meets password strength
+    standards.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的自定义验证逻辑需要像进行网络请求这样的异步操作。例如，用户注册表单具有密码字段。注册表单必须调用API来验证输入的密码是否符合密码强度标准。
+- en: Solution
+  id: totrans-171
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Perform the network request, then set a custom validity message. Do this in
+    a function that returns a `Promise`. In the form’s submit handler, await this
+    `Promise` before calling `checkValidity` on the form. If the asynchronous validation
+    code set a custom validity message, the form validation triggered by `checkValidity`
+    handles it.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行网络请求，然后设置自定义有效性消息。在返回`Promise`的函数中执行此操作。在表单的提交处理程序中，在调用表单上的`checkValidity`之前等待此`Promise`。如果异步验证代码设置了自定义有效性消息，则由`checkValidity`触发的表单验证会处理它。
+- en: '[Example 7-16](#code_asyncValidation) has the validation logic itself. It calls
+    a password strength check API and sets the custom validity message accordingly.'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 7-16](#code_asyncValidation)包含验证逻辑本身。它调用密码强度检查API并相应地设置自定义有效性消息。'
+- en: Example 7-16\. Performing asynchronous password strength validation
+  id: totrans-174
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-16\. 执行异步密码强度验证
+- en: '[PRE17]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Warning
+  id: totrans-176
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Make sure you only send passwords over a secure connection (HTTPS). Otherwise,
+    you’re sending the user’s password out in plain text, and this is a dangerous
+    practice.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请确保只通过安全连接（HTTPS）发送密码。否则，您会将用户的密码以明文形式发送出去，这是一种危险的做法。
+- en: Because the function is marked as `async`, it returns a `Promise`. You just
+    need to `await` this `Promise` in the form’s submit handler, as shown in [Example 7-17](#example7-17).
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为该函数标记为`async`，它返回一个`Promise`。您只需在表单的提交处理程序中`await`这个`Promise`，就像[示例 7-17](#example7-17)中所示。
+- en: Example 7-17\. The `async` form submit handler
+  id: totrans-179
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-17\. `async`表单提交处理程序
+- en: '[PRE18]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: This marks the field as invalid on submission if the password doesn’t meet the
+    requirements. You can rerun the validation logic when the field changes, only
+    this time you’ll do it on the `blur` event rather than `input` as you did with
+    synchronous custom validation (see [Example 7-18](#example7-18)).
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果密码不符合要求，在提交时会将该字段标记为无效。当字段发生更改时，可以重新运行验证逻辑，但这次是在`blur`事件而不是`input`事件上，就像您在同步自定义验证中所做的那样（参见[示例 7-18](#example7-18)）。
+- en: Example 7-18\. Revalidating on `blur`
+  id: totrans-182
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-18\. 在`blur`上重新验证
+- en: '[PRE19]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Discussion
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If you did this check on the `input` event, you’d be sending a network request
+    every time the user pressed a key. The `blur` event defers the revalidation until
+    the field loses focus. It calls the validation API again and checks the new validity
+    state.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在`input`事件上进行此检查，每次用户按键时都会发送一个网络请求。`blur`事件将重新验证推迟到字段失去焦点时。它再次调用验证API并检查新的有效性状态。
+- en: Tip
+  id: totrans-186
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: You could also use a debounced version of the validation function. This would
+    revalidate on an input event, but only once the user has stopped typing for a
+    certain period of time.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您也可以使用验证函数的去抖动版本。这将在输入事件上重新验证，但只有当用户停止键入一段时间后才会进行验证。
+- en: '[This article from freeCodeCamp](https://oreil.ly/kLRJa) goes into detail about
+    how to create a debounced function. There are also npm packages available that
+    will create a debounced version of a function.'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[这篇来自freeCodeCamp的文章](https://oreil.ly/kLRJa)详细介绍了如何创建一个去抖动函数。还有一些npm包可以创建一个函数的去抖动版本。'

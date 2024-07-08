@@ -1,0 +1,938 @@
+- en: Chapter 5\. IndexedDB
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第五章\. IndexedDB
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 介绍
+- en: '[Chapter 2](ch02.html#ch_webStorage) covered data persistence with local or
+    session storage. This works well for string values and serializable objects, but
+    querying is not ideal and objects require JSON serialization. *IndexedDB* is a
+    newer, more powerful data persistence mechanism present in all modern browsers.
+    An IndexedDB database contains *object stores* (sort of like tables in a relational
+    database). Each object store can have indexes on certain properties for more efficient
+    querying. It also supports more advanced concepts like versioning and transactions.'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第二章](ch02.html#ch_webStorage)涵盖了本地或会话存储的数据持久性。这对于字符串值和可序列化对象效果很好，但查询不理想，对象需要
+    JSON 序列化。*IndexedDB* 是现代浏览器中存在的一种更新、更强大的数据持久性机制。IndexedDB 数据库包含*对象存储*（类似于关系数据库中的表）。每个对象存储可以在特定属性上有索引，以便更高效地进行查询。它还支持更高级的概念，如版本控制和事务。'
+- en: Object Stores and Indexes
+  id: totrans-3
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 对象存储和索引
+- en: An IndexedDB database has one or more object stores. All operations to add,
+    remove, or query data are done on an object store. An object store is a collection
+    of JavaScript objects that are persisted in the database. You can define *indexes*
+    on an object store. An index stores extra information to the database that lets
+    you query objects by the indexed property. For example, suppose you are creating
+    a database to store product information. Each product has a key, likely a product
+    ID or SKU code. This lets you quickly search the database for a given product.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 IndexedDB 数据库有一个或多个对象存储。所有添加、删除或查询数据的操作都在对象存储上进行。对象存储是持久化在数据库中的 JavaScript
+    对象的集合。您可以在对象存储上定义*索引*。索引会将额外的信息存储到数据库中，让您可以通过索引的属性来查询对象。例如，假设您正在创建一个用于存储产品信息的数据库。每个产品都有一个键，可能是产品
+    ID 或 SKU 代码。这样可以让您快速搜索数据库中的特定产品。
+- en: If you want to also be able to query the data by price, you can create an index
+    on the price property. This lets you look up objects by their price. With an index,
+    you can specify a specific price or a range of prices, and the index can quickly
+    find those records for you.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您还想通过价格查询数据，可以在价格属性上创建一个索引。这使您可以通过价格查找对象。有了索引，您可以指定特定的价格或价格范围，并且索引可以快速找到这些记录。
+- en: Keys
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 键
+- en: Objects in a store have a *key* that uniquely identifies that object within
+    that store. This is similar to a primary key in a relational database table. There
+    are two types of keys in an IndexedDB object store.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储在存储中的对象具有一个用于在该存储中唯一标识该对象的*键*。这类似于关系数据库表中的主键。在 IndexedDB 对象存储中有两种类型的键。
+- en: '*In-line* keys are defined on the object itself. For example, here’s a to-do
+    item with an in-line key:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*内联*键是在对象本身上定义的。例如，这是一个带有内联键的待办事项：'
+- en: '[PRE0]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Here, the key is the `id` property. When adding to-do items to such an object
+    store, they must have an `id` property defined. Additionally, when creating the
+    object store, you would specify a *key path* of `id`. The key path tells IndexedDB
+    the name of the property that contains the key when using in-line keys:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，键是 `id` 属性。当向此类对象存储中添加待办事项时，它们必须定义一个 `id` 属性。此外，在创建对象存储时，您可以指定一个*键路径*为 `id`。键路径告诉
+    IndexedDB 在使用内联键时包含键的属性名称：
+- en: '[PRE1]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'If you want to use in-line keys and don’t want to worry about maintaining unique
+    keys, you can tell IndexedDB to use auto-incrementing keys:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想使用内联键并且不想担心维护唯一键，可以告诉 IndexedDB 使用自增键：
+- en: '[PRE2]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: '*Out-of-line* keys are not stored within the object. An out-of-line key is
+    specified as a separate argument with `add` or `put` when storing an object. Following
+    the previous example, you could also use out-of-line keys for to-do items. This
+    means the key, or the `id` property, would not be stored as part of the object:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*外联*键不会存储在对象内部。在存储对象时，可以使用 `add` 或 `put` 指定一个独立的参数作为外联键。继续上面的例子，您也可以为待办事项使用外联键。这意味着键或
+    `id` 属性不会作为对象的一部分存储：'
+- en: '[PRE3]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Transactions
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 事务
+- en: IndexedDB operations use *transactions*. A transaction is a logical grouping
+    of database tasks executed together to perform some work. They are meant to protect
+    the integrity of the data in the database. If one of the operations within a transaction
+    fails, the entire transaction fails and any completed work is rolled back to the
+    state that existed before the transaction.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: IndexedDB 操作使用*事务*。事务是一组一起执行以执行某些工作的数据库任务的逻辑分组。它们旨在保护数据库中数据的完整性。如果事务中的某个操作失败，整个事务将失败，并且任何已完成的工作都将回滚到事务之前的状态。
+- en: A transaction can be read-only or read-write, depending on the type of operation
+    you want to perform. You can create a transaction by calling the `transaction`
+    method of an IndexedDB database. You pass the names of any object stores that
+    should be involved in this transaction and the transaction type (`readonly` or
+    `readwrite`).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事务可以是只读的或读写的，具体取决于你想执行的操作类型。你可以通过调用IndexedDB数据库的`transaction`方法来创建一个事务。你需要传递应该参与此事务的任何对象存储的名称以及事务类型（`readonly`或`readwrite`）。
+- en: Once you have a transaction, you can get a reference to the object store(s)
+    you need. From there you can start performing your database operation. These operations
+    return an IndexedDB *request*. All read and write operations in an IndexedDB database
+    require a transaction.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦你拥有了一个事务，就可以获取到你需要的对象存储的引用。从那里，你可以开始执行你的数据库操作。这些操作返回一个IndexedDB的*request*。在IndexedDB数据库中，所有读取和写入操作都需要一个事务。
+- en: Requests
+  id: totrans-20
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 请求
+- en: When you perform an operation on an object store, within a transaction, you’ll
+    get back a request object that implements the `IDBRequest` interface, and the
+    requested work begins asynchronously.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你在事务中对对象存储执行操作时，你会得到一个实现了`IDBRequest`接口的请求对象，并且请求的工作异步开始。
+- en: When the work is done, the request object triggers a `success` event containing
+    the results. For example, a query operation’s `success` event includes the objects
+    found by the query.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当操作完成时，请求对象会触发一个包含结果的`success`事件。例如，查询操作的`success`事件包含查询到的对象。
+- en: '[Figure 5-1](#figure_indexedDbParts) shows the general flow of an IndexedDB
+    operation: creating a transaction, opening the object store, creating a request,
+    and listening for events.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 5-1](#figure_indexedDbParts)展示了一个IndexedDB操作的一般流程：创建事务、打开对象存储、创建请求并监听事件。'
+- en: '![The parts of an IndexedDB operation](assets/wacb_0501.png)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_IMG
+  zh: '![IndexedDB操作的各个部分](assets/wacb_0501.png)'
+- en: Figure 5-1\. The parts of an IndexedDB operation
+  id: totrans-25
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-1\. IndexedDB 操作的各个部分
+- en: Creating, Reading, and Deleting Objects in a Database
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在数据库中创建、读取和删除对象
+- en: Problem
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a basic IndexedDB database where objects can be created,
+    read, and deleted. For example, this could be a contact list database.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望创建一个基本的IndexedDB数据库，可以在其中创建、读取和删除对象。例如，这可以是一个联系人列表数据库。
+- en: Solution
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a database with a single object store, and define the create/read/delete
+    operations.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个只有一个对象存储的数据库，并定义创建/读取/删除操作。
+- en: To create or open the database, call `indexedDB.open` (see [Example 5-1](#example5-1)).
+    If the database was not previously created, it triggers an `upgradeneeded` event.
+    In the handler for that event, you can create the object store. When the database
+    is opened and ready for use, it triggers a `success` event.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建或打开数据库，请调用`indexedDB.open`（参见[示例 5-1](#example5-1)）。如果之前未创建过数据库，则会触发一个`upgradeneeded`事件。在该事件的处理程序中，你可以创建对象存储。当数据库打开并准备好使用时，会触发一个`success`事件。
+- en: Example 5-1\. Opening the database
+  id: totrans-32
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-1\. 打开数据库
+- en: '[PRE4]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Before rendering the contacts, you’ll need to load them from the database. For
+    this, use a `readonly` transaction and call the object store’s `getAll` method,
+    which retrieves all objects in the object store (see [Example 5-2](#example5-2)).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在渲染联系人之前，你需要从数据库中加载它们。为此，请使用一个`readonly`事务，并调用对象存储的`getAll`方法，该方法检索对象存储中的所有对象（参见[示例 5-2](#example5-2)）。
+- en: Example 5-2\. Reading the contacts
+  id: totrans-35
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-2\. 读取联系人
+- en: '[PRE5]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Adding a contact requires a `readwrite` transaction. Pass the contact object
+    to the object store’s `add` method (see [Example 5-3](#example5-3)).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加联系人需要一个`readwrite`事务。将联系人对象传递给对象存储的`add`方法（参见[示例 5-3](#example5-3)）。
+- en: Example 5-3\. Adding a contact
+  id: totrans-38
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-3\. 添加联系人
+- en: '[PRE6]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: You’ll also need a `readwrite` transaction for deleting a contact (see [Example 5-4](#example5-4)).
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于删除联系人，你还需要一个`readwrite`事务（参见[示例 5-4](#example5-4)）。
+- en: Example 5-4\. Deleting a contact
+  id: totrans-41
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-4\. 删除联系人
+- en: '[PRE7]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Discussion
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When creating the database, you call `indexedDB.open`, which creates a request
+    to open the database. If it triggers an `upgradeneeded` event, you can create
+    the necessary object store.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建数据库时，调用`indexedDB.open`，这将创建一个打开数据库的请求。如果触发了`upgradeneeded`事件，你可以创建必要的对象存储。
+- en: Each object in the object store must have a unique key. If you try to add an
+    object with a duplicate key, you’ll get an error.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象存储中的每个对象必须具有唯一的键。如果尝试添加具有重复键的对象，则会收到错误。
+- en: 'The pattern for the other operations is generally the same:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他操作的模式通常是相同的：
+- en: Create a transaction.
+  id: totrans-47
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 创建一个事务。
+- en: Access the object store.
+  id: totrans-48
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 访问对象存储。
+- en: Call the desired method on the object store.
+  id: totrans-49
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在对象存储上调用所需的方法。
+- en: Listen for the `success` event.
+  id: totrans-50
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 监听 `success` 事件。
+- en: Each of these functions takes an argument called `onSuccess`. Because IndexedDB
+    is asynchronous, you need to wait until an operation is complete before proceeding.
+    The `openDatabase` function passes the database to the `onSuccess` function where
+    you can save it to a variable for later (see [Example 5-5](#example5-5)).
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些函数中的每个都接受一个名为 `onSuccess` 的参数。由于 IndexedDB 是异步的，您需要等待操作完成。`openDatabase` 函数将数据库传递给
+    `onSuccess` 函数，在那里您可以将其保存到变量中以供以后使用（见 [示例 5-5](#example5-5)）。
+- en: Example 5-5\. Using the `openDatabase` function
+  id: totrans-52
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-5\. 使用 `openDatabase` 函数
+- en: '[PRE8]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Once you have the `contactsDb` variable set, you can pass it to the other database
+    operations. When you want to render the contact list, you have to wait until they
+    are loaded first, so you’d pass a success handler that receives the contact objects
+    and renders them (see [Example 5-6](#example5-6)).
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦设置了 `contactsDb` 变量，您可以将其传递给其他数据库操作。当您想要渲染联系人列表时，必须首先等待它们加载，因此您需要传递一个成功处理程序，该处理程序接收联系人对象并将它们渲染（见
+    [示例 5-6](#example5-6)）。
+- en: Example 5-6\. Loading and rendering contacts
+  id: totrans-55
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-6\. 加载和渲染联系人
+- en: '[PRE9]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Similarly, when adding a new contact, you have to wait until the new object
+    is added, then load and render the updated contact list (see [Example 5-7](#example5-7)).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，在添加新联系人时，您必须等待新对象添加完成，然后加载和渲染更新后的联系人列表（见 [示例 5-7](#example5-7)）。
+- en: Example 5-7\. Adding and rerendering contacts
+  id: totrans-58
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-7\. 添加和重新渲染联系人
+- en: '[PRE10]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: If you don’t want to be constantly passing around a database reference, you
+    could encapsulate your database reference and functions inside a new object, as
+    shown in [Example 5-8](#example5-8).
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您不想经常传递数据库引用，可以将数据库引用和函数封装在一个新对象中，如 [示例 5-8](#example5-8) 所示。
+- en: Example 5-8\. An encapsulated database
+  id: totrans-61
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-8\. 封装的数据库
+- en: '[PRE11]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: With this approach, you still need callbacks to notify you when the operations
+    are done, but the `contactsDb` object keeps track of the database reference for
+    you (and avoids a global variable!).
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 采用这种方法，您仍然需要回调来通知操作完成，但 `contactsDb` 对象会为您跟踪数据库引用（并避免全局变量！）。
+- en: Upgrading an Existing Database
+  id: totrans-64
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 升级现有数据库
+- en: Problem
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to update an existing database to add a new object store.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要更新现有数据库以添加新的对象存储。
+- en: Solution
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a new database version. When handling the `upgradeneeded` event, determine
+    if the current user’s database needs the new object store to be added based on
+    the version.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用新的数据库版本。在处理 `upgradeneeded` 事件时，根据版本确定当前用户的数据库是否需要添加新的对象存储。
+- en: Imagine you have a to-do list database with a `todos` object store. Later, in
+    an update to your app, you want to add a new `people` object store so that tasks
+    can be assigned to people.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一下，您有一个带有 `todos` 对象存储的待办事项数据库。稍后，在应用程序的更新中，您希望添加一个新的 `people` 对象存储，以便可以将任务分配给人员。
+- en: The `indexedDB.open` call now needs a new version number. You can increment
+    the version number to `2` (see [Example 5-9](#example5-9)).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，`indexedDB.open` 调用需要一个新的版本号。您可以将版本号增加到 `2`（见 [示例 5-9](#example5-9)）。
+- en: Example 5-9\. Upgrading a database
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-9\. 升级数据库
+- en: '[PRE12]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Discussion
+  id: totrans-73
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you call `indexedDB.open`, you can specify a database version. If you don’t
+    specify a version, it defaults to `1`.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当调用 `indexedDB.open` 时，您可以指定数据库版本。如果不指定版本，它将默认为 `1`。
+- en: Whenever the database is opened, the current database version in the browser
+    (if any) is compared with the version number passed to `indexedDB.open`. If the
+    database doesn’t exist yet or the version is not up to date, you’ll get an `upgradeneeded`
+    event.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每当打开数据库时，将在浏览器中当前的数据库版本（如果有）与传递给 `indexedDB.open` 的版本号进行比较。如果数据库尚不存在或版本不是最新的，则会触发
+    `upgradeneeded` 事件。
+- en: In the `upgradeneeded` event handler, you can check the event’s `oldVersion`
+    property to determine the browser’s current database version. If the database
+    doesn’t exist yet, `oldVersion` is `0`.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `upgradeneeded` 事件处理程序中，您可以检查事件的 `oldVersion` 属性，以确定浏览器当前的数据库版本。如果数据库尚不存在，则
+    `oldVersion` 为 `0`。
+- en: Based on the `oldVersion`, you can determine which object stores and indexes
+    already exist and which need to be added.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据 `oldVersion`，您可以确定哪些对象存储和索引已存在以及哪些需要添加。
+- en: Warning
+  id: totrans-78
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: If you try to create an object store or index that already exists, the browser
+    throws an exception. Before creating these objects, make sure to check the event’s
+    `oldVersion` property.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果尝试创建已存在的对象存储或索引，浏览器将抛出异常。在创建这些对象之前，请确保检查事件的 `oldVersion` 属性。
+- en: Querying with Indexes
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用索引进行查询
+- en: Problem
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to efficiently query for data based on a property value other than
+    the key (commonly referred to as the “primary key”).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望根据除了键（通常称为“主键”）以外的属性值高效地查询数据。
+- en: Solution
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create an index on that property, then query on that index.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在该属性上创建一个索引，然后在该索引上进行查询。
+- en: Consider the example of a database of employees. Each employee has a name, department,
+    and a unique ID as its key. You might want to filter the employees by a certain
+    department.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑员工数据库的示例。每个员工都有姓名、部门和唯一的ID作为其键。您可能希望按特定部门筛选员工。
+- en: When the `upgradeneeded` event is triggered and you create the object store,
+    you can also define indexes on that object store (see [Example 5-10](#example5-10)).
+    [Example 5-11](#example5-11) shows how to query by the index that is defined.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当触发`upgradeneeded`事件并创建对象存储时，您还可以在该对象存储上定义索引（参见[示例 5-10](#example5-10)）。[示例 5-11](#example5-11)展示了如何通过定义的索引进行查询。
+- en: Example 5-10\. Defining an index when the object store is created
+  id: totrans-87
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-10\. 在创建对象存储时定义索引
+- en: '[PRE13]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Example 5-11\. Querying the employees by the department index
+  id: totrans-89
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-11\. 通过部门索引查询员工
+- en: '[PRE14]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Discussion
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An IndexedDB object store can have more than one index, depending on your needs.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据需要，IndexedDB 对象存储可以拥有多个索引。
+- en: This example uses specific values for querying the index, but an index can also
+    be queried for a *range* of keys. These ranges are defined with the `IDBKeyRange`
+    interface. A range is defined in terms of its *bounds*—it defines a starting and
+    ending point for the range, and all keys within that range are returned.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例使用特定值来查询索引，但索引也可以查询一组键的*范围*。这些范围使用`IDBKeyRange`接口定义。范围根据其*边界*定义——它定义了范围的起点和终点，并返回该范围内的所有键。
+- en: 'The `IDBKeyRange` interface supports four types of bounds:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`IDBKeyRange` 接口支持四种类型的边界：'
+- en: '`IDBKeyRange.lowerBound`'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`IDBKeyRange.lowerBound`'
+- en: Matches keys starting at the given lower bound
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 匹配从给定下界开始的键
+- en: '`IDBKeyRange.upperBound`'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`IDBKeyRange.upperBound`'
+- en: Matches keys ending at the given upper bound
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 匹配以给定上界结束的键
+- en: '`IDBKeyRange.bound`'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`IDBKeyRange.bound`'
+- en: Specifies a lower *and* upper bound
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 指定下界和上界
+- en: '`IDBKeyRange.only`'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`IDBKeyRange.only`'
+- en: Specifies a single key only
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 指定单个键值
+- en: The `lowerBound`, `upperBound`, and `bound` key ranges also accept a second
+    boolean parameter to specify whether the range is open or closed. If `true`, then
+    it’s considered an *open* range and excludes the bounds themselves. `IDBKeyRange.upperBound(10)`
+    matches all keys less than *or equal to* `10`, but `IDBKeyRange.upperBound(10,
+    true)` matches all keys *less than* `10` because 10 itself is excluded. The bounds
+    for a key range don’t have to be numbers. Other object types such as strings and
+    `Date` objects can be used as keys.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`lowerBound`、`upperBound` 和 `bound` 键范围还接受第二个布尔参数，用于指定范围是开放的还是闭合的。如果为 `true`，则被视为*开放*范围，并且排除范围本身。`IDBKeyRange.upperBound(10)`
+    匹配所有小于等于 `10` 的键，但 `IDBKeyRange.upperBound(10, true)` 匹配所有小于 `10` 的键，因为 `10` 本身被排除。键范围的边界不一定是数字，还可以是字符串和`Date`对象等其他对象类型。'
+- en: Searching for String Values with Cursors
+  id: totrans-104
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用游标搜索字符串值
+- en: Problem
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to query an IndexedDB object store for objects with a string property
+    matching a pattern.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望查询 IndexedDB 对象存储中具有与模式匹配的字符串属性的对象。
+- en: Solution
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a cursor, checking each object’s property to see if it contains the given
+    string.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用游标，检查每个对象的属性以查看是否包含给定的字符串。
+- en: Imagine an employee list application. You want to search for all contacts whose
+    name contains the entered text. For this example, assume the database has already
+    been opened and the object store is called `employees`.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一个员工列表应用程序。您希望搜索所有姓名包含输入文本的联系人。在这个例子中，假设数据库已经打开，并且对象存储称为`employees`。
+- en: A *cursor* iterates through each object in the object store. It stops at each
+    object, where you can access the current item and/or move on to the next item.
+    You can check if the contact name includes the query text and collect the results
+    in an array (see [Example 5-12](#example5-12)).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*游标*在对象存储中遍历每个对象。它在每个对象处停止，您可以访问当前项和/或移动到下一个项。您可以检查联系人姓名是否包含查询文本，并将结果收集到数组中（见[示例 5-12](#example5-12)）。'
+- en: Example 5-12\. Searching string values with a cursor
+  id: totrans-111
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-12\. 使用游标搜索字符串值
+- en: '[PRE15]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Discussion
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you call `openCursor` on the object store, it returns an `IDBRequest` request
+    object. It fires a `success` event for the first object in the store. For every
+    `success` event, the request has a `result` property that is the cursor object
+    itself. You can access the current value that the cursor is pointing to with its
+    `value` property.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在对象存储上调用 `openCursor` 时，它会返回一个 `IDBRequest` 请求对象。它为存储中的第一个对象触发一个 `success` 事件。对于每个
+    `success` 事件，请求有一个 `result` 属性，该属性是游标对象本身。您可以通过其 `value` 属性访问游标当前指向的当前值。
+- en: The success handler checks the current object’s first and last name fields,
+    converting both to lowercase first so that it’s a case-insensitive search. If
+    it matches, it’s added to a result array.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 成功处理程序检查当前对象的名字和姓氏字段，首先将它们转换为小写，以便进行不区分大小写的搜索。如果匹配，它将被添加到结果数组中。
+- en: When you’re done processing the current object, you can call `continue` on the
+    cursor. This advances to the next object and emits another `success` event. If
+    you have reached the end of the object store, and there are no objects left, `request.result`
+    is `null`. When this happens, you know that the search is complete and you have
+    the matching contacts.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理完当前对象后，可以在游标上调用 `continue`。这会前进到下一个对象并触发另一个 `success` 事件。如果已经到达对象存储的末尾，并且没有剩余对象，`request.result`
+    将为 `null`。这时，您知道搜索已完成，并且已找到匹配的联系人。
+- en: At each iteration of the cursor, any objects that match the search query are
+    added to a `results` array. This is passed to the success callback when the cursor
+    is complete.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在游标的每次迭代中，任何与搜索查询匹配的对象都将添加到 `results` 数组中。当游标完成时，此数组将传递给成功的回调函数。
+- en: Paginating a Large Data Set
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 对大数据集进行分页
+- en: Problem
+  id: totrans-119
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to break up a large data set into pages, each with an offset and a
+    length.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望将大型数据集分成具有偏移量和长度的页面。
+- en: Solution
+  id: totrans-121
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a cursor to skip to the first item on the requested page and collect the
+    desired number of items (see [Example 5-13](#example5-13)).
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用游标跳到请求页面的第一项并收集所需数量的项目（参见 [示例 5-13](#example5-13)）。
+- en: Example 5-13\. Using a cursor to get a page of records
+  id: totrans-123
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-13\. 使用游标获取一页记录
+- en: '[PRE16]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Discussion
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You may not want to start at the first record—that’s what the `offset` argument
+    is for. The first time through, the event handler calls `advance` with the requested
+    offset. This tells the cursor to jump ahead to the starting item you want. Technically
+    speaking, `advance` doesn’t move to the specified offset but rather advances by
+    the given number *starting at the current index*. For this example, though, it’s
+    effectively the same because it always starts at index zero.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能不希望从第一条记录开始——这就是 `offset` 参数的作用。第一次调用事件处理程序时，使用请求的偏移量调用 `advance`。这告诉游标跳到您想要的起始项目。严格来说，`advance`
+    并不会移动到指定的偏移量，而是从当前索引开始按给定数量前进。但对于这个例子来说，效果是相同的，因为它总是从索引零开始。
+- en: You can’t start collecting values until the next iteration of the cursor. To
+    handle this, there’s a `skipped` flag that is set to indicate that the cursor
+    has now skipped ahead. The next time through, this flag is seen as `true` and
+    it won’t try to skip again.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直到游标的下一次迭代，才能开始收集值。为了处理这个问题，有一个 `skipped` 标志，用于指示游标现在已经跳过。下一次通过时，将看到这个标志为 `true`，并且不会再尝试跳过。
+- en: Once the cursor has advanced, another `success` event is fired. Now the cursor
+    is pointing to the first item to be collected (assuming there are items remaining—the
+    `cursor` object is `null` if there are no more objects). It adds the current value
+    to the result array. Finally, it calls `continue` on the cursor to move on to
+    the next value.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 游标一旦前进，会触发另一个 `success` 事件。现在游标指向要收集的第一个项目（假设还有剩余项目——如果没有更多对象，则 `cursor` 对象为
+    `null`）。它将当前值添加到结果数组中。最后，它在游标上调用 `continue` 以移动到下一个值。
+- en: This process continues until the result array has reached the requested length,
+    or there are no more objects remaining in the object store. This would happen
+    if `offset + length` was greater than the number of objects in the object store.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此过程继续，直到结果数组达到请求的长度，或者对象存储中没有更多对象。如果 `offset + length` 大于对象存储中的对象数，就会发生这种情况。
+- en: Once there are no more objects to collect, the full page of results is ready.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦没有更多对象可收集，完整的结果页就准备好了。
+- en: Using Promises with the IndexedDB API
+  id: totrans-131
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Promises 与 IndexedDB API
+- en: Problem
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want a `Promise`-based API for working with an IndexedDB database.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望有一个基于 `Promise` 的 API 来操作 IndexedDB 数据库。
+- en: Solution
+  id: totrans-134
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create `Promise` wrappers around IndexedDB requests. When the request triggers
+    the `success` event, resolve the `Promise`. If it triggers the `error` event,
+    reject it.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建`Promise`封装来处理 IndexedDB 请求。当请求触发`success`事件时，解析`Promise`。如果触发`error`事件，则拒绝它。
+- en: '[Example 5-14](#code_promiseCreateDb) creates a wrapper around the `indexedDb.open`
+    function. It opens or creates the database and returns a `Promise` that is resolved
+    when the database is ready.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 5-14](#code_promiseCreateDb) 创建一个围绕`indexedDb.open`函数的封装。它打开或创建数据库，并返回一个`Promise`，当数据库准备好时解析。'
+- en: Example 5-14\. Creating a database with a `Promise`
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-14\. 使用`Promise`创建数据库
+- en: '[PRE17]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: To load some data from the database, [Example 5-15](#code_promiseGetAllDb) provides
+    a wrapper around the `getAll` method. It requests the data, then returns a `Promise`
+    that is resolved with an array of the objects when they have been loaded.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要从数据库加载一些数据，[示例 5-15](#code_promiseGetAllDb) 提供了一个围绕`getAll`方法的封装。它请求数据，然后返回一个`Promise`，当数据加载完成时，解析为对象数组。
+- en: Example 5-15\. Getting objects from a store with a `Promise`
+  id: totrans-140
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-15\. 使用`Promise`从存储区获取对象
+- en: '[PRE18]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Now that you have an API that returns `Promise`s, you can use `then` or `async`/`await`
+    when working with your database (see [Example 5-16](#code_awaitDatabase)).
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经有一个返回`Promise`的 API，可以在处理数据库时使用`then`或`async`/`await`（参见[示例 5-16](#code_awaitDatabase)）。
+- en: Example 5-16\. Using the promisified database
+  id: totrans-143
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-16\. 使用`Promise`封装的数据库
+- en: '[PRE19]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Discussion
+  id: totrans-145
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Using a `Promise` API with `async`/`await` removes the need to pass success
+    handler callbacks around. As [Example 5-16](#code_awaitDatabase) shows, you can
+    also take advantage of `Promise` chaining to avoid nested callbacks and event
+    handlers.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Promise` API 和`async`/`await`可以避免传递成功处理程序回调的需求。正如[示例 5-16](#code_awaitDatabase)展示的那样，您还可以利用`Promise`链式操作来避免嵌套回调和事件处理程序。

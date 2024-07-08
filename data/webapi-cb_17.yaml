@@ -1,0 +1,922 @@
+- en: Chapter 17\. CSS
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 17 章\. CSS
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 介绍
+- en: In the modern browser environment, CSS not only lets you write style rules but
+    also has a set of APIs you can use to further enhance your application.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现代浏览器环境中，CSS 不仅允许您编写样式规则，还具有一组可以用来进一步增强应用程序的API。
+- en: The CSS Object Model (CSSOM) allows you to set inline styles programmatically
+    from JavaScript code. Not only that, but you can even change the values of CSS
+    variables at runtime.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS 对象模型（CSSOM）允许您从 JavaScript 代码中以编程方式设置内联样式。不仅如此，您甚至可以在运行时更改 CSS 变量的值。
+- en: In [Chapter 8](ch08.html#ch_webAnimationsApi), you saw an example of using `window.matchMedia`
+    to programmatically check a media query to see if it matches on the current page.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [第 8 章](ch08.html#ch_webAnimationsApi) 中，您看到了一个示例，使用 `window.matchMedia` 来程序化地检查媒体查询是否在当前页面上匹配。
+- en: This chapter has some helpful recipes that use some of these CSS-related APIs.
+    At the time of writing, some of these APIs do not have good browser support. Always
+    check browser compatibility before using them.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章包含一些使用这些 CSS 相关 API 的实用示例。在撰写时，一些这些 API 的浏览器支持并不理想。始终在使用之前检查浏览器兼容性。
+- en: Highlighting Text Ranges
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 文本范围的突出显示
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to apply a highlight effect to a range of text in the document.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要在文档中的一段文本范围上应用突出显示效果。
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `Range` object around the desired text, then use the CSS Custom Highlight
+    API to apply the highlighting styles to that range.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 围绕所需文本创建一个 `Range` 对象，然后使用 CSS 自定义高亮 API 将高亮样式应用于该范围。
+- en: The first step is to create a `Range` object. This object represents a region
+    of text within the document. [Example 17-1](#example17-1) shows a general purpose
+    utility function to create a range given a text node and the text to highlight.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一步是创建一个 `Range` 对象。此对象表示文档中的文本区域。[示例 17-1](#example17-1) 展示了一个通用的实用函数，用于根据文本节点和要突出显示的文本创建范围。
+- en: Example 17-1\. Creating a Range
+  id: totrans-12
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-1\. 创建一个范围
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Note
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/wDJWH)
+    for the latest compatibility data.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 API 可能尚未被所有浏览器支持。请参阅 [CanIUse](https://oreil.ly/wDJWH) 获取最新的兼容性数据。
+- en: Suppose you have the HTML element shown in [Example 17-2](#example17-2).
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您有在 [示例 17-2](#example17-2) 中显示的 HTML 元素。
+- en: Example 17-2\. Some HTML markup
+  id: totrans-17
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-2\. 一些HTML标记
+- en: '[PRE1]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: If you wanted to highlight the text “highlight some of the text,” you can use
+    the `getRange` helper to create a `Range` around that text (see [Example 17-3](#example17-3)).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要突出显示文本“highlight some of the text”，您可以使用 `getRange` 助手来创建围绕该文本的 `Range`（参见
+    [示例 17-3](#example17-3)）。
+- en: Example 17-3\. Using the `getRange` helper
+  id: totrans-20
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-3\. 使用 `getRange` 助手
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Now that you have the range, you need to register a new highlight with the browser’s
+    highlight registry. Do this by creating a new `Highlight` object with the range,
+    and then pass that `Highlight` to the `CSS.highlights.set` function (see [Example 17-4](#code_registerHighlight)).
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您有了范围，需要向浏览器的高亮注册表注册一个新的高亮效果。通过使用该范围创建一个新的 `Highlight` 对象，然后将该 `Highlight`
+    对象传递给 `CSS.highlights.set` 函数（参见 [示例 17-4](#code_registerHighlight)）。
+- en: Example 17-4\. Registering the highlight
+  id: totrans-23
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-4\. 注册高亮
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: This registers the highlight, but by default this has no visual effect. Next,
+    you need to create some CSS styles that you’d like to apply to the highlight.
+    This is done by using the `::highlight` pseudo-element. You use this pseudo-element
+    combined with the key you registered the `Highlight` under in [Example 17-4](#code_registerHighlight)
+    (see [Example 17-5](#example17-5)).
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这注册了高亮，但默认情况下没有视觉效果。接下来，您需要创建一些 CSS 样式，以便应用于高亮。通过使用 `::highlight` 伪元素完成此操作。您可以将此伪元素与在
+    [示例 17-4](#code_registerHighlight) 中注册高亮的关键字组合使用（参见 [示例 17-5](#example17-5)）。
+- en: Example 17-5\. Styling the highlight
+  id: totrans-26
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-5\. 设置高亮样式
+- en: '[PRE4]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: With this style applied, the text inside the range is now highlighted with a
+    light amber color.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用此样式后，范围内的文本现在以浅琥珀色突出显示。
+- en: Discussion
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You can also highlight content by using the `<mark>` element. [Example 17-6](#example17-6)
+    shows how to highlight some text with `<mark>`.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以使用 `<mark>` 元素来突出显示内容。[示例 17-6](#example17-6) 展示了如何使用 `<mark>` 来突出显示某些文本。
+- en: Example 17-6\. Highlighting using the mark element
+  id: totrans-31
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-6\. 使用 mark 元素进行突出显示
+- en: '[PRE5]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: This has the same visual effect as using the CSS Custom Highlight API, but the
+    key difference is that using `<mark>` involves inserting a new element into the
+    DOM. This can be tricky depending on where you are adding the new element.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与使用 CSS 自定义高亮 API 具有相同的视觉效果，但关键区别在于使用 `<mark>` 需要将新元素插入到 DOM 中。这可能取决于您添加新元素的位置。
+- en: For example, if the text you want to highlight spans multiple elements, it may
+    not be possible to do this with a `<mark>` element and still be valid HTML. Consider
+    the HTML in [Example 17-7](#example17-7).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果您想要高亮的文本跨越多个元素，可能无法仅使用 `<mark>` 元素来实现，同时保持有效的 HTML。考虑 [示例 17-7](#example17-7)
+    中的 HTML。
+- en: Example 17-7\. Some markup to highlight
+  id: totrans-35
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-7\. 一些需要高亮的标记
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: If you want to highlight “which is being highlighted. The highlight extends
+    to this paragraph,” you can’t do this with a single `<mark>` element (see [Example 17-8](#example17-8)).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想要高亮显示“正在进行高亮。高亮扩展到这一段落。”，您无法仅使用单个 `<mark>` 元素实现（参见 [示例 17-8](#example17-8)）。
+- en: Example 17-8\. Invalid HTML
+  id: totrans-38
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-8\. 无效的 HTML
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: This is not valid HTML. The solution would be to use two separate `<mark>` elements,
+    but then it’s not a single continuous highlighted region.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这不是有效的 HTML。解决方案是使用两个单独的 `<mark>` 元素，但这样就不是单个连续高亮区域了。
+- en: Using the CSS Custom Highlight API makes such highlighting possible by creating
+    a range that spans multiple tags and applying the highlight effect.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 CSS 自定义高亮 API 可以实现跨多个标签的高亮效果，通过创建跨多个标签的范围并应用高亮效果。
+- en: Preventing a Flash of Unstyled Text
+  id: totrans-42
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 防止未样式化文本的闪烁
+- en: Problem
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to avoid the flash of unstyled text when using web fonts.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望避免在使用 Web 字体时出现未样式化文本的闪烁。
+- en: Solution
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the CSS Font Loading API to explicitly load the font faces you want to use
+    in your application, and delay rendering any text until the fonts have been loaded.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 CSS 字体加载 API 显式加载您希望在应用程序中使用的字体，并延迟渲染任何文本，直到字体加载完成。
+- en: To load a font with this API, you first create a `FontFace` object containing
+    data about the font face you want to load. [Example 17-9](#example17-9) uses the
+    Roboto font.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用此 API 加载字体，首先创建一个包含有关要加载的字体面的 `FontFace` 对象。[示例 17-9](#example17-9) 使用了 Roboto
+    字体。
+- en: Example 17-9\. Creating the Roboto font face
+  id: totrans-48
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-9\. 创建 Roboto 字体
+- en: '[PRE8]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The document has a global `fonts` property, which is a `FontFaceSet`, containing
+    all of the font faces used in the document. In order to use this font face, you
+    need to add it to the `FontFaceSet` (see [Example 17-10](#example17-10)).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文档具有全局 `fonts` 属性，它是一个 `FontFaceSet`，包含文档中使用的所有字体面。要使用此字体面，您需要将其添加到 `FontFaceSet`
+    中（参见 [示例 17-10](#example17-10)）。
+- en: Example 17-10\. Adding Roboto to the global `FontFaceSet`
+  id: totrans-51
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-10\. 将 Roboto 添加到全局 `FontFaceSet`
+- en: '[PRE9]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: So far, you’ve only defined the font. Nothing has been loaded yet. You can start
+    the loading process by calling `load` on the `FontFace` object (see [Example 17-11](#example17-11)).
+    This returns a `Promise` that is resolved once the font is loaded.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，您只是定义了字体，但尚未加载任何内容。您可以通过在 `FontFace` 对象上调用 `load` 来启动加载过程（参见 [示例 17-11](#example17-11)）。这会返回一个
+    `Promise`，一旦字体加载完成就会解析。
+- en: Example 17-11\. Waiting for the font to be loaded
+  id: totrans-54
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-11\. 等待字体加载完成
+- en: '[PRE10]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: To prevent the flash of unstyled text, you’ll need to hide the text that uses
+    this font until it has finished loading. If your app shows an initial loading
+    animation, for example, you could continue the animation until the necessary fonts
+    are loaded, then remove the loader and start rendering the app.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了防止未样式化文本的闪烁，您需要隐藏使用该字体的文本，直到字体加载完成。例如，如果您的应用程序显示初始加载动画，则可以继续动画，直到必要的字体加载完成，然后删除加载程序并开始渲染应用程序。
+- en: If your app is using multiple fonts, you can wait for the `document.fonts.ready`
+    `Promise`. This `Promise` is resolved once all fonts are loaded and ready.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的应用程序使用多个字体，可以等待 `document.fonts.ready` 的 `Promise`。一旦所有字体加载并准备好，该 `Promise`
+    就会解析。
+- en: Discussion
+  id: totrans-58
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When using web fonts with CSS, fonts are declared with a `@font-face` rule,
+    which contains the URL of the font file to download. If text is rendered before
+    the font has finished loading, a fallback system font is used. Once the font is
+    ready, the text is re-rendered with the correct font. This can cause undesirable
+    effects such as layout shifts if the font metrics are different.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用 CSS 的 Web 字体时，字体是通过 `@font-face` 规则声明的，其中包含要下载的字体文件的 URL。如果在字体加载完成之前渲染文本，则会使用回退系统字体。一旦字体准备就绪，文本会重新以正确的字体进行渲染。这可能会导致不良效果，例如如果字体度量不同，则会出现布局转移。
+- en: The downside of using `@font-face` is that you have no way of knowing when the
+    font has been loaded and is ready for use. By using the CSS Font Loading API,
+    you can get better control over your font loading and know exactly when it’s safe
+    to start using a given font to render text.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `@font-face` 的缺点是无法知道字体何时已加载并准备好使用。通过使用 CSS 字体加载 API，您可以更好地控制字体加载，并确切地知道何时可以安全地开始使用特定字体来渲染文本。
+- en: If there is an error while loading the font—for example, maybe you mistyped
+    the font URL—the `Promise` returned by the font’s `load` method rejects with the
+    error.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果加载字体时出现错误——例如，可能是字体 URL 打错了——字体的 `load` 方法返回的 `Promise` 将会以错误拒绝。
+- en: Animating DOM Transitions
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 动画化 DOM 过渡
+- en: Problem
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to show an animated transition when removing or adding elements to
+    the DOM.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望在添加或移除 DOM 元素时展示一个动画过渡效果。
+- en: Solution
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the View Transitions API to provide an animated transition between the two
+    states.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用视图过渡 API 提供两个状态之间的动画过渡效果。
+- en: Note
+  id: totrans-67
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/I8RFN)
+    for the latest compatibility data.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该 API 可能尚未被所有浏览器支持。请查看 [CanIUse](https://oreil.ly/I8RFN) 获取最新的兼容性数据。
+- en: This API is used to apply a transition effect between two DOM states. To start
+    a view transition, call the `document.startViewTransition` function. This function
+    takes a callback function as its argument. You need to perform your DOM changes
+    within this callback function.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 API 用于在两个 DOM 状态之间应用过渡效果。要启动视图过渡，请调用 `document.startViewTransition` 函数。此函数将回调函数作为其参数。您需要在此回调函数内执行您的
+    DOM 更改。
+- en: In [Example 17-12](#code_simpleViewTransition), imagine you have a single-page
+    app. Each view of the app is a top-level HTML element with a unique ID. To route
+    between views, you can remove the current view and add the new one.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 17-12](#code_simpleViewTransition) 中，假设您有一个单页面应用。该应用的每个视图都是具有唯一 ID 的顶级
+    HTML 元素。要在视图之间进行路由，可以移除当前视图并添加新视图。
+- en: Example 17-12\. A simple view transition
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-12\. 一个简单的视图过渡
+- en: '[PRE11]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This applies a basic cross-fade transition effect between the two views.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这应用了一个基本的交叉淡入淡出过渡效果在两个视图之间。
+- en: If you want to adjust the speed of the cross-fade transition, you can do so
+    with a bit of CSS, as shown in [Example 17-13](#example17-13).
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果要调整交叉淡入淡出过渡的速度，可以通过一些 CSS 来实现，如 [示例 17-13](#example17-13) 所示。
+- en: Example 17-13\. Slowing down the transition
+  id: totrans-75
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-13\. 减缓过渡速度
+- en: '[PRE12]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Discussion
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The view transition effect works by effectively taking a screenshot of the current
+    DOM state. Once the DOM changes inside the callback are made, another screenshot
+    is taken. The browser creates some pseudo-elements on the page and applies an
+    animated transition between them.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图过渡效果通过有效地捕获当前 DOM 状态的屏幕截图来工作。一旦回调内进行的 DOM 更改完成，另一个截图就会被捕获。浏览器在页面上创建一些伪元素，并在它们之间应用动画过渡。
+- en: 'The pseudo-elements created are:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建的伪元素包括：
+- en: '`::view-transition`'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`::view-transition`'
+- en: A top-level overlay containing all view transitions
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个包含所有视图过渡的顶级覆盖层
+- en: '`::view-transition-group(<name>)`'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`::view-transition-group(<name>)`'
+- en: An individual view transition
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单个视图过渡
+- en: '`::view-transition-image-pair(<name>)`'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`::view-transition-image-pair(<name>)`'
+- en: Contains the two images being transitioned
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含正在过渡的两个图像
+- en: '`::view-transition-old(<name>)`'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`::view-transition-old(<name>)`'
+- en: Image of the old DOM state
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 旧 DOM 状态的图像
+- en: '`::view-transition-new(<name>)`'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`::view-transition-new(<name>)`'
+- en: Image of the new DOM state
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 新 DOM 状态的图像
+- en: 'Some of these pseudo-elements take a `name` argument. This can be one of the
+    following:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些伪元素需要一个 `name` 参数。可以是以下之一：
+- en: '`*`'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`*`'
+- en: Matches all view transition groups
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 匹配所有视图过渡组
+- en: '`root`'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`root`'
+- en: Matches the `root` transition group, which is the default name if no custom
+    name is given.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 匹配 `root` 过渡组，如果没有提供自定义名称，则使用默认名称。
+- en: A custom identifier
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自定义标识符
+- en: You can specify the custom identifier by setting the `view-transition-name`
+    property on the element to be transitioned.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过在要过渡的元素上设置 `view-transition-name` 属性来指定自定义标识符。
+- en: You can use CSS selectors to target these pseudo-elements and apply different
+    animations. You can do this by creating a `@keyframes` rule for the animation
+    and applying that animation to the `::view-transition-old` or `::view-transition-new`
+    pseudo-elements.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用 CSS 选择器来定位这些伪元素并应用不同的动画效果。可以通过创建 `@keyframes` 规则来实现这一点，并将该动画应用于 `::view-transition-old`
+    或 `::view-transition-new` 伪元素。
+- en: Modifying Stylesheets at Runtime
+  id: totrans-98
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在运行时修改样式表
+- en: Problem
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to dynamically add a CSS rule to a stylesheet on the page.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望动态向页面样式表添加 CSS 规则。
+- en: Solution
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `insertRule` method of `CSSStyleSheet` to add the desired rule (see
+    [Example 17-14](#example17-14)).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `CSSStyleSheet` 的 `insertRule` 方法添加所需的规则（见 [示例 17-14](#example17-14)）。
+- en: Example 17-14\. Adding a CSS rule
+  id: totrans-103
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-14\. 添加 CSS 规则
+- en: '[PRE13]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Discussion
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You might want to do this if you have new HTML content that is dynamically added
+    to the page, such as in a single-page application. You can dynamically add the
+    style rules when the new content is added.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你有动态添加到页面的新 HTML 内容（如单页应用程序），可能会需要这样做。可以在添加新内容时动态添加样式规则。
+- en: Conditionally Setting a CSS Class
+  id: totrans-107
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条件性地设置 CSS 类
+- en: Problem
+  id: totrans-108
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to apply a CSS class to an element only if a certain condition is met.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要仅在满足某个条件时将 CSS 类应用于元素。
+- en: Solution
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `toggle` method of the element’s `classList` (see [Example 17-15](#example17-15)).
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用元素的 `classList` 的 `toggle` 方法（参见 [示例 17-15](#example17-15)）。
+- en: Example 17-15\. Toggling a class conditionally
+  id: totrans-112
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-15\. 条件性地切换类名
+- en: '[PRE14]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Discussion
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If you call `toggle` without the second argument, it adds the class name if
+    it’s not currently set, or removes it if it’s already set.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在没有第二个参数的情况下调用 `toggle`，它会在当前未设置时添加类名，或者在已经设置时移除类名。
+- en: In addition to `toggle`, you can use `add` and `remove` to manipulate the class
+    list by adding and removing the given class name. If you call `add` when the class
+    name is already set, it has no effect. Similarly, if you call `remove` when the
+    class name isn’t set, it also has no effect.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 `toggle`，你还可以使用 `add` 和 `remove` 来通过添加和移除给定的类名来操作类列表。如果在已经设置了类名的情况下调用 `add`，则没有任何效果。类似地，如果在未设置类名的情况下调用
+    `remove`，也没有任何效果。
+- en: Matching Media Queries
+  id: totrans-117
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 匹配媒体查询
+- en: Problem
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to check if a certain media query is satisfied using JavaScript. For
+    example, you might want to use the `prefers-color-scheme` media query to determine
+    if a user’s operating system is set to a dark theme.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要使用 JavaScript 检查特定的媒体查询是否满足。例如，你可以使用 `prefers-color-scheme` 媒体查询来确定用户操作系统是否设置为暗主题。
+- en: Solution
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `window.matchMedia` to evaluate the media query or listen for changes (see
+    [Example 17-16](#example17-16)).
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `window.matchMedia` 来评估媒体查询或监听其变化（参见 [示例 17-16](#example17-16)）。
+- en: Example 17-16\. Checking for a dark color scheme
+  id: totrans-122
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-16\. 检查暗色主题
+- en: '[PRE15]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Discussion
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: '`window.matchMedia` returns a `MediaQueryList` object that not only has the
+    `matches` property but also lets you listen for the `change` event. This event
+    fires if the result of the media query changes.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`window.matchMedia` 返回一个 `MediaQueryList` 对象，不仅具有 `matches` 属性，还可以监听 `change`
+    事件。如果媒体查询的结果发生变化，将触发此事件。'
+- en: For example, if the user’s operating system color theme setting changes while
+    your app is open, the `change` event fires for the `prefers-color-scheme` query.
+    You can then check for the new match state (see [Example 17-17](#example17-17)).
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果用户的操作系统颜色主题设置在应用程序打开时发生更改，则 `prefers-color-scheme` 查询的 `change` 事件将触发。然后，可以检查新的匹配状态（参见
+    [示例 17-17](#example17-17)）。
+- en: Example 17-17\. Listening for media query changes
+  id: totrans-127
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-17\. 监听媒体查询变化
+- en: '[PRE16]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Getting an Element’s Computed Style
+  id: totrans-129
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 获取元素的计算样式
+- en: Problem
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to find a particular CSS style for an element that comes from a stylesheet
+    (not an inline style).
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要找到来自样式表（而不是内联样式）的特定 CSS 样式。
+- en: Solution
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `window.getComputedStyle` to calculate the final styles for the element.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `window.getComputedStyle` 来计算元素的最终样式。
+- en: Use getComputedStyle Sparingly
+  id: totrans-134
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 谨慎使用 getComputedStyle
+- en: When you call `getComputedStyle`, it forces the browser to recalculate styles
+    and layout, which can be a performance bottleneck.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用 `getComputedStyle` 时，会强制浏览器重新计算样式和布局，这可能成为性能瓶颈。
+- en: Consider the HTML element in [Example 17-18](#example17-18) with some styling
+    applied.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑在 [示例 17-18](#example17-18) 中应用了一些样式的 HTML 元素。
+- en: Example 17-18\. Some HTML with style
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-18\. 带有样式的一些 HTML
+- en: '[PRE17]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: To determine the styles that are applied to the element, pass the element to
+    `window.getComputedStyle` (see [Example 17-19](#example17-19)).
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要确定应用于元素的样式，请将元素传递给 `window.getComputedStyle`（参见 [示例 17-19](#example17-19)）。
+- en: Example 17-19\. Getting the computed style
+  id: totrans-140
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-19\. 获取计算样式
+- en: '[PRE18]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Because the ID selector has a higher specificity than the class selector, it
+    wins the conflict and `styles.backgroundColor` is blue. On some browsers, it may
+    not be the string “blue” but rather a color expression such as `rgb(0, 0, 255)`.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 ID 选择器的特异性高于类选择器，所以它会赢得冲突，并且 `styles.backgroundColor` 是蓝色。在某些浏览器上，它可能不是字符串“blue”，而是诸如
+    `rgb(0, 0, 255)` 的颜色表达式。
+- en: Discussion
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An element’s `style` property only works for *inline styles*. Consider [Example 17-20](#example17-20).
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 元素的 `style` 属性仅适用于*内联样式*。参考 [示例 17-20](#example17-20)。
+- en: Example 17-20\. An element with inline styles
+  id: totrans-145
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-20\. 具有内联样式的元素
+- en: '[PRE19]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: This example specifies the `color` property as an inline style, so you can access
+    this by referencing the `style` property. However, the background color comes
+    from a stylesheet and won’t be found this way (see [Example 17-21](#example17-21)).
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例将 `color` 属性指定为内联样式，因此可以通过引用 `style` 属性访问。然而，背景颜色来自样式表，不能通过这种方式找到（参见 [示例 17-21](#example17-21)）。
+- en: Example 17-21\. Checking inline styles
+  id: totrans-148
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-21\. 检查内联样式
+- en: '[PRE20]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Since `getComputedStyle` calculates the final style of the element, it contains
+    both stylesheet styles and inline styles (see [Example 17-22](#example17-22)).
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 `getComputedStyle` 计算元素的最终样式，它包含样式表样式和内联样式（参见 [示例 17-22](#example17-22)）。
+- en: Example 17-22\. Checking computed styles
+  id: totrans-151
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 17-22\. 检查计算样式
+- en: '[PRE21]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'

@@ -1,0 +1,661 @@
+- en: Chapter 15\. Measuring Performance
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 15 章\. 测量性能
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 介绍
+- en: There are many third-party tools for measuring performance in a JavaScript app,
+    but the browser also has some handy tools built in for capturing performance metrics.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 应用程序中有许多第三方工具可用于性能测量，但浏览器还内置了一些方便的工具来捕获性能指标。
+- en: The Navigation Timing API is used to capture performance data about the initial
+    page load. You can inspect how long the page took to load, how long it took for
+    the DOM to become interactive, and more. It returns a set of timestamps that indicate
+    when each event happened during the page load.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导航时间 API 用于捕获有关初始页面加载的性能数据。您可以检查页面加载所需的时间、DOM 变得可交互所需的时间等。它返回一组时间戳，指示页面加载期间每个事件发生的时间。
+- en: The Resource Timing API lets you inspect how long it took to download resources
+    and make network requests. This covers page resources such as HTML files, CSS
+    files, JavaScript files, and images. It also covers asynchronous requests such
+    as those made with the Fetch API.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 资源定时 API 允许您检查下载资源和进行网络请求所花费的时间。这涵盖页面资源，如 HTML 文件、CSS 文件、JavaScript 文件和图像，还包括使用
+    Fetch API 进行的异步请求。
+- en: The User Timing API is a way to calculate the elapsed time of arbitrary operations.
+    You can create performance *marks*, which are points in time, and *measures*,
+    which are calculated durations between marks.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户定时 API 是一种计算任意操作经过的时间的方法。您可以创建性能 *标记*，这些是时间点，以及 *度量*，这是两个标记之间的计算持续时间。
+- en: All of these APIs create performance entries in a buffer on the page. This is
+    a single collection of all types of performance entries. You can inspect this
+    buffer at any time, and you can also use `PerformanceObserver` to listen asynchronously
+    for new performance entries to be added.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些 API 在页面上创建性能条目缓冲区。这是所有类型性能条目的单一集合。您可以随时检查此缓冲区，也可以使用 `PerformanceObserver`
+    异步监听新的性能条目添加。
+- en: Performance entries use high-precision timestamps. Time is measured in milliseconds,
+    but can also contain fractional portions that, in some browsers, can have microsecond
+    accuracy. In the browser, these timestamps are stored as `DOMHighResTimeStamp`
+    objects. These are numbers that start at zero when the page loads and represent
+    the time since the page load that a given entry happened.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能条目使用高精度时间戳。时间以毫秒为单位测量，但在某些浏览器中还可以包含微秒精度的小数部分。在浏览器中，这些时间戳存储为 `DOMHighResTimeStamp`
+    对象。这些是数字，从页面加载时开始计时，表示自页面加载以来给定条目发生的时间。
+- en: This chapter’s recipes explore solutions for gathering performance metrics.
+    What you do with those metrics is up to you. You can use the Fetch or Beacon API
+    to send the performance metrics to an API for collection and later analysis.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章的示例探讨了收集性能指标的解决方案。如何处理这些指标取决于您。您可以使用 Fetch 或 Beacon API 将性能指标发送到 API 进行收集和后续分析。
+- en: You can use these performance metrics during development for debugging purposes,
+    or leave them in to collect real performance metrics from your users. These can
+    be sent to an analytics service for aggregation and analysis.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发过程中，您可以使用这些性能指标进行调试，或者保留它们以收集用户的实际性能指标。这些数据可以发送到分析服务进行聚合和分析。
+- en: Measuring Page Load Performance
+  id: totrans-10
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测量页面加载性能
+- en: Problem
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to gather information about the timing of page load events.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要收集有关页面加载事件时间的信息。
+- en: Solution
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Look up the single performance entry with a type of `navigation`, and retrieve
+    the navigation timestamps from the performance entry object (see [Example 15-1](#example15-1)).
+    You can then calculate the interval between these timestamps to figure out the
+    time taken for various page load events.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查找类型为 `navigation` 的单个性能条目，并从性能条目对象中检索导航时间戳（参见 [示例 15-1](#example15-1)）。然后可以计算这些时间戳之间的间隔，以了解各种页面加载事件所需的时间。
+- en: Example 15-1\. Looking up the navigation timing performance entry
+  id: totrans-15
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-1\. 查找导航时间性能条目
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: This object has a lot of properties. [Table 15-1](#table15-1) lists a few examples
+    of useful calculations you can perform.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此对象具有许多属性。[表 15-1](#table15-1)列出了一些有用的计算示例。
+- en: Table 15-1\. Navigation timing calculations
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 15-1\. 导航时间计算
+- en: '| Metric | Start time | End time |'
+  id: totrans-19
+  prefs: []
+  type: TYPE_TB
+  zh: '| 指标 | 开始时间 | 结束时间 |'
+- en: '| --- | --- | --- |'
+  id: totrans-20
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Time to first byte | `startTime` | `responseStart` |'
+  id: totrans-21
+  prefs: []
+  type: TYPE_TB
+  zh: '| 首字节时间 | `startTime` | `responseStart` |'
+- en: '| Time to DOM interactive | `startTime` | `domInteractive` |'
+  id: totrans-22
+  prefs: []
+  type: TYPE_TB
+  zh: '| DOM 交互时间 | `startTime` | `domInteractive` |'
+- en: '| Total load time | `startTime` | `loadEventEnd` |'
+  id: totrans-23
+  prefs: []
+  type: TYPE_TB
+  zh: '| 总加载时间 | `startTime` | `loadEventEnd` |'
+- en: Discussion
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `startTime` property of the navigation timing performance entry is always
+    0.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导航性能条目的`startTime`属性始终为0。
+- en: This entry doesn’t only contain timing information. It also contains information
+    such as the amount of data transferred, the HTTP response code, and the page URL.
+    This information is useful to determine how quickly your application becomes responsive
+    when it first loads.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此条目不仅包含时间信息，还包括数据传输量、HTTP响应代码和页面URL等信息。这些信息对于确定应用程序在首次加载时的响应速度非常有用。
+- en: Measuring Resource Performance
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测量资源性能
+- en: Problem
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to get information about requests for the resources loaded on the page.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要获取加载在页面上的资源的信息。
+- en: Solution
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Find the resource performance entries in the performance buffer (see [Example 15-2](#example15-2)).
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在性能缓冲区中查找资源性能条目（见[示例 15-2](#example15-2)）。
+- en: Example 15-2\. Getting the resource performance entries
+  id: totrans-32
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-2\. 获取资源性能条目
+- en: '[PRE1]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: You’ll get one entry for each resource on the page. Resources include CSS files,
+    JavaScript files, images, and any other requests by the page.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个页面资源都会生成一个条目。资源包括CSS文件、JavaScript文件、图像以及页面发出的任何其他请求。
+- en: For each resource, you can calculate how long it took to load by taking the
+    difference between the `startTime` and `responseEnd` properties. The URL of the
+    resource is available in the `name` property.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过计算`startTime`和`responseEnd`属性之间的差来确定每个资源的加载时间。资源的URL可在`name`属性中找到。
+- en: Discussion
+  id: totrans-36
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Any network requests you make with the Fetch API also show up as a resource.
+    This makes this API useful for profiling the real-world performance of your REST
+    API endpoints.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用Fetch API进行的任何网络请求都会显示为一个资源。这使得该API对于分析您的REST API端点的实际性能非常有用。
+- en: When the page first loads, the performance buffer includes an entry for all
+    resources requested during the initial page load. Subsequent requests are added
+    to the performance buffer as they are made.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面首次加载时，性能缓冲区包含初始页面加载期间请求的所有资源的条目。随后的请求在生成时会添加到性能缓冲区中。
+- en: Finding the Slowest Resources
+  id: totrans-39
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 找出加载最慢的资源
+- en: Problem
+  id: totrans-40
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to get a list of the resources that took the longest to load.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要获取加载时间最长的资源列表。
+- en: Solution
+  id: totrans-42
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Sort and filter the list of resource performance entries. Since this list is
+    just an array, you can call methods such as `sort` and `slice` on it. To find
+    how long the resource took to load, take the difference between its `responseEnd`
+    and `startTime` timestamps.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对资源性能条目列表进行排序和过滤。由于这个列表只是一个数组，因此可以对其调用诸如`sort`和`slice`之类的方法。要找出资源加载所花费的时间，可以通过`responseEnd`和`startTime`时间戳之间的差来计算。
+- en: '[Example 15-3](#code_findSlowest) shows how to find the five slowest-loading
+    resources.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 15-3](#code_findSlowest)展示了如何查找加载最慢的五个资源。'
+- en: Example 15-3\. Finding the five slowest-loading resources
+  id: totrans-45
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-3\. 查找加载最慢的五个资源
+- en: '[PRE2]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Discussion
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The key is the `sort` call. This compares each pair of load times and sorts
+    the whole list in descending order of load times. Then, the `slice` call is just
+    taking the first five elements of the sorted array.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关键在于`sort`调用。此调用将每对加载时间进行比较，并按加载时间降序对整个列表进行排序。然后，`slice`调用只获取排序后数组的前五个元素。
+- en: If you want to instead get a list of the five fastest-loading resources, you
+    can just reverse the order in which the load times are compared (see [Example 15-4](#example15-4)).
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果要获取加载时间最快的五个资源列表，只需反转比较加载时间的顺序即可（见[示例 15-4](#example15-4)）。
+- en: Example 15-4\. Finding the 5 fastest resources
+  id: totrans-50
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-4\. 查找加载最快的5个资源
+- en: '[PRE3]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: The reversed comparison means the array is sorted in ascending order rather
+    than descending order. The `slice` call now returns the five fastest-loading resources.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反转比较意味着数组按升序而非降序排序。现在，`slice`调用返回加载时间最快的五个资源。
+- en: Finding Timings for a Specific Resource
+  id: totrans-53
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 找到特定资源的时间信息
+- en: Problem
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to look up the timings for requests for a specific resource.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要查找特定资源请求的时间信息。
+- en: Solution
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the method `window.performance.getEntriesByName` to look up resources by
+    a specific URL (see [Example 15-5](#example15-5)).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用方法`window.performance.getEntriesByName`按特定URL查找资源（见[示例 15-5](#example15-5)）。
+- en: Example 15-5\. Finding all resource timings for a specific URL
+  id: totrans-58
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-5\. 查找特定URL的所有资源时间
+- en: '[PRE4]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Discussion
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The name of a resource entry is its URL. The first argument to `getEntriesByName`
+    is the URL. The second argument indicates that you’re interested in resource timings.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 资源条目的名称是其URL。`getEntriesByName`的第一个参数是URL，第二个参数表示您对资源时间信息感兴趣。
+- en: If there were multiple requests for the given URL, you’ll get multiple resource
+    entries in the returned array.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果对给定URL有多个请求，则返回的数组中将有多个资源条目。
+- en: Profiling Rendering Performance
+  id: totrans-63
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 分析渲染性能
+- en: Problem
+  id: totrans-64
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to record the time it takes to render some data on the page.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望记录页面上渲染某些数据所需的时间。
+- en: Solution
+  id: totrans-66
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a performance mark just before the rendering begins. Once rendering is
+    complete, create another mark. Then you can create a *measure* between the two
+    marks to record how long the rendering took.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在渲染开始之前创建一个性能标记。一旦渲染完成，再创建另一个标记。然后，您可以在两个标记之间创建一个*度量*来记录渲染所需的时间。
+- en: Imagine you have a `DataView` component that can be used to render some data
+    in the page (see [Example 15-6](#code_renderData)).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您有一个`DataView`组件，可以用来在页面上渲染一些数据（参见[示例 15-6](#code_renderData)）。
+- en: Example 15-6\. Measuring rendering performance
+  id: totrans-69
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-6\. 测量渲染性能
+- en: '[PRE5]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The `measure` object contains the start time and the calculated duration of
+    the measure.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`measure`对象包含度量的开始时间和计算出的持续时间。'
+- en: Discussion
+  id: totrans-72
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Whenever you create performance marks and measures, they are added to the page’s
+    performance buffer to look up later. For example, if you wanted to look up the
+    `render` measure at a later time, you could use `window.performance.getEntriesByName`
+    (see [Example 15-7](#example15-7)).
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每当创建性能标记和度量时，它们都会添加到页面的性能缓冲区以供以后查找。例如，如果您想稍后查找`render`度量，可以使用`window.performance.getEntriesByName`（参见[示例 15-7](#example15-7)）。
+- en: Example 15-7\. Looking up a measure by name
+  id: totrans-74
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-7\. 按名称查找度量
+- en: '[PRE6]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Marks and measures can also contain data associated with them by passing the
+    `detail` option. For example, when rendering the data in [Example 15-6](#code_renderData),
+    you can pass the data itself as metadata when creating the measure.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标记和度量也可以通过传递`detail`选项与它们关联的数据。例如，在渲染[示例 15-6](#code_renderData)中的数据时，您可以在创建度量时将数据本身作为元数据传递。
+- en: When creating a measure in this way, you need to include the start and end marks
+    inside the options object (see [Example 15-8](#example15-8)).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种方式创建度量时，需要在选项对象内包含起始和结束标记（参见[示例 15-8](#example15-8)）。
+- en: Example 15-8\. Measuring rendering performance with data
+  id: totrans-78
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-8\. 使用数据测量渲染性能
+- en: '[PRE7]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Later, when you look up this performance entry, the detail metadata is available
+    in the measure’s `detail` property.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 稍后，当您查找此性能条目时，度量的`detail`元数据将可用。
+- en: Profiling Multistep Tasks
+  id: totrans-81
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 分析多步骤任务
+- en: Problem
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to gather performance data for a multistep process. You want to get
+    the time for the whole sequence, but also the time for individual steps. For example,
+    you might want to load some data from an API and then do some processing with
+    that data. In this case, you want to know the time for the API request, the time
+    for the processing, and also the total time taken.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望收集多步骤过程的性能数据。您希望获取整个序列的时间，但也需要各个步骤的时间。例如，您可能希望从API加载一些数据，然后对这些数据进行处理。在这种情况下，您希望知道API请求的时间，处理的时间以及总共花费的时间。
+- en: Solution
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create multiple marks and measures. You can use a given mark in more than one
+    measure calculation.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建多个标记和度量。您可以在多个度量计算中使用给定的标记。
+- en: In [Example 15-9](#example15-9), there’s an API that returns some user transactions.
+    Once the transactions are received, you want to run some analytics on the transaction
+    data. Finally, the analytics data is sent to another API.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[示例 15-9](#example15-9)中，有一个API返回一些用户交易。一旦接收到交易数据，您希望对交易数据进行分析。最后，分析数据将发送到另一个API。
+- en: Example 15-9\. Profiling a multistep process
+  id: totrans-87
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-9\. 分析多步骤过程
+- en: '[PRE8]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Once the process has finished and marks have been taken, you can use those marks
+    to generate several measures, as shown in [Example 15-10](#code_measures).
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦进程完成并且标记已经获取，您可以使用这些标记生成多个度量，如[示例 15-10](#code_measures)所示。
+- en: Example 15-10\. Generating measures
+  id: totrans-90
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-10\. 生成度量
+- en: '[PRE9]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Discussion
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This example shows how you can create multiple marks and measures to gather
+    performance data on a set of tasks. A given mark can be used more than once, in
+    multiple measures. [Example 15-10](#code_measures) creates a measure for each
+    step of the process, then generates a final measure for the entire task’s duration.
+    This is done by taking the first mark of the download task and the last mark of
+    the upload task, and calculating a measure between them.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个示例展示了如何创建多个标记和度量来收集一组任务的性能数据。给定的标记可以在多个度量中使用多次。[示例 15-10](#code_measures)
+    为每个步骤创建一个度量，然后生成整个任务持续时间的最终度量。这是通过获取下载任务的第一个标记和上传任务的最后一个标记，并计算它们之间的度量来完成的。
+- en: Listening for Performance Entries
+  id: totrans-94
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 监听性能条目
+- en: Problem
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to be notified of new performance entries so that you can report them
+    to an analytics service. For example, consider the scenario where you want to
+    be notified of performance statistics every time an API request is made.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望在有新的性能条目时收到通知，以便将其报告给分析服务。例如，考虑您希望在每次发出 API 请求时通知性能统计数据的情况。
+- en: Solution
+  id: totrans-97
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a `PerformanceObserver` to listen for new performance entries of the desired
+    type. For API requests, the type would be `resource` (see [Example 15-11](#code_performanceObserver)).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`PerformanceObserver`监听所需类型的新性能条目。对于 API 请求，类型将是`resource`（参见 [示例 15-11](#code_performanceObserver)）。
+- en: Example 15-11\. Using a `PerformanceObserver`
+  id: totrans-99
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-11\. 使用`PerformanceObserver`
+- en: '[PRE10]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Discussion
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `PerformanceObserver` fires for every network request, including the one
+    you make to your analytics service. For this reason, [Example 15-11](#code_performanceObserver)
+    checks to make sure a given entry is not the analytics endpoint before sending
+    the request. Without this check, you end up in an infinite loop of POST requests.
+    When a network request is made, the observer fires and you send the POST request.
+    This creates a new performance entry, which calls the observer again. Each POST
+    to the analytics service triggers a new observer callback.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`PerformanceObserver`会为每个网络请求触发，包括您发送到分析服务的请求。因此，[示例 15-11](#code_performanceObserver)
+    在发送请求之前会检查给定条目是否不是分析端点。如果没有这个检查，您会陷入无限的 POST 请求循环中。当发出网络请求时，观察者触发并发送 POST 请求。这会创建一个新的性能条目，进而再次调用观察者。每次向分析服务发送
+    POST 请求都会触发新的观察者回调。'
+- en: To prevent a high volume of requests in a short period to your analytics service,
+    for a real application you may want to collect performance entries in a buffer.
+    Once the buffer reaches a certain size, you can send all the entries from the
+    buffer in a single request (see [Example 15-12](#example15-12)).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了防止在短时间内向分析服务发送大量请求，对于真实的应用程序，您可能希望将性能条目收集到缓冲区中。一旦缓冲区达到一定大小，您可以将缓冲区中的所有条目一次性发送（参见
+    [示例 15-12](#example15-12)）。
+- en: Example 15-12\. Sending performance entries in batches
+  id: totrans-104
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 15-12\. 批量发送性能条目
+- en: '[PRE11]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'

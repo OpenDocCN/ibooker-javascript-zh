@@ -1,0 +1,906 @@
+- en: Chapter 3\. URLs and Routing
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第3章\. URL和路由
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 简介
+- en: Most web pages and applications deal with URLs in some way. This could be an
+    action like crafting a link with certain query parameters, or URL-based routing
+    in a single-page application (SPA).
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数网页和应用程序都以某种方式处理URL。这可能是像使用特定查询参数创建链接，或在单页应用程序（SPA）中基于URL进行路由等操作。
+- en: 'A URL is just a string that complies with some syntax rules as defined in [RFC
+    3986, “Uniform Resource Identifier (URI): Generic Syntax”](https://oreil.ly/SUziR).
+    There are several component parts of a URL that you may need to parse or manipulate.
+    Doing so with techniques like regular expressions or string concatenation isn’t
+    always reliable.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: URL只是遵循[RFC 3986, “统一资源标识符（URI）：通用语法”](https://oreil.ly/SUziR)中定义的一些语法规则的字符串。URL有几个组成部分，您可能需要解析或操作这些部分。使用正则表达式或字符串连接等技术并不总是可靠的。
+- en: Today, browsers support the URL API. This API provides a `URL` constructor that
+    can create, derive, and manipulate URLs. This API was somewhat limited at first,
+    but later updates added utilities like the `URLSearchParams` interface that simplified
+    building and reading query strings.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 今天，浏览器支持URL API。此API提供了一个`URL`构造函数，可以创建、派生和操作URL。最初此API功能有限，但后来的更新添加了类似`URLSearchParams`接口的实用工具，简化了构建和读取查询字符串的过程。
+- en: Parts of a URL
+  id: totrans-5
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: URL的各个组成部分
+- en: 'When you call the `URL` constructor with a string representing a valid URL,
+    the resulting object contains properties representing the URL’s different component
+    parts. [Figure 3-1](#urlParts) shows the most commonly used of these:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用表示有效URL的字符串调用`URL`构造函数时，生成的对象包含表示URL不同组成部分的属性。 [图3-1](#urlParts)显示了其中最常用的部分：
+- en: '`protocol` (1)'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`protocol`（1）'
+- en: For web URLs, this is typically `http:` or `https:` (note that the colon is
+    included, but not the slashes). Other protocols are possible such as `file:` (for
+    a local file not hosted on a server) or `ftp:` (a resource on an FTP server).
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于Web URL，通常为`http:`或`https:`（请注意包括冒号，但不包括斜杠）。其他协议也可能存在，如`file:`（用于本地文件，而不是服务器上托管的文件）或`ftp:`（FTP服务器上的资源）。
+- en: '`hostname` (2)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`hostname`（2）'
+- en: The domain or host name (`example.com`).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 域名或主机名（`example.com`）。
+- en: '`pathname` (3)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`pathname`（3）'
+- en: The path of the resource relative to the root, with leading slash (`/admin/login`).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相对于根目录的资源路径，以斜杠开头（`/admin/login`）。
+- en: '`search` (4)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`search`（4）'
+- en: Any query parameters. The `?` character is included (`?username=sysadmin`).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何查询参数。包括`?`字符（`?username=sysadmin`）。
+- en: '![An example URL with its component parts highlighted](assets/wacb_0301.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有其组成部分突出显示的示例URL](assets/wacb_0301.png)'
+- en: Figure 3-1\. An example URL with its component parts highlighted
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-1\. 带有其组成部分突出显示的示例URL
+- en: 'Some other parts of the `URL` include:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`URL`的其他一些部分包括：'
+- en: '`hash`'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`hash`'
+- en: If the URL contains a hash, returns the hash portion (including the hash symbol,
+    `#`). This is sometimes used for internal navigation for older SPAs. For the URL
+    *https://example.com/app#profile*, the value of `hash` would be `#profile`.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果URL包含散列标识符，则返回散列部分（包括散列符号`#`）。这有时用于较旧的SPA的内部导航。对于URL *https://example.com/app#profile*，`hash`的值将是`#profile`。
+- en: '`host`'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`host`'
+- en: Similar to `hostname`, but also includes the port number (if specified), for
+    example `localhost:8443`.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于`hostname`，但也包括端口号（如果指定），例如`localhost:8443`。
+- en: '`origin`'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`origin`'
+- en: The origin of the URL. This usually includes the protocol, hostname, and port
+    (if specified).
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: URL的来源。这通常包括协议、主机名和端口（如果指定）。
+- en: You can get the entire URL string by calling `toString` on it, or by accessing
+    its `href` property.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过调用其`toString`方法或访问其`href`属性来获取整个URL字符串。
+- en: If an invalid URL string is passed to the `URL` constructor, it throws an exception.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果将无效的URL字符串传递给`URL`构造函数，则会抛出异常。
+- en: Resolving a Relative URL
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 解析相对URL
+- en: Problem
+  id: totrans-27
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a partial or relative URL like `/api/users` that you want to resolve
+    to a full, absolute URL like *https://example.com/api/users*.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您有一个部分或相对URL，例如`/api/users`，您想要将其解析为完整的绝对URL，如*https://example.com/api/users*。
+- en: Solution
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `URL` object, passing the relative URL and the desired base URL, as
+    shown in [Example 3-1](#createRelativeUrl).
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建`URL`对象，传递相对URL和所需的基本URL，如[示例3-1](#createRelativeUrl)所示。
+- en: Example 3-1\. Creating relative URLs
+  id: totrans-31
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例3-1\. 创建相对URL
+- en: '[PRE0]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Without the second argument, the `URL` constructor would throw an error because
+    `/api/users` is not a valid URL. The second argument is the base for constructing
+    a new URL. It constructs the URL by assuming the given path is relative to the
+    base URL.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有第二个参数，`URL`构造函数会因为`/api/users`不是有效的URL而抛出错误。第二个参数是构造新URL的基础。它通过假定给定的路径相对于基本URL来构造URL。
+- en: Discussion
+  id: totrans-34
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The second argument must be a valid URL. To construct the final URL, the typical
+    rules for a valid relative URL are applied depending on the first argument.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个参数必须是有效的URL。根据第一个参数，应用有效相对URL的典型规则来构造最终URL。
+- en: 'If the first argument starts with a leading slash, the pathname of the base
+    URL is ignored and the new URL is relative to the root of the base URL:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果第一个参数以斜杠开头，则忽略基本URL的路径名，并且新URL相对于基本URL的根目录：
+- en: '[PRE1]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Otherwise, the URL is calculated relative to the base URL:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 否则，计算相对于基本URL的URL：
+- en: '[PRE2]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: If the first argument is a valid URL on its own, the base URL is ignored.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果第一个参数本身就是有效的URL，则忽略基本URL。
+- en: If the constructor’s second argument is not a string, `toString` is called on
+    it and the resulting string is used. This means you can pass other `URL` objects,
+    or even other objects that are similar to `URL`. You can even pass `window.location`
+    (a `Location` object, which has similar properties to a `URL`) to generate a new
+    URL on the current origin (see [Example 3-2](#createRelativeUrl3)).
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果构造函数的第二个参数不是字符串，则在其上调用`toString`，并使用生成的字符串。这意味着你可以传递其他类似于`URL`的`URL`对象，甚至其他类似的对象。你甚至可以传递`window.location`（一个`Location`对象，其属性类似于`URL`）以生成当前来源（参见[示例 3-2](#createRelativeUrl3)）的新URL。
+- en: Example 3-2\. Creating a relative URL on the same origin
+  id: totrans-42
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-2\. 在相同来源上创建相对URL
+- en: '[PRE3]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Removing Query Parameters From a URL
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从URL中删除查询参数
+- en: Problem
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to remove all query parameters from a URL.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望从URL中删除所有查询参数。
+- en: Solution
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `URL` object and set its `search` property to an empty string, as shown
+    in [Example 3-3](#removeQueryParams).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`URL`对象并将其`search`属性设置为空字符串，如[示例 3-3](#removeQueryParams)中所示。
+- en: Example 3-3\. Removing a URL’s query parameters
+  id: totrans-49
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-3\. 删除URL的查询参数
+- en: '[PRE4]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Discussion
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The query parameters in the URL are represented in two ways: with the `search`
+    property and the `searchParams` property.'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: URL中的查询参数以两种方式表示：使用`search`属性和`searchParams`属性。
+- en: The `search` property is a single string containing all of the query parameters
+    along with the leading `?` character. If you want to delete the entire query string,
+    you can set this to an empty string.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`search`属性是一个单一字符串，包含所有查询参数以及前导的`?`字符。如果要删除整个查询字符串，可以将其设置为空字符串。'
+- en: Note that the `search` property is set to an empty string. If you set it to
+    `null`, you’ll get the literal string `null` in the query string (see [Example 3-4](#example3-4)).
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意`search`属性被设置为空字符串。如果设置为`null`，则在查询字符串中得到字面字符串`null`（参见[示例 3-4](#example3-4)）。
+- en: Example 3-4\. Incorrectly trying to remove all query parameters
+  id: totrans-55
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-4\. 错误地尝试删除所有查询参数
+- en: '[PRE5]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The `searchParams` property is a `URLSearchParams` object. It has methods to
+    view, add, and remove query parameters. When adding query parameters, it automatically
+    handles encoding characters. If you want to remove just a single query parameter,
+    you can call `delete` on this object, as shown in [Example 3-5](#example3-5).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`searchParams`属性是一个`URLSearchParams`对象。它具有查看、添加和删除查询参数的方法。在添加查询参数时，它会自动处理编码字符。如果您只想删除一个查询参数，可以在该对象上调用`delete`，如[示例 3-5](#example3-5)所示。'
+- en: Example 3-5\. Removing a single query parameter
+  id: totrans-58
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-5\. 删除单个查询参数
+- en: '[PRE6]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Adding Query Parameters to a URL
+  id: totrans-60
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 向URL添加查询参数
+- en: Problem
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have an existing URL that may already have some query parameters in it,
+    and you want to add additional query parameters.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您有一个现有的URL，它可能已经包含一些查询参数，并且您想要添加额外的查询参数。
+- en: Solution
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `URLSearchParams` object, accessible via the `searchParams` property,
+    to add the additional parameters (see [Example 3-6](#addQueryParams)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`URLSearchParams`对象，可通过`searchParams`属性访问，以添加额外的参数（参见[示例 3-6](#addQueryParams)）。
+- en: Example 3-6\. Adding additional query parameters
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-6\. 添加额外的查询参数
+- en: '[PRE7]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Discussion
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This URL already has a query parameter (`objectType=user`). The code uses the
+    `searchParams` property of the parsed URL to append a few more query parameters.
+    Two `userRole` parameters are added. When you use `append`, it adds new values
+    and keeps existing values. To replace all parameters of that name with the new
+    value, you can use `set` instead.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此URL已经有一个查询参数（`objectType=user`）。代码使用解析后的URL的`searchParams`属性来追加更多查询参数。添加了两个`userRole`参数。使用`append`时，会添加新值并保留现有值。要替换所有同名参数的值为新值，可以使用`set`。
+- en: 'With the new parameters, the full URL now is:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 带有新参数的完整URL现在是：
+- en: '[PRE8]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: If you call `append` with a parameter name but no value, you’ll get an exception,
+    as shown in [Example 3-7](#example3-7).
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果调用`append`时参数名存在但没有值，则会引发异常，如[示例 3-7](#example3-7)所示。
+- en: Example 3-7\. Attempting to call `append` without a value
+  id: totrans-72
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-7\. 尝试调用`append`而没有提供值
+- en: '[PRE9]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: This method gracefully handles other argument types. If it doesn’t receive a
+    string value, it converts the value to a string (see [Example 3-8](#example3-8)).
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该方法优雅地处理其他参数类型。如果未收到字符串值，则将该值转换为字符串（参见[示例 3-8](#example3-8)）。
+- en: Example 3-8\. Appending nonstring parameters
+  id: totrans-75
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-8\. 添加非字符串参数
+- en: '[PRE10]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Using `URLSearchParams` to add query parameters automatically handles any potential
+    encoding issues. If you’re adding a parameter with a reserved character (as defined
+    in RFC 3986) such as `&` or `?`, `URLSearchParams` automatically encodes these
+    to ensure a valid URL. It uses *percent encoding*, which adds a percent sign followed
+    by the hexadecimal digits representing that character. For example, `&` becomes
+    `%26` because `0x26` is the hex code for an ampersand.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`URLSearchParams`自动添加查询参数会处理任何潜在的编码问题。如果要添加具有保留字符（如RFC 3986定义的）的参数，例如`&`或`?`，`URLSearchParams`会自动对这些字符进行编码，以确保有效的URL。它使用*百分比编码*，即添加一个百分号后跟表示该字符的十六进制数字。例如，`&`变成`%26`，因为`0x26`是和号的十六进制代码。
+- en: 'You can see this encoding in action by appending a query parameter containing
+    some reserved characters together, as shown in [Example 3-9](#example3-9):'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过将包含一些保留字符的查询参数追加在一起来查看此编码的实际效果，如[示例 3-9](#example3-9)所示：
+- en: Example 3-9\. Encoding reserved characters in a query parameter
+  id: totrans-79
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-9\. 在查询参数中编码保留字符
+- en: '[PRE11]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'The resulting URL becomes:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终的URL变为：
+- en: '[PRE12]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: The URL contains `%26` in place of `&`, and `%3F` in place of `?`. These characters
+    have special meaning in a URL. `?` indicates the beginning of the query string,
+    and `&` is a separator between parameters.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: URL中包含`%26`代替`&`，以及`%3F`代替`?`。这些字符在URL中具有特殊含义。`?`表示查询字符串的开始，`&`是参数之间的分隔符。
+- en: As [Example 3-6](#addQueryParams) shows, calling `append` multiple times with
+    the same key adds a new query parameter with the given key. When you call `.append('userRole',
+    'user')`, it adds the parameter `userRole=user` and keeps the previous `userRole=admin`.
+    `URLSearchParams` also has a `set` method. `set` adds query parameters as well,
+    but with different behavior. `set` replaces any existing parameters under the
+    given key with the new one (see [Example 3-10](#setQueryParams)). If you constructed
+    the same URL again using `set`, the result would be different.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如示例 3-6所示，多次使用相同键调用`append`会添加具有给定键的新查询参数。当您调用`.append('userRole', 'user')`时，它会添加参数`userRole=user`并保留先前的`userRole=admin`。`URLSearchParams`还有一个`set`方法。`set`也会添加查询参数，但行为不同。`set`会用新参数替换给定键下的所有现有参数（参见[示例 3-10](#setQueryParams)）。如果您再次使用`set`构造相同的URL，则结果将不同。
+- en: Example 3-10\. Adding query parameters with `set`
+  id: totrans-85
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-10\. 使用`set`添加查询参数
+- en: '[PRE13]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'When you use `set` instead of `append`, the second `userRole` parameter overwrites
+    the first one, and the resulting URL is:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`set`而不是`append`时，第二个`userRole`参数将覆盖第一个，最终的URL为：
+- en: '[PRE14]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Note that there is only one `userRole` parameter—the last one that was added.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意只有一个`userRole`参数——最后添加的那个。
+- en: Reading Query Parameters
+  id: totrans-90
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 读取查询参数
+- en: Problem
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to parse and list the query parameters in a URL.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想解析并列出URL中的查询参数。
+- en: Solution
+  id: totrans-93
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `forEach` method of `URLSearchParams` to list the keys and values (see
+    [Example 3-11](#readQueryParams)).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`URLSearchParams`的`forEach`方法列出键和值（参见[示例 3-11](#readQueryParams)）。
+- en: Example 3-11\. Reading query parameters
+  id: totrans-95
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-11\. 读取查询参数
+- en: '[PRE15]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Discussion
+  id: totrans-97
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When listing the query parameters on a URL, any percent-encoded reserved characters
+    are decoded back to their original values (see [Example 3-12](#example3-12)).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当列出URL上的查询参数时，任何百分号编码的保留字符都会解码回它们的原始值（参见[示例 3-12](#example3-12)）。
+- en: Example 3-12\. Using the `getQueryParameters` function
+  id: totrans-99
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-12\. 使用`getQueryParameters`函数
+- en: '[PRE16]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[![1](assets/1.png)](#co_urls_and_routing_CO1-1)'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_urls_and_routing_CO1-1)'
+- en: The `name` parameter contains a percent-encoded ampersand character (`%26`).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`name` 参数包含一个百分号编码的和字符 (`%26`)。'
+- en: 'This code prints the parameter `name=luke%26ben` with the original unencoded
+    value:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码打印具有原始未编码值的参数 `name=luke%26ben`：
+- en: '[PRE17]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '`forEach` iterates over each unique key/value pair combination. Even if the
+    URL has multiple query parameters with the same key, this prints each unique key/value
+    pair separately.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`forEach` 遍历每个唯一的键/值对组合。即使URL具有多个具有相同键的查询参数，这也会分别打印每个唯一的键/值对。'
+- en: Creating a Simple Client-Side Router
+  id: totrans-106
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个简单的客户端路由器
+- en: Problem
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a single-page application and want to add client-side routing. This
+    lets the user navigate between different URLs without making a new network request
+    and replacing the content on the client side.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您有一个单页应用程序，并希望添加客户端路由。这使用户能够在不进行新网络请求的情况下在不同的URL之间导航，并在客户端上替换内容。
+- en: Solution
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `history.pushState` and the `popstate` event to implement a simple router.
+    This simple router renders the contents of a template when the URL matches a known
+    route (see [Example 3-13](#simpleRouter)).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `history.pushState` 和 `popstate` 事件来实现一个简单的路由器。这个简单的路由器在URL匹配到已知路由时呈现模板的内容（参见[示例 3-13](#simpleRouter)）。
+- en: Example 3-13\. A simple client-side router
+  id: totrans-111
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-13\. 一个简单的客户端路由器
+- en: '[PRE18]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'With this router in place, you can add links:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个路由器，您可以添加链接：
+- en: '[PRE19]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: When you click these links, the browser attempts to navigate to a new page,
+    making a request to the server. This likely results in a 404 error, which is not
+    what you want. To use the client-side router, you need to intercept the click
+    events and integrate with the router from [Example 3-13](#simpleRouter), as shown
+    in [Example 3-14](#routeListeners).
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您单击这些链接时，浏览器会尝试导航到新页面，向服务器发出请求。这可能导致404错误，这并不是您想要的。要使用客户端路由器，您需要拦截点击事件，并与来自[示例 3-13](#simpleRouter)的路由器集成，如[示例 3-14](#routeListeners)所示。
+- en: Example 3-14\. Adding click handlers to route links
+  id: totrans-116
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-14\. 添加点击处理程序以路由链接
+- en: '[PRE20]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: When you click one of these links, the `preventDefault` call stops the browser’s
+    default behavior (performing a full page navigation). Instead, it takes the `href`
+    attribute and passes it to the client-side router. If it finds a matching route,
+    it renders the content for that route.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您单击这些链接之一时，`preventDefault` 调用会阻止浏览器的默认行为（执行完整的页面导航）。相反，它获取 `href` 属性并将其传递给客户端路由器。如果找到匹配的路由，它会呈现该路由的内容。
+- en: To make this a full solution, there is one more necessary piece. If you click
+    one of these client-side routes, then click the browser’s Back button, nothing
+    happens. This is because the page isn’t actually navigating, but just popping
+    the previous state from the router. To handle this scenario, you need to also
+    listen for the browser’s `popstate` event and render the correct content, as shown
+    in [Example 3-15](#popState).
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使其成为一个完整的解决方案，还有一个必要的部分。如果您单击其中一个客户端路由，然后单击浏览器的后退按钮，什么也不会发生。这是因为页面实际上没有导航，而只是从路由器中弹出先前的状态。为了处理这种情况，您还需要监听浏览器的
+    `popstate` 事件，并渲染正确的内容，如[示例 3-15](#popState)所示。
+- en: Example 3-15\. Listening for the popstate event
+  id: totrans-120
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-15\. 监听 `popstate` 事件
+- en: '[PRE21]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: When the user clicks the Back button, the browser fires the `popstate` event.
+    This changes the page URL back, and you just need to look up the content for the
+    route matching the URL. In this case, you don’t want to call `pushState` because
+    that adds a new history state, which probably isn’t what you want since you just
+    popped an old history state off of the stack.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户单击后退按钮时，浏览器会触发 `popstate` 事件。这会将页面URL变回，并且您只需要查找匹配URL的路由的内容。在这种情况下，您不希望调用
+    `pushState`，因为这会添加一个新的历史状态，这可能并不是您想要的，因为您刚刚从堆栈中弹出了旧的历史状态。
+- en: Discussion
+  id: totrans-123
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This client-side router is working, but there’s one issue. If you click the
+    About link, then click the Refresh button, the browser makes a new network request,
+    which probably results in a 404 error. To fix this last problem, the server needs
+    to be configured to return the main HTML and JavaScript content regardless of
+    the URL’s pathname. This loads the router code, which is called with the value
+    of `window.location.pathname`. If everything is configured right, the client-side
+    route handler executes and renders the correct content.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此客户端路由器正在运行，但存在一个问题。如果您单击“关于”链接，然后单击刷新按钮，浏览器将发起新的网络请求，这可能导致404错误。要解决此问题，服务器需要配置为返回主HTML和JavaScript内容，而不管URL的路径名是什么。这将加载路由器代码，并使用`window.location.pathname`的值调用。如果一切配置正确，客户端路由处理程序将执行并呈现正确的内容。
+- en: When using client-side routing, navigating between pages can be faster since
+    there is no round trip to the server. It makes navigation smoother and more responsive.
+    There are disadvantages too. To support the quick page transition, you often have
+    to load a lot of extra JavaScript up front, so the initial page load may be slower.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用客户端路由时，页面之间的导航可能更快，因为不需要与服务器进行往返。这使得导航更加流畅和响应更快。当然也有缺点。为了支持快速页面过渡，通常需要预先加载大量额外的JavaScript，因此初始页面加载可能会较慢。
+- en: Matching URLs to Patterns
+  id: totrans-126
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 匹配URL与模式
+- en: Problem
+  id: totrans-127
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to define a pattern of valid URLs that you can match URLs against.
+    You may also want to extract part of a URL’s path. For example, given the URL
+    *https://example.com/api/users/123/profile*, you want the user ID (`123`).
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望定义一组有效URL的模式，可以将URL与之匹配。您可能还希望提取URL路径的一部分。例如，给定URL *https://example.com/api/users/123/profile*，您希望获取用户ID（`123`）。
+- en: Solution
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the URL Pattern API to define the expected pattern and extract the part
+    you need.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用URL模式API定义预期模式并提取所需部分。
+- en: Note
+  id: totrans-131
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/Eb-k2)
+    for the latest compatibility data.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该API可能尚未得到所有浏览器的支持。请参阅[CanIUse](https://oreil.ly/Eb-k2)以获取最新的兼容性数据。
+- en: With this API, you can create a `URLPattern` object that defines a pattern that
+    you can use to match URLs (see [Example 3-16](#urlPattern)). It’s created with
+    a string defining the pattern to match. The string can contain named groups that,
+    when matching against a URL string, are extracted. You can access the extracted
+    values by their index. These groups are similar to capturing groups in a regular
+    expression.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用此API，您可以创建一个`URLPattern`对象，该对象定义了一个可以用来匹配URL的模式（参见[Example 3-16](#urlPattern)）。它是使用定义要匹配的模式的字符串创建的。该字符串可以包含命名组，当与URL字符串匹配时，将会提取这些组。您可以按索引访问提取的值。这些组类似于正则表达式中的捕获组。
+- en: Example 3-16\. Creating a `URLPattern`
+  id: totrans-134
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 3-16\. 创建`URLPattern`
+- en: '[PRE22]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '[Example 3-16](#urlPattern) shows a simple URL pattern with a single named
+    group `userId`. The group name is preceded by a colon character. You can use this
+    pattern object to match URLs and, if they match, extract the user ID from them.
+    [Example 3-17](#urlMatching) explores some different URLs and how to test them
+    against `profilePattern` using the `test` method.'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Example 3-16](#urlPattern)展示了一个带有单个命名组`userId`的简单URL模式。该组名称之前有一个冒号字符。您可以使用此模式对象匹配URL，并从中提取用户ID。[Example 3-17](#urlMatching)探讨了一些不同的URL及其如何使用`profilePattern`的`test`方法进行测试。'
+- en: Example 3-17\. Testing URLs against a pattern
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 3-17\. 测试模式对应的URL
+- en: '[PRE23]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: The `profilePattern` specifies an exact pathname match, which is why the last
+    example in [Example 3-17](#urlMatching) did not work. You can define a less strict
+    version that uses a wildcard character (`*`) so it needn’t be exact. With this
+    new pattern, you can match on partial pathnames.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`profilePattern`指定了精确的路径名匹配，这就是为什么[Example 3-17](#urlMatching)中的最后一个示例未能工作的原因。您可以定义一个不那么严格的版本，使用通配符（`*`）来匹配部分路径名。'
+- en: Example 3-18\. Using a wildcard in the pattern
+  id: totrans-140
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 3-18\. 使用模式中的通配符
+- en: '[PRE24]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: You can use the pattern’s `exec` method to get more data about the match. If
+    the pattern matches the URL, `exec` returns an object containing any matches to
+    parts of the URL. Each nested object has an `input` property indicating which
+    part of the URL matched, and a `groups` property that has any named groups defined
+    in the pattern.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用模式的`exec`方法获取有关匹配的更多数据。如果模式与URL匹配，`exec`将返回一个包含URL各部分匹配的对象。每个嵌套对象都有一个`input`属性，指示URL的哪个部分匹配，并且有一个`groups`属性，其中包含模式中定义的任何命名组。
+- en: You can use `exec` to extract the user ID from matching URLs in [Example 3-19](#urlExec).
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用`exec`从匹配的URL中提取用户ID，详见[Example 3-19](#urlExec)。
+- en: Example 3-19\. Extracting the user ID
+  id: totrans-144
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-19\. 提取用户 ID
+- en: '[PRE25]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Discussion
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: While it doesn’t have full browser support yet, this is a very flexible API.
+    You can define patterns for any parts of the URL, matching inputs and extracting
+    groups.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然它目前尚未获得所有浏览器的完全支持，但这是一个非常灵活的 API。您可以为 URL 的任何部分定义模式，匹配输入并提取组。

@@ -1,0 +1,629 @@
+- en: Chapter 18\. Media
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 18 章\. 媒体
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 介绍
+- en: Modern browsers have rich APIs for working with video and audio streams. The
+    WebRTC API supports creating these streams from devices such as cameras.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代浏览器提供了丰富的 API，用于处理视频和音频流。WebRTC API 支持从摄像头等设备创建这些流。
+- en: A video stream can be played live inside of a `<video>` element, and from there
+    you can capture a frame of the video to save as an image or upload to an API.
+    A `<video>` element can also be used to play back video that was recorded from
+    a stream.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以在 `<video>` 元素中实时播放视频流，并从中捕获视频帧以保存为图像或上传到 API。`<video>` 元素还可用于播放从流中录制的视频。
+- en: Before these APIs were available, you would have needed browser plug-ins to
+    access the user’s camera. Today, you can use the Media Capture and Streams API
+    to start reading data from the camera and microphone with just a small amount
+    of code.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这些 API 可用之前，您需要浏览器插件来访问用户的摄像头。如今，您可以使用媒体捕获和流 API 只需少量代码即可从摄像头和麦克风开始读取数据。
+- en: Recording the Screen
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 录制屏幕
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to capture a video of the user’s screen.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要捕获用户屏幕的视频。
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the Screen Capture API to capture a video of the screen, then set it as
+    the source of a `<video>` element (see [Example 18-1](#code_screenCapture)).
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用屏幕捕获 API 捕获屏幕视频，然后将其设置为 `<video>` 元素的源（参见 [示例 18-1](#code_screenCapture)）。
+- en: Example 18-1\. Capturing a video of the screen
+  id: totrans-10
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-1\. 捕获屏幕的视频
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Note
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The screen contents are not streamed live to the `<video>` element. Rather,
+    the screen share is captured into memory. Once you’ve finished capturing the screen,
+    the recorded video will play in the `<video>` element.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 屏幕内容并不会实时流到 `<video>` 元素中。相反，屏幕共享被捕获到内存中。一旦完成屏幕捕获，录制的视频将在 `<video>` 元素中播放。
+- en: There’s a lot going on here. First, call `navigator.mediaDevices.getDisplayMedia()`
+    to initiate a screen capture. Depending on the browser and operating system, you
+    will get some sort of prompt about screen recording (see [Figure 18-1](#img_screenRecording)).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有很多事情要做。首先，调用 `navigator.mediaDevices.getDisplayMedia()` 来启动屏幕捕获。根据浏览器和操作系统的不同，您会看到有关屏幕录制的提示（见
+    [图 18-1](#img_screenRecording)）。
+- en: '![Screen recording prompt from Chrome on macOS](assets/wacb_1801.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![来自 macOS Chrome 的屏幕录制提示](assets/wacb_1801.png)'
+- en: Figure 18-1\. Screen recording prompt from Chrome on macOS
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 18-1\. 来自 macOS Chrome 的屏幕录制提示
+- en: This function returns a `Promise` that resolves to a `MediaStream` of the user’s
+    screen. Once this `Promise` resolves, the screen is being recorded, but the data
+    isn’t going anywhere yet.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此函数返回一个 `Promise`，解析为用户屏幕的 `MediaStream`。一旦此 `Promise` 解析，屏幕即开始录制，但数据尚未传送到任何地方。
+- en: To stop recording, click the browser-provided button to stop sharing or call
+    `mediaRecorder.stop()`. This will trigger the `dataavailable` event.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要停止录制，请单击由浏览器提供的停止共享按钮或调用 `mediaRecorder.stop()`。这将触发 `dataavailable` 事件。
+- en: Next, the event handler creates a `Blob` containing the captured video data
+    and creates an object URL. You can then set the video’s `src` attribute to this
+    object URL.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，事件处理程序创建一个包含捕获视频数据的 `Blob` 并创建一个对象 URL。然后，您可以将视频的 `src` 属性设置为此对象 URL。
+- en: Once this is done, the screen recording will start playing in the browser.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成此步骤后，屏幕录制将开始在浏览器中播放。
+- en: Discussion
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This example uses the `video/webm` MIME type, which has good browser support.
+    WebM is an open audio and video file format that supports multiple codecs.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例使用具有良好浏览器支持的 `video/webm` MIME 类型。WebM 是一种开放的音频和视频文件格式，支持多种编解码器。
+- en: If the user does not give permission for screen recording, the `Promise` returned
+    by `getDisplayMedia` will be rejected with an error.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果用户未授权屏幕录制，`getDisplayMedia` 返回的 `Promise` 将被拒绝并带有错误。
+- en: This example shows how to play back the screen recording in a `<video>` element,
+    but there are other things you can do once you have the `Blob` and object URL.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例展示了如何在 `<video>` 元素中播放屏幕录制内容，但是一旦获取了 `Blob` 和对象 URL，您还可以做其他事情。
+- en: For example, you could send the `Blob` to a server using the Fetch API (see
+    [Example 18-2](#example18-2)).
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，您可以使用 Fetch API 将 `Blob` 发送到服务器（参见 [示例 18-2](#example18-2)）。
+- en: Example 18-2\. Uploading the captured screen recording
+  id: totrans-26
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-2\. 上传捕获的屏幕录制
+- en: '[PRE1]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: You could also trigger the browser to download the captured video (see [Example 18-3](#example18-3)).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以触发浏览器下载捕获的视频（参见 [示例 18-3](#example18-3)）。
+- en: Example 18-3\. Triggering a download with a hidden link
+  id: totrans-29
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-3\. 使用隐藏链接触发下载
+- en: '[PRE2]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Capturing an Image from the User’s Camera
+  id: totrans-31
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从用户摄像头捕获图像
+- en: Problem
+  id: totrans-32
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to activate the user’s camera and take a photo.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望激活用户的摄像头并拍照。
+- en: Solution
+  id: totrans-34
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use `navigator.mediaDevices.getUserMedia` to get video from the camera.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `navigator.mediaDevices.getUserMedia` 获取来自摄像头的视频。
+- en: First, you’ll need to create a few elements, as shown in [Example 18-4](#example18-4).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，您需要创建几个元素，如[示例 18-4](#example18-4)所示。
+- en: Example 18-4\. The markup for capturing an image from the camera
+  id: totrans-37
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-4\. 从摄像头捕获图像的标记
+- en: '[PRE3]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: The canvas is hidden because it’s an intermediate step before producing an image.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 画布被隐藏，因为它是生成图像之前的中间步骤。
+- en: 'The general approach is as follows:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体方法如下：
+- en: Send the video stream to the `<video>` element to show a live preview from the
+    camera.
+  id: totrans-41
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将视频流发送到 `<video>` 元素，以显示来自摄像头的实时预览。
+- en: When you want to capture a photo, draw the current video frame on the canvas.
+  id: totrans-42
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 当您想要拍摄照片时，在画布上绘制当前视频帧。
+- en: Create a data URL from the canvas to generate a JPEG image, and set it in the
+    `<img>` element.
+  id: totrans-43
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 从画布创建数据URL以生成JPEG图像，并在 `<img>` 元素中设置它。
+- en: First, open the video stream and attach it to the `<video>` element (see [Example 18-5](#example18-5)).
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，打开视频流并将其附加到 `<video>` 元素上（见[示例 18-5](#example18-5)）。
+- en: Example 18-5\. Getting the video stream
+  id: totrans-45
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-5\. 获取视频流
+- en: '[PRE4]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Later, capture the image in response to a button click or other event (see [Example 18-6](#example18-6)).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 稍后，通过按钮点击或其他事件捕获图像（见[示例 18-6](#example18-6)）。
+- en: Example 18-6\. Capturing the image
+  id: totrans-48
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-6\. 捕获图像
+- en: '[PRE5]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Discussion
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: As you might expect, reading from the camera raises privacy concerns. As such,
+    opening the user’s camera for the first time will trigger a permission request
+    in the browser that the user must accept to grant access. If this request is denied,
+    the `Promise` returned by `navigator.mediaDevices.getUserMedia` will be rejected
+    with an error.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您可能期望的那样，从摄像头读取会引发隐私问题。因此，第一次为用户打开相机将在浏览器中触发权限请求，用户必须接受以授予访问权限。如果此请求被拒绝，`navigator.mediaDevices.getUserMedia`
+    返回的 `Promise` 将被拒绝并伴有错误。
+- en: Capturing a Video from the User’s Camera
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从用户摄像头捕获视频
+- en: Problem
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to record a video from the user’s camera and play it back in the browser.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望从用户的摄像头录制视频并在浏览器中播放它。
+- en: Solution
+  id: totrans-55
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'This solution has several steps:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此解决方案包含以下几个步骤：
+- en: Use `getUserMedia` to open a stream from the camera.
+  id: totrans-57
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用 `getUserMedia` 打开来自摄像头的流。
+- en: Use a `<video>` element to show a preview of the video.
+  id: totrans-58
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用 `<video>` 元素显示视频预览。
+- en: Use a `MediaRecorder` to record the video.
+  id: totrans-59
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用 `MediaRecorder` 录制视频。
+- en: Play back the recorded video in the `<video>` element.
+  id: totrans-60
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在 `<video>` 元素中播放已录制的视频。
+- en: For this recipe, you need the `<video>` element and buttons to start and stop
+    recording (see [Example 18-7](#example18-7)).
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此示例，您需要 `<video>` 元素和开始/停止录制的按钮（见[示例 18-7](#example18-7)）。
+- en: Example 18-7\. Setting up the video element
+  id: totrans-62
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-7\. 设置视频元素
+- en: '[PRE6]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Next, open the video stream and set the `<video>` element to preview it (see
+    [Example 18-8](#example18-8)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，打开视频流并设置 `<video>` 元素来预览它（见[示例 18-8](#example18-8)）。
+- en: Example 18-8\. Opening the audio and video stream
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-8\. 打开音频和视频流
+- en: '[PRE7]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Once the stream is open, the next step is to set up the `MediaRecorder` (see
+    [Example 18-9](#example18-9)).
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦流打开，下一步是设置 `MediaRecorder`（见[示例 18-9](#example18-9)）。
+- en: Example 18-9\. Setting up the `MediaRecorder`
+  id: totrans-68
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-9\. 设置 `MediaRecorder`
+- en: '[PRE8]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The last step is to wire up the buttons to start and stop the `MediaRecorder`
+    (see [Example 18-10](#example18-10)).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一步是连接按钮以启动和停止 `MediaRecorder`（见[示例 18-10](#example18-10)）。
+- en: Example 18-10\. Adding button event handlers
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-10\. 添加按钮事件处理程序
+- en: '[PRE9]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Discussion
+  id: totrans-73
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: You might have noticed the `video` element initially had the `muted` attribute
+    set on it. The media stream you open will have both video and audio. You want
+    to preview the video, but you probably don’t want to preview the audio—this would
+    cause whatever audio is recorded to immediately play back on the speakers, which
+    could affect the recording or even cause microphone feedback. To prevent this,
+    you can set the `muted` attribute on the `<video>` element.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能已经注意到，初始时 `video` 元素上设置了 `muted` 属性。您打开的媒体流包含视频和音频。您想要预览视频，但可能不希望预览音频 ——
+    这会导致录制的任何音频立即在扬声器上播放回来，可能会影响录制或甚至导致麦克风反馈。为防止这种情况发生，您可以在 `<video>` 元素上设置 `muted`
+    属性。
+- en: Later, when it’s time to play back what you recorded, you are clearing the `muted`
+    flag so that the recorded audio will play as well.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 稍后，当播放录制内容时，您需要清除 `muted` 标志，以使录制的音频也能播放。
+- en: Determining the System Media Capabilities
+  id: totrans-76
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 确定系统媒体能力
+- en: Problem
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to know if a particular media type is supported by the browser.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想知道特定的媒体类型是否被浏览器支持。
+- en: Solution
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the Media Capabilities API to query the browser for the given media type.
+    The result will tell you if that media type is supported or not (see [Example 18-11](#code_checkMediaCapabilities)).
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用媒体能力API来查询浏览器是否支持给定的媒体类型。结果将告诉你该媒体类型是否被支持（参见[示例 18-11](#code_checkMediaCapabilities)）。
+- en: Example 18-11\. Checking media capabilities
+  id: totrans-81
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-11\. 检查媒体能力
+- en: '[PRE10]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Discussion
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: '[Example 18-11](#code_checkMediaCapabilities) shows some examples of checking
+    for audio codec support. The Media Capabilities API also lets you check for specific
+    video format support. You can query not only by codec, but also by other attributes
+    such as frame rate, bitrate, width, and height (see [Example 18-12](#example18-12)).'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 18-11](#code_checkMediaCapabilities)展示了一些检查音频编解码器支持的示例。媒体能力API还允许你检查特定视频格式的支持。你不仅可以按编解码器查询，还可以按帧率、比特率、宽度和高度等其他属性查询（参见[示例
+    18-12](#example18-12)）。'
+- en: Example 18-12\. Checking for a supported video format
+  id: totrans-85
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-12\. 检查支持的视频格式
+- en: '[PRE11]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Applying Video Filters
+  id: totrans-87
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 应用视频滤镜
+- en: Problem
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to apply a filter effect to a video stream.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想给视频流应用一个滤镜效果。
+- en: Solution
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Render the video stream to a `<canvas>`, and apply a CSS filter to the canvas.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将视频流渲染到一个`<canvas>`中，并对canvas应用CSS滤镜。
+- en: You’ll set the video stream as the source of a `<video>` element, as in [“Capturing
+    an Image from the User’s Camera”](#recipe_captureVideo). However, in this case
+    you’ll hide the `<video>` element as it’s just an intermediate step.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将视频流设置为`<video>`元素的源，如[“从用户摄像头捕获图像”](#recipe_captureVideo)。然而，在这种情况下，你会隐藏`<video>`元素，因为它只是一个中间步骤。
+- en: Then, based on your desired frame rate, render each frame of the video to a
+    `<canvas>` element. From there, you can apply CSS filters.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，根据所需的帧率，将视频的每一帧渲染到一个`<canvas>`元素中。从那里，你可以应用CSS滤镜。
+- en: First, the markup (see [Example 18-13](#example18-13)).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，标记（参见[示例 18-13](#example18-13)）。
+- en: Example 18-13\. Markup for the video filter example
+  id: totrans-95
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-13\. 视频滤镜示例的标记
+- en: '[PRE12]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Then, open the media stream and set it in the `<video>` element (see [Example 18-14](#example18-14)).
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，打开媒体流并将其设置在`<video>`元素中（参见[示例 18-14](#example18-14)）。
+- en: Example 18-14\. Setting up the video stream
+  id: totrans-98
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-14\. 设置视频流
+- en: '[PRE13]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Now, you can apply a CSS filter to the `<canvas>` element (see [Example 18-15](#example18-15)).
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，你可以向`<canvas>`元素应用CSS滤镜（参见[示例 18-15](#example18-15)）。
+- en: Example 18-15\. Applying a filter
+  id: totrans-101
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 18-15\. 应用滤镜
+- en: '[PRE14]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Discussion
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Every 0.03 seconds, the current frame of the video will be drawn to the canvas.
+    This is effectively a preview of the media stream, using the `<video>` element
+    as an intermediate. This is because there’s currently no way to “draw” a video
+    from a media stream directly to a `<canvas>` element.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每0.03秒，视频的当前帧将被绘制到canvas上。这实际上是媒体流的预览，使用`<video>`元素作为中间件。这是因为目前还没有直接将媒体流“绘制”到`<canvas>`元素的方法。
+- en: In addition to setting the filters with CSS, you can also set them using the
+    `filter` property of the canvas 2D context.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了使用CSS设置滤镜之外，你还可以使用canvas 2D上下文的`filter`属性来设置它们。

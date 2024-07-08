@@ -1,0 +1,858 @@
+- en: Chapter 10\. Working with Files
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 10 章。文件处理
+- en: Introduction
+  id: totrans-1
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 引言
+- en: Reading and writing files are part of many applications. In the past, you couldn’t
+    really work with local files within the browser. To read data, you’d upload a
+    file to a backend server, which would process it and return data to the browser.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 读写文件是许多应用程序的一部分。过去，无法在浏览器内直接处理本地文件。要读取数据，您需要将文件上传到后端服务器，服务器处理后返回数据给浏览器。
+- en: To write data, the server would send a downloadable file. Without browser plug-ins,
+    there wasn’t a way to work directly with files.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要写入数据，服务器将发送可下载的文件。没有浏览器插件，无法直接处理文件。
+- en: Today, browsers have first-class support for reading and writing files. The
+    `file` input type opens a file chooser and provides data about the selected file.
+    You can also limit the supported files to specific extensions or MIME types. From
+    there, the File API can read the contents of the file into memory.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如今，浏览器对于读写文件有了一流的支持。`file` 输入类型打开文件选择器并提供有关所选文件的数据。您还可以限制支持的文件类型为特定扩展名或 MIME
+    类型。从这里，File API 可以将文件内容读取到内存中。
+- en: Taking it a step further, the File System API enables your JavaScript code to
+    interact directly with the local filesystem, without needing a file input to select
+    a file first (though, depending on settings, the user may need to grant permission!).
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更进一步，文件系统 API 允许 JavaScript 代码直接与本地文件系统交互，无需首先选择文件输入（尽管根据设置，用户可能需要授予权限！）。
+- en: You can use these APIs to create text editors, image viewers, audio or video
+    players, and more.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用这些 API 创建文本编辑器、图像查看器、音频或视频播放器等工具。
+- en: Loading Text from a File
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从文件加载文本
+- en: Problem
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to load some text data from the user’s local filesystem.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想从用户的本地文件系统加载一些文本数据。
+- en: Solution
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use an `<input type="file">` to select the file (see [Example 10-1](#example10-1)).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `<input type="file">` 选择文件（见 [Example 10-1](#example10-1)）。
+- en: Example 10-1\. A file input
+  id: totrans-12
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 10-1\. 文件输入
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: When you click on the file input, the browser will show a dialog where you can
+    browse files and folders on the local system. The exact dialog shown will depend
+    on the browser and operating system version. Navigate to, and select, the desired
+    file. One you have a selected file, use a `FileReader` as shown in [Example 10-2](#code_loadPlainText)
+    to read the file’s text content.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您点击文件输入时，浏览器将显示一个对话框，您可以在其中浏览本地系统中的文件和文件夹。显示的确切对话框将取决于浏览器和操作系统版本。导航到并选择所需的文件。选择文件后，像
+    [Example 10-2](#code_loadPlainText) 中显示的那样使用 `FileReader` 读取文件的文本内容。
+- en: Example 10-2\. Loading plain text from a file
+  id: totrans-15
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 10-2\. 从文件加载纯文本
+- en: '[PRE1]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Discussion
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: A `FileReader` is an object that reads files asynchronously. It can read a file’s
+    content in several different ways, depending on the type of file. [Example 10-2](#code_loadPlainText)
+    uses the `readAsText` method, which retrieves the file content as plain text.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FileReader` 是一个异步读取文件内容的对象。它可以根据文件类型以不同的方式读取文件内容。[Example 10-2](#code_loadPlainText)
+    使用 `readAsText` 方法，以纯文本形式检索文件内容。'
+- en: If you have a binary file, such as a ZIP archive or image, you can use `readAsBinaryString`.
+    An image can be read as a data URL with Base64-encoded image data using `readAsDataURL`,
+    which you’ll see in [“Loading an Image as a Data URL”](#recipe_loadImage).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您有一个二进制文件，比如 ZIP 归档或图像文件，可以使用 `readAsBinaryString`。图像可以使用 `readAsDataURL`
+    读取为包含 Base64 编码图像数据的数据 URL，您将在 [“加载图像作为数据 URL”](#recipe_loadImage) 中看到。
+- en: This API is event based, so the `readFileContent` function takes a callback
+    function that is called with the content when it’s ready.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 API 基于事件，因此 `readFileContent` 函数接受一个回调函数，在内容准备好时调用该函数。
+- en: You could also wrap this with a `Promise` to make a `Promise`-based API, as
+    shown in [Example 10-3](#example10-3).
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以将其包装为 `Promise` 以创建基于 `Promise` 的 API，就像 [Example 10-3](#example10-3) 中显示的那样。
+- en: Example 10-3\. Promisified `readFileContent` function
+  id: totrans-22
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 10-3\. 使用 Promise 包装的 `readFileContent` 函数
+- en: '[PRE2]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Once you have the text content, you can add it to the page in several ways.
+    You could set it as the `textContent` of a DOM node, or you could even load it
+    into a `textarea` to make the content editable.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦获取文本内容，您可以通过几种方式将其添加到页面中。您可以将其设置为 DOM 节点的 `textContent`，甚至可以将其加载到 `textarea`
+    中以进行内容编辑。
+- en: Loading an Image as a Data URL
+  id: totrans-25
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 加载图像作为数据 URL
+- en: Problem
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to let the user select a local image file, then display that image
+    on the page.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望用户选择一个本地图像文件，然后在页面上显示该图像。
+- en: Solution
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `readAsDataURL` method of `FileReader` to get a Base64-encoded data
+    URL, then set that as the `src` attribute of an `img` tag (see Examples [10-4](#example10-4)
+    and [10-5](#example10-5)).
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`FileReader`的`readAsDataURL`方法获取Base64编码的数据URL，然后将其设置为`img`标签的`src`属性（参见示例[10-4](#example10-4)和[10-5](#example10-5)）。
+- en: Example 10-4\. File input and image placeholder
+  id: totrans-30
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-4\. 文件输入和图像占位符
+- en: '[PRE3]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: '[![1](assets/1.png)](#co_working_with_files_CO1-1)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_working_with_files_CO1-1)'
+- en: Restricts the file chooser to only allow images to be selected. A wildcard pattern
+    is used here, but you can also specify an exact MIME type such as `image/png`.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 限制文件选择器仅允许选择图像。这里使用通配符模式，但您也可以指定确切的MIME类型，如`image/png`。
+- en: Example 10-5\. Loading an image into the page
+  id: totrans-34
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-5\. 将图像加载到页面中
+- en: '[PRE4]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Discussion
+  id: totrans-36
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'A data URL has the `data` URL scheme. It specifies the data’s MIME type, then
+    the image data is included in Base64-encoded format:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据URL具有`data` URL方案。它指定数据的MIME类型，然后图像数据以Base64编码格式包含在内：
+- en: '[PRE5]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: When the `FileReader` returns the image encoded as a data URL, the data URL
+    is set as the image element’s `src` attribute. This renders the image in the page.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`FileReader`返回以数据URL编码的图像时，将该数据URL设置为图像元素的`src`属性。这将在页面中呈现图像。
+- en: It’s important to note that this is all being done locally in the user’s browser.
+    Nothing is being uploaded to a remote server, as the File API works on the local
+    filesystem.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，所有这些操作都是在用户的浏览器本地进行的。没有任何内容被上传到远程服务器，因为File API在本地文件系统上工作。
+- en: '[“Uploading a File with the Fetch API”](ch04.html#recipe_uploadFetch) in [Chapter 4](ch04.html#ch_network)
+    shows an example of using an `<input type="file">` to upload file data to a remote
+    server, though this uses the FormData API instead of the File API.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第4章](ch04.html#ch_network)的[“使用Fetch API上传文件”](ch04.html#recipe_uploadFetch)显示了使用`<input
+    type="file">`将文件数据上传到远程服务器的示例，尽管这里使用的是FormData API而不是File API。
+- en: For more details about data URLs and Base64 encoding, see [this article from
+    MDN](https://oreil.ly/kMtDy).
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于数据URL和Base64编码的更多详细信息，请参阅[MDN上的这篇文章](https://oreil.ly/kMtDy)。
+- en: Loading a Video as an Object URL
+  id: totrans-43
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 加载视频作为对象URL
+- en: Problem
+  id: totrans-44
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want the user to select a video file, then play it in the browser.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望用户选择一个视频文件，然后在浏览器中播放它。
+- en: Solution
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create an object URL for the `File` object, and set it as the `src` attribute
+    of a `<video>` element.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为`File`对象创建对象URL，并将其设置为`<video>`元素的`src`属性。
+- en: First, you’ll need a `<video>` element and an `<input type="file">` to select
+    the video file (see [Example 10-6](#example10-6)).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，您需要一个`<video>`元素和一个`<input type="file">`来选择视频文件（请参见[示例 10-6](#example10-6)）。
+- en: Example 10-6\. The video player markup
+  id: totrans-49
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-6\. 视频播放器标记
+- en: '[PRE6]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '[![1](assets/1.png)](#co_working_with_files_CO2-1)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_working_with_files_CO2-1)'
+- en: Only allows the selection of video files
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅允许选择视频文件
+- en: '[![2](assets/2.png)](#co_working_with_files_CO2-2)'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_working_with_files_CO2-2)'
+- en: Tells the browser to include playback controls
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 告诉浏览器包括播放控件
+- en: Next, listen for the file input’s `change` event and create an object URL, as
+    shown in [Example 10-7](#example10-7).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，监听文件输入的`change`事件并创建一个对象URL，如[示例 10-7](#example10-7)所示。
+- en: Example 10-7\. Playing the video file
+  id: totrans-56
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-7\. 播放视频文件
+- en: '[PRE7]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Discussion
+  id: totrans-58
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An object URL is a special URL that refers to the file content. You can do this
+    without a `FileReader`, since the file itself has a `createObjectURL` method.
+    This URL can be passed to the `<video>` element.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象URL是指向文件内容的特殊URL。您可以不使用`FileReader`来实现这一点，因为文件本身具有`createObjectURL`方法。此URL可以传递给`<video>`元素。
+- en: Loading an Image with Drag and Drop
+  id: totrans-60
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 拖放加载图像
+- en: Problem
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to be able to drag an image file into the browser window and display
+    that image on the page when it is dropped.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望能够将图像文件拖放到浏览器窗口中，并在放置时在页面上显示该图像。
+- en: Solution
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Define an element to serve as the drop area, and a placeholder image element
+    (see [Example 10-8](#example10-8)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义一个用作拖放区域的元素和一个占位符图像元素（参见[示例 10-8](#example10-8)）。
+- en: Example 10-8\. The drop target and image elements
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-8\. 拖放目标和图像元素
+- en: '[PRE8]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Note that this example still includes a file `input`. This is so that those
+    using assistive technologies can also upload an image without having to attempt
+    a drag and drop operation. Because the drop target is a label, containing the
+    file input, you can click anywhere inside the drop target to open the file chooser.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，此示例仍然包括文件`input`。这是为了使使用辅助技术的用户也可以上传图像，而无需尝试拖放操作。因为拖放目标是一个包含文件输入的标签，您可以在拖放目标的任何位置点击以打开文件选择器。
+- en: First, create a function that receives the image file and reads it as a data
+    URL (see [Example 10-9](#example10-9)).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，创建一个函数，接收图片文件并将其作为数据 URL 读取（见 [示例 10-9](#example10-9)）。
+- en: Example 10-9\. Reading the dropped file
+  id: totrans-69
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-9\. 读取拖放的文件
+- en: '[PRE9]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Next, create handler functions for the `dragover` and `drop` events. These events
+    are attached to the drop target element (see [Example 10-10](#example10-10)).
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，为 `dragover` 和 `drop` 事件创建处理函数。这些事件附加到拖放目标元素（见 [示例 10-10](#example10-10)）。
+- en: Example 10-10\. Adding the drag and drop code
+  id: totrans-72
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-10\. 添加拖放代码
+- en: '[PRE10]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Finally, make sure to wire up the fallback file input. You just need to get
+    the selected file, then pass it to the `showDroppedFile` method to provide the
+    same result (see [Example 10-11](#example10-11)).
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，确保连接后备文件输入。你只需获取选择的文件，然后将其传递给 `showDroppedFile` 方法以获得相同的结果（见 [示例 10-11](#example10-11)）。
+- en: Example 10-11\. Handling the file input
+  id: totrans-75
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-11\. 处理文件输入
+- en: '[PRE11]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Discussion
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: By default, when you drag an image into a page, the browser navigates away from
+    the current page. The URL changes to the path of the file, and the image is shown
+    in the browser window. In this example, you instead want to load the image data
+    into an `<img>` element and stay on the current page.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，当你将一个图片拖放到页面上时，浏览器会离开当前页面。URL 会变成文件路径，并且图片会显示在浏览器窗口中。在这个示例中，你希望将图片数据加载到一个
+    `<img>` 元素中，并保持在当前页面。
+- en: To prevent the default behavior, the drop handler calls `preventDefault` on
+    the drop event. To fully prevent the behavior, you also need to call `preventDefault`
+    on the `dragover` event, which is why you need the second event listener. This
+    makes it so that the element can actually receive `drop` events.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了阻止默认行为，拖放处理程序在 drop 事件上调用 `preventDefault`。为了完全阻止这种行为，你还需要在 `dragover` 事件上调用
+    `preventDefault`，这就是为什么你需要第二个事件侦听器。这样可以确保元素实际上可以接收 `drop` 事件。
+- en: Checking and Requesting Permissions
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检查和请求权限
+- en: Problem
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to check—and request if necessary—permissions to access a file on the
+    local filesystem.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要检查——并在必要时请求——访问本地文件系统上的文件权限。
+- en: Solution
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Show a file picker, and when a file is selected, call `queryPermission` to check
+    for existing permission. If the permission check returns `prompt`, call `requestPermission`
+    to show a permission request (see [Example 10-12](#example10-12)).
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示文件选择器，当选择文件时，调用 `queryPermission` 检查现有权限。如果权限检查返回 `prompt`，则调用 `requestPermission`
+    显示权限请求（见 [示例 10-12](#example10-12)）。
+- en: Example 10-12\. Selecting and checking permissions for a file
+  id: totrans-85
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-12\. 选择和检查文件权限
+- en: '[PRE12]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Note
+  id: totrans-87
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/AfNpL)
+    for the latest compatibility data.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 API 可能还不被所有浏览器支持。查看 [CanIUse](https://oreil.ly/AfNpL) 获取最新的兼容性数据。
+- en: Discussion
+  id: totrans-89
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `queryPermission` function returns either `granted` (the permission was
+    previously granted), `denied` (access is denied), or `prompt` (need to ask for
+    permission).
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`queryPermission` 函数返回 `granted`（已授予权限）、`denied`（访问被拒绝）或 `prompt`（需要请求权限）。'
+- en: The requested mode is `readwrite`, which means the browser is able to write
+    to your local filesystem if you grant the permission. This is why the permission
+    check is important from a security and privacy perspective.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求模式为 `readwrite`，这意味着如果你授予权限，浏览器可以写入你的本地文件系统。因此，从安全和隐私角度来看，权限检查非常重要。
+- en: '`queryPermission` checks the permission only and does not show a prompt. If
+    this comes back as `prompt`, you can then call `requestPermission`, which shows
+    a permission request in the browser. The file is considered writable if either
+    call returns `granted`.'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`queryPermission` 只检查权限而不显示提示。如果返回 `prompt`，则可以调用 `requestPermission` 在浏览器中显示权限请求。如果任一调用返回
+    `granted`，则认为文件可写。'
+- en: Exporting API Data to a File
+  id: totrans-93
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将 API 数据导出到文件
+- en: Problem
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You are requesting JSON data from an API, and you want to give the user an option
+    to download the raw JSON data.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你正在从一个 API 请求 JSON 数据，并且你希望给用户一个选项来下载原始的 JSON 数据。
+- en: Solution
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Let the user select an output file, then write the JSON data to the local filesystem.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让用户选择一个输出文件，然后将 JSON 数据写入到本地文件系统。
+- en: Note
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This API may not be supported by all browsers yet. See [CanIUse](https://oreil.ly/tsT_j)
+    for the latest compatibility data.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 API 可能还不被所有浏览器支持。查看 [CanIUse](https://oreil.ly/tsT_j) 获取最新的兼容性数据。
+- en: First, define a helper function that shows the file picker and returns the file
+    that was selected (see [Example 10-13](#example10-13)).
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，定义一个辅助函数，显示文件选择器并返回所选择的文件（见 [示例 10-13](#example10-13)）。
+- en: Example 10-13\. Selecting an output file
+  id: totrans-101
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-13\. 选择输出文件
+- en: '[PRE13]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Next, define a function that uses this helper, and perform the actual export
+    (see [Example 10-14](#example10-14)).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，定义一个使用这个帮助函数的函数，并执行实际的导出操作（参见 [示例 10-14](#example10-14)）。
+- en: Example 10-14\. Exporting data to a local file
+  id: totrans-104
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-14\. 将数据导出到本地文件
+- en: '[PRE14]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Discussion
+  id: totrans-106
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This is a good approach for allowing a user to back up or export their data
+    from your app. Some regulations, like the General Data Protection Regulation (GDPR)
+    in the European Union, require you to make a user’s data available for download.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个允许用户从你的应用中备份或导出数据的好方法。一些法规，比如欧盟的《通用数据保护条例》（GDPR），要求你让用户下载他们的数据。
+- en: In this case, text data is being written to the stream, which is of type `FileSystem`
+    `WritableFileStream`. These streams also support writing `ArrayBuffer`, `TypedArray`,
+    `DataView`, and `Blob` objects.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，文本数据被写入流中，流的类型是 `FileSystem` 的 `WritableFileStream`。这些流也支持写入 `ArrayBuffer`、`TypedArray`、`DataView`
+    和 `Blob` 对象。
+- en: In order to create the text to write to the file, `exportData` is calling `JSON.stringify`
+    with some extra arguments. The second `null` argument is the `replacer` function,
+    which you saw in [Chapter 2](ch02.html#ch_webStorage). This argument has to be
+    provided in order to provide the third argument, which specifies the amount of
+    indentation whitespace to apply. This creates a more readable output format.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了创建写入文件的文本，`exportData` 调用 `JSON.stringify` 函数并传入一些额外的参数。第二个 `null` 参数是 `replacer`
+    函数，你可以在 [第二章](ch02.html#ch_webStorage) 中看到它。这个参数必须提供以便传入第三个参数，用来指定缩进空格的数量，从而创建一个更易读的输出格式。
+- en: At the time of writing, this API is still considered experimental. You should
+    avoid using it in a production application until it has better browser support.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在撰写本文时，这个 API 仍然被视为实验性质。在它有更好的浏览器支持之前，你应该避免在生产应用中使用它。
+- en: Exporting API Data with a Download Link
+  id: totrans-111
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用下载链接导出 API 数据
+- en: Problem
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to provide export functionality but don’t want to worry about filesystem
+    permissions, like in [“Exporting API Data to a File”](#recipe_fileExport).
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想提供导出功能，但又不想担心文件系统的权限问题，就像在 [“将 API 数据导出到文件”](#recipe_fileExport) 中描述的那样。
+- en: Solution
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Put the API data into a `Blob` object, and create an object URL to set as a
+    link’s `href` attribute. Then you can export the data with a normal browser file
+    download, without needing filesystem permissions.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 API 数据放入 `Blob` 对象中，并创建一个对象 URL 以设置为链接的 `href` 属性。然后你可以通过普通的浏览器文件下载导出数据，而无需文件系统的权限。
+- en: First, add a placeholder link to the page, which becomes the export link (see
+    [Example 10-15](#example10-15)).
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在页面上添加一个占位符链接，这个链接会成为导出链接（参见 [示例 10-15](#example10-15)）。
+- en: Example 10-15\. The placeholder export link
+  id: totrans-117
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-15\. 导出链接的占位符
+- en: '[PRE15]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: '[![1](assets/1.png)](#co_working_with_files_CO3-1)'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_working_with_files_CO3-1)'
+- en: The `download` attribute provides a default filename to use when downloading.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`download` 属性提供了一个默认的文件名用于下载。'
+- en: After you fetch the data from the API and render it in the UI, create the `Blob`
+    and object URL (see [Example 10-16](#example10-16)).
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在从 API 获取数据并在 UI 中渲染后，创建 `Blob` 和对象 URL（参见 [示例 10-16](#example10-16)）。
+- en: Example 10-16\. Preparing the export link
+  id: totrans-122
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-16\. 准备导出链接
+- en: '[PRE16]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Discussion
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: This method of exporting requires no special permission. When the link is clicked,
+    and it has the object URL set, it downloads the `Blob`’s contents as a file, using
+    the suggested filename of *users.json*.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种导出方法不需要特殊权限。当链接被点击并且对象 URL 已经设置时，它会将 `Blob` 的内容作为一个文件下载下来，文件名建议为 *users.json*。
+- en: A `Blob` is a special object that holds some piece data. Usually this is binary
+    data like a file or image, but you can also create a `Blob` with string content,
+    which is what this recipe does.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 `Blob` 是一个特殊的对象，用来保存一些数据片段。通常这些数据是二进制的，比如文件或者图片，但你也可以用字符串内容创建一个 `Blob`，这就是这个示例要做的事情。
+- en: The `Blob` resides in memory, and the created object URL links to it. Once the
+    object URL is set in the link element, it becomes an export download link. When
+    the link is clicked, the object URL returns the raw string data. Since the link
+    has a `download` attribute, it is downloaded to a local file.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Blob` 存储在内存中，并且创建的对象 URL 链接到它。一旦链接元素的对象 URL 设置好了，它就变成了一个导出下载链接。当链接被点击时，对象
+    URL 返回原始字符串数据。由于链接有一个 `download` 属性，它会被下载到本地文件。'
+- en: To prevent memory leaks, clean up the old URL by calling `URL.revokeObjectURL`
+    and passing the object URL as its argument. You can do this once you no longer
+    need the object URL—for example, after the user downloads the file or before leaving
+    the page.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了防止内存泄漏，通过调用 `URL.revokeObjectURL` 并将对象 URL 作为其参数来清除旧的 URL。当你不再需要对象 URL 时（例如用户下载文件或离开页面之前），可以执行此操作。
+- en: Uploading a File with Drag and Drop
+  id: totrans-129
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用拖放上传文件
+- en: Problem
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to allow the user to drag and drop a file, such as an image, then upload
+    that file to a remote service.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 允许用户拖放文件（例如图片），然后将该文件上传到远程服务。
+- en: Solution
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Pass the received `File` object to the Fetch API in the handle for the `drop`
+    event (see [Example 10-17](#example10-17)).
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将接收到的 `File` 对象传递给 `drop` 事件的处理函数中的 Fetch API（参见 [示例 10-17](#example10-17)）。
+- en: Example 10-17\. Uploading a dropped file
+  id: totrans-134
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-17\. 上载拖放的文件
+- en: '[PRE17]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Discussion
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When you call `getAsFile` on the data transfer object, you get a `File` object.
+    `File` extends from `Blob`, so you can use the Fetch API to send the file (`Blob`)
+    contents to a remote server.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当在数据传输对象上调用 `getAsFile` 时，会得到一个 `File` 对象。`File` 是 `Blob` 的扩展，因此可以使用 Fetch API
+    将文件（`Blob`）内容发送到远程服务器。
+- en: This example checks the MIME type of the uploaded file and will only upload
+    it if it is an image file.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例检查上传文件的 MIME 类型，仅当其为图片文件时才会上传。
