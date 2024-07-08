@@ -1,0 +1,1572 @@
+- en: Chapter 9\. Asynchronous Programming
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第9章 异步编程
+- en: JavaScript was built as a single-threaded programming language, with one call
+    stack, one memory heap, and able to execute just one code routine at a time. But
+    over the years, JavaScript has grown. It’s acquired the ability to send network
+    messages, read files, and wait for user confirmation—all operations that might
+    take time and could lock up the user interface. To handle these operations safely,
+    JavaScript has introduced its own asynchronous programming patterns.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript最初是作为单线程编程语言构建的，具有一个调用堆栈，一个内存堆，一次只能执行一个代码例程的特点。但多年来，JavaScript已经发展壮大。它已经获得了发送网络消息、读取文件和等待用户确认的能力——所有这些操作可能需要时间并可能锁定用户界面。为了安全地处理这些操作，JavaScript引入了自己的异步编程模式。
+- en: In the early days, JavaScript’s asynchronous support revolved around *callbacks*.
+    With a callback, you request an operation (say, fetching an image from the web)
+    and the browser does the work on another thread, outside of your application code.
+    When the image has finished downloading and your application is idle, JavaScript
+    triggers your callback and passes the data back to your code. The end result is
+    that your application code is still single-threaded, but you have the ability
+    to launch asynchronous work through a set of standardized web APIs.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在早期阶段，JavaScript的异步支持围绕回调展开。使用回调时，您请求一个操作（比如从Web获取图像），浏览器在另一个线程中执行工作，而不是在您的应用程序代码中。当图像下载完成并且您的应用程序处于空闲状态时，JavaScript会触发您的回调并将数据传递回您的代码。最终结果是，您的应用程序代码仍然是单线程的，但通过一组标准化的Web
+    API，您可以启动异步工作。
+- en: Callbacks are still found all over JavaScript, but in recent years they’ve been
+    wrapped with more polished language features, like *promises* and the `async`
+    and `await` keywords. The underlying plumbing is the same, but now it’s possible
+    to create sophisticated applications that manage concurrent asynchronous tasks,
+    handle sequences of asynchronous calls, and deal gracefully with unexpected errors.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回调在JavaScript中仍然随处可见，但近年来已经用更加精致的语言特性（如Promise和`async`与`await`关键字）进行了包装。底层实现机制相同，但现在可以创建复杂的应用程序，管理并发的异步任务序列，并优雅地处理意外错误。
+- en: In this chapter, you’ll use callback and promises to manage asynchronous tasks.
+    You’ll also see how you can break out of JavaScript’s single-threaded model and
+    perform continuous background work with the Web Worker API.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您将使用回调和Promise来管理异步任务。您还将看到如何跳出JavaScript的单线程模型，并使用Web Worker API执行持续的后台工作。
+- en: Updating the Page During a Loop
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在循环期间更新页面
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to update the page during a long, CPU-intensive operation, but the
+    browser won’t repaint the window while it’s busy.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望在长时间的CPU密集型操作期间更新页面，但浏览器在忙碌时不会重新绘制窗口。
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `setTimeout()` function periodically to queue your work. Contrary to
+    the name, you don’t need to set a delay with `setTimeout()`. Instead, use a timeout
+    value of `0` to schedule the next step in your operation to execute immediately,
+    as soon as the UI thread is idle.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`setTimeout()`函数定期排队您的工作。与其名称相反，您不需要使用`setTimeout()`设置延迟。相反，使用超时值为`0`，以便在UI线程空闲时立即安排操作的下一步执行。
+- en: 'For example, consider this loop, which increments a counter for 10 seconds
+    (10,000 milliseconds). After each pass through the loop, it attempts to change
+    the text in a `<p>` element named `status`:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑以下循环，它在10秒钟（10,000毫秒）内递增一个计数器。每次循环通过后，它尝试更改名为`status`的`<p>`元素中的文本：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: If you run this code, you won’t see any of the “Just generated number” messages.
+    Instead, the page will become unresponsive for 10 seconds, then display “Processing
+    completed.”
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您运行此代码，将不会看到任何“刚生成的数字”消息。相反，页面将在10秒钟内无响应，然后显示“处理完成”。
+- en: 'To fix the problem, you move the work (in this case, incrementing the counter
+    and showing a message) to a separate function. Then, instead of calling this function
+    over and over again in a loop, you call it with `setTimeout()`. Each time, the
+    function increments the counter, updates the page, and then calls `setTimeout()`
+    for *another* pass, until the 10-second time limit has finished:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要解决这个问题，您将工作（在本例中是递增计数器和显示消息）移动到一个单独的函数中。然后，不再在循环中反复调用此函数，而是使用`setTimeout()`调用它。每次，该函数递增计数器，更新页面，然后调用`setTimeout()`以进行*另一个*循环，直到10秒时间限制结束：
+- en: '[PRE1]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Here, the `doChunkedTask` variable holds an anonymous function that’s defined
+    with arrow function syntax ([“Using Arrow Functions”](ch06.html#arrow_functions)).
+    You don’t need to use an anonymous function or arrow syntax, but it simplifies
+    the code. The `doChunkedTask` function gets access to everything that’s in scope
+    when you create it, including the `startTime` and `statusElement` variables. As
+    a result, you don’t need to worry about passing this information to the function,
+    which would be necessary if you declared it separately.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里，`doChunkedTask` 变量包含了一个用箭头函数语法定义的匿名函数（见 [“使用箭头函数”](ch06.html#arrow_functions)）。你并不一定需要使用匿名函数或箭头语法，但它简化了代码。`doChunkedTask`
+    函数可以访问创建时所在范围内的所有内容，包括 `startTime` 和 `statusElement` 变量。因此，你无需担心将这些信息传递给函数，这在单独声明函数时是必要的。
+- en: When you run this code, you’ll see the numbers quickly flash by in the paragraph
+    on the web page, and then be replaced with the completion message after 10 seconds.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行这段代码时，你会看到网页段落中的数字迅速闪过，然后在 10 秒后被完成消息替换。
+- en: Discussion
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: JavaScript has a mature solution for asynchronous work with the *web workers*
+    feature (see [“Using a Web Worker to Perform a Background Task”](#using_web_workers)).
+    However, you don’t always need this level of sophistication. Web workers are great
+    if you have a long-running task, an asynchronous operation that needs to accept
+    chunks of data as it works, or an asynchronous operation that needs support for
+    cancellation. But if you’re dealing with a relatively short task and you have
+    more modest requirements—for example, you just want to update the page during
+    a brief burst of CPU-intensive work—the `setTimeout()` approach works perfectly
+    well.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 提供了成熟的解决方案来处理异步工作，例如 *web workers* 功能（见 [“使用 Web Worker 执行后台任务”](#using_web_workers)）。然而，并非总是需要这种复杂的功能。如果你有一个长时间运行的任务，或者一个异步操作需要在工作过程中接受数据块，或者一个异步操作需要支持取消，那么
+    Web workers 是很好的选择。但如果你处理的是相对短暂的任务，并且需求不是很复杂，比如仅在 CPU 密集型工作的短暂突发期间更新页面，那么 `setTimeout()`
+    方法完全可以胜任。
+- en: In the example presented here, the `setTimeout()` method is called repeatedly.
+    Each time, the page relinquishes control and waits for the browser to schedule
+    the requested function, which it does as soon as the main application thread is
+    idle (in this case, almost instantaneously). To understand how this works, it’s
+    important to realize that `setTimeout()` does not set *exactly* when a function
+    will run. Instead, it sets a *minimum* time interval. When the `setTimeout()`
+    timer ends, it asks the browser to execute the function, but it’s up to the browser
+    to schedule this request. If the browser is busy, the request will be delayed.
+    (In fact, even if the browser isn’t busy, modern browsers throttle a sequence
+    of requests so it is never triggered more frequently than once every 4 milliseconds.)
+    But in practice these delays are very small, and calling `setTimeout()` with a
+    value of 0 milliseconds causes your code to be triggered almost immediately.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里提供的示例中，`setTimeout()` 方法被重复调用。每次调用时，页面会放弃控制权并等待浏览器调度请求的函数，这几乎会立即发生，一旦主应用程序线程空闲（在这种情况下）。要理解其工作原理，重要的是要意识到
+    `setTimeout()` 并不确切设置函数何时运行。它实际上是设置了一个最小时间间隔。当 `setTimeout()` 计时器结束时，它会要求浏览器执行函数，但是浏览器安排这个请求是由浏览器决定的。如果浏览器很忙，请求会延迟执行。（事实上，即使浏览器不忙，现代浏览器也会限制一系列请求，因此不会频繁触发，最小间隔为每
+    4 毫秒一次。）但在实践中，这些延迟非常小，将 `setTimeout()` 设置为 0 毫秒几乎会立即触发代码执行。
+- en: The `setTimeout()` method isn’t the only method JavaScript has for scheduling
+    work with a timer. There’s also the `window.setInterval()` method, which calls
+    a function repeatedly, with a fixed wait time before each subsequent call. And
+    if you want to use a timer to create an animation (for example, by redrawing objects
+    in a `<canvas>`), it’s better to use `requestAnimationFrame()`, which synchronizes
+    itself with the browser’s repainting operations to make sure you don’t waste resources
+    calculating an animation more frequently that it can be shown.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setTimeout()` 方法并非 JavaScript 中用于定时调度工作的唯一方法。还有 `window.setInterval()` 方法，它会定时重复调用一个函数，每次调用之间有固定的等待时间。如果你想用一个定时器来创建动画（例如通过重新绘制
+    `<canvas>` 中的对象），最好使用 `requestAnimationFrame()`，它会与浏览器的重绘操作同步，确保不会在浏览器无法显示动画的频率下浪费资源计算动画。'
+- en: Note
+  id: totrans-21
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Both the `setTimeout()` and the `setInterval()` methods are ancient parts of
+    JavaScript. However, they are not obsolete or deprecated. For more complex scenarios,
+    you should web workers rather than roll your own custom solutions built on `setTimeout()`
+    or `setInterval()`. However, both methods are still acceptable.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setTimeout()` 和 `setInterval()` 方法都是 JavaScript 的古老部分。然而，它们并非过时或已弃用。对于更复杂的情景，您应该使用
+    Web Worker，而不是依赖于`setTimeout()`或`setInterval()`自行开发的解决方案。然而，这两种方法仍然是可接受的。'
+- en: See Also
+  id: totrans-23
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Using a Web Worker to Perform a Background Task”](#using_web_workers) describes
+    how to carry out more ambitious operations in the background using web workers.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“使用 Web Worker 执行后台任务”](#using_web_workers)描述了如何使用 Web Worker 在后台执行更有雄心的操作。'
+- en: Using a Function That Returns a Promise
+  id: totrans-25
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用返回 Promise 的函数
+- en: Problem
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to run code when an asynchronous task completes (successfully or unsuccessfully).
+    You want to be notified about task completion through a `Promise` object.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望在异步任务完成时（成功或失败）运行代码。您希望通过`Promise`对象通知任务完成。
+- en: Solution
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: A `Promise` is an object that helps you manage an asynchronous task. It tracks
+    the status of the task and—most importantly—handles the callbacks that notify
+    your code when the task succeeds or fails. Technically, promises don’t add new
+    functionality to JavaScript, but they do make it easier to cleanly coordinate
+    a sequence of asynchronous operations.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise` 是一种帮助您管理异步任务的对象。它跟踪任务的状态，并且——最重要的是——处理通知代码的回调，告知任务成功或失败的情况。从技术上讲，promises
+    并没有为 JavaScript 添加新功能，但它们确实使得清晰协调一系列异步操作变得更加容易。'
+- en: In order to use promises, the API you’re calling must support them. There’s
+    rarely any ambiguity about this, because APIs that support promises have methods
+    that return `Promise` objects. Older APIs that *don’t* use promises will ask you
+    to supply one or more callback functions or handle a specific event. (If you want
+    to use a promise with a callback-based API, see [“Promisifying an Asynchronous
+    Function That Uses a Callback”](#promisifying_callback_function) instead.)
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用 promises，被调用的 API 必须支持它们。关于这一点很少会有歧义，因为支持 promises 的 API 会有返回`Promise`对象的方法。不支持
+    promises 的旧 API 将要求您提供一个或多个回调函数或处理特定事件。（如果要在使用基于回调的 API 中使用 promise，请参见[“将使用回调的异步函数转换为
+    Promise”](#promisifying_callback_function)。）
+- en: To specify what should happen after a promise finishes, you call `Promise.then()`
+    and supply a function. To specify what should happen in the case of an error,
+    you call `Promise.catch()` and supply a different function. To add some clean-up
+    code that should run after the promise has succeeded *or* failed, you call `Promise.finally()`
+    with a third function.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要指定 Promise 完成后的操作，可以调用`Promise.then()`并提供一个函数。要指定出现错误时的操作，可以调用`Promise.catch()`并提供另一个函数。要添加一些在
+    Promise 成功或失败后都应该运行的清理代码，可以调用`Promise.finally()`并提供第三个函数。
+- en: 'Here’s a naïve implementation of promises, using the Fetch API:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是使用 Fetch API 的一个天真的 Promise 实现：
+- en: '[PRE2]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: If the call succeeds, you’ll see the HTTP status appear in the console window,
+    followed by the “All done” message.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果调用成功，您将在控制台窗口中看到 HTTP 状态，然后是“全部完成”消息。
+- en: This example shows the structure of a basic promise call, but it isn’t the way
+    we typically write promise-based code, for two reasons. First, for more compact
+    and readable code, we favor declaring the functions with arrow function syntax
+    ([“Using Arrow Functions”](ch06.html#arrow_functions)). Second, the `then()`,
+    `catch()`, and `finally()` methods are usually chained into one statement. This
+    is possible because these methods all return the same `Promise` object.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个示例展示了基本 promise 调用的结构，但它不是我们通常编写基于 promise 的代码的方式，原因有两点。首先，为了更紧凑和可读的代码，我们更喜欢使用箭头函数语法声明函数（参见[“使用箭头函数”](ch06.html#arrow_functions)）。其次，`then()`、`catch()`
+    和 `finally()` 方法通常被链式调用成一条语句。这是可能的，因为这些方法都返回同一个`Promise`对象。
+- en: 'Here’s the more compact and more typical way to write this code:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是更紧凑和更典型的编写此代码的方式：
+- en: '[PRE3]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Note
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This promise-based example uses just a single statement, and you’re able to
+    break the line wherever you like. One common convention, which we’ve used here,
+    is to break the statement just *before* the dot operator, so the next line begins
+    with `.then` or `.catch`. This way, the code is easy to follow and has an error-handling
+    layout that’s similar to synchronous code. This is also the structure applied
+    by the Prettier code formatter ([“Styling Code Consistently with a Formatter”](ch01.html#using_prettier)).
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个基于Promise的示例只使用了一个语句，你可以随意在任何地方断行。一个常见的约定是，在点操作符*之前*断行，所以下一行以`.then`或`.catch`开始。这样，代码易于跟踪，并且具有类似于同步代码的错误处理布局。这也是Prettier代码格式化器所应用的结构（[“使用格式化器一致地排版代码”](ch01.html#using_prettier)）。
+- en: Discussion
+  id: totrans-40
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: A `Promise` object is not a result, but a *placeholder* for a result that will
+    be available in the future.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`Promise`对象不是结果，而是未来将可用结果的*占位符*。
+- en: As soon as you create a `Promise` object, its code begins to execute. It’s even
+    possible that the `Promise` may finish its work before you call `then()` or `catch()`.
+    This won’t change how your code works. If you call `then()` on a promise that’s
+    already resolved (successfully), or `catch()` on a promise that’s already rejected
+    (with an error), your code runs right away.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦创建了`Promise`对象，它的代码就开始执行。甚至可能在调用`then()`或`catch()`之前就完成了`Promise`的工作。这不会改变你的代码工作方式。如果在已经解析（成功）的`Promise`上调用`then()`，或者在已经拒绝（带有错误）的`Promise`上调用`catch()`，你的代码立即运行。
+- en: The simple solution shown here uses chaining to attach a success function (with
+    `then()`) and a failure function (with `catch()`). However, it’s also common to
+    use chaining to tie multiple asynchronous tasks together, so they run one after
+    the other. The `fetch()` function provides a good example. It returns a promise
+    that resolves once the server responds. However, if you want to read the body
+    of this message, you need to start a second asynchronous operation. (This sounds
+    needlessly painful, but it makes perfect sense, because the amount of data being
+    sent could be huge, so you don’t want to risk blocking your code while you retrieve
+    it. In JavaScript, I/O operations are always asynchronous.)
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里展示的简单解决方案使用链式调用附加成功函数（使用`then()`）和失败函数（使用`catch()`）。然而，将多个异步任务链在一起依次运行也很常见。`fetch()`函数提供了一个很好的例子。它返回一个Promise，一旦服务器响应就解析。但是，如果你想读取这条消息的主体，你需要启动第二个异步操作。（听起来很痛苦，但这是有道理的，因为发送的数据量可能非常大，所以你不希望在检索数据时阻塞代码。在JavaScript中，I/O操作总是异步的。）
+- en: 'Here’s an example that performs an asynchronous `fetch` request, then reads
+    the results as a binary stream using `response.blob()`, which returns a second
+    `Promise` object. Now `then()` is called on that object to add a third step—turning
+    the binary data into a Base64-encoded string that can be shown in an `<img>` element:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个示例，执行一个异步的`fetch`请求，然后使用`response.blob()`以二进制流形式读取结果，返回第二个`Promise`对象。现在在该对象上调用`then()`添加第三步——将二进制数据转换为可以显示在`<img>`元素中的Base64编码字符串：
+- en: '[PRE4]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Good code formatting is important, because a promise chain can become quite
+    long. But if organized consistently, your asynchronous calls can look similar
+    to a linear block of code, which is a significant improvement over the past, when
+    developers coined the term *callback hell* to describe nested pyramids of consecutive
+    callback functions.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 良好的代码格式很重要，因为`Promise`链可能会变得非常长。但如果一致组织，你的异步调用看起来可以类似于线性的代码块，这比过去显著改进了，当开发者创造术语*回调地狱*来描述连续回调函数的嵌套金字塔时。
+- en: 'When chaining multiple promises, you call `catch()` and `finally()` at the
+    end of the chain, if you decide to use them. That gives you one place to collect
+    unhandled errors that occur during any stage of the promise chain. You can even
+    throw your own exceptions in a `then()` function to signify failure and end the
+    chain:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在链接多个Promise时，如果决定使用，你可以在链的末尾调用`catch()`和`finally()`。这样一来，你可以在Promise链的任何阶段收集未处理的错误。甚至可以在`then()`函数中抛出自己的异常来表示失败并结束链：
+- en: '[PRE5]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: As soon as an unhandled error occurs, the entire promise chain is derailed.
+    You can react to this error to perform logging or some other diagnostic task,
+    but you can’t resume the promises that were abandoned further down the chain.
+    If you don’t catch an error in a promise, it’s eventually raised as the `window.unhandledrejection`
+    event and, if not canceled there, it’s logged to the console.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦发生未处理的错误，整个Promise链都会中断。您可以响应此错误执行日志记录或其他诊断任务，但无法恢复进一步的已放弃的Promise。如果未在Promise中捕获错误，则最终会作为`window.unhandledrejection`事件引发，并且如果未在那里取消，则会记录到控制台。
+- en: See Also
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[Chapter 13](ch13.html#ch13) explains the Fetch API in more detail. [“Executing
+    Multiple Promises Concurrently”](#concurrent_promises) shows how to link concurrent
+    tasks with a promise. [“Waiting for a Promise to Finish with Await and Async”](#using_await)
+    shows how to use `fetch()` with the `await` keyword.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第13章](ch13.html#ch13)更详细地解释了Fetch API。[“并发执行多个Promise”](#concurrent_promises)展示了如何使用Promise链接并发任务。[“使用Await和Async等待Promise完成”](#using_await)展示了如何使用`fetch()`与`await`关键字。'
+- en: Promisifying an Asynchronous Function That Uses a Callback
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将使用回调的异步函数转换为Promise
+- en: Problem
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to change a callback-based asynchronous function to use a promise.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望将基于回调的异步函数更改为使用Promise。
+- en: Solution
+  id: totrans-55
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create another function to wrap your asynchronous function. This function creates
+    and returns a new `Promise` object. When the asynchronous task finishes, the function
+    calls either `Promise.resolve()` if it succeeded or `Promise.reject()` if it failed.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建另一个函数来包装您的异步函数。此函数创建并返回一个新的`Promise`对象。当异步任务完成时，函数调用`Promise.resolve()`（如果成功）或`Promise.reject()`（如果失败）。
+- en: 'Here’s an example of a function that acts like a traditional, callback-based
+    asynchronous function. It uses a timer to perform its asynchronous work:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个类似于传统回调式异步函数的示例函数。它使用定时器执行其异步工作：
+- en: '[PRE6]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: There’s no benefit to calculating factorials asynchronously or to using a timer.
+    This example is just a stand-in for any older API that uses callbacks.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有将阶乘异步计算或使用定时器的好处。此示例仅用作使用回调的任何旧API的替代品。
+- en: 'Right now, you can use the `factorializeNumber()` function like this:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您可以像这样使用`factorializeNumber()`函数：
+- en: '[PRE7]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'The easiest way to promisify the `factorializeNumber()` function is to create
+    a new function that wraps it:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`factorializeNumber()`函数转换为Promise对象的最简单方法是创建一个包装函数：
+- en: '[PRE8]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now you can call `factorializeNumberPromise()`, receive a `Promise` object,
+    and handle the result with `Promise.then()`:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您可以调用`factorializeNumberPromise()`，接收一个`Promise`对象，并使用`Promise.then()`处理结果：
+- en: '[PRE9]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: You can also catch potential errors, and even create a whole chain of asynchronous
+    operations.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以捕获潜在错误，甚至创建整个异步操作链。
+- en: '[PRE10]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Discussion
+  id: totrans-68
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Before going deeper into this solution, it’s important to address one possible
+    misconception right away. It’s easy to create a function that returns a `Promise`
+    object. However, this does *not* make your code asynchronous. Your code will run
+    synchronously on the UI thread, as usual. (It’s similar to calling `setTimeout()`
+    with a delay of 0.)
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在深入研究此解决方案之前，很重要立即澄清一个可能的误解。轻松创建返回`Promise`对象的函数并不会使您的代码异步运行。您的代码将像往常一样在UI线程上同步运行。（这类似于使用延迟为0的`setTimeout()`调用。）
+- en: To get around this limitation, the `factorializeNumber()` example uses a timer
+    to simulate an asynchronous API. If you really want to run your own code in the
+    background on another thread, you need to use the Web Workers API ([“Using a Web
+    Worker to Perform a Background Task”](#using_web_workers)).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要解决此限制，`factorializeNumber()`示例使用定时器模拟异步API。如果确实希望在后台线程上运行自己的代码，您需要使用Web Workers
+    API（[“使用Web Worker执行后台任务”](#using_web_workers)）。
+- en: Note
+  id: totrans-71
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In JavaScript you’ll use promises often, but you’ll create them rarely. The
+    most common reason for creating a `Promise` object is because you’re wrapping
+    older callback-based code, as in this example.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript中，您经常会使用Promise，但很少创建它们。创建`Promise`对象的最常见原因是您正在包装较旧的基于回调的代码，如本示例中所示。
+- en: 'To make a promisified version of a function, you need a function that creates
+    a `Promise` object and returns it. That’s the main job of the `factorializeNumberPromise()`
+    function. And although creating a `Promise` is easy, it can look complex at first
+    because there are two layers of nested functions at work. t its heart, the `Promise`
+    object wraps a function that has this structure:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建一个函数的 promisified 版本，你需要一个创建 `Promise` 对象并返回它的函数。这就是 `factorializeNumberPromise()`
+    函数的主要工作。尽管创建 `Promise` 很容易，但一开始可能看起来复杂，因为有两层嵌套函数在起作用。在其核心，`Promise` 对象包装了一个具有以下结构的函数：
+- en: '[PRE11]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The promise function receives two parameters, which are essentially callback
+    functions. You use these functions to signal the completion of the promise. Call
+    `resolve()` (with your return value) to successfully end the promise, or `reject()`
+    (with an error object) to indicate a failure. Alternately, if an unhandled error
+    occurs anywhere in your promise function, the `Promise` object will catch it and
+    automatically call `reject()`, passing the error along.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: promise 函数接收两个参数，它们本质上是回调函数。你可以使用这些函数来表示 promise 的完成。调用 `resolve()`（带有返回值）来成功结束
+    promise，或者调用 `reject()`（带有错误对象）来表示失败。或者，如果在 promise 函数中的任何地方发生未处理的错误，`Promise`
+    对象将捕获它并自动调用 `reject()`，将错误传递给它。
+- en: 'Inside the promise function, you launch your asynchronous task. Or, in the
+    `factorializeNumberPromise()` example, you call the existing `factorializeNumber()`
+    function that starts the timer. You still need to use the callback functions to
+    interface with the old `factorializeNumber()` function. The difference is that
+    now you will forward them through the promise by calling `resolve()` or `reject()`.
+    For example, here’s the function for the `successCallback`, which calls `resolve()`:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 promise 函数内部，你启动你的异步任务。或者，在 `factorializeNumberPromise()` 示例中，你调用现有的 `factorializeNumber()`
+    函数来启动计时器。你仍然需要使用回调函数与旧的 `factorializeNumber()` 函数进行交互。不同之处在于，现在你将它们通过调用 `resolve()`
+    或 `reject()` 转发到 promise 中。例如，这是 `successCallback` 的函数，调用 `resolve()`：
+- en: '[PRE12]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'And here’s the failure callback that calls `reject()`:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是调用 `reject()` 的失败回调：
+- en: '[PRE13]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Note
+  id: totrans-80
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `Promise.reject()` method takes one argument, which represents the reason
+    for the failure. This reason can be any type of object, but it’s strongly recommended
+    that you use an instance of the `Error` object or a custom object that derives
+    from `Error` ([“Throwing a Custom Error”](ch10.html#throwing_custom_errors)).
+    In the current example, the failure callback already sends an `Error` object,
+    so we can simply pass that to `reject()`.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise.reject()` 方法接受一个参数，表示失败的原因。这个原因可以是任何类型的对象，但强烈建议使用 `Error` 对象的实例或从
+    `Error` 派生的自定义对象（[“抛出自定义错误”](ch10.html#throwing_custom_errors)）。在当前示例中，失败回调已经发送了一个
+    `Error` 对象，所以我们可以简单地将其传递给 `reject()`。'
+- en: The full solution makes the code more compact by declaring the `successCallback`,
+    the `failureCallback`, and the promise function that holds them with arrow syntax
+    ([“Using Arrow Functions”](ch06.html#arrow_functions)).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用箭头函数语法（[“使用箭头函数”](ch06.html#arrow_functions)），可以通过声明 `successCallback`、`failureCallback`
+    和保存它们的 promise 函数来使代码更加简洁。
+- en: It is possible to write a generic promisifying function that can promisify any
+    callback-based function. In fact, some libraries, like BlueBird.js, provide this
+    functionality. However, in most cases it’s simpler and less confusing to use promisification
+    judiciously—for example, when you want to unify one asynchronous task with another
+    one that already uses promises—rather than attempt to wrap every old asynchronous
+    API.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以编写一个通用的 promisifying 函数，该函数可以将任何基于回调的函数 promisify 化。事实上，一些库，比如 BlueBird.js，提供了这种功能。然而，在大多数情况下，使用
+    promisification 要简单得多，更不容易混淆——例如，当你想要将一个异步任务与另一个已经使用 promises 的任务统一起来时，而不是试图包装每一个旧的异步
+    API。
+- en: See Also
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: If you’re developing for the Node runtime environment, you can use the `promisify`
+    utility to wrap a function with a promise, as described in [“Managing Callback
+    Hell”](ch19.html#managing_callback_hell).
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你正在为 Node 运行时环境开发，可以使用 `promisify` 实用程序将函数包装为 promise，如 [“管理回调地狱”](ch19.html#managing_callback_hell)
+    中所述。
+- en: Executing Multiple Promises Concurrently
+  id: totrans-86
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 并行执行多个 promises
+- en: Problem
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to execute multiple promises at the same time, and react once all the
+    promises have finished their work.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要同时执行多个 promises，并且在所有 promises 完成它们的工作后做出反应。
+- en: Solution
+  id: totrans-89
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the static `Promise.all()` method to combine multiple promises into a single
+    promise and wait for them all to resolve successfully (or for any one of them
+    to fail).
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用静态的 `Promise.all()` 方法将多个 Promise 合并为单个 Promise 并等待它们全部成功解决（或任何一个失败）。
+- en: 'To demonstrate how this works, imagine you have a function that returns a promise
+    that resolves after a wait of roughly 0 to 10 seconds. Here’s a `randomWaitPromise()`
+    function that does exactly that using `setTimeout()`. Treat it as a stand-in for
+    any asynchronous operation:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要演示其工作原理，请想象一个返回 Promise 的函数，该 Promise 在大约 0 到 10 秒的等待后解决。以下是一个 `randomWaitPromise()`
+    函数，它正是使用 `setTimeout()` 来实现这一点。将其视为任何异步操作的替代品：
+- en: '[PRE14]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Now you can use `randomWaitPromise()` to quickly create any number of new promises.
+    To wait for several promises to finish, you need to place all the `Promise` objects
+    in an array, and pass that array to the `Promise.all()` method. `Promise.all()`
+    returns a new promise that represents the completion of all your promises. Using
+    that, you can call `then()` and `catch()` to build a promise chain, like usual:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您可以使用 `randomWaitPromise()` 快速创建任意数量的新 Promise。要等待多个 Promise 完成，您需要将所有的 `Promise`
+    对象放入一个数组中，并将该数组传递给 `Promise.all()` 方法。`Promise.all()` 返回一个新的 Promise，表示所有 Promise
+    的完成。使用它，您可以调用 `then()` 和 `catch()` 来构建一个 Promise 链，如同往常一样：
+- en: '[PRE15]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: There’s no `Promise.catch()` in this chain, because it’s impossible for this
+    code to fail.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此链中没有 `Promise.catch()`，因为这段代码不可能失败。
+- en: 'When you run this example, each promise will write to the console as it finishes.
+    When the last, slowest promise resolves, you’ll get the final “All done” message:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您运行此示例时，每个 Promise 完成时都会在控制台中输出。当最后一个、最慢的 Promise 解决时，您将获得最终的 "All done" 消息：
+- en: '[PRE16]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Tip
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 小贴士
+- en: When you’re using several promises at a time, it’s common to pass an object
+    with some sort of identifier to your promise (like a URL or an ID). Then, when
+    the promise resolves it can pass back an object that includes this identifying
+    detail. This way, you can determine which result goes with which promise. This
+    tracking is convenient, but it isn’t necessary, because you can tell which result
+    is which by their order. The order of the results that you receive in the results
+    array matches the order of the promises that you submitted originally in the promises
+    array.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您同时使用多个 Promise 时，通常会传递一个带有某种标识符的对象给您的 Promise（比如 URL 或 ID）。然后，当 Promise 解决时，它可以返回一个包含此标识详细信息的对象。这样，您可以确定哪个结果对应哪个
+    Promise。这种跟踪很方便，但并非必需，因为您可以通过它们的顺序来判断哪个结果是哪个。您在结果数组中接收的结果顺序与您最初在 Promises 数组中提交的顺序相匹配。
+- en: Discussion
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: One advantage of asynchronous programming is being able to collapse your wait
+    time. In other words, rather than wait for one task to complete, and then another,
+    and then another, you can start all three at once. In real life, this is somewhat
+    of a specialized scenario. It’s far more common to have an asynchronous task that
+    depends on the results from another asynchronous task, in which case you need
+    to chain one task after the other. But if this isn’t the case, you can save considerable
+    time by running multiple promises at once and waiting for them with `Promise.all().`
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 异步编程的一个优点是能够减少等待时间。换句话说，而不是等待一个任务完成，然后另一个任务，再然后是另一个任务，您可以同时启动所有三个任务。在实际生活中，这是一种比较专业化的场景。更常见的是有一个依赖于另一个异步任务结果的异步任务，此时您需要按顺序链式调用任务。但如果不是这种情况，通过同时运行多个
+    Promise 并使用 `Promise.all()` 等待它们，您可以节省大量时间。
+- en: '`Promise.all()` uses a *fail-fast* behavior. As soon as one of the promises
+    is rejected (either deliberately by calling `Promise.reject()` or with an unhandled
+    error), the combined promise you created with `Promise.all()` is also rejected,
+    triggering whatever function you attached to the promise chain with `Promise.catch()`.
+    The other promises will still run, and you can get their results from the corresponding
+    `Promise` objects. For example, if `promise1` rejects, nothing stops you from
+    calling `promise2.then()` to get its result. But in practice, when you use `Promise.all()`
+    you will probably treat a failure in one promise as the end of your combined operation.
+    Otherwise, it would be easier to keep your promises separate, or use one of the
+    alternative `Promise` methods listed below.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise.all()` 使用 *快速失败* 行为。一旦其中一个 promises 被拒绝（无论是通过调用 `Promise.reject()`
+    还是出现未处理的错误），您使用 `Promise.all()` 创建的组合 promise 也会被拒绝，触发您附加到 promise 链的任何函数与 `Promise.catch()`。其他
+    promises 仍将运行，并且您可以从相应的 `Promise` 对象获取它们的结果。例如，如果 `promise1` 被拒绝，您仍可以调用 `promise2.then()`
+    来获取其结果。但实际上，当您使用 `Promise.all()` 时，您可能会将一个 promise 的失败视为组合操作的结束。否则，将更容易保持 promises
+    分开，或使用下面列出的其他 `Promise` 方法之一。'
+- en: 'There are other static `Promise` methods besides `all()` that accept multiple
+    promises and return a single combined promise. They all have slightly different
+    behavior:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 `all()` 之外，还有其他静态 `Promise` 方法接受多个 promises 并返回一个组合的 promise。它们的行为略有不同：
+- en: '`Promise.allSettled()`'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise.allSettled()`'
+- en: 'Resolves when every promise has been resolved *or* rejected. (This is unlike
+    `Promise.all()`, which only resolves if *all* the promises are successful.) The
+    function you attach with `Promise.then()` receives an array of result objects,
+    one for each promise. Each result object has two properties: `status` indicates
+    if the promise was fulfilled or rejected, and `value` has the returned value or
+    error object.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当每个 promise 被解决 *或* 被拒绝时解决。（这与 `Promise.all()` 不同，后者仅在*所有* promise 成功时解决。）使用
+    `Promise.then()` 附加的函数接收一个结果对象数组，每个 promise 一个。每个结果对象有两个属性：`status` 表示 promise
+    是否被实现或被拒绝，`value` 有返回的值或错误对象。
+- en: '`Promise.any()`'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise.any()`'
+- en: Resolves as soon as one promise has resolved successfully. It provides the value
+    for that promise only.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦一个 promise 成功解决，就会解决。它仅提供该 promise 的值。
+- en: '`Promise.race()`'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise.race()`'
+- en: Resolves as soon as one promise has resolved successfully or been rejected.
+    It’s the most specialized of all the `Promise` methods, but it can be used to
+    build some sort of custom scheduling system that queues up new asynchronous tasks
+    as existing ones are finished.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦一个 promise 成功解决或被拒绝，就会解决。这是所有 `Promise` 方法中最专业的，但它可以用来构建某种自定义调度系统，当现有任务完成时排队新的异步任务。
+- en: Waiting for a Promise to Finish with Await and Async
+  id: totrans-110
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Await 和 Async 等待 Promise 完成
+- en: Problem
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Instead of creating a promise chain, you want to write linear logic that’s easier
+    to read and looks more like synchronous code.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是创建一个 promise 链，您希望编写更易于阅读且更像同步代码的线性逻辑。
+- en: Solution
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Don’t call `Promise.then()`. Instead, use the `await` keyword on your promise:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要调用 `Promise.then()`。而是在 promise 上使用 `await` 关键字：
+- en: '[PRE17]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The code after `await` doesn’t run until the awaited promise has been resolved
+    or rejected. The execution of your code pauses, but without blocking the thread,
+    locking up the UI, or preventing other timers and events from triggering.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `await` 后的代码直到等待的 promise 被解决或被拒绝才运行。您的代码执行暂停，但不会阻塞线程，锁定 UI，或阻止其他计时器和事件触发。
+- en: 'But there’s a catch. The `await` keyword is only useable inside an `async`
+    function. That means you may need some rearranging to use `await`. Consider the
+    `fetch()` example from [“Using a Function That Returns a Promise”](#async_call_with_promise).
+    With promises, it looks like this:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但有一个陷阱。`await` 关键字只能在 `async` 函数内部使用。这意味着您可能需要一些重新排列来使用 `await`。考虑来自 [“使用返回
+    Promise 的函数”](#async_call_with_promise) 的 `fetch()` 示例。使用 promises，它看起来像这样：
+- en: '[PRE18]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'With the `async` and `await` keywords, you can structure it like this:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `async` 和 `await` 关键字，您可以这样结构化：
+- en: '[PRE19]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'You can also use traditional exception-catching blocks around awaited operations,
+    instead of the `Promise.catch()` method:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以在等待的操作周围使用传统的异常捕获块，而不是 `Promise.catch()` 方法：
+- en: '[PRE20]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'The advantage of using `await` for just one call is relatively small. However,
+    `await` can make your code considerably cleaner if you have a whole sequence of
+    asynchronous operations that need to occur one after the other. Ordinarily, you
+    would handle this with a promise chain that calls `Promise.then()` multiple times.
+    But with `await`, the code looks like ordinary synchronous code. Here’s an example
+    that duplicates the image-reading example from [“Using a Function That Returns
+    a Promise”](#async_call_with_promise) to send an asynchronous web request, and
+    then asynchronously read the image data that’s returned:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅仅使用 `await` 调用一个调用的优势相对较小。然而，如果你有一整个需要依次发生的异步操作序列，`await` 可以使你的代码变得更清晰。通常，你会通过多次调用
+    `Promise.then()` 来处理这种情况。但是通过 `await`，代码看起来像普通的同步代码。以下是一个示例，复制了从[“使用返回 Promise
+    的函数”](#async_call_with_promise)中读取异步 web 请求的图像数据的示例：
+- en: '[PRE21]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Discussion
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The `await` keyword handles promises in a way that looks like synchronous code,
+    but doesn’t lock up your application. Consider a statement like this:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`await` 关键字以一种类似同步代码的方式处理 Promise，但不会锁定应用程序。考虑如下语句：'
+- en: '[PRE22]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: From the point of view of your code, it’s as though execution stops and the
+    `fetch()` function becomes synchronous. But in reality, JavaScript takes the remainder
+    of your function and attaches it to the promise returned by `fetch()`, just as
+    if you passed it to `Promise.then()`. As a result, the rest of your code is *scheduled*
+    and the UI thread isn’t blocked. Your application is free to handle other events
+    and timers while it waits for the fetch operation to finish.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从你的代码角度来看，就像执行停止并且 `fetch()` 函数变成同步一样。但实际上，JavaScript 将你函数的剩余部分附加到由 `fetch()`
+    返回的 Promise 上，就像你将其传递给 `Promise.then()` 一样。因此，你的其余代码被*调度*，UI 线程不会被阻塞。你的应用程序可以自由处理其他事件和计时器，同时等待
+    fetch 操作完成。
+- en: 'The `await` keyword only works in an `async` function. You can’t use `await`
+    in the top level of web page code. Instead, you need to create a new `async` function
+    to hold it, like the `getImage()` function in this example:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`await` 关键字只能在 `async` 函数中工作。你不能在 web 页面代码的顶层使用 `await`。相反，你需要创建一个新的 `async`
+    函数来容纳它，就像本例中的 `getImage()` 函数一样：'
+- en: '[PRE23]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Now that `getImage()` is an `async` function, it will automatically return a
+    `Promise` object. You attach the code that runs when `getImage()` finishes using
+    `Promise.then()`, as you would with any promise chain.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在 `getImage()` 是一个 `async` 函数，它将自动返回一个 `Promise` 对象。你可以使用 `Promise.then()`
+    来附加在 `getImage()` 完成时运行的代码，就像处理任何 Promise 链一样。
+- en: 'If you forget that `getImage()` is an asynchronous function, you might call
+    it but forget to use the promise. This is a common mistake by developers who are
+    new to `async` and `await`:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你忘记 `getImage()` 是一个异步函数，你可能会调用它，但忘记使用 Promise。这是新手在使用 `async` 和 `await` 时常见的错误。
+- en: '[PRE24]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Instead, you need to accept the `Promise` object returned by `getImage()`,
+    and call `then()` and `catch()` to attach the code that should run next, and your
+    error-handling code, respectively:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，你需要接受由 `getImage()` 返回的 `Promise` 对象，并分别调用 `then()` 和 `catch()` 来附加下一步运行的代码和你的错误处理代码：
+- en: '[PRE25]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: You might wonder why you’re dealing with a promise when the `async` and `await`
+    keywords are supposed to save you from that effort. The answer is that you always
+    need to manage the root-level `Promise` object that starts your asynchronous operation.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能会想知道为什么要处理 Promise，而 `async` 和 `await` 关键字应该帮你节省这些工作。答案是，你总是需要管理根级 `Promise`
+    对象，它启动你的异步操作。
+- en: Note
+  id: totrans-137
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: There’s one relatively recent exception. You can use `await` in the top-level
+    code of a module (see [“Organizing Your JavaScript Classes with Modules”](ch08.html#using_es6_modules)).
+    If you use this ability, make sure you place the statement that uses `await` inside
+    a `try...catch` exception-handling block to catch any unhandled errors.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最近有一个相对较新的例外情况。你可以在模块的顶层代码中使用 `await`（参见[“使用 ES6 模块组织你的 JavaScript 类”](ch08.html#using_es6_modules)）。如果你使用了这种能力，请确保将使用
+    `await` 的语句放在一个 `try...catch` 异常处理块中，以捕获任何未处理的错误。
+- en: 'The `await` keyword becomes more useful when you need to perform multiple asynchronous
+    operations and make decisions along the way. For example, imagine you need to
+    write code that waits for an asynchronous task to finish, evaluates its result,
+    and then decides what task to launch next. You can implement this pattern with
+    promises, but the logic is harder to follow. With `await`, it’s organized like
+    traditional synchronous code:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你需要执行多个异步操作并在途中做出决策时，`await`关键字变得更有用。例如，想象一下，你需要编写等待异步任务完成、评估其结果，然后决定下一个任务启动的代码。你可以用承诺来实现这种模式，但逻辑更难理解。使用`await`，它的组织方式就像传统的同步代码一样：
+- en: '[PRE26]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Given that this code looks so clean and straightforward, you might wonder why
+    you *wouldn’t* use `await`. Like all abstractions, `await` hides some details
+    of the underlying `Promise` object and makes certain situations more difficult.
+    For example, it’s a common mistake with `await` to wait for a series of actions
+    to complete one after another with separate `await` statements, when what you
+    really want is to launch all of them at once. Here’s a demonstration of the problem:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于这段代码看起来如此清晰简洁，你可能会想为什么*不*使用`await`。像所有抽象一样，`await`隐藏了底层`Promise`对象的一些细节，并使某些情况更加困难。例如，使用`await`等待一系列动作一个接一个地完成，而实际上你想要的是同时启动所有动作，这是一个常见的错误。以下是问题的演示：
+- en: '[PRE27]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'You could solve this situation with `Promise.all()` (as described in [“Executing
+    Multiple Promises Concurrently”](#concurrent_promises)). But that’s not necessary.
+    You can still use `await`, as long as you make sure all the promises are started
+    first. Here’s a correction:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以用`Promise.all()`来解决这种情况（如[“同时执行多个承诺”](#concurrent_promises)中所述）。但这并不是必要的。只要确保所有承诺都已启动，你仍然可以使用`await`。以下是一个更正：
+- en: '[PRE28]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This works because a promise starts running code as soon as it is created. By
+    the time the code has assigned `promise1`, `promise2`, and `promise3`, all three
+    asynchronous processes are underway. And although `await` is often used with a
+    function that returns a promise, it works on any `Promise` object.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这能够运行是因为承诺在创建时立即运行代码。在代码分配`promise1`，`promise2`和`promise3`时，所有三个异步过程都已启动。虽然`await`通常与返回承诺的函数一起使用，但它也适用于任何`Promise`对象。
+- en: It also doesn’t matter which promise you wait for first, because you can safely
+    use `await` on a promise that’s already completed. No matter what you do, you
+    won’t get past this section of your code until each promise is resolved or rejected.
+    (Technically, that means this code follows the same behavior as `Promise.allSettled()`
+    rather than `Promise.all()`, because the code keeps waiting for *all* the promises
+    to be dealt with, even if one of them has failed.)
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 等待哪个承诺先完成并不重要，因为你可以安全地在已经完成的承诺上使用`await`。无论你做什么，你都无法跳过代码的这一部分，直到每个承诺被解决或拒绝。
+    （从技术上讲，这意味着这段代码遵循与`Promise.allSettled()`相同的行为，而不是`Promise.all()`，因为代码会继续等待*所有*承诺被处理，即使其中一个失败了。）
+- en: Creating an Asynchronous Generator Function
+  id: totrans-147
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个异步生成器函数
+- en: Problem
+  id: totrans-148
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a generator for an operation that returns values asynchronously.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想为返回值异步地生成一个操作的生成器。
+- en: Solution
+  id: totrans-150
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `async` keyword with the specialized generator function syntax shown
+    in [“Creating a Generator Function That Yields Multiple Values”](ch06.html#creating_generator_functions).
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`async`关键字与[“创建产生多个值的生成器函数”](ch06.html#creating_generator_functions)中所示的专门生成器函数语法。
+- en: 'Consider this exceedingly simple generator that yields a never-ending sequence
+    of random numbers:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑这个极其简单的生成器，它产生一个永无止境的随机数序列：
+- en: '[PRE29]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Which you call like this:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以这样称呼：
+- en: '[PRE30]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'To make the generator asynchronous, you simply add the `async` keyword, exactly
+    as you do with an ordinary function:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使生成器异步化，你只需像普通函数一样添加`async`关键字：
+- en: '[PRE31]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'And as with any other `async` function, an asynchronous generator function
+    will not yield direct results. Instead, it will yield `Promise` objects that wrap
+    the results. You can call `Promise.then()` to get the result, when it’s ready.
+    Here’s an example that shows what’s happening:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与任何其他`async`函数一样，异步生成器函数不会直接产生结果。相反，它会产生包装结果的`Promise`对象。当结果准备好时，你可以调用`Promise.then()`来获取结果。以下是一个展示正在发生的事情的示例：
+- en: '[PRE32]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: When you run this, you’ll see a list of “Received promise” messages, immediately
+    followed by the list of results.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行此代码时，你会看到一系列“接收到承诺”消息，紧接着是结果列表。
+- en: 'Often, asynchronous generators are combined with the `await` keyword. A common
+    shortcut is the `for await` loop, which waits to request new values from the generator
+    until the previous promise has resolved. Here’s an example that uses this technique
+    to search for random numbers, one number at a time:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 经常将异步生成器与`await`关键字结合使用。一个常见的快捷方式是`for await`循环，它会等待从生成器请求新值，直到前一个Promise已解析。以下是一个使用这种技术一次搜索一个随机数的示例：
+- en: '[PRE33]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: You’ll notice that the code that uses the asynchronous iterator is now itself
+    wrapped in an `async` function. This is because you can’t use `await` in top-level
+    code (as explained in [“Waiting for a Promise to Finish with Await and Async”](#using_await)).
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会注意到使用异步迭代器的代码现在被包装在一个`async`函数中。这是因为你不能在顶层代码中使用`await`（如[“使用await和async等待Promise完成”](#using_await)中所解释的那样）。
+- en: Discussion
+  id: totrans-164
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Generator functions provide a streamlined way to return on-demand values. After
+    each `yield` statement, JavaScript pauses the generator function. But the context
+    around it (all the local variables and passed-in arguments) is preserved until
+    the next value is requested by the calling code.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生成器函数提供了一种简化的方式来按需返回值。在每个`yield`语句之后，JavaScript会暂停生成器函数。但是它周围的上下文（所有局部变量和传入的参数）会被保留，直到调用代码请求下一个值。
+- en: The example in the solution doesn’t do any real asynchronous work, and the random
+    numbers are available immediately. You could simulate an asynchronous process
+    in this example by adding a timeout. But it’s more interesting to consider an
+    example that shows asynchronous generators using a true asynchronous API.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案示例中的例子并没有执行任何真正的异步工作，随机数可以立即获得。你可以通过添加超时来在此示例中模拟异步过程。但更有趣的是考虑一个使用真正的异步API展示异步生成器的例子。
+- en: 'Asynchronous generators are most useful for tasks that access an external resource
+    and have some latency. For example, you might see them in web request or filestream
+    APIs. Here’s a generator that uses the Fetch API to retrieve its list of random
+    numbers from a web service:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 异步生成器最适合访问外部资源并具有一定延迟的任务。例如，你可能会在网络请求或文件流API中看到它们。以下是一个使用Fetch API从Web服务获取随机数列表的生成器：
+- en: '[PRE34]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Now, each time the calling code requests a value, the generator starts an asynchronous
+    `fetch()` operation and returns a promise. When `fetch()` finishes, the promise
+    resolves. The calling code could start several asynchronous calls at once by calling
+    `next()` multiple times on the generator. But it’s much more common to use a `for
+    await` loop to go one-by-one. Either way, there’s no need to change the code from
+    what was used in the original solution. If you run this version of the example,
+    you’ll see that each random number takes a short but measurable delay before it
+    appears in the developer console.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，每次调用代码请求一个值时，生成器都会启动一个异步的`fetch()`操作并返回一个Promise。当`fetch()`完成时，Promise会解析。调用代码可以通过多次在生成器上调用`next()`同时启动多个异步调用。但更常见的是使用`for
+    await`循环逐个处理。无论哪种方式，都无需修改原始解决方案中使用的代码。如果你运行这个版本的示例，你会看到每个随机数在出现在开发者控制台之前都会有一个短暂但可测量的延迟。
+- en: See Also
+  id: totrans-170
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Creating a Generator Function That Yields Multiple Values”](ch06.html#creating_generator_functions)
+    explains how to create nonasynchronous generators. [“Waiting for a Promise to
+    Finish with Await and Async”](#using_await) explains how to create ordinary asynchronous
+    functions.'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“创建返回多个值的生成器函数”](ch06.html#creating_generator_functions) 解释了如何创建非异步生成器。[“使用await和async等待Promise完成”](#using_await)
+    解释了如何创建普通的异步函数。'
+- en: Using a Web Worker to Perform a Background Task
+  id: totrans-172
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Web Worker执行后台任务
+- en: Problem
+  id: totrans-173
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want long-running code to execute on a separate thread, so it doesn’t block
+    the user interface.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望长时间运行的代码在单独的线程上执行，这样就不会阻塞用户界面。
+- en: Solution
+  id: totrans-175
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the Web Worker API. You create a `Worker` object, which runs all its code
+    on a background thread. Although the `Worker` object is isolated from the rest
+    of your code (it can’t access the DOM, the page, or any global variables, for
+    instance), you can communicate with it by sending messages back and forth.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用Web Worker API。你可以创建一个`Worker`对象，它在后台线程上运行所有代码。虽然`Worker`对象与你的其余代码隔离开来（例如，它无法访问DOM、页面或任何全局变量），但你可以通过来回发送消息与它进行通信。
+- en: '[Figure 9-1](#web_worker_example) shows an example page that calculates all
+    the prime numbers in a given range. Because the page uses web workers, the interface
+    remains responsive while the job is underway. For example, it’s still possible
+    to type in the text boxes or click the Cancel button.'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 9-1](#web_worker_example) 展示了一个在给定范围内计算所有素数的示例页面。因为页面使用了 Web Workers，所以在任务进行中，界面仍然保持响应。例如，仍然可以在文本框中输入文本或点击取消按钮。'
+- en: '![jsc3 0901](assets/jsc3_0901.png)'
+  id: totrans-178
+  prefs: []
+  type: TYPE_IMG
+  zh: '![jsc3 0901](assets/jsc3_0901.png)'
+- en: Figure 9-1\. A web worker calculates prime numbers
+  id: totrans-179
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-1\. 一个网络工作者计算素数
+- en: 'The Start button triggers a function called `startSearch()`. It creates a new
+    worker, attaches functions to handle the `Worker.error` and `Worker.message` events,
+    and finally starts the operation by calling `Worker.postMessage()`. Here’s the
+    relevant code in the script for the web page:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启动按钮触发一个名为 `startSearch()` 的函数。它创建一个新的工作者，附加处理 `Worker.error` 和 `Worker.message`
+    事件的函数，并最终通过调用 `Worker.postMessage()` 开始操作。以下是网页脚本中相关代码：
+- en: '[PRE35]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'The `prime-worker.js` file contains the code that the web worker runs. That
+    includes a `findPrimes()` function (not shown here) which holds the logic for
+    finding prime numbers using the [Sieve of Eratosthenes](https://oreil.ly/6CyO9).
+    The `prime-worker.js` file also handles the `Worker.message` event, which is triggered
+    whenever the page calls `Worker.postMessage()`. In this example, the page calls
+    `postMessage()` to send the range of numbers to the worker and begin the search:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`prime-worker.js` 文件包含 Web Worker 运行的代码。其中包括一个 `findPrimes()` 函数（此处未显示），该函数使用[埃拉托斯特尼筛法](https://oreil.ly/6CyO9)查找素数。`prime-worker.js`
+    文件还处理 `Worker.message` 事件，当页面调用 `Worker.postMessage()` 时触发该事件。在本例中，页面调用 `postMessage()`
+    向工作者发送数字范围并开始搜索：'
+- en: '[PRE36]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'The only remaining ingredient is the event handler for the Cancel button, which
+    shuts down the web worker, even if it’s in the middle of its search:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 唯一剩下的是取消按钮的事件处理程序，它关闭 Web Worker，即使它在搜索过程中也是如此：
+- en: '[PRE37]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Discussion
+  id: totrans-186
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Ordinarily, the JavaScript code you write runs on a single application thread.
+    JavaScript uses a scheduling system that’s based on an event loop. It continually
+    watches for events, listens to timer ticks, and waits for callbacks from asynchronous
+    APIs. When it receives functions to run, it queues them up in the order they arrive.
+    If you decide to write CPU-intensive code (like performing time-consuming calculations),
+    you’ll tie up the main thread and prevent other functions from running until your
+    work is finished.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 普通情况下，您编写的 JavaScript 代码在单个应用程序线程上运行。JavaScript 使用基于事件循环的调度系统。它不断监视事件，监听计时器间隔，并等待来自异步
+    API 的回调。当它接收到要运行的函数时，按照它们到达的顺序将它们排队。如果您决定编写 CPU 密集型代码（例如执行耗时的计算），您将占用主线程，并阻止其他函数在您完成工作之前运行。
+- en: Note
+  id: totrans-188
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: You may be confused about how ordinary JavaScript code is single-threaded, but
+    JavaScript provides certain APIs (like `fetch`) that are able to work asynchronously.
+    This is because these APIs are provided by services in the browser and, ultimately,
+    the operating system. They go outside of the JavaScript environment. For example,
+    web requests made with `fetch()` are made on a separate thread, not the main application
+    thread used for your application.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会对普通的 JavaScript 代码如何单线程执行感到困惑，但 JavaScript 提供了某些能够异步工作的 API（如 `fetch`）。这是因为这些
+    API 由浏览器中的服务提供，并最终由操作系统提供。它们超出了 JavaScript 环境。例如，使用 `fetch()` 进行的网络请求是在单独的线程上进行的，而不是用于应用程序的主线程。
+- en: 'The Web Worker API gives you a way to escape JavaScript’s single-threaded execution
+    model. With web workers, you are able to run code concurrently, on a separate
+    thread from the main application user interface. To ensure that you don’t have
+    to deal with messy problems like thread safety, race conditions, and locks, web
+    workers are kept in a separate execution context. They can’t interact with a web
+    page, the browser window, or the rest of your code. To emphasize this fact, the
+    `Worker` object asks that you put your web worker code in a separate file, which
+    you then supply when you create the worker:'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web Worker API 提供了一种逃脱 JavaScript 单线程执行模型的方式。使用 Web Workers，您可以在与主应用程序用户界面分离的单独线程上并发运行代码。为了确保您不必处理线程安全、竞争条件和锁等棘手问题，Web
+    Workers 保持在单独的执行上下文中。它们无法与网页、浏览器窗口或您的其他代码交互。为了强调这一事实，`Worker` 对象要求您将 Web Worker
+    代码放在单独的文件中，并在创建工作者时提供该文件：
+- en: '[PRE38]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Once you understand this limitation, the rest of the web worker model is quite
+    intuitive. All the communication between the application and a worker happens
+    through message passing. To send a message, you call `postMessage()`. In the prime
+    number example, the page sends an object literal with two properties, `to` and
+    `from`, to represent the search range:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦你理解了这个限制，剩下的 Web 工作线程模型就非常直观了。所有应用程序与工作线程之间的通信都是通过消息传递完成的。要发送消息，你需要调用`postMessage()`。在质数示例中，页面发送一个带有两个属性`to`和`from`的对象字面量，表示搜索范围：
+- en: '[PRE39]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'When the worker responds, it calls `postMessage()` to send array of prime numbers:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当工作线程响应时，它调用`postMessage()`来发送质数数组：
+- en: '[PRE40]'
+  id: totrans-195
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: There’s no limit to how often you can send messages. For example, you could
+    create a worker, call `postMessage()` to send it some work, leave it idle for
+    a while, and then call `postMessage()` to send it more work. Web workers can also
+    use the `setTimeout()` and `setInterval()` functions to schedule periodic work.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以随意发送消息，没有限制。例如，你可以创建一个工作线程，调用`postMessage()`来发送一些任务，让它空闲一段时间，然后再调用`postMessage()`来发送更多任务。Web
+    工作线程还可以使用`setTimeout()`和`setInterval()`函数来安排定期任务。
+- en: There are two ways to stop a worker. First, a worker can stop itself by calling
+    `close()`. More commonly, the page that created the worker will shut it down by
+    calling `worker.terminate()`. Once a worker is stopped in this way, it can’t be
+    resurrected.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两种方式可以停止工作线程。首先，工作线程可以调用`close()`自行停止。更常见的是，创建工作线程的页面会调用`worker.terminate()`来关闭它。一旦以这种方式停止了工作线程，就不能再重新启动它了。
+- en: See Also
+  id: totrans-198
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: To see the full code, including the prime number search routine, refer to [the
+    book’s sample code](https://github.com/javascripteverywhere/cookbook). For a revised
+    version of this example that uses more sophisticated message passing, see [“Adding
+    Progress Support to a Web Worker”](#web_worker_with_progress).
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看完整的代码，包括质数搜索例程，请参考[本书示例代码](https://github.com/javascripteverywhere/cookbook)。如果要查看使用更复杂消息传递的此示例的修订版本，请参见[“为
+    Web 工作线程添加进度支持”](#web_worker_with_progress)。
+- en: Adding Progress Support to a Web Worker
+  id: totrans-200
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为 Web 工作线程添加进度支持
+- en: Problem
+  id: totrans-201
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want your web worker to report progress while it’s running a task.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望你的 Web 工作线程在运行任务时报告进度。
+- en: Solution
+  id: totrans-203
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: You can use the standard message-passing behavior of your worker. Use a property
+    of your message object to distinguish between different types of messages.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用工作线程的标准消息传递行为。使用消息对象的属性来区分不同类型的消息。
+- en: 'For example, consider a version of the prime number example (from [“Adding
+    Progress Support to a Web Worker”](#web_worker_with_progress)) that sends two
+    types of messages: progress notifications (while the work is underway) and the
+    prime number list (when the work is finished).'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑一个质数示例的版本（来自[“为 Web 工作线程添加进度支持”](#web_worker_with_progress)），它发送两种类型的消息：进度通知（在工作进行时）和质数列表（当工作完成时）。
+- en: 'To allow the application to tell the difference between these two types of
+    messages, it adds a string `messageType` property, which it sets to either `"Progress"`
+    or `"PrimeList"`. Here’s the rewritten code to return the result:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了让应用程序能够区分这两种消息类型，它添加了一个`messageType`字符串属性，可以设置为`"Progress"`或`"PrimeList"`。以下是返回结果的重写代码：
+- en: '[PRE41]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Now the prime-number calculation code also needs to use `postMessage()` to
+    report on its progress. It uses a rate-limiting check to round the progress to
+    the nearest percent, and to make sure it doesn’t notify about the same progress
+    more than once:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，质数计算代码还需要使用`postMessage()`来报告其进度。它使用速率限制检查将进度四舍五入到最接近的百分比，并确保不会多次通知相同的进度：
+- en: '[PRE42]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: When the page receives a message, it checks the `messageType` property to determine
+    the type of message and then acts accordingly. If it’s a prime list, it shows
+    the results in the page. If it’s a progress notification, it updates the progress
+    text, as shown in [Figure 9-2](#web_worker_progress_example).
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当页面接收到消息时，它检查`messageType`属性以确定消息类型，然后采取相应措施。如果是质数列表，则在页面上显示结果。如果是进度通知，则更新进度文本，如[图 9-2](#web_worker_progress_example)所示。
+- en: '[PRE43]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: '![jsc3 0902](assets/jsc3_0902.png)'
+  id: totrans-212
+  prefs: []
+  type: TYPE_IMG
+  zh: '![jsc3 0902](assets/jsc3_0902.png)'
+- en: Figure 9-2\. A web worker reports progress as it works
+  id: totrans-213
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-2\. Web 工作线程在工作时报告进度
+- en: Discussion
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: To enforce thread safety, there’s no way for an application and a web worker
+    to interact except by passing messages. You can send any object you want as a
+    message, as long as it can be serialized to JSON. It’s much the same as when you’re
+    sending a message to a remote website.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了强制线程安全性，应用程序和 Web Worker 之间除了通过传递消息外没有其他互动方式。你可以发送任何可以被序列化为 JSON 的对象作为消息。这与向远程网站发送消息时几乎相同。
+- en: You might decide to create your own custom class for messages to formalize the
+    structure you’re using. However, keep in mind that once the object is sent between
+    threads, it will look exactly like an ordinary object literal. It won’t have a
+    custom prototype or any methods, and you won’t be able to test its type with `instanceof`.
+    Similarly, you might think of using the enumerated values trick from [“Creating
+    Enums with Symbol”](ch07.html#symbol_for_enums), but it won’t work because the
+    application and the worker can’t share their symbols.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建自己的自定义消息类来规范化你正在使用的结构，这可能是你的选择。但是，请记住，一旦对象在线程之间传递，它看起来就像一个普通的对象字面量。它没有自定义原型或任何方法，你也无法用`instanceof`来测试其类型。同样地，你可能会考虑使用来自[“使用
+    Symbol 创建枚举”](ch07.html#symbol_for_enums)的枚举值技巧，但这行不通，因为应用程序和工作线程无法共享它们的符号。
+- en: See Also
+  id: totrans-217
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: JavaScript also has two specialized APIs that build on the Web Worker API. You
+    can used [*shared workers*](https://oreil.ly/jGV06) if you want to interact with
+    the same worker from different windows. And you can use more advanced [*service
+    workers*](https://oreil.ly/vh3L3) to create workers that, once installed, stay
+    alive even when your page isn’t open. The idea behind this API is to help you
+    build caching, synchronization, and notification services that make a website
+    behave more like a native app.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 还有两个构建在 Web Worker API 基础上的专用 API。如果你希望从不同窗口与相同的工作线程交互，可以使用[*shared
+    workers*](https://oreil.ly/jGV06)。你还可以使用更高级的[*service workers*](https://oreil.ly/vh3L3)来创建工作线程，即使你的页面未打开，它们也能保持运行。这个
+    API 的理念是帮助你构建缓存、同步和通知服务，使网站的行为更像本地应用程序。

@@ -1,0 +1,1507 @@
+- en: Chapter 8\. Migrating to TypeScript
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第8章 TypeScript迁移
+- en: You’ve heard that TypeScript is great. You also know from painful experience
+    that maintaining your 15-year-old, 100,000-line JavaScript library isn’t. If only
+    it could become a TypeScript library!
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您听说过TypeScript很棒。您也从痛苦的经验中知道，维护您15年历史，有10万行代码的JavaScript库并不是一件容易的事。如果它能成为TypeScript库就好了！
+- en: This chapter offers some advice about migrating your JavaScript project to TypeScript
+    without losing your sanity and abandoning the effort.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章提供了一些建议，介绍了如何将您的JavaScript项目迁移到TypeScript，而不会丧失理智并放弃努力。
+- en: Only the smallest codebases can be migrated in one fell swoop. The key for larger
+    projects is to migrate gradually. [Item 60](#allowjs) discusses how to do this.
+    For a long migration, it’s essential to track your progress and make sure you
+    don’t backslide. This creates a sense of momentum and inevitability to the change.
+    [Item 61](#convert-up-the-graph) discusses ways to do this.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有最小的代码库可以一次性迁移。对于较大的项目来说，逐步迁移才是关键。 [Item 60](#allowjs) 讨论了如何做到这一点。长时间迁移时，跟踪进度并确保没有倒退至关重要。这将产生一种变革的动力和不可避免性。
+    [Item 61](#convert-up-the-graph) 讨论了如何做到这一点。
+- en: Migrating a large project to TypeScript won’t necessarily be easy, but it does
+    offer a huge potential upside. A 2017 study found that 15% of bugs fixed in JavaScript
+    projects on GitHub could have been prevented with TypeScript.^([1](ch08.html#idm45331644007096))
+    Even more impressive, a survey of six months’ worth of postmortems at AirBnb found
+    that 38% of them could have been prevented by TypeScript.^([2](ch08.html#idm45331644005032))
+    If you’re advocating for TypeScript at your organization, stats like these will
+    help! So will running some experiments and finding early adopters. [Item 59](#jsdoc-tscheck)
+    discusses how to experiment with TypeScript before you begin migration.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将大型项目迁移到TypeScript可能并不容易，但它确实提供了巨大的潜在优势。一项2017年的研究发现，GitHub上JavaScript项目中修复的15%的错误可以通过TypeScript预防。^([1](ch08.html#idm45331644007096))更令人印象深刻的是，AirBnb六个月的事故报告调查发现，有38%的事故本可以通过TypeScript避免。^([2](ch08.html#idm45331644005032))如果你在组织中提倡TypeScript，这些统计数据会有所帮助！对此，运行一些实验并找到早期采用者也会有所帮助。
+    [Item 59](#jsdoc-tscheck) 讨论了在开始迁移之前如何进行TypeScript实验。
+- en: Since this chapter is largely about JavaScript, many of the code samples are
+    either pure JavaScript (and not expected to pass the type checker) or checked
+    with looser settings (e.g., with `noImplicitAny` off).
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于本章大部分内容都是关于JavaScript的，因此许多代码示例要么是纯JavaScript（不需要通过类型检查器），要么使用更宽松的设置进行检查（例如，关闭`noImplicitAny`）。
+- en: 'Item 58: Write Modern JavaScript'
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Item 58: 写现代JavaScript'
+- en: 'In addition to checking your code for type safety, TypeScript compiles your
+    TypeScript code to any version of JavaScript code, all the way back to 1999 vintage
+    ES3\. Since TypeScript is a superset of the *latest* version of JavaScript, this
+    means that you can use `tsc` as a “transpiler”: something that takes new JavaScript
+    and converts it to older, more widely supported JavaScript.'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了检查代码是否具有类型安全性外，TypeScript还可以将您的TypeScript代码编译为任何版本的JavaScript代码，一直回溯到1999年的ES3版本。由于TypeScript是JavaScript的*最新*版本的超集，这意味着您可以将`tsc`用作“转换器”：一种将新的JavaScript转换为更旧，更广泛支持的JavaScript的工具。
+- en: 'Taking a different perspective, this means that when you decide to convert
+    an existing JavaScript codebase to TypeScript, there’s no downside to adopting
+    all the latest JavaScript features. In fact, there’s quite a bit of upside: because
+    TypeScript is designed to work with modern JavaScript, modernizing your JS is
+    a great first step toward adopting TypeScript.'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换个角度看，这意味着当您决定将现有的JavaScript代码库转换为TypeScript时，采用所有最新的JavaScript特性没有坏处。事实上，有很多好处：因为TypeScript设计用于与现代JavaScript一起使用，所以现代化您的JS是迈向采用TypeScript的重要第一步。
+- en: And because TypeScript is a superset of JavaScript, learning to write more modern
+    and idiomatic JavaScript means you’re learning to write better TypeScript, too.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而且，由于TypeScript是JavaScript的超集，学习编写更现代和习惯用法的JavaScript意味着您也在学习编写更好的TypeScript。
+- en: 'This item gives a quick tour of some of the features in modern JavaScript,
+    which I’m defining here as everything introduced in ES2015 (aka ES6) and after.
+    This material is covered in much greater detail in other books and online. If
+    any of the topics mentioned here are unfamiliar, you owe it to yourself to learn
+    more about them. TypeScript can be tremendously helpful when you’re learning a
+    new language feature like `async`/`await`: it almost certainly understands the
+    feature better than you do and can guide you toward correct usage.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本项介绍了现代 JavaScript 的一些特性，这里定义的是自 ECMAScript 2015（又名 ES6）以及之后引入的所有内容。这些材料在其他书籍和在线资源中有更详尽的介绍。如果这里提到的任何主题对你不熟悉，你应该花时间了解更多。当你学习像
+    `async`/`await` 这样的新语言特性时，TypeScript 可以极大地帮助你：它几乎肯定比你更好地理解这些特性，并可以指导你正确使用它们。
+- en: These are all worth understanding, but by far the most important for adopting
+    TypeScript are ECMAScript Modules and ES2015 classes.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些都值得理解，但是对于采用 TypeScript 来说，最重要的是 ECMAScript 模块和 ES2015 类。
+- en: Use ECMAScript Modules
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 ECMAScript 模块
+- en: Before the 2015 version of ECMAScript there was no standard way to break your
+    code into separate modules. There were many solutions, from multiple `<script>`
+    tags, manual concatenation, and Makefiles to node.js-style `require` statements
+    or AMD-style `define` callbacks. TypeScript even had its own module system ([Item
+    53](ch07.html#avoid-non-ecma)).
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 ECMAScript 2015 版本之前，没有标准的方法将代码分割为单独的模块。有多种解决方案，从多个 `<script>` 标签、手动串联、Makefile
+    到 node.js 风格的 `require` 语句或 AMD 风格的 `define` 回调。TypeScript 甚至有自己的模块系统（[第 53 项](ch07.html#avoid-non-ecma)）。
+- en: 'Today there is one standard: ECMAScript modules, aka `import` and `export`.
+    If your JavaScript codebase is still a single file, if you use concatenation or
+    one of the other module systems, it’s time to switch to ES modules. This may require
+    setting up a tool like webpack or ts-node. TypeScript works best with ES modules,
+    and adopting them will facilitate your transition, not least because it will allow
+    you to migrate modules one at a time (see [Item 61](#convert-up-the-graph)).'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 今天有一个标准：ECMAScript 模块，也称为 `import` 和 `export`。如果你的 JavaScript 代码库仍然是单文件，如果你使用串联或其他模块系统之一，那么现在是切换到
+    ES 模块的时候了。这可能需要设置类似 webpack 或 ts-node 这样的工具。TypeScript 最适合使用 ES 模块，并且采用它们将促进你的过渡，至少因为它将允许你逐个迁移模块（参见
+    [第 61 项](#convert-up-the-graph)）。
+- en: 'The details will vary depending on your setup, but if you’re using CommonJS
+    like this:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体细节将取决于你的设置，但如果你像这样使用 CommonJS：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'then the ES module equivalent would look like:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么 ES 模块的等价物看起来会像这样：
+- en: '[PRE1]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Use Classes Instead of Prototypes
+  id: totrans-19
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用类替代原型
+- en: JavaScript has a flexible prototype-based object model. But by and large JS
+    developers have ignored this in favor of a more rigid class-based model. This
+    was officially enshrined into the language with the introduction of the `class`
+    keyword in ES2015.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 拥有灵活的基于原型的对象模型。但总的来说，JS 开发者们更倾向于使用更严格的基于类的模型，这在 ES2015 引入 `class`
+    关键字后正式成为了语言的一部分。
+- en: 'If your code uses prototypes in a straightforward way, switch to using classes.
+    That is, instead of:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的代码以直接的方式使用原型，应该切换到使用类。也就是说，不要再使用：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'write:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: TypeScript struggles with the prototype version of `Person` but understands
+    the class-based version with minimal annotations. If you’re unfamiliar with the
+    syntax, TypeScript will help you get it right.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 对于原型版本的 `Person` 存在一些困难，但对于带有最小注释的基于类的版本理解能力更好。如果你对语法不熟悉，TypeScript
+    将帮助你正确使用它。
+- en: For code that uses older-style classes, the TypeScript language service offers
+    a “Convert function to an ES2015 class” quick fix that can speed this up ([Figure 8-1](#efts-08in01)).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于使用旧式类的代码，TypeScript 语言服务提供了一个“将函数转换为 ES2015 类”的快速修复方案，可以加快此过程（[图 8-1](#efts-08in01)）。
+- en: '![efts 08in01](assets/efts_08in01.png)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 08in01](assets/efts_08in01.png)'
+- en: Figure 8-1\. The TypeScript language service offers a quick fix to convert older-style
+    classes to ES2015 classes.
+  id: totrans-28
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. TypeScript 语言服务提供了一种快速修复方案，将旧式类转换为 ES2015 类。
+- en: Use let/const Instead of var
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `let`/`const` 替代 `var`
+- en: JavaScript’s `var` has some famously quirky scoping rules. If you’re curious
+    to learn more about them, read *Effective JavaScript*. But better to avoid `var`
+    and not worry! Instead, use `let` and `const`. They’re truly block-scoped and
+    work in much more intuitive ways than `var`.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 的 `var` 有一些著名的古怪作用域规则。如果你想更深入了解它们，请阅读《*Effective JavaScript*》。但最好避免使用
+    `var`，不必担心！相反，请使用 `let` 和 `const`。它们真正地在块级作用域中工作，比 `var` 更直观。
+- en: Again, TypeScript will help you here. If changing `var` to `let` results in
+    an error, then you’re almost certainly doing something you shouldn’t be.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，TypeScript 在这里会帮助您。如果将 `var` 改为 `let` 导致错误，则几乎可以肯定您正在做不应该做的事情。
+- en: 'Nested function statements also have `var`-like scoping rules:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 嵌套的函数语句也具有类似于 `var` 的作用域规则：
+- en: '[PRE4]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: When you call `foo()`, it logs `hello` because the definition of `bar` is hoisted
+    to the top of `foo`. This is surprising! Prefer function expressions (`const bar
+    = () => { ... }`) instead.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您调用 `foo()` 时，它会记录 `hello`，因为 `bar` 的定义被提升到 `foo` 的顶部。这令人惊讶！最好使用函数表达式 (`const
+    bar = () => { ... }`)。
+- en: Use for-of or Array Methods Instead of for(;;)
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 for-of 或数组方法代替 for(;;)
+- en: 'In classic JavaScript you used a C-style for loop to iterate over an array:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在经典 JavaScript 中，您使用 C 风格的 for 循环来遍历数组：
+- en: '[PRE5]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'In modern JavaScript you can use a for-of loop instead:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现代 JavaScript 中，您可以使用 for-of 循环：
+- en: '[PRE6]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'This is less prone to typos and doesn’t introduce an index variable. If you
+    want the index variable, you can use `forEach`:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样更不容易出现拼写错误，并且不会引入索引变量。如果需要索引变量，可以使用 `forEach`：
+- en: '[PRE7]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Avoid using the for-in construct to iterate over arrays as it has many surprises
+    (see [Item 16](ch02_split_001.html#number-index)).
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 避免使用 for-in 构造循环遍历数组，因为它会有很多意外情况（见 [Item 16](ch02_split_001.html#number-index)）。
+- en: Prefer Arrow Functions Over Function Expressions
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 更喜欢箭头函数而不是函数表达式
+- en: 'The `this` keyword is one of the most famously confusing aspects of JavaScript
+    because it has different scoping rules than other variables:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this` 关键字是 JavaScript 中最令人困惑的一个方面，因为它具有与其他变量不同的作用域规则：'
+- en: '[PRE8]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Generally you want `this` to refer to the relevant instance of whichever class
+    you’re in. Arrow functions help you do that by keeping the `this` value from their
+    enclosing scope:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，您希望 `this` 引用所在类的相关实例。箭头函数通过保持其闭包作用域中的 `this` 值来帮助您实现这一点：
+- en: '[PRE9]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In addition to having simpler semantics, arrow functions are more concise. You
+    should use them whenever possible. For more on `this` binding, see [Item 49](ch06.html#this-in-callbacks).
+    With the `noImplicitThis` (or `strict`) compiler option, TypeScript will help
+    you get your `this`-binding right.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了语义更简单外，箭头函数更为简洁。应尽可能使用它们。关于 `this` 绑定的更多信息，请参见 [Item 49](ch06.html#this-in-callbacks)。使用
+    `noImplicitThis`（或 `strict`）编译选项，TypeScript 将帮助您正确地处理 `this` 绑定。
+- en: Use Compact Object Literals and Destructuring Assignment
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用紧凑对象字面量和解构赋值
+- en: 'Instead of writing:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是写成：
+- en: '[PRE10]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'you can simply write:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以简单地写：
+- en: '[PRE11]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: In addition to being more concise, this encourages consistent naming of variables
+    and properties, something your human readers will appreciate as well ([Item 36](ch04.html#language-of-domain)).
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了更简洁外，这还鼓励变量和属性的一致命名，这是您的人类读者也会欣赏的 ([Item 36](ch04.html#language-of-domain))。
+- en: 'To return an object literal from an arrow function, wrap it in parentheses:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要从箭头函数中返回对象字面量，请将其括在括号中：
+- en: '[PRE12]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'There is also shorthand for properties whose values are functions:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有属性值为函数的简写：
+- en: '[PRE13]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The inverse of compact object literals is object destructuring. Instead of
+    writing:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 紧凑对象字面量的反义是对象解构。而不是写成：
+- en: '[PRE14]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'you can write:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以写：
+- en: '[PRE15]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'or even:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者甚至：
+- en: '[PRE16]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: In this last example only `a` and `b` become variables, not `props`.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个最后的例子中，只有 `a` 和 `b` 变成了变量，而不是 `props`。
+- en: 'You may specify default values when destructuring. Instead of writing:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在解构时可以指定默认值。而不是写成：
+- en: '[PRE17]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'write this:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写成这样：
+- en: '[PRE18]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'You can also destructure arrays. This is particularly useful with tuple types:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以解构数组。这在使用元组类型时特别有用：
+- en: '[PRE19]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Destructuring can also be used in function parameters:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解构也可以用在函数参数中：
+- en: '[PRE20]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: As with compact object literal syntax, destructuring is concise and encourages
+    consistent variable naming. Use it!
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与简洁的对象字面量语法一样，解构是简洁的，并鼓励一致的变量命名。使用它！
+- en: Use Default Function Parameters
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用默认函数参数
+- en: 'In JavaScript, all function parameters are optional:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，所有函数参数都是可选的：
+- en: '[PRE21]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'This outputs:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将输出：
+- en: '[PRE22]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'This is often used to implement default values for parameters:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这经常用于实现参数的默认值：
+- en: '[PRE23]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'In modern JavaScript, you can specify the default value directly in the parameter
+    list:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现代 JavaScript 中，您可以直接在参数列表中指定默认值：
+- en: '[PRE24]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'In addition to being more concise, this makes it clear that `base` is an optional
+    parameter. Default parameters have another benefit when you migrate to TypeScript:
+    they help the type checker infer the type of the parameter, removing the need
+    for a type annotation. See [Item 19](ch03.html#avoid-inferable).'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了更加简洁外，这还表明 `base` 是一个可选参数。默认参数在你迁移到 TypeScript 时还有另一个好处：它们帮助类型检查器推断参数的类型，从而消除了类型注解的需求。参见
+    [项目 19](ch03.html#avoid-inferable)。
+- en: Use async/await Instead of Raw Promises or Callbacks
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 async/await 替代原始的 Promises 或回调
+- en: '[Item 25](ch03.html#use-async-await) explains why `async` and `await` are preferable,
+    but the gist is that they’ll simplify your code, prevent bugs, and help types
+    flow through your asynchronous code.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[项目 25](ch03.html#use-async-await) 解释了为什么 `async` 和 `await` 更可取，但要点在于它们能简化你的代码，防止错误，并帮助类型在异步代码中流动。'
+- en: 'Instead of either of these:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是这两者：
+- en: '[PRE25]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'write this:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写这样的代码：
+- en: '[PRE26]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Don’t Put use strict in TypeScript
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 不要在 TypeScript 中使用 use strict
+- en: 'ES5 introduced “strict mode” to make some suspect patterns more explicit errors.
+    You enable it by putting `''use strict''` in your code:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ES5 引入了“严格模式”以使一些可疑模式更加显式化为错误。你可以通过在代码中加入 `'use strict'` 来启用它：
+- en: '[PRE27]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: If you’ve never used strict mode in your JavaScript codebase, then give it a
+    try. The errors it finds are likely to be ones that the TypeScript compiler will
+    find, too.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的 JavaScript 代码库从未使用过严格模式，那么试试看吧。它找到的错误很可能也会被 TypeScript 编译器发现。
+- en: But as you transition to TypeScript, there’s not much value in keeping `'use
+    strict'` in your source code. By and large, the sanity checks that TypeScript
+    provides are far stricter than those offered by strict mode.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是随着你转向 TypeScript，保留源代码中的 `'use strict'` 并没有太多价值。总的来说，TypeScript 提供的健全性检查远比严格模式提供的要严格得多。
+- en: There is some value in having a `'use strict'` in the JavaScript that `tsc`
+    emits. If you set the `alwaysStrict` or `strict` compiler options, TypeScript
+    will parse your code in strict mode and put a `'use strict'` in the JavaScript
+    output for you.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，由 `tsc` 发出的代码中加上 `'use strict'` 是有一定价值的。如果你设置了 `alwaysStrict`
+    或 `strict` 编译器选项，TypeScript 将以严格模式解析你的代码，并在生成的 JavaScript 输出中添加 `'use strict'`。
+- en: In short, don’t write `'use strict'` in your TypeScript. Use `alwaysStrict`
+    instead.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简而言之，在 TypeScript 中不要写 `'use strict'`。使用 `alwaysStrict` 代替即可。
+- en: These are just a few of the many new JavaScript features that TypeScript lets
+    you use. TC39, the body that governs JS standards, is very active, and new features
+    are added year to year. The TypeScript team is currently committed to implementing
+    any feature that reaches stage 3 (out of 4) in the standardization process, so
+    you don’t even have to wait for the ink to dry. Check out the TC39 GitHub repo^([3](ch08.html#idm45331642441688))
+    for the latest. As of this writing, the pipeline and decorators proposals in particular
+    have great potential to impact TypeScript.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些只是 TypeScript 允许你使用的许多新的 JavaScript 特性中的一部分。TC39，负责 JS 标准的机构，非常活跃，每年都会添加新特性。目前，TypeScript
+    团队致力于实现达到标准化流程阶段 3（共 4 阶段）的任何特性，因此你甚至不必等待程序稳定下来。查看 TC39 GitHub 仓库^([3](ch08.html#idm45331642441688))
+    获取最新信息。截至本文撰写时，管道和装饰器提案特别有可能影响 TypeScript。
+- en: Things to Remember
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需记住的事项
+- en: TypeScript lets you write modern JavaScript whatever your runtime environment.
+    Take advantage of this by using the language features it enables. In addition
+    to improving your codebase, this will help TypeScript understand your code.
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript 允许你在任何运行时环境中编写现代 JavaScript。利用这一点，使用它所支持的语言特性。除了改善你的代码库，这还将帮助 TypeScript
+    理解你的代码。
+- en: Use TypeScript to learn language features like classes, destructuring, and `async`/`await`.
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 TypeScript 来学习类、解构和 `async`/`await` 等语言特性。
+- en: 'Don’t bother with `''use strict''`: TypeScript is stricter.'
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不必在 TypeScript 中费心 `'use strict'`：TypeScript 更严格。
+- en: Check the TC39 GitHub repo and TypeScript release notes to learn about all the
+    latest language features.
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 查看 TC39 GitHub 仓库和 TypeScript 发布说明，了解所有最新的语言特性。
+- en: 'Item 59: Use @ts-check and JSDoc to Experiment with TypeScript'
+  id: totrans-104
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 59：使用 @ts-check 和 JSDoc 来尝试 TypeScript
+- en: 'Before you begin the process of converting your source files from JavaScript
+    to TypeScript ([Item 60](#allowjs)), you may want to experiment with type checking
+    to get an initial read on the sorts of issues that will come up. TypeScript’s
+    `@ts-check` directive lets you do exactly this. It directs the type checker to
+    analyze a single file and report whatever issues it finds. You can think of it
+    as an extremely loose version of type checking: looser even than TypeScript with
+    `noImplicitAny` off ([Item 2](ch01.html#which-ts)).'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你开始从 JavaScript 转换源文件到 TypeScript 的过程之前（[条目 60](#allowjs)），你可能希望尝试类型检查，以了解可能遇到的问题。TypeScript
+    的 `@ts-check` 指令允许你做到这一点。它指示类型检查器分析单个文件并报告它发现的任何问题。你可以把它看作是一种非常宽松的类型检查版本：甚至比 TypeScript
+    的 `noImplicitAny` 关闭的情况更宽松（[条目 2](ch01.html#which-ts)）。
+- en: 'Here’s how it works:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是它的工作原理：
+- en: '[PRE28]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: TypeScript infers the type of `person.first` as `string`, so `2 * person.first`
+    is a type error, no type annotations required.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 推断 `person.first` 的类型为 `string`，所以 `2 * person.first` 是一个类型错误，无需类型注解。
+- en: 'While it may surface this sort of blatant type error, or functions called with
+    too many arguments, in practice, `// @ts-check` tends to turn up a few specific
+    types of errors:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然它可能会暴露这种明显的类型错误，或者调用了太多参数的函数，但实际上，`// @ts-check` 倾向于揭示几种特定类型的错误：
+- en: Undeclared Globals
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 未声明的全局变量
+- en: If these are symbols that you’re defining, then declare them with `let` or `const`.
+    If they are “ambient” symbols that are defined elsewhere (in a `<script>` tag
+    in an HTML file, for instance), then you can create a type declarations file to
+    describe them.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这些是你定义的符号，那么用 `let` 或 `const` 声明它们。如果它们是在别处（比如在 HTML 文件的 `<script>` 标签中）定义的“环境”符号，则可以创建一个类型声明文件来描述它们。
+- en: 'For example, if you have JavaScript like this:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果你有这样的 JavaScript 代码：
+- en: '[PRE29]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'then you could create a file called *types.d.ts*:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后你可以创建一个名为 *types.d.ts* 的文件：
+- en: '[PRE30]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Creating this file on its own may fix the issue. If it does not, you may need
+    to explicitly import it with a “triple-slash” reference:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单独创建这个文件可能会修复问题。如果不行，你可能需要使用 “三斜杠” 引用显式导入它：
+- en: '[PRE31]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: This *types.d.ts* file is a valuable artifact that will become the basis for
+    your project’s type declarations.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 *types.d.ts* 文件是一个有价值的工件，将成为你项目类型声明的基础。
+- en: Unknown Libraries
+  id: totrans-119
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 未知的库
+- en: 'If you’re using a third-party library, TypeScript needs to know about it. For
+    example, you might use jQuery to set the size of an HTML element. With `@ts-check`,
+    TypeScript will flag an error:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用第三方库，TypeScript 需要知道它。例如，你可能会使用 jQuery 来设置 HTML 元素的大小。使用 `@ts-check`，TypeScript
+    将标记一个错误：
+- en: '[PRE32]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'The solution is to install the type declarations for jQuery:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案是安装 jQuery 的类型声明：
+- en: '[PRE33]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Now the error is specific to jQuery:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在错误具体到了 jQuery：
+- en: '[PRE34]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: In fact, it should be `.css`, not `.style`.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，应该是 `.css`，而不是 `.style`。
+- en: '`@ts-check` lets you take advantage of the TypeScript declarations for popular
+    JavaScript libraries without migrating to TypeScript yourself. This is one of
+    the best reasons to use it.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`@ts-check` 允许你利用 TypeScript 对流行 JavaScript 库的声明，而无需自行迁移到 TypeScript。这是使用它的最佳理由之一。'
+- en: DOM Issues
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: DOM 问题
+- en: 'Assuming you’re writing code that runs in a web browser, TypeScript is likely
+    to flag issues around your handling of DOM elements. For example:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你正在编写在 web 浏览器中运行的代码，TypeScript 可能会标记你在处理 DOM 元素时遇到的问题。例如：
+- en: '[PRE35]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'The issue is that only `HTMLInputElement`s have a `value` property, but `document.getElementById`
+    returns the more generic `HTMLElement` (see [Item 55](ch07.html#understand-the-dom)).
+    If you know that the `#age` element really is an `input` element, then this is
+    an appropriate time to use a type assertion ([Item 9](ch02_split_000.html#prefer-declarations-to-assertions)).
+    But this is still a JS file, so you can’t write `as HTMLInputElement`. Instead,
+    you can assert a type using JSDoc:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于只有 `HTMLInputElement` 具有 `value` 属性，但是 `document.getElementById` 返回更通用的
+    `HTMLElement`（参见 [条目 55](ch07.html#understand-the-dom)）。如果你知道 `#age` 元素确实是一个 `input`
+    元素，那么这是使用类型断言的适当时机（[条目 9](ch02_split_000.html#prefer-declarations-to-assertions)）。但这仍然是一个
+    JS 文件，所以你不能写 `as HTMLInputElement`。相反，你可以使用 JSDoc 进行类型断言：
+- en: '[PRE36]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'If you mouse over `ageEl` in your editor, you’ll see that TypeScript now considers
+    it an `HTMLInputElement`. Take care as you type the JSDoc `@type` annotation:
+    the parentheses after the comment are required.'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在编辑器中悬停在 `ageEl` 上，你会看到 TypeScript 现在将其视为 `HTMLInputElement`。在输入 JSDoc `@type`
+    注释时要小心：括号后面的注释是必需的。
+- en: This leads to another type of error that comes up with `@ts-check`, inaccurate
+    JSDoc, as explained next.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这导致了另一种类型的错误，在 `@ts-check` 中出现了不准确的 JSDoc，下面将进行解释。
+- en: Inaccurate JSDoc
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 不准确的 JSDoc
+- en: 'If your project already has JSDoc-style comments, TypeScript will begin checking
+    them when you flip on `@ts-check`. If you previously used a system like the Closure
+    Compiler that used these comments to enforce type safety, then this shouldn’t
+    cause major headaches. But you may be in for some surprises if your comments were
+    more like “aspirational JSDoc”:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的项目已经有类似 JSDoc 风格的注释，启用 `@ts-check` 后 TypeScript 将开始检查它们。如果之前使用过像 Closure
+    Compiler 这样的系统来强制执行类型安全性，那么这不应该造成重大问题。但如果你的注释更像是“理想的 JSDoc”，可能会有些意外。
+- en: '[PRE37]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'The first issue is a misunderstanding of the DOM: `getBoundingClientRect()`
+    is defined on `Element`, not `Node`. So the `@param` tag should be updated. The
+    second is a mismatch between proprties specified in the `@return` tag and the
+    implementation. Presumably the rest of the project uses the `width` and `height`
+    properties, so the `@return` tag should be updated.'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个问题是对 DOM 的误解：`getBoundingClientRect()` 被定义在 `Element` 上，而不是 `Node` 上。因此，`@param`
+    标签应该更新。第二个问题是在 `@return` 标签和实现中指定的属性之间不匹配。很可能项目的其余部分使用 `width` 和 `height` 属性，因此
+    `@return` 标签应该更新。
+- en: 'You can use JSDoc to gradually add type annotations to your project. The TypeScript
+    language service will offer to infer type annotations as a quick fix for code
+    where it’s clear from usage, as shown here and in [Figure 8-2](#efts-08in02):'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用 JSDoc 逐步为项目添加类型注解。TypeScript 语言服务将会建议根据用法从推断类型注释的快速修复代码，就像这里和 [图 8-2](#efts-08in02)
+    中展示的一样：
+- en: '[PRE38]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: '![efts 08in02](assets/efts_08in02.png)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 08in02](assets/efts_08in02.png)'
+- en: Figure 8-2\. The TypeScript Language Services offer a quick fix to infer paramter
+    types from usage.
+  id: totrans-142
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2\. TypeScript 语言服务提供了一个从用法推断参数类型的快速修复。
+- en: 'This results in a correct JSDoc annotation:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将得到一个正确的 JSDoc 注释：
+- en: '[PRE39]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'This can be helpful to encourage types to flow through your code with `@ts-check`.
+    But it doesn’t always work so well. For instance:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `@ts-check` 可以帮助类型在你的代码中流动。但它并不总是效果很好。例如：
+- en: '[PRE40]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'If you use the quick fix to annotate `data`, you’ll wind up with:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用快速修复来注释 `data`，你最终会得到：
+- en: '[PRE41]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'This is structural typing gone awry ([Item 4](ch01.html#structural)). While
+    the function would technically work on any sort of object with a `forEach` method
+    with that signature, the intent was most likely for the parameter to be `{files:
+    string[]}`.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这是结构化类型化走火入魔（[项目 4](ch01.html#structural)）。虽然函数在任何具有该签名的对象上技术上都可以工作，但最有可能是参数应该是
+    `{files: string[]}`。'
+- en: 'You can get much of the TypeScript experience in a JavaScript project using
+    JSDoc annotations and `@ts-check`. This is appealing because it requires no changes
+    in your tooling. But it’s best not to go too far in this direction. Comment boilerplate
+    has real costs: it’s easy for your logic to get lost in a sea of JSDoc. TypeScript
+    works best with *.ts* files, not *.js* files. The goal is ultimately to convert
+    your project to TypeScript, not to JavaScript with JSDoc annotations. But `@ts-check`
+    can be a useful way to experiment with types and find some initial errors, especially
+    for projects that already have extensive JSDoc annotations.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 项目中，你可以通过 JSDoc 注解和 `@ts-check` 获得大部分 TypeScript 的体验。这很吸引人，因为它不需要你改变工具链。但最好不要走得太远。注释的样板有真正的成本：在一大堆
+    JSDoc 中容易让逻辑变得混乱。TypeScript 最适合 *.ts* 文件，而不是 *.js* 文件。最终目标是将你的项目转换为 TypeScript，而不是带有
+    JSDoc 注解的 JavaScript。但 `@ts-check` 可以是一种有用的方式，特别是对于已经有大量 JSDoc 注解的项目，可以用来试验类型并发现一些初始错误。
+- en: Things to Remember
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需记住的事项
+- en: Add "`// @ts-check`" to the top of a JavaScript file to enable type checking.
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 文件顶部添加 "`// @ts-check`" 可启用类型检查。
+- en: Recognize common errors. Know how to declare globals and add type declarations
+    for third-party libraries.
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 识别常见错误。了解如何声明全局变量并为第三方库添加类型声明。
+- en: Use JSDoc annotations for type assertions and better type inference.
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 JSDoc 注释进行类型断言和更好的类型推断。
+- en: Don’t spend too much time getting your code perfectly typed with JSDoc. Remember
+    that the goal is to convert to *.ts*!
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不要花太多时间用 JSDoc 完美地输入你的代码。记住，目标是转换为 *.ts*！
+- en: 'Item 60: Use allowJs to Mix TypeScript and JavaScript'
+  id: totrans-156
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 60：使用 allowJs 混合 TypeScript 和 JavaScript
+- en: For a small project, you may be able to convert from JavaScript to TypeScript
+    in one fell swoop. But for a larger project this “stop the world” approach won’t
+    work. You need to be able to transition gradually. That means you need a way for
+    TypeScript and JavaScript to coexist.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于小型项目，你可能能够一举从 JavaScript 转换到 TypeScript。但对于较大的项目，这种“停止世界”的方法行不通。你需要逐步过渡的能力。这意味着你需要一种让
+    TypeScript 和 JavaScript 共存的方式。
+- en: The key to this is the `allowJs` compiler option. With `allowJs`, TypeScript
+    files and JavaScript files may import one another. For JavaScript files this mode
+    is extremely permissive. Unless you use `@ts-check` ([Item 59](#jsdoc-tscheck)),
+    the only errors you’ll see are syntax errors. This is “TypeScript is a superset
+    of JavaScript” in the most trivial sense.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这的关键在于`allowJs`编译选项。使用`allowJs`，TypeScript文件和JavaScript文件可以相互导入。对于JavaScript文件，这种模式非常宽松。除非你使用`@ts-check`（[Item
+    59](#jsdoc-tscheck)），否则你只会看到语法错误。这是“TypeScript是JavaScript的超集”在最琐碎的意义上。
+- en: While it’s unlikely to catch errors, `allowJs` does give you an opportunity
+    to introduce TypeScript into your build chain before you start making code changes.
+    This is a good idea because you’ll want to be able to run your tests as you convert
+    modules to TypeScript ([Item 61](#convert-up-the-graph)).
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然不太可能捕捉到错误，但`allowJs`确实为你提供了一个机会，在开始进行代码更改之前将TypeScript引入到你的构建链中。这是一个好主意，因为你会希望在将模块转换为TypeScript时能够运行你的测试（[Item
+    61](#convert-up-the-graph)）。
+- en: 'If your bundler includes TypeScript integration or has a plug-in available,
+    that’s usually the easiest path forward. With `browserify`, for instance, you
+    run `npm install --sav-dev tsify` and add it as a plug-in:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的打包工具包含了TypeScript集成或有可用的插件，那通常是最简单的前进路径。例如，使用`browserify`，你运行`npm install
+    --sav-dev tsify`并将其添加为插件：
+- en: '[PRE42]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Most unit testing tools have an option like this as well. With the `jest` tool,
+    for instance, you install `ts-jest` and pass TypeScript sources through it by
+    specifying a `jest.config.js` like:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数单元测试工具也有类似的选项。例如，使用`jest`工具，你安装`ts-jest`并通过指定`jest.config.js`将TypeScript源代码传递给它：
+- en: '[PRE43]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'If your build chain is custom, your task will be more involved. But there’s
+    always a good fallback option: when you specify the `outDir` option, TypeScript
+    will generate pure JavaScript sources in a directory that parallels your source
+    tree. Usually your existing build chain can be run over that. You may need to
+    tweak TypeScript’s JavaScript output so that it closely matches your original
+    JavaScript source, (e.g., by specifying the `target` and `module` options).'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的构建链是自定义的，那么你的任务将会更加复杂。但总会有一个很好的备选方案：当你指定`outDir`选项时，TypeScript会在一个与源代码树平行的目录中生成纯JavaScript源代码。通常情况下，你现有的构建链可以在这上面运行。你可能需要微调TypeScript的JavaScript输出，使其与原始JavaScript源代码尽可能匹配（例如，通过指定`target`和`module`选项）。
+- en: Adding TypeScript into your build and test process may not be the most enjoyable
+    task, but it is an essential one that will let you begin to migrate your code
+    with confidence.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将TypeScript添加到你的构建和测试流程中可能不是最愉快的任务，但这是一个至关重要的任务，让你能够有信心开始迁移你的代码。
+- en: Things to Remember
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Use the `allowJs` compiler option to support mixed JavaScript and TypeScript
+    as you transition your project.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`allowJs`编译选项来支持混合JavaScript和TypeScript，以便在项目转换过程中过渡。
+- en: Get your tests and build chain working with TypeScript before beginning large-scale
+    migration.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在开始大规模迁移之前，确保你的测试和构建链能够与TypeScript一起工作。
+- en: 'Item 61: Convert Module by Module Up Your Dependency Graph'
+  id: totrans-169
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目61：按模块转换，沿着依赖图向上移动
+- en: 'You’ve adopted modern JavaScript, converting your project to use ECMAScript
+    modules and classes ([Item 58](#write-modern-js)). You’ve integrated TypeScript
+    into your build chain and have all your tests passing ([Item 60](#allowjs)). Now
+    for the fun part: converting your JavaScript to TypeScript. But where to begin?'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你已经采用了现代JavaScript，将项目转换为使用ECMAScript模块和类（[Item 58](#write-modern-js)）。你已经将TypeScript集成到你的构建链中，并且所有的测试都通过了（[Item
+    60](#allowjs)）。现在是有趣的部分：将你的JavaScript转换为TypeScript。但从哪里开始呢？
+- en: 'When you add types to a module, it’s likely to surface new type errors in all
+    the modules that depend on it. Ideally you’d like to convert each module once
+    and be done with it. This implies that you should convert modules going *up* the
+    dependency graph: starting with the leaves (modules that depend on no others)
+    and moving up to the root.'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你给一个模块添加类型时，很可能会在所有依赖它的模块中出现新的类型错误。理想情况下，你希望每个模块只转换一次就完成。这意味着你应该按照依赖图向*上*转换模块：从叶子节点（不依赖其他模块的模块）开始，向根节点移动。
+- en: The very first modules to migrate are your third-party dependencies since, by
+    definition, you depend on them but they do not depend on you. Usually this means
+    installing `@types` modules. If you use the `lodash` utility library, for example,
+    you’d run `npm install --save-dev @types/lodash`. These typings will help types
+    flow through your code and surface issues in your use of the libraries.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个要迁移的模块通常是第三方依赖项，因为按定义，您依赖于它们，但它们不依赖于您。通常这意味着安装 `@types` 模块。例如，如果您使用 `lodash`
+    实用程序库，您将运行 `npm install --save-dev @types/lodash`。这些类型将帮助类型在您的代码中流动，并显示您对库的使用中出现的问题。
+- en: If your code calls external APIs, you may also want to add type declarations
+    for these early on. Although these calls may happen anywhere in your code, this
+    is still in the spirit of moving up the dependency graph since you depend on the
+    APIs but they do not depend on you. Many types flow from API calls, and these
+    are generally difficult to infer from context. If you can find a spec for the
+    API, generate types from that (see [Item 35](ch04.html#consider-codegen)).
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的代码调用外部 API，可能还希望尽早为这些 API 添加类型声明。尽管这些调用可能发生在代码的任何位置，但这仍符合向依赖图上游移动的精神，因为您依赖于
+    API，但它们并不依赖于您。许多类型源自 API 调用，这些类型通常很难从上下文中推断出来。如果您可以找到 API 的规范，可以从中生成类型（参见 [Item
+    35](ch04.html#consider-codegen)）。
+- en: As you migrate your own modules, it’s helpful to visualize the dependency graph.
+    [Figure 8-3](#initial-dag) shows an example graph from a medium-sized JavaScript
+    project, made using the excellent `madge` tool.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在迁移您自己的模块时，可视化依赖图非常有帮助。[图 8-3](#initial-dag) 展示了一个中型 JavaScript 项目的示例图，使用了出色的
+    `madge` 工具生成。
+- en: '![efts 0801](assets/efts_0801.png)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 0801](assets/efts_0801.png)'
+- en: Figure 8-3\. The dependency graph for a medium-sized JavaScript project. Arrows
+    indicate dependencies. Darker-shaded boxes indicate that a module is involved
+    in a circular dependency.
+  id: totrans-176
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. 中型 JavaScript 项目的依赖图。箭头表示依赖关系。较深色的框表示模块涉及循环依赖。
+- en: 'The bottom of this dependency graph is the circular dependency between *utils.js*
+    and *tickers.js*. There are many modules that depend on these two, but they only
+    depend on one another. This pattern is quite common: most projects will have some
+    sort of utility module at the bottom of the dependency graph.'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此依赖图底部是 *utils.js* 和 *tickers.js* 之间的循环依赖。许多模块依赖于这两个模块，但它们只相互依赖。这种模式非常常见：大多数项目将在依赖图的底部拥有某种类型的实用程序模块。
+- en: As you migrate your code, focus on adding types rather than refactoring. If
+    this is an old project, you’re likely to notice some strange things and want to
+    fix them. Resist this urge! The immediate goal is to convert your project to TypeScript,
+    not to improve its design. Instead, write down code smells as you detect them
+    and make a list of future refactors.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在迁移代码时，专注于添加类型而不是重构。如果这是一个旧项目，您可能会注意到一些奇怪的问题并想要修复它们。请抵制这种冲动！当前的目标是将项目转换为 TypeScript，而不是改进其设计。相反，请在发现问题时记录代码异味并制定未来重构的清单。
+- en: 'There are a few common errors you’ll run into as you convert to TypeScript.
+    Some of these were covered in [Item 59](#jsdoc-tscheck), but new ones include:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您转换为 TypeScript 时，可能会遇到一些常见错误。其中一些在 [Item 59](#jsdoc-tscheck) 中有所涉及，但新的错误包括：
+- en: Undeclared Class Members
+  id: totrans-180
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 未声明的类成员
+- en: 'Classes in JavaScript do not need to declare their members, but classes in
+    TypeScript do. When you rename a class’s *.js* file to *.ts*, it’s likely to show
+    errors for every single property you reference:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 中的类不需要声明其成员，但 TypeScript 中的类需要。当您将类的 *.js* 文件重命名为 *.ts* 时，很可能会显示对您引用的每个属性的错误：
+- en: '[PRE44]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: There’s a helpful quick fix (see [Figure 8-4](#efts-08in03)) for this that you
+    should take advantage of.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此问题，有一个有用的快速修复（参见 [图 8-4](#efts-08in03)），您应该利用它。
+- en: '![efts 08in03](assets/efts_08in03.png)'
+  id: totrans-184
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 08in03](assets/efts_08in03.png)'
+- en: Figure 8-4\. The quick fix to add declarations for missing members is particularly
+    helpful in converting a class to TypeScript.
+  id: totrans-185
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-4\. 快速修复以添加缺失成员的声明对于将类转换为 TypeScript 特别有帮助。
+- en: 'This will add declarations for the missing members based on usage:'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将根据使用情况添加缺失成员的声明：
+- en: '[PRE45]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: TypeScript was able to get the type for `greeting` correct, but not the type
+    for `name`. After applying this quick fix, you should look through the property
+    list and fix the `any` types.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 能够正确获取 `greeting` 的类型，但不能正确获取 `name` 的类型。应用此快速修复后，您应该查看属性列表并修复 `any`
+    类型。
+- en: If this is the first time you’ve seen the full property list for your class,
+    you may be in for a shock. When I converted the main class in *dygraph.js* (the
+    root module in [Figure 8-3](#initial-dag)), I discovered that it had no fewer
+    than 45 member variables! Migrating to TypeScript has a way of surfacing bad designs
+    like this that were previously implicit. It’s harder to justify a bad design if
+    you have to look at it. But again, resist the urge to refactor now. Note the oddity
+    and think about how you’d fix it some other day.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这是您第一次看到类的完整属性列表，您可能会感到震惊。当我将*dygraph.js*中的主类转换（图 8-3中的根模块）时，我发现它竟然有不少于45个成员变量！迁移到
+    TypeScript 会显露出之前隐含的糟糕设计。如果必须看到它，糟糕的设计就更难以自圆其说了。但同样，现在抵制重构的冲动。注意这种奇怪之处，并考虑如何在其他日子解决它。
+- en: Values with Changing Types
+  id: totrans-190
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 具有变化类型的值
+- en: 'TypeScript will complain about code like this:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 将抱怨这样的代码：
+- en: '[PRE46]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This topic is covered in more depth in [Item 23](ch03.html#all-at-once), so
+    you may want to brush up on that item if you run into this error. If the fix is
+    trivial, you can build the object all at once:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更详细地讨论了这个主题，见[项目 23](ch03.html#all-at-once)，所以如果您遇到此错误，可能需要重新学习一下该项目。如果修复很简单，您可以一次性构建对象：
+- en: '[PRE47]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'If it is not, then this is an appropriate time to use a type assertion:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果不是，那么现在是使用类型断言的适当时机：
+- en: '[PRE48]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: You should fix this eventually (see [Item 9](ch02_split_000.html#prefer-declarations-to-assertions)),
+    but this is expedient and will help you keep the migration going.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终您应该修复这个问题（参见[项目 9](ch02_split_000.html#prefer-declarations-to-assertions)），但这是一个权宜之计，将帮助您保持迁移进程。
+- en: 'If you’ve been using JSDoc and `@ts-check` ([Item 59](#jsdoc-tscheck)), be
+    aware that you can actually *lose* type safety by converting to TypeScript. For
+    instance, TypeScript flags an error in this JavaScript:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您一直在使用 JSDoc 和`@ts-check`（[项目 59](#jsdoc-tscheck)），请注意，转换为 TypeScript 实际上可能会丢失类型安全性。例如，TypeScript
+    在这段 JavaScript 中标记了一个错误：
+- en: '[PRE49]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'When you convert to TypeScript, the `@ts-check` and JSDoc stop being enforced.
+    This means the type of `num` is implicitly `any`, so there’s no error:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您转换为 TypeScript 时，`@ts-check` 和 JSDoc 将不再强制执行。这意味着`num`的类型隐式为`any`，因此不会出现错误：
+- en: '[PRE50]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: Fortunately there’s a quick fix available to move JSDoc types to TypeScript
+    types. If you have any JSDoc, you should use what’s shown in [Figure 8-5](#efts-08in04).
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，有一个快速修复方法可以将 JSDoc 类型转移到 TypeScript 类型中。如果您有任何 JSDoc，请使用[图 8-5](#efts-08in04)中所示的内容。
+- en: '![efts 08in04](assets/efts_08in04.png)'
+  id: totrans-203
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 08in04](assets/efts_08in04.png)'
+- en: Figure 8-5\. Quick fix to copy JSDoc annotations to TypeScript type annotations
+  id: totrans-204
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-5\. 快速修复：将 JSDoc 注释复制到 TypeScript 类型注释中
+- en: 'Once you’ve copied type annotations to TypeScript, make sure to remove them
+    from the JSDoc to avoid redundancy (see [Item 30](ch04.html#jsdoc-repeat)):'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您将类型注释复制到 TypeScript 中，请确保从 JSDoc 中删除它们，以避免冗余（参见[项目 30](ch04.html#jsdoc-repeat)）：
+- en: '[PRE51]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: This issue will also be caught when you turn on `noImplicitAny`, but you may
+    as well add the types now.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您打开`noImplicitAny`时，也会捕获到这个问题，但现在您可能也可以添加类型。
+- en: Migrate your tests last. They should be at the top of your dependency graph
+    (since your code doesn’t depend on them), and it’s extremely helpful to know that
+    your tests continue to pass during the migration despite your not having changed
+    them at all.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后迁移您的测试。它们应该位于您的依赖图的顶部（因为您的代码不依赖它们），在迁移过程中，知道您的测试仍然通过，尽管您完全没有更改它们，这是非常有帮助的。
+- en: Things to Remember
+  id: totrans-209
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事项
+- en: Start migration by adding `@types` for third-party modules and external API
+    calls.
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通过为第三方模块和外部 API 调用添加`@types`开始迁移。
+- en: Begin migrating your modules from the bottom of the dependency graph upwards.
+    The first module will usually be some sort of utility code. Consider visualizing
+    the dependency graph to help you track progress.
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 从依赖图的底部开始迁移您的模块。第一个模块通常会是某种实用代码。考虑可视化依赖图以帮助您跟踪进度。
+- en: Resist the urge to refactor your code as you uncover odd designs. Keep a list
+    of ideas for future refactors, but stay focused on TypeScript conversion.
+  id: totrans-212
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在揭示奇怪的设计时，抵制重构代码的冲动。保留一个未来重构的想法列表，但专注于 TypeScript 转换。
+- en: Be aware of common errors that come up during conversion. Copy JSDoc annotations
+    if necessary to avoid losing type safety as you convert.
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在转换过程中注意常见的错误。如有必要，复制 JSDoc 注释以避免丢失类型安全性。
+- en: 'Item 62: Don’t Consider Migration Complete Until You Enable noImplicitAny'
+  id: totrans-214
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 62：在启用`noImplicitAny`之前，不要认为迁移完成。
+- en: Converting your whole project to *.ts* is a big accomplishment. But your work
+    isn’t done quite yet. Your next goal is to turn on the `noImplicitAny` option
+    ([Item 2](ch01.html#which-ts)). TypeScript code without `noImplicitAny` is best
+    thought of as transitional because it can mask real errors you’ve made in your
+    type declarations.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将整个项目转换为 *.ts* 是一个重要的成就。但你的工作还没有完成。你的下一个目标是启用 `noImplicitAny` 选项（[条款 2](ch01.html#which-ts)）。没有
+    `noImplicitAny` 的 TypeScript 代码最好被看作是过渡性的，因为它可能掩盖了你在类型声明中真正的错误。
+- en: 'For example, perhaps you’ve used the “Add all missing members” quick fix to
+    add property declarations to a class ([Item 61](#convert-up-the-graph)). You’re
+    left with an `any` type and would like to fix it:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，也许你使用了“添加所有缺失成员”的快速修复来添加类的属性声明（[条款 61](#convert-up-the-graph)）。你会留下一个`any`类型，并希望修复它：
+- en: '[PRE52]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: '`indices` sounds like it should be an array of numbers, so you plug in that
+    type:'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`indices` 听起来应该是一个数字数组，所以你插入了那个类型：'
+- en: '[PRE53]'
+  id: totrans-219
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'No new errors result, so you then keep moving. Unfortunately, you’ve made a
+    mistake: `number[]` is the wrong type. Here’s some code from elsewhere in the
+    class:'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有出现新错误，所以你继续前进。不幸的是，你犯了一个错误：`number[]` 是错误的类型。这里是来自课堂其他地方的一些代码：
+- en: '[PRE54]'
+  id: totrans-221
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: Clearly `number[][]` or `[number, number][]` would be a more accurate type.
+    Does it surprise you that indexing into a `number` is allowed? Take this as an
+    indication of just how loose TypeScript can be without `noImplicitAny`.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，`number[][]`或`[number, number][]`将是更精确的类型。你是否对索引到`number`允许的事实感到惊讶？这表明 TypeScript
+    在没有 `noImplicitAny` 的情况下可以有多松散。
+- en: 'When you turn on `noImplicitAny`, this becomes an error:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你启用 `noImplicitAny` 时，以下内容将变成错误：
+- en: '[PRE55]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: A good strategy for enabling `noImplicitAny` is to set it in your local client
+    and start fixing errors. The number of errors you get from the type checker gives
+    you a good sense of your progress. You can commit the type corrections without
+    committing the *tsconfig.json* change until you get the number of errors down
+    to zero.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启用 `noImplicitAny` 的一个好策略是在你的本地客户端设置它并开始修复错误。从类型检查器中获取的错误数量可以让你了解你的进展。你可以提交类型修正而不提交
+    *tsconfig.json* 的更改，直到将错误数量减少到零为止。
+- en: 'There are many other knobs you can turn to increase the strictness of type
+    checking, culminating with `"strict": true`. But `noImplicitAny` is the most important
+    one and your project will get most of the benefits of TypeScript even if you don’t
+    adopt other settings like `strictNullChecks`. Give everyone on your team a chance
+    to get used to TypeScript before you adopt stricter settings.'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '还有许多其他可以调整的开关来增加类型检查的严格性，最终设置为 `"strict": true`。但 `noImplicitAny` 是最重要的设置，即使你不采用像
+    `strictNullChecks` 这样的其他设置，你的项目也会获得 TypeScript 的大部分好处。在采用更严格的设置之前，给你的团队一个适应 TypeScript
+    的机会。'
+- en: Things to Remember
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住这些事情：
+- en: Don’t consider your TypeScript migration done until you adopt `noImplicitAny`.
+    Loose type checking can mask real mistakes in type declarations.
+  id: totrans-228
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在采用 `noImplicitAny` 之前不要认为你的 TypeScript 迁移完成。宽松的类型检查可能掩盖类型声明中的真正错误。
+- en: Fix type errors gradually before enforcing `noImplicitAny`. Give your team a
+    chance to get comfortable with TypeScript before adopting stricter checks.
+  id: totrans-229
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 逐步修复类型错误，然后再强制使用 `noImplicitAny`。在采用更严格的检查之前，给你的团队一个适应 TypeScript 的机会。
+- en: '^([1](ch08.html#idm45331644007096-marker)) Z. Gao, C. Bird, and E. T. Barr,
+    “To Type or Not to Type: Quantifying Detectable Bugs in JavaScript,” ICSE 2017,
+    [*http://earlbarr.com/publications/typestudy.pdf*](http://earlbarr.com/publications/typestudy.pdf).'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch08.html#idm45331644007096-marker)) Z. Gao, C. Bird, 和 E. T. Barr，《是类型还是不类型：量化
+    JavaScript 中可检测到的错误》，ICSE 2017，[*http://earlbarr.com/publications/typestudy.pdf*](http://earlbarr.com/publications/typestudy.pdf)。
+- en: ^([2](ch08.html#idm45331644005032-marker)) Brie Bunge, “Adopting TypeScript
+    at Scale,” JSConf Hawaii 2019, [*https://youtu.be/P-J9Eg7hJwE*](https://youtu.be/P-J9Eg7hJwE).
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch08.html#idm45331644005032-marker)) Brie Bunge，《大规模采用 TypeScript》，JSConf
+    Hawaii 2019，[*https://youtu.be/P-J9Eg7hJwE*](https://youtu.be/P-J9Eg7hJwE)。
+- en: ^([3](ch08.html#idm45331642441688-marker)) [*https://github.com/tc39/proposals*](https://github.com/tc39/proposals)
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch08.html#idm45331642441688-marker)) [*https://github.com/tc39/proposals*](https://github.com/tc39/proposals)

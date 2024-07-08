@@ -1,0 +1,531 @@
+- en: Chapter 15\. REST APIs and JSON
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第15章 REST API 和 JSON
+- en: While we saw some REST API examples in [Chapter 8](ch08.xhtml#ch_form_handling),
+    our paradigm so far has mostly been “process the data on the server side and send
+    formatted HTML to the client.” Increasingly, this is not the default mode of operation
+    for web applications. Instead, most modern web applications are single-page applications
+    (SPAs) that receive all of their HTML and CSS in one static bundle and then rely
+    on receiving unstructured data as JSON and manipulating HTML directly. Similarly,
+    the importance of posting forms to communicate changes to the server is giving
+    way to communicating directly using HTTP requests to an API.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们在 [第8章](ch08.xhtml#ch_form_handling) 中看到了一些 REST API 的例子，但到目前为止，我们的范式主要是“在服务器端处理数据并向客户端发送格式化的
+    HTML”。越来越多的现代 Web 应用程序不再采用这种默认操作模式。相反，大多数现代 Web 应用程序都是单页面应用程序（SPA），它们在一个静态捆绑包中接收所有的
+    HTML 和 CSS，然后依赖于接收 JSON 格式的非结构化数据，并直接操作 HTML。同样地，通过提交表单来通信并将更改发送到服务器的重要性正逐渐让位于通过
+    HTTP 请求直接与 API 进行通信。
+- en: So it’s time to turn our attention to using Express to provide API endpoints
+    instead of preformatted HTML. This will serve us well in [Chapter 16](ch16.xhtml#ch_single_page_applications),
+    when we demonstrate how our API could be used to dynamically render an application.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候把注意力转向使用 Express 提供 API 端点，而不是预先格式化的 HTML 了。在 [第16章](ch16.xhtml#ch_single_page_applications)
+    中，我们将展示如何使用我们的 API 动态渲染应用程序。
+- en: 'In this chapter, we’ll strip down our application to providing a “coming soon”
+    HTML interface: we’ll fill that in in [Chapter 16](ch16.xhtml#ch_single_page_applications).
+    Instead, we’ll focus on an API that will provide access to our vacation database
+    and provide API support for registering “out of season” listeners.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将简化我们的应用程序，提供一个“即将推出”的 HTML 界面：我们将在 [第16章](ch16.xhtml#ch_single_page_applications)
+    中填充内容。而我们将专注于一个 API，该 API 将提供对我们的假期数据库的访问，并支持注册“淡季”侦听器的 API 功能。
+- en: '*Web service* is a general term that means any application programming interface
+    (API) that’s accessible over HTTP. The idea of web services has been around for
+    quite some time, but until recently, the technologies that enabled them were stuffy,
+    Byzantine, and overcomplicated. There are still systems that use those technologies
+    (such as SOAP and WSDL), and there are Node packages that will help you interface
+    with these systems. We won’t be covering those, though. Instead, we will be focused
+    on providing so-called RESTful services, which are much more straightforward to
+    interface with.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Web 服务* 是一个泛指，指任何可以通过 HTTP 访问的应用程序编程接口（API）。Web 服务的概念已经存在了相当长的时间，但直到最近，使其能够运行的技术仍然是古板、拜占庭式和过于复杂的。仍然有一些系统使用这些技术（如
+    SOAP 和 WSDL），并且有 Node 包可以帮助您与这些系统进行接口。不过，我们不会涵盖这些内容。相反，我们将专注于提供所谓的 RESTful 服务，这些服务要简单得多，易于接口化。'
+- en: The acronym *REST* stands for *representational state transfer*, and the grammatically
+    troubling *RESTful* is used as an adjective to describe a web service that satisfies
+    the principles of REST. The formal description of REST is complicated and steeped
+    in computer science formality, but the basics are that REST is a stateless connection
+    between a client and a server. The formal definition of REST also specifies that
+    the service can be cached and that services can be layered (that is, when you
+    use a REST API, there may be other REST APIs beneath it).
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缩写 *REST* 表示 *表述性状态转移*，而在语法上令人困扰的 *RESTful* 则用作描述符来描述满足 REST 原则的 Web 服务。REST
+    的正式描述复杂且充满计算机科学的形式化，但基本原理是 REST 是客户端和服务器之间的无状态连接。REST 的正式定义还指定服务可以被缓存，并且服务可以被分层（也就是说，当你使用
+    REST API 时，可能会有其他 REST API 在其下层）。
+- en: From a practical standpoint, the constraints of HTTP actually make it difficult
+    to create an API that’s not RESTful; you’d have to go out of your way to establish
+    state, for example. So our work is mostly cut out for us.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从实际角度来看，HTTP 的约束实际上使得创建非 RESTful API 变得困难；例如，你必须特意去建立状态。因此，我们的工作大部分已经为我们完成。
+- en: JSON and XML
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JSON 和 XML
+- en: 'Vital to providing an API is having a common language to speak in. Part of
+    the communication is dictated for us: we must use HTTP methods to communicate
+    with the server. But past that, we are free to use whatever data language we choose.
+    Traditionally, XML has been a popular choice, and it remains an important markup
+    language. While XML is not particularly complicated, Douglas Crockford saw that
+    there was room for something more lightweight, and JavaScript Object Notation
+    (JSON) was born. In addition to being JavaScript-friendly (though it is by no
+    means proprietary; it is an easy format for any language to parse), it also has
+    the advantage of being generally easier to write by hand than XML.'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供API至关重要的是有一个共同的语言来交流。通信的一部分是我们必须使用HTTP方法与服务器通信。但过了这一点，我们可以自由选择任何数据语言。传统上，XML一直是一个流行的选择，并且仍然是一个重要的标记语言。虽然XML并不特别复杂，但Douglas
+    Crockford发现有更轻量级的空间，于是JavaScript对象表示法（JSON）诞生了。除了友好于JavaScript（尽管它绝不是专有的；任何语言都可以轻松解析它），它还具有比XML更容易手工编写的优势。
+- en: 'I prefer JSON over XML for most applications: there’s better JavaScript support,
+    and it’s a simpler, more compact format. I recommend focusing on JSON and providing
+    XML only if existing systems require XML to communicate with your app.'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数应用程序我更喜欢JSON而不是XML：因为它有更好的JavaScript支持，并且它是一种更简单、更紧凑的格式。如果现有系统需要XML来与您的应用程序通信，我建议重点关注JSON，只提供XML。
+- en: Our API
+  id: totrans-10
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 我们的API
+- en: We’ll plan our API before we start implementing it. In addition to listing vacations
+    and subscribing to “in-season” notifications, we’ll add a “delete vacation” endpoint.
+    Since this is a public API, we won’t actually delete the vacation. We’ll simply
+    mark it as “delete requested” so an administrator can review. For example, you
+    might use this unsecured endpoint to allow vendors to request the removal of vacations
+    from the site, which could then later be reviewed by an administrator. Here are
+    our API endpoints.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在开始实施之前计划我们的API。除了列出假期并订阅“在季节内”的通知外，我们还将添加“删除假期”端点。由于这是一个公共API，我们实际上不会删除假期。我们只是将其标记为“请求删除”，以便管理员可以审查。例如，您可以使用此不安全端点允许供应商请求从网站中删除假期，稍后可以由管理员审查。以下是我们的API端点。
+- en: '`GET /api/vacations`'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`GET /api/vacations`'
+- en: Retrieves vacations
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检索假期
+- en: '`GET /api/vacation/:sku`'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`GET /api/vacation/:sku`'
+- en: Returns a vacation by its SKU
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据其SKU返回假期
+- en: '`POST /api/vacation/:sku/notify-when-in-season`'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`POST /api/vacation/:sku/notify-when-in-season`'
+- en: Takes `email` as a querystring parameter and adds a notification listener for
+    the specified vacation
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以 `email` 作为查询字符串参数，并为指定的假期添加通知侦听器
+- en: '`DELETE /api/vacation/:sku`'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`DELETE /api/vacation/:sku`'
+- en: Requests the deletion of a vacation; takes `email` (the person requesting the
+    deletion) and `notes` as querystring parameters
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求删除一个假期；以 `email`（请求删除的人）和 `notes` 作为查询字符串参数
+- en: '[PRE0]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Example 15-1\.
+  id: totrans-21
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例15-1。
+- en: There are many HTTP verbs available. `GET` and `POST` are the most common, followed
+    by `DELETE` and `PUT`. It has become a standard to use `POST` for *creating* something,
+    and `PUT` for *updating* (or modifying) something. The English meaning of these
+    words doesn’t support this distinction in any way, so you may want to consider
+    using the path to distinguish between these two operations to avoid confusion.
+    If you want more information about HTTP verbs, I recommend starting with this
+    [Tamas Piros article](http://bit.ly/32L4QWt).
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多可用的HTTP动词。 `GET` 和 `POST` 是最常见的，接着是 `DELETE` 和 `PUT`。已经成为一种标准使用 `POST` 来
+    *创建* 某物，而 `PUT` 用于 *更新*（或修改）某物。这些词的英文含义并不以任何方式支持此区分，因此您可能希望考虑使用路径来区分这两个操作，以避免混淆。如果您想了解更多关于HTTP动词的信息，我建议从这篇[Tamas
+    Piros文章](http://bit.ly/32L4QWt)开始。
+- en: 'There are many ways we could have described our API. Here, we’ve chosen to
+    use combinations of HTTP methods and paths to distinguish our API calls, and a
+    mix of querystring and body parameters for passing data. As an alternative, we
+    could have had different paths (such as */api/vacations/delete*) with the same
+    method.^([1](ch15.xhtml#idm45053580950936)) We could also have passed data in
+    a consistent way. For example, we might have chosen to pass all the necessary
+    information for retrieving parameters in the URL instead of using a querystring:
+    `DEL /api/vacation/:id/:email/:notes`. To avoid excessively long URLs, I recommend
+    using the request body to pass large blocks of data (for example, the deletion
+    request notes).'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以以许多方式描述我们的 API。在这里，我们选择使用 HTTP 方法和路径的组合来区分我们的 API 调用，以及通过查询字符串和主体参数的混合来传递数据。作为另一种选择，我们可以使用不同的路径（例如
+    */api/vacations/delete*）来使用相同的方法。^([1](ch15.xhtml#idm45053580950936)) 我们还可以以一种一致的方式传递数据。例如，我们可能选择在
+    URL 中传递检索参数所需的所有信息，而不是使用查询字符串：`DEL /api/vacation/:id/:email/:notes`。为了避免过长的 URL，我建议使用请求主体来传递大块数据（例如删除请求的备注）。
+- en: Tip
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: There is a popular and well-respected convention for JSON APIs, creatively named
+    JSON:API. It’s a bit verbose and repetitive for my taste, but I also believe that
+    an imperfect standard is better than no standard at all. While we’re not using
+    JSON:API for this book, you will learn everything you need to adopt the conventions
+    laid down by JSON:API. See the [JSON:API home page](https://jsonapi.org) for more
+    information.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一个广受欢迎且备受尊重的 JSON API 的约定，创意地命名为 JSON:API。对我来说，它有点冗长和重复，但我也相信，一个不完美的标准总比没有标准好。虽然本书不使用
+    JSON:API，但你将学到采纳 JSON:API 所制定的规范所需的一切。详见 [JSON:API 主页](https://jsonapi.org) 获取更多信息。
+- en: API Error Reporting
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: API 错误报告
+- en: 'Error reporting in HTTP APIs is usually achieved through HTTP status codes.
+    If the request returns 200 (OK), the client knows the request was successful.
+    If the request returns 500 (Internal Server Error), the request failed. In most
+    applications, however, not everything can (or should be) categorized coarsely
+    into “success” or “failure.” For example, what if you request something by an
+    ID but that ID doesn’t exist? This does not represent a server error. The client
+    has asked for something that doesn’t exist. In general, errors can be grouped
+    into the following categories:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP API 中的错误报告通常通过 HTTP 状态码实现。如果请求返回 200（OK），客户端知道请求成功。如果请求返回 500（内部服务器错误），请求失败。然而，在大多数应用程序中，并非所有事物都能（或应该）粗略地归类为“成功”或“失败”。例如，如果您按ID请求某些内容，但该ID不存在，这并不代表服务器错误。客户端请求了不存在的内容。通常情况下，错误可以分为以下几类：
+- en: Catastrophic errors
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 严重错误
+- en: Errors that result in an unstable or unknown state for the server. Usually,
+    this is the result of an unhandled exception. The only safe way to recover from
+    a catastrophic error is to restart the server. Ideally, any pending requests would
+    receive a 500 response code, but if the failure is severe enough, the server may
+    not be able to respond at all, and the request will time out.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导致服务器处于不稳定或未知状态的错误。通常情况下，这是未处理异常的结果。从灾难性错误中安全恢复的唯一方法是重新启动服务器。理想情况下，任何待处理请求都应该收到
+    500 响应代码，但如果故障足够严重，服务器可能无法响应，请求将超时。
+- en: Recoverable server errors
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可恢复的服务器错误
+- en: Recoverable errors do not require a server restart, or any other heroic action.
+    The error is a result of an unexpected error condition on the server (for example,
+    a database connection being unavailable). The problem may be transient or permanent.
+    A 500 response code is appropriate in this situation.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可恢复错误不需要服务器重新启动或任何其他英勇行动。该错误是由服务器上的意外错误条件导致的（例如，数据库连接不可用）。问题可能是暂时的或永久的。在这种情况下，500
+    响应代码是合适的。
+- en: Client errors
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端错误
+- en: 'Client errors are a result of the client making the mistake—usually missing
+    or invalid parameters. It isn’t appropriate to use a 500 response code. After
+    all, the server has not failed. Everything is working normally; the client just
+    isn’t using the API correctly. You have a couple of options here: you could respond
+    with a status code of 200 and describe the error in the response body, or you
+    could additionally try to describe the error with an appropriate HTTP status code.
+    I recommend the latter approach. The most useful response codes in this case are
+    404 (Not Found), 400 (Bad Request), and 401 (Unauthorized). Additionally, the
+    response body should contain an explanation of the specifics of the error. If
+    you want to go above and beyond, the error message would even contain a link to
+    documentation. Note that if the user requests a list of things and there’s nothing
+    to return, this is not an error condition. It’s appropriate to simply return an
+    empty list.'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端错误是客户端犯的错误，通常是缺少或无效的参数。使用500响应代码是不合适的。毕竟，服务器并未发生故障。一切正常工作，只是客户端没有正确使用API。在这里您有几个选择：可以用状态码200响应，并在响应体中描述错误，或者您还可以尝试使用适当的HTTP状态码描述错误。我建议采用后一种方法。在这种情况下，最有用的响应代码是404（未找到）、400（错误请求）和401（未授权）。此外，响应体应包含有关错误具体信息的解释。如果您想做得更多，错误消息甚至可以包含指向文档的链接。请注意，如果用户请求一系列内容但没有返回任何内容，这并不是错误条件。直接返回空列表是合适的。
+- en: In our application, we’ll be using a combination of HTTP response codes and
+    error messages in the body.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用程序中，我们将结合使用HTTP响应代码和响应体中的错误消息。
+- en: Cross-Origin Resource Sharing
+  id: totrans-35
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 跨源资源共享
+- en: 'If you’re publishing an API, you’ll likely want to make the API available to
+    others. This will result in a *cross-site HTTP request*. Cross-site HTTP requests
+    have been the subject of many attacks and have therefore been restricted by the
+    *same-origin policy*, which restricts where scripts can be loaded from. Specifically,
+    the protocol, domain, and port must match. This makes it impossible for your API
+    to be used by another site, which is where cross-origin resource sharing (CORS)
+    comes in. CORS allows you to lift this restriction on a case-by-case basis, even
+    allowing you to list which domains specifically are allowed to access the script.
+    CORS is implemented through the `Access-Control-Allow-Origin` header. The easiest
+    way to implement it in an Express application is to use the `cors` package (`npm
+    install cors`). To enable CORS for your application, use this:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您发布一个API，您可能希望将API提供给其他人使用。这将导致*跨站点HTTP请求*。跨站点HTTP请求一直是许多攻击的对象，因此受到*同源策略*的限制，该策略限制了脚本可以加载的位置。具体而言，协议、域名和端口必须匹配。这使得您的API无法被其他站点使用，这就是*跨源资源共享*（CORS）的用武之地。CORS允许您逐案例解除此限制，甚至允许您列出特定允许访问脚本的域。CORS通过`Access-Control-Allow-Origin`头部来实现。在Express应用程序中实现它的最简单方法是使用`cors`包（`npm
+    install cors`）。要为您的应用程序启用CORS，请使用以下方法：
+- en: '[PRE1]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Because the same-origin API is there for a reason (to prevent attacks), I recommend
+    applying CORS only where necessary. In our case, we want to expose our entire
+    API (but only the API), so we’re going to restrict CORS to paths starting with
+    */api*:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为同源API有其存在的理由（防止攻击），我建议仅在必要时应用CORS。在我们的情况下，我们想要公开我们的整个API（但只有API），因此我们将CORS限制在以*/api*开头的路径上：
+- en: '[PRE2]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: See the [package documentation](https://github.com/expressjs/cors) for information
+    about more advanced use of CORS.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关更高级CORS用法的信息，请参阅[包文档](https://github.com/expressjs/cors)。
+- en: Our Tests
+  id: totrans-41
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 我们的测试
+- en: 'If we use HTTP verbs other than `GET`, it can be a hassle to test our API,
+    since browsers only know how to issue `GET` requests (and `POST` requests for
+    forms). There are ways around this, such as the excellent application [Postman](https://www.getpostman.com).
+    However, whether or not you use such a utility, it’s good to have automated tests.
+    Before we write tests for our API, we need a way to actually *call* a REST API.
+    For that, we’ll be using a Node package called `node-fetch`, which replicates
+    the browser’s *fetch* API:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们使用除了`GET`之外的HTTP动词，测试API可能会很麻烦，因为浏览器只知道如何发出`GET`请求（和表单的`POST`请求）。有办法解决这个问题，比如优秀的应用程序[Postman](https://www.getpostman.com)。但是，无论您是否使用这样的实用程序，编写自动化测试都是一个好习惯。在为我们的API编写测试之前，我们需要一种实际*调用*REST
+    API的方法。为此，我们将使用一个名为`node-fetch`的Node包，它复制了浏览器的*fetch* API：
+- en: '[PRE3]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'We’ll put the tests for the API calls we’re going to implement in *tests/api/api.test.js*
+    (*ch15/test/api/api.test.js* in the companion repo):'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将要实现的API调用的测试放在*tests/api/api.test.js*（伴随库中的*ch15/test/api/api.test.js*）中：
+- en: '[PRE4]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Our test suite starts off with a helper function `_fetch`, which handles some
+    common housekeeping. It will JSON encode the body if it isn’t already, add the
+    appropriate headers, and throw an appropriate error if the response status code
+    isn’t in the 200s.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的测试套件以一个辅助函数`_fetch`开始，该函数处理一些常见的清理工作。如果尚未对其进行JSON编码，它将对请求体进行编码，添加适当的标头，并在响应状态码不在200范围内时抛出适当的错误。
+- en: We have a single test for each of our API endpoints. I’m not suggesting that
+    these tests are robust or complete; even with this simple API, we could (and should)
+    have several tests for each endpoint. What we have here is more of a starting
+    point that illustrates techniques for testing an API.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们的每个API端点，我们只有一个测试。我并不是在暗示这些测试是健壮或完整的；即使对于这个简单的API，我们也可以（而且应该）为每个端点编写几个测试。我们这里的做法更像是一个起点，用来说明测试API的技术。
+- en: There are a couple of important characteristics of these tests that deserve
+    mention. One is that we are relying on the API being already started and running
+    on port 3000\. A more robust test suite would find an open port, start the API
+    on that port as part of its setup, and stop it when all the tests have run. Second,
+    this test relies on data already being present in our API. For example, the first
+    test expects there to be at least one vacation, and for that vacation to have
+    a name and a price. In a real application, you may not be able to make these assumptions
+    (for example, you may start with no data, and you may want to test for allowable
+    missing data). Again, a more robust testing framework would have a way of setting
+    and resetting the initial data in the API so you could start from a known state
+    every time. For example, you might have scripts that set up and seed a test database,
+    attach the API to it, and tear it down for every test run. As we saw in [Chapter 5](ch05.xhtml#ch_qa),
+    testing is a large and complicated topic, and we can only scratch the surface
+    here.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些测试有几个重要的特征值得一提。其中之一是我们依赖于API已经启动并运行在3000端口上。一个更健壮的测试套件会找到一个空闲端口，在设置中启动API，并在所有测试运行完成后停止它。其次，这个测试依赖于我们API中已经存在的数据。例如，第一个测试期望至少存在一个假期，并且该假期具有名称和价格。在真实应用中，您可能无法做出这些假设（例如，可能从无数据开始，并且可能希望测试允许缺少数据）。同样，一个更健壮的测试框架会有一种方法来设置和重置API中的初始数据，以便每次都从已知状态开始。例如，您可以编写脚本设置和填充测试数据库，将API连接到它，并在每次测试运行时将其清理掉。正如我们在[第5章](ch05.xhtml#ch_qa)中所看到的，测试是一个广泛而复杂的主题，我们只能在这里探索其表面。
+- en: The first test covers our `GET /api/vacations` endpoint. It fetches all of the
+    vacations, validates that there is at least one, and checks the first one to see
+    if it has a name and a price. We could also conceivably test other data properties.
+    I’ll leave it as a reader’s exercise to think about which properties are most
+    important to test.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个测试涵盖了我们的`GET /api/vacations`端点。它获取所有的假期，验证至少有一个假期存在，并检查第一个假期是否具有名称和价格。我们还可以考虑测试其他数据属性。我将其留给读者来思考哪些属性是最重要的测试项目。
+- en: The second test covers our `GET /api/vacation/:sku` endpoint. Since we don’t
+    have consistent test data, we start by fetching all of the vacations and getting
+    the SKU from the first one so we can test this endpoint.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个测试涵盖了我们的`GET /api/vacation/:sku`端点。由于我们没有一致的测试数据，我们首先获取所有假期，从第一个假期中获取SKU，以便测试这个端点。
+- en: Our last two tests cover our `POST /api/vacation/:sku/notify-when-in-season`
+    and `DELETE /api/vacation/:sku` endpoints. Unfortunately, with our current API
+    and testing framework, we can do very little to verify that these endpoints are
+    doing what they are supposed to, so we default to invoking them and trusting the
+    API is doing the right thing when it doesn’t return an error. If we wanted to
+    make these tests more robust, we would have to either add endpoints that allow
+    us to verify the actions (for example, an endpoint that determined if a given
+    email was registered for a specific vacation) or somehow give the tests “backdoor”
+    access to our database.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们最后两个测试涵盖了我们的`POST /api/vacation/:sku/notify-when-in-season`和`DELETE /api/vacation/:sku`端点。不幸的是，根据我们当前的API和测试框架，我们几乎无法验证这些端点是否按预期工作，所以我们默认调用它们，并信任API在不返回错误时执行正确的操作。如果我们想要使这些测试更加健壮，我们将不得不添加允许验证操作的端点（例如，确定特定假期是否已注册给定电子邮件的端点），或者以某种方式让测试可以“后门”访问我们的数据库。
+- en: If you run the tests now, they will time out and fail…because we haven’t implemented
+    our API or even started our server. So let’s get started!
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果现在运行测试，它们将超时并失败...因为我们尚未实施我们的API甚至启动我们的服务器。所以让我们开始吧！
+- en: Using Express to Provide an API
+  id: totrans-53
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Express提供API
+- en: Express is quite capable of providing an API. There are various npm modules
+    available that provide helpful functionality (see `connect-rest` and `json-api`,
+    for example), but I find that Express is perfectly capable out of the box, and
+    we’ll be sticking with a pure Express implementation.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Express非常适合提供API。有许多npm模块可用，提供有用的功能（例如`connect-rest`和`json-api`），但我发现Express在开箱即用时就足够好，我们将坚持使用纯Express实现。
+- en: 'We’ll start by creating the handlers in *lib/handlers.js* (we could create
+    a separate file, such as *lib/api.js*, but let’s keep things simple for now):'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从在*lib/handlers.js*中创建处理程序开始（我们可以创建一个单独的文件，比如*lib/api.js*，但现在让我们保持简单）：
+- en: '[PRE5]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Then we hook up the API in *meadowlark.js*:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们在*meadowlark.js*中连接API：
+- en: '[PRE6]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Nothing here should be particularly surprising by now. Note that we’re using
+    our database abstraction layer, so it doesn’t matter if we use our MongoDB implementation
+    or our PostgreSQL implementation (though you will find minor inconsequential extra
+    fields depending on the implementation, which we could remove if necessary).
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在应该没有什么特别令人惊讶的地方了。请注意，我们正在使用我们的数据库抽象层，因此使用我们的MongoDB实现或我们的PostgreSQL实现都没有关系（尽管您会发现根据实现的不同有些微不重要的额外字段，如果需要，我们可以删除它们）。
+- en: I am leaving `requestDeleteVacationsApi` as a reader’s exercise, mainly because
+    this functionality could be implemented so many different ways. The simplest approach
+    would be to just modify our vacation schema to have “delete requested” fields
+    that just get updated with the email and notes when the API is called. A more
+    sophisticated approach would be to have a separate table, like a moderation queue,
+    that records the deletion requests separately, referencing the vacation in question,
+    which would better lend itself to administrator use.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我将`requestDeleteVacationsApi`留给读者练习，主要是因为这种功能可以通过许多不同的方式实现。最简单的方法是只需修改我们的假期架构，添加“删除请求”字段，并在调用API时更新带有电子邮件和备注。更复杂的方法是拥有一个单独的表，比如一个审查队列，单独记录删除请求，引用相关的假期，这将更适合管理员使用。
+- en: 'Assuming you set up Jest correctly in [Chapter 5](ch05.xhtml#ch_qa), you should
+    just be able to run `npm test`, and the API tests will be picked up (Jest will
+    look for any file that ends in `.test.js`). You’ll see we have three passing tests
+    and one failing one: the incomplete `DELETE /api/vacation/:sku`.'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您在[第5章](ch05.xhtml#ch_qa)中正确设置了Jest，您应该只需运行`npm test`，API测试将被拾取（Jest将查找以`.test.js`结尾的任何文件）。您会看到我们有三个通过的测试和一个失败的测试：未完成的`DELETE
+    /api/vacation/:sku`。
+- en: Conclusion
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: I hope this chapter has left you asking, “That’s it?” At this point, you’re
+    probably realizing that the primary function of Express is to respond to HTTP
+    requests. What the requests are for—and how they respond—is entirely up to you.
+    Do they need to respond with HTML? CSS? Plain text? JSON? All easy to do with
+    Express. You could even respond with binary file types. For example, it would
+    not be hard to dynamically construct and return images. In this sense, an API
+    is just another one of the many ways Express can respond.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我希望这一章让你想问，“就这样？”到这一点上，你可能意识到Express的主要功能是响应HTTP请求。请求是什么以及它们如何响应完全取决于您。它们需要响应HTML吗？CSS？纯文本？JSON？使用Express都很容易实现。您甚至可以响应二进制文件类型。例如，动态构建并返回图像并不困难。从这个意义上说，API只是Express可以响应的众多方式之一。
+- en: In the next chapter, we’ll put this API to use by building a single-page application,
+    and replicate what we’ve done in previous chapters in a different way.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将通过构建单页应用程序来利用此API，并以不同的方式复制我们在之前章节中所做的工作。
+- en: ^([1](ch15.xhtml#idm45053580950936-marker)) If your client can’t use different
+    HTTP methods, see [this module](http://bit.ly/2O7nr9E), which allows you to “fake”
+    different HTTP methods.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch15.xhtml#idm45053580950936-marker)) 如果您的客户端无法使用不同的HTTP方法，请参阅[此模块](http://bit.ly/2O7nr9E)，该模块允许您“伪造”不同的HTTP方法。

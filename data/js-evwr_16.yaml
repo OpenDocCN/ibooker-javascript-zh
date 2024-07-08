@@ -1,0 +1,837 @@
+- en: Chapter 15\. Web Authentication and State
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第15章。Web身份验证和状态
+- en: My family and I recently moved. After filling out and signing several forms
+    (my hand is *still* tired), we were handed the keys to the front door. Each time
+    we come back home, we are able to use those keys to unlock the door and enter.
+    I’m grateful that I don’t need to complete the form each time that I come home,
+    but also appreciate having a lock so that we don’t have any unexpected guests.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我和我的家人最近搬家了。填写并签署了几份表格后（我的手还*很*累），我们拿到了前门的钥匙。每次回家时，我们都能用那些钥匙打开门进去。我很感激的是，我不需要每次回家都填写表格，但也很感激有锁，这样我们就不会有意外的客人了。
+- en: Client-side web authentication works in much the same way. Our users will fill
+    out a form and will be handed a key to the website, in the form of a password
+    alongside a token stored in their browser. When they return to the site they will
+    either be automatically authenticated with the token, or be able to sign back
+    in using their password.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端Web身份验证工作方式基本相同。我们的用户填写一个表单，并被分发一个网站的钥匙，即密码和存储在他们浏览器中的令牌。当他们返回网站时，他们要么会通过令牌自动认证，要么可以使用他们的密码重新登录。
+- en: In this chapter, we’ll build out a web authentication system with our GraphQL
+    API. To do this, we’ll be building forms, storing JWTs in the browser, sending
+    tokens with each request, and keeping track of our application’s state.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将使用GraphQL API构建一个Web身份验证系统。为此，我们将构建表单，在浏览器中存储JWT，发送每个请求时的令牌，并跟踪我们应用的状态。
+- en: Creating a Sign-up Form
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个注册表单
+- en: To get started with our application’s client authentication, we can create a
+    user sign-up React component. Before doing so, let’s map out how the component
+    will work.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始使用我们应用的客户端认证，我们可以创建一个用户注册的React组件。在此之前，让我们先规划一下组件的工作方式。
+- en: First, a user will navigate to the */signup* route within our application. On
+    this page they will be presented with a form where they can enter their email
+    address, desired username, and password. Submitting the form will perform our
+    API’s `signUp` mutation. If the mutation is successful, a new user account will
+    be created and the API will return a JWT. If there is an error, we can inform
+    the user. We’ll be displaying a generic error message, but we could update our
+    API to return specific error messages, such as a pre-existing username or a duplicate
+    email address.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，用户将在我们应用的 */signup* 路由中导航。在这个页面上，他们将看到一个表单，可以输入他们的电子邮件地址、所需用户名和密码。提交表单将执行我们API的
+    `signUp` 变异。如果变异成功，将创建一个新用户账户，并返回一个JWT。如果出现错误，我们可以通知用户。我们将显示一个通用错误消息，但我们也可以更新我们的API以返回特定的错误消息，比如已存在的用户名或重复的电子邮件地址。
+- en: 'Let’s get started by creating our new route. First, we’ll create a new React
+    component at *src/pages/signup.js*:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们开始创建我们的新路由。首先，我们将在 *src/pages/signup.js* 中创建一个新的React组件：
+- en: '[PRE0]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Now we’ll update our route list in *src/pages/index.js* to include the `signup`
+    route:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将在 *src/pages/index.js* 中更新我们的路由列表，包括 `signup` 路由：
+- en: '[PRE1]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'By adding the route, we will be able to navigate to *http://localhost:1234/signup*
+    to see the (mostly empty) sign-up page. Now, let’s add the markup for our form:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过添加路由，我们将能够导航到 *http://localhost:1234/signup* 查看（大部分为空的）注册页面。现在，让我们为我们的表单添加标记：
+- en: '[PRE2]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: htmlFor
+  id: totrans-13
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: htmlFor
+- en: If you’re just learning React, one of the common gotchas are JSX attributes
+    that differ from their HTML counterparts. In this case we are using the JSX `htmlFor`
+    in place of HTML’s `for` attribute to avoid any JavaScript collisions. You can
+    see a full, though short, list of these attributes in the [React DOM Elements
+    documentation](https://oreil.ly/Kn5Ke).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你刚开始学习React，常见的问题之一是JSX属性与其HTML对应项不同。在这种情况下，我们使用JSX的 `htmlFor` 替代HTML的 `for`
+    属性，以避免任何JavaScript冲突。你可以在[React DOM元素文档](https://oreil.ly/Kn5Ke)中看到一个完整但简短的这些属性列表。
+- en: 'Now we can add some style by importing our `Button` component and styling the
+    form as a styled component:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以通过导入我们的 `Button` 组件并将表单样式化为一个styled组件来添加一些样式：
+- en: '[PRE3]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: React Forms and State
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: React表单和状态
+- en: In an application, things change. Data is entered into a form, a user toggles
+    a slider open, a message is sent. In React, we can track these changes at the
+    component level by assigning *state*. In our form, we’ll need to track the state
+    of each form element, so that it can be submitted.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一个应用中，事情会发生变化。数据被输入到一个表单中，用户切换一个滑块打开，消息被发送。在React中，我们可以通过分配*状态*来在组件级别跟踪这些变化。在我们的表单中，我们将需要跟踪每个表单元素的状态，以便可以提交它。
+- en: React Hooks
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React Hooks
+- en: In this book we’re using functional components and React’s newer Hooks API.
+    If you’ve used other learning resources that make use of React’s `class` components,
+    this may look a little different. You can read more about Hooks in the [React
+    documentation](https://oreil.ly/Tz9Hg).
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，我们使用功能组件和React的新Hooks API。如果您曾经使用过其他使用React的`class`组件的学习资源，这可能看起来有些不同。您可以在[React文档](https://oreil.ly/Tz9Hg)中了解更多关于Hooks的信息。
+- en: 'To get started with state, we’ll first update the React import at the top of
+    our *src/pages/signup.js* file to include `useState`:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始使用状态，我们首先需要更新位于*src/pages/signup.js*文件顶部的React导入，包括`useState`：
+- en: '[PRE4]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Next, within our `SignUp` component we’ll set the default form value state:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，在我们的`SignUp`组件内，我们将设置默认的表单值状态：
+- en: '[PRE5]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Now we’ll update our component to change the state when a form field is entered
+    and perform an operation when a user submits the form. First, we’ll create an
+    `onChange` function, which will update our component’s state whenever the form
+    is updated. We’ll also update the markup of each form element to call this function
+    when a user makes a change, using the `onChange` property. Then we’ll update our
+    `form` element to include an `onSubmit` handler. For now, we’ll simply log our
+    form data to the console.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将更新我们的组件，以便在输入表单字段时更改状态，并在用户提交表单时执行操作。首先，我们将创建一个`onChange`函数，每当更新表单时都会更新我们组件的状态。我们还将更新每个表单元素的标记，以在用户进行更改时调用此函数，使用`onChange`属性。然后，我们将更新我们的`form`元素以包括一个`onSubmit`处理程序。目前，我们将简单地将我们的表单数据记录到控制台。
+- en: 'In */src/pages/sigunp.js*:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*/src/pages/sigunp.js*中：
+- en: '[PRE6]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: With this form markup in place, we’re ready to request data with a GraphQL mutation.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个表单标记，我们准备使用GraphQL变异请求数据。
+- en: signUp Mutation
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: signUp变异
+- en: To sign up a user, we’ll be using our API’s `signUp` mutation. This mutation
+    will accept an email, username, and password as variables and return a JWT if
+    the signup is successful. Let’s write our mutation and integrate it into our sign-up
+    form.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要注册用户，我们将使用我们API的`signUp`变异。如果注册成功，此变异将接受电子邮件、用户名和密码作为变量，并返回一个JWT。让我们编写我们的变异并将其集成到我们的注册表单中。
+- en: 'First, we’ll need to import our Apollo libraries. We’ll be making using of
+    the `useMutation` and `useApolloClient` hooks, as well as the `gql` syntax, from
+    Apollo Client. In *src/pages/signUp*, add the following alongside the other library
+    import statements:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们需要导入我们的Apollo库。我们将使用Apollo Client中的`useMutation`和`useApolloClient`钩子，以及`gql`语法。在*src/pages/signUp*中，将以下内容添加到其他库导入语句旁边：
+- en: '[PRE7]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Now write the GraphQL mutation as follows:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在按以下方式编写GraphQL变异：
+- en: '[PRE8]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'With the mutation written, we can update our React component markup to perform
+    the mutation when a user submits the form, passing the form elements as variables.
+    For now, we’ll log our response (which, if successful, should be a JWT) to the
+    console:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写完变异后，我们可以更新React组件标记，以在用户提交表单时执行变异，将表单元素作为变量传递。目前，我们将把响应（如果成功，应为JWT）记录到控制台：
+- en: '[PRE9]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Now if you complete and submit the form, you should see a JWT logged to your
+    console ([Figure 15-1](#web_signup)). Additionally, if you perform a `users` query
+    in the GraphQL Playground (*http://localhost:4000/api*), you’ll see the new account
+    ([Figure 15-2](#web_signup_playground)).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您完成并提交表单，您应该在控制台看到一个JWT被记录（见图15-1）。另外，如果在GraphQL Playground中执行`users`查询（*http://localhost:4000/api*），您将看到新的帐户（见图15-2）。
+- en: '![A screenshot of our form and a JSON Web Token in the console](assets/jsev_1501.png)'
+  id: totrans-38
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们的表单截图和控制台中的JSON Web Token](assets/jsev_1501.png)'
+- en: Figure 15-1\. If successful, a JSON Web Token will print to our console when
+    we submit the form
+  id: totrans-39
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图15-1\. 如果成功，当我们提交表单时，将在控制台打印一个JSON Web Token
+- en: '![A screenshot of the users query and results in GraphQL Playground](assets/jsev_1502.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground中用户查询和结果的截图](assets/jsev_1502.png)'
+- en: Figure 15-2\. We can also see a list of users by performing a users query in
+    the GraphQL Playground
+  id: totrans-41
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图15-2\. 通过在GraphQL Playground执行用户查询，我们还可以看到用户列表
+- en: With our mutation in place and returning the expected data, next we want to
+    store the response that we receive.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成我们的变异并返回预期的数据后，接下来我们想要存储接收到的响应。
+- en: JSON Web Tokens and Local Storage
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: JSON Web Tokens和本地存储
+- en: When our `signUp` mutation is successful, it returns a JSON Web Token (JWT).
+    You may recall from the API portion of the book that a [JWT](https://jwt.io) allows
+    us to securely store a user’s ID on the user’s device. To achieve this in our
+    user’s web browser, we’ll store the token in the browser’s `localStorage`. `localStorage`
+    is a simple key-value store that persists across browser sessions until the storage
+    is updated or cleared. Let’s update our mutation to store the token in `localStorage`.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们的 `signUp` 变异成功时，它会返回一个 JSON Web Token (JWT)。你可能还记得本书的 API 部分提到过，[JWT](https://jwt.io)
+    允许我们安全地将用户的 ID 存储在用户的设备上。为了在用户的 Web 浏览器中实现这一点，我们将把令牌存储在浏览器的 `localStorage` 中。`localStorage`
+    是一个简单的键值存储，可以在浏览器会话之间持久保存，直到存储被更新或清除。让我们更新我们的变异，将令牌存储在 `localStorage` 中。
+- en: 'In *src/pages/signup.js*, update the `useMutation` hook to store the token
+    in `local``Storage` (see [Figure 15-3](#web_token_storage)):'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/signup.js* 中，更新 `useMutation` hook，将令牌存储在 `local``Storage` 中（见[图
+    15-3](#web_token_storage)）：
+- en: '[PRE10]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '![A screenshot of our token in the browser''s localStorage](assets/jsev_1503.png)'
+  id: totrans-47
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们在浏览器的 localStorage 中的令牌的屏幕截图](assets/jsev_1503.png)'
+- en: Figure 15-3\. Our web token is now stored in the browser’s localStorage
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 15-3\. 我们的 Web 令牌现在存储在浏览器的 localStorage 中
+- en: JWTs and Security
+  id: totrans-49
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JWT 和安全性
+- en: When a token is stored in `localStorage`, any JavaScript that can be run on
+    the page has access to the token, making it susceptible to cross-site scripting
+    (XSS) attacks. For this reason, when using `localStorage` to store token credentials,
+    you need to take extra care to limit (or avoid) CDN hosted scripts. If a third-party
+    script is compromised, it would have access to the JWT.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当令牌存储在 `localStorage` 中时，页面上可以运行的任何 JavaScript 都可以访问该令牌，使其容易受到跨站脚本（XSS）攻击的影响。因此，当使用
+    `localStorage` 存储令牌凭证时，需要特别注意限制（或避免）CDN 托管的脚本。如果第三方脚本被 Compromised，它将可以访问 JWT。
+- en: With our JWT stored locally, we’re prepared to use it in our GraphQL mutations
+    and queries.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了我们在本地存储的 JWT，我们准备在我们的 GraphQL 变异和查询中使用它。
+- en: Redirects
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 重定向
+- en: Currently when a user completes the sign-up form, the form re-renders as an
+    empty form. This doesn’t leave the user with much of a visual cue that their account
+    registration was successful. Instead, let’s redirect the user to the home page
+    of our application. Another option would be to create a “Success” page that thanks
+    the user for registering and onboards them to the application.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户完成注册表单时，当前表单将重新呈现为空表单。这并没有给用户留下太多视觉线索，表明他们的帐户注册成功了。相反，让我们将用户重定向到我们应用程序的主页。另一个选择是创建一个“成功”页面，感谢用户注册并将其引导到应用程序。
+- en: 'As you may recall from earlier in the chapter, we’re passing the properties
+    into the component. We can redirect a route using React Router’s `history`, which
+    will be available to us through `props.history.push`. To implement this, we’ll
+    update our mutation’s `onCompleted` event to include a redirect like so:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您可能还记得本章前面所述，我们正在将属性传递到组件中。我们可以使用 React Router 的 `history` 来重定向路由，通过 `props.history.push`
+    我们可以使用它。为了实现这一点，我们将更新我们变异的 `onCompleted` 事件，包括一个重定向，如下所示：
+- en: '[PRE11]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: With this change, users will now be redirected to our application’s home page
+    after registering for an account.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过此更改，用户现在将在注册帐户后重定向到我们应用程序的主页。
+- en: Attaching Headers to Requests
+  id: totrans-57
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将标头附加到请求
+- en: Though we are storing our token in `localStorage`, our API does not yet have
+    access to it. This means that even if a user has created an account, the API has
+    no way of identifying the user. If you recall from our API development, each API
+    call receives a token in the header of the request. We’ll modify our client to
+    send the JWT as a header with each request.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管我们将令牌存储在 `localStorage` 中，但我们的 API 尚无法访问它。这意味着即使用户创建了帐户，API 也无法识别用户。如果您还记得我们的
+    API 开发，每个 API 调用都会在请求的标头中接收一个令牌。我们将修改客户端，在每个请求中发送 JWT 作为标头。
+- en: 'In *src/App.js* we’ll update our dependencies to include `createHttpLink` from
+    Apollo Client as well as `setContext` from Apollo’s Link Context package. We’ll
+    then update Apollo’s configuration to send the token in the header of each request:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/App.js* 中，我们将更新我们的依赖项，包括从 Apollo Client 导入 `createHttpLink` 以及从 Apollo
+    的 Link Context 包中导入 `setContext`。然后，我们将更新 Apollo 的配置，在每个请求的标头中发送令牌：
+- en: '[PRE12]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: With this change, we’ll now be able to pass the information of the logged-in
+    user to our API.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过此更改，我们现在将能够将已登录用户的信息传递给我们的 API。
+- en: Local State Management
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 本地状态管理
+- en: We’ve looked at managing state within a component, but what about across our
+    application? There are times where it’s useful to have some information shared
+    among many components. We could pass `props` from a base component across our
+    application, but as soon as we get past a couple of levels of subcomponents, this
+    can get messy. Libraries such as [Redux](https://redux.js.org) and [MobX](https://mobx.js.org)
+    have sought to solve the challenges of state management and have proven useful
+    for many developers and teams. In our case, we’re already making use of the Apollo
+    Client library, which includes the ability to use GraphQL queries for local state
+    management. Rather than introducing another dependency, let’s implement a local
+    state property that will store whether the user is logged in.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经看过如何在组件内管理状态，但是在整个应用程序中如何处理呢？有时将一些信息共享在许多组件之间是有用的。我们可以从基础组件传递 `props` 到整个应用程序，但是一旦我们超过几个级别的子组件，这可能变得混乱。诸如
+    [Redux](https://redux.js.org) 和 [MobX](https://mobx.js.org) 这样的库已经解决了状态管理的挑战，并且对许多开发人员和团队都很有用。在我们的情况下，我们已经在使用
+    Apollo Client 库，它包括使用 GraphQL 查询进行本地状态管理的能力。与其引入另一个依赖项，不如实现一个本地状态属性来存储用户是否已登录。
+- en: The Apollo React library puts the `ApolloClient` instance within React’s context,
+    but at times we may need to access it directly. We can do so with the `useApolloClient`
+    hook, which will allow us to perform actions such as directly updating or resetting
+    the cache store or writing local data.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Apollo React 库将 `ApolloClient` 实例放置在 React 的上下文中，但有时我们可能需要直接访问它。我们可以使用 `useApolloClient`
+    钩子来实现这一点，它将允许我们执行直接更新或重置缓存存储或写入本地数据等操作。
+- en: Currently, we have two ways to determine if a user is logged in to our application.
+    First, we know they are a current user if they’ve successfully submitted the sign-up
+    form. Second, we know that if a visitor accesses the site with a token stored
+    in `localStorage`, then they are already logged in. Let’s begin by adding to our
+    state when a user completes the sign-up form. To achieve this, we’ll write directly
+    to our Apollo Client’s local store, using `client.writeData` and the `useApolloClient`
+    hook.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们有两种方法来确定用户是否已登录到我们的应用程序。首先，如果他们成功提交了注册表单，我们知道他们是当前用户。其次，如果访问者带有存储在 `localStorage`
+    中的令牌访问站点，则已经登录。让我们首先在用户完成注册表单时添加到我们的状态。为了实现这一点，我们将直接写入到我们的 Apollo 客户端的本地存储中，使用
+    `client.writeData` 和 `useApolloClient` 钩子。
+- en: 'In *src/pages/signup.js* we first need to update the `@apollo/client` library
+    import to include `useApolloClient`:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/signup.js* 中，我们首先需要更新 `@apollo/client` 库的导入，以包含 `useApolloClient`：
+- en: '[PRE13]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'In *src/pages/signup.js* we’ll call the `useApolloClient` function and update
+    the mutation to add to the local store, using `writeData`, when it is complete:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/signup.js* 中，我们将调用 `useApolloClient` 函数，并在完成时使用 `writeData` 更新突变以添加到本地存储：
+- en: '[PRE14]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Now, let’s update our application to check for a pre-existing token when the
+    page loads and update the state when a token is found. In `src/App.js`, first
+    update the `ApolloClient` configuration to an empty `resolvers` object. This will
+    allow us to perform GraphQL queries on our local cache.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们更新我们的应用程序，在页面加载时检查预先存在的令牌，并在找到令牌时更新状态。在 `src/App.js` 中，首先将 `ApolloClient`
+    配置更新为空的 `resolvers` 对象。这将允许我们在本地缓存上执行 GraphQL 查询。
+- en: '[PRE15]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Next, we can perform the check on the initial page load of our application:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们可以在应用程序的初始页面加载时执行检查：
+- en: '[PRE16]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Here comes the cool part: we can now access `isLoggedIn` as a GraphQL query
+    anywhere within our application by using the `@client` directive. To demonstrate
+    this, let’s update the header of our application to display a “Sign Up” and “Sign
+    In” link if `isLoggedIn` is `false` and a “Log Out” link if `isLoggedIn` is `true`.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，这里是很酷的一部分：我们现在可以通过使用 `@client` 指令在我们应用程序的任何地方将 `isLoggedIn` 作为 GraphQL 查询访问。为了演示这一点，让我们更新我们应用程序的标题，以便在
+    `isLoggedIn` 是 `false` 时显示 “注册” 和 “登录” 链接，并在 `isLoggedIn` 是 `true` 时显示 “登出” 链接。
+- en: 'In *src/components/Header.js*, import the necessary dependencies and write
+    the query like so:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/components/Header.js* 中，导入必要的依赖项并编写查询，如下所示：
+- en: '[PRE17]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now, within our React component we can include a simple query to retrieve the
+    state along with a tertiary operator that displays options either to log out or
+    sign in:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在我们的 React 组件中，我们可以包含一个简单的查询来检索状态以及一个三元运算符，显示注销或登录选项：
+- en: '[PRE18]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'With this, when a user is logged in they’ll see a “Log Out” option: otherwise,
+    they’ll be presented with options to sign up or in, all thanks to local state.
+    We’re not limited to simple boolean logic, either. Apollo enables us to write
+    local resolvers and type definitions, allowing us to take advantage of everything
+    GraphQL has to offer within our local state.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个功能，当用户登录时，他们将看到一个“Log Out”选项；否则，他们将被呈现出注册或登录的选项，所有这些都归功于本地状态。我们不仅限于简单的布尔逻辑。Apollo
+    允许我们编写本地解析器和类型定义，允许我们利用 GraphQL 在本地状态中提供的所有功能。
+- en: Logging Out
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 注销
+- en: Currently once a user is signed in, they have no way to log out of our application.
+    Let’s turn the “Log Out” language in our header into a button that, when clicked,
+    will log out the user. To do this, when the button is clicked we will remove the
+    token that has been stored in `localStorage`. We’ll use a `<button>` element for
+    its built-in accessibility, as it both serves as a semantic representation of
+    a user action and receives focus, like a link, when a user is navigating the application
+    with their keyboard.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前用户登录后，我们没有办法让他们退出应用程序。让我们将头部的“Log Out”语言转换为一个按钮，点击按钮时将注销用户。为此，当点击按钮时，我们将移除存储在
+    `localStorage` 中的令牌。我们将使用 `<button>` 元素，因为它具有内置的可访问性，既作为用户操作的语义化表示，又在用户通过键盘导航应用程序时接收焦点，就像一个链接一样。
+- en: 'Before writing our code, let’s write a styled component that will render a
+    button like a link. Create a new file at *src/Components/ButtonAsLink.js* and
+    add the following:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写代码之前，让我们编写一个样式化组件，它将渲染一个像链接一样的按钮。在 *src/Components/ButtonAsLink.js* 创建一个新文件，并添加以下内容：
+- en: '[PRE19]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Now in *src/components/Header.js* we can implement our logout functionality.
+    We need to use React Router’s `withRouter` higher-order component to handle the
+    redirect since our *Header.js* file is a UI component and not a defined route.
+    Let’s begin by importing the `ButtonAsLink` component as well as `withRouter`:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在在 *src/components/Header.js* 中，我们可以实现注销功能。我们需要使用 React Router 的 `withRouter`
+    高阶组件来处理重定向，因为我们的 *Header.js* 文件是一个 UI 组件，而不是一个定义好的路由。让我们首先导入 `ButtonAsLink` 组件以及
+    `withRouter`：
+- en: '[PRE20]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'Now, within our JSX we’ll update our component to include the `props` parameter
+    and update the logout markup to be a button:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在我们的 JSX 中，我们将更新我们的组件以包括 `props` 参数，并更新注销标记为一个按钮：
+- en: '[PRE21]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: withRouter
+  id: totrans-88
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: withRouter
+- en: When we want to include routing in a component that is not itself directly routable,
+    we need to use React Router’s `withRouter` higher-order component.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们希望在一个不直接可路由的组件中包含路由时，我们需要使用 React Router 的 `withRouter` 高阶组件。
+- en: When a user logs out of our application, we want to reset the cache store to
+    prevent any unwanted data from appearing outside of the session. Apollo offers
+    the ability to call the `resetStore` function, which will fully clear the cache.
+    Let’s add an `onClick` handler to our component’s button to remove the user’s
+    token, reset the Apollo Store, update the local state, and redirect the user to
+    the home page. To accomplish this, we’ll update our `useQuery` hook to include
+    a reference to the client and wrap our component in the `withRouter` higher-order
+    component in our `export` statement.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户从我们的应用程序注销时，我们希望重置缓存存储，以防止会话外出现任何不需要的数据。Apollo 提供了调用 `resetStore` 函数的能力，它将完全清除缓存。让我们为组件的按钮添加一个
+    `onClick` 处理程序，以移除用户的令牌，重置 Apollo Store，更新本地状态，并将用户重定向到首页。为此，我们将更新我们的 `useQuery`
+    钩子以包括对客户端的引用，并在我们的 `export` 语句中使用 `withRouter` 高阶组件包装我们的组件。
+- en: '[PRE22]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Finally, we will need Apollo to add the user state back to our cached state
+    when the store is reset. In *src/App.js* update the cache settings to include
+    `onResetStore`:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，在 *src/App.js* 中，我们将需要 Apollo 将用户状态重新添加到缓存状态中，当存储被重置时。更新缓存设置以包括 `onResetStore`：
+- en: '[PRE23]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: With this, logged-in users are able to easily log out of our application. We’ve
+    integrated this functionality directly into our `Header` component, but in the
+    future we could refactor it into a standalone component.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个功能，已登录用户可以轻松注销我们的应用程序。我们已将此功能直接集成到我们的 `Header` 组件中，但在未来我们可以将其重构为一个独立的组件。
+- en: Creating a Sign-In Form
+  id: totrans-95
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个登录表单
+- en: Currently our users are able to sign up and log out of our application, but
+    they have no way to sign back in. Let’s create a sign-in form and do a bit of
+    refactoring along the way so that we can reuse much of the code found in our signup
+    component.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们的用户可以注册和注销我们的应用程序，但他们无法再次登录。让我们创建一个登录表单，并在此过程中进行一些重构，以便我们可以重用在注册组件中找到的大部分代码。
+- en: 'Our first step will be to create a new page component that will live at */signin*.
+    In a new file at *src/pages/signin.js*, add the following:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的第一步将是创建一个新的页面组件，该组件将位于*/signin*。在一个新文件*src/pages/signin.js*中，添加以下内容：
+- en: '[PRE24]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Now we can make our page routable, so that users can navigate to it. In *src/pages/index.js*
+    import the route page and add a new route path:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以使我们的页面可路由，以便用户可以导航到它。在*src/pages/index.js*中导入路由页面并添加新的路由路径：
+- en: '[PRE25]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Let’s pause here, before we implement our sign-in form, to consider our options.
+    We could reimplement a form, much like we wrote for our Sign Up page, but that
+    feels tedious and would require us to maintain two similar forms. When one changes,
+    we would need to be sure to update the other. Another option is to isolate the
+    form into its own component, which would allow us to reuse common code and make
+    updates in a single location. Let’s go forward with the shared form component
+    approach.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在这里暂停，然后再实现我们的登录表单，考虑我们的选择。我们可以重新实现一个表单，就像我们为注册页面编写的那样，但这感觉很乏味，并且需要我们维护两个类似的表单。当一个改变时，我们需要确保更新另一个。另一个选择是将表单隔离到自己的组件中，这将允许我们重用通用代码，并在一个位置进行更新。让我们继续使用共享表单组件的方法前进。
+- en: We’ll first create a new component at *src/components/UserForm.js*, bringing
+    over our `<form>` markup and styles. We will be making a few minor, but notable,
+    changes to this form to use the properties that it receives from the parent component.
+    First, we’ll rename our `onSubmit` mutation to `props.action`, which will allow
+    us to pass the mutation to our form through the component’s properties. Second,
+    we’ll add some conditional statements where we know that our two forms will differ.
+    We’ll make use of a second property named `formType`, which we’ll pass a string.
+    We can change our template’s rendering based on the value of the string.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将在*src/components/UserForm.js*创建一个新组件，将我们的`<form>`标记和样式导入其中。我们将对此表单进行一些小但显著的更改，以使用它从父组件接收到的属性。首先，我们将将我们的`onSubmit`变异重命名为`props.action`，这将允许我们通过组件的属性将变异传递给我们的表单。其次，我们将在我们知道我们的两个表单将有所不同的地方添加一些条件语句。我们将使用一个名为`formType`的第二个属性，我们将传递一个字符串。我们可以根据字符串的值更改我们模板的渲染。
+- en: 'We’ll write these either as an inline `if` statement with a logical `&&` operator
+    or as a conditional ternary operator:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将这些写为内联`if`语句，使用逻辑`&&`运算符或条件三元运算符：
+- en: '[PRE26]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Now we can simplify our *src/pages/signup.js* component to make use of the
+    shared form component:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以简化我们的*src/pages/signup.js*组件，以利用共享的表单组件：
+- en: '[PRE27]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Finally, we can write our `SignIn` component, making use of our `signIn` mutation
+    and `UserForm` component. In *src/pages/signin.js*:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以编写我们的`SignIn`组件，利用我们的`signIn`变异和`UserForm`组件。在*src/pages/signin.js*中：
+- en: '[PRE28]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: With this, we now have a manageable form component and have enabled users to
+    both sign up and sign in to our application.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，现在我们有一个可管理的表单组件，并使用户能够注册并登录到我们的应用程序。
+- en: Protected Routes
+  id: totrans-110
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 受保护的路由
+- en: A common application pattern is to limit access to specific pages or portions
+    of the site to authenticated users. In our case, nonauthenticated users would
+    have no use for the My Notes or Favorites pages. We can implement this pattern
+    in our router, automatically routing unauthenticated users to the application’s
+    Sign In page when they attempt to visit those routes.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个常见的应用模式是将对特定页面或站点部分的访问限制为经过身份验证的用户。在我们的情况下，未经身份验证的用户将无法使用“我的笔记”或“收藏夹”页面。我们可以在我们的路由器中实现此模式，当他们尝试访问这些路由时，自动将未经身份验证的用户路由到应用程序的登录页面。
+- en: 'In *src/pages/index.js* we’ll start by importing the necessary dependencies
+    and adding our `isLoggedIn` query:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/pages/index.js*中，我们将从导入所需的依赖项开始，并添加我们的`isLoggedIn`查询：
+- en: '[PRE29]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Now we’ll import React Router’s `Redirect` library and write a `PrivateRoute`
+    component, which will redirect the user if they are not logged in:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将导入React Router的`Redirect`库并编写`PrivateRoute`组件，如果用户未登录，则将其重定向：
+- en: '[PRE30]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Finally, we can update any of our routes intended for logged-in users to use
+    the `Private``Route` component:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以更新任何用于已登录用户的路由以使用`Private``Route`组件：
+- en: '[PRE31]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Redirect State
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 重定向状态
+- en: When we redirect a private route, we are also storing the referring URL as state.
+    This allows us to redirect users back to the page they were originally attempting
+    to navigate to. We could update our redirect on the Sign In page to optionally
+    use `props.state.`​`location.from` to enable this feature.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们重定向到私有路由时，我们还将引用URL存储为状态。这样可以使我们将用户重定向回他们最初尝试导航到的页面。我们可以在登录页面上更新我们的重定向，以选择性地使用`props.state.`​`location.from`来启用此功能。
+- en: Now when a user attempts to navigate to a page intended for logged-in users,
+    they will be redirected to our Sign In page.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当用户尝试访问仅限已登录用户的页面时，他们将被重定向到我们的登录页面。
+- en: Conclusion
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: 'In this chapter we’ve covered two critical concepts for building client-side
+    JavaScript applications: authentication and state. By building a full authentication
+    flow, you’ve gained insight into how user accounts work with a client application.
+    From here, I would encourage you to explore alternate options such as OAuth and
+    authentication services such as Auth0, Okta, and Firebase. Additionally, you’ve
+    learned to manage state in an application, both at the component level, using
+    the React Hooks API, as well as across the application, using Apollo’s local state.
+    With these key concepts behind you, you can now build robust user interface applications.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们涵盖了构建客户端 JavaScript 应用程序的两个关键概念：认证和状态。通过构建完整的认证流程，您可以深入了解用户账户如何与客户端应用程序配合工作。从这里开始，我建议您探索诸如
+    OAuth 和诸如 Auth0、Okta 和 Firebase 等认证服务的替代选项。此外，您已经学会了如何在应用程序中管理状态，既可以在组件级别使用 React
+    Hooks API 进行管理，也可以在整个应用程序中使用 Apollo 的本地状态。掌握了这些关键概念，您现在可以构建健壮的用户界面应用程序。

@@ -1,0 +1,2263 @@
+- en: Chapter 5\. Containers
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第5章 容器
+- en: Programs typically don’t come bundled with everything they need in a single
+    file. This is true not only for Node.js programs, which consist of at least a
+    single *.js* file and the *node* executable, but also for programs compiled using
+    other platforms. There are almost always other requirements involved, such as
+    shared libraries. Even a single-executable binary written in C that statically
+    links its dependencies still technically relies on the system call API offered
+    by the kernel.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 程序通常不会在单个文件中捆绑它们所需的一切。这不仅适用于Node.js程序，它们至少由一个 *.js* 文件和 *node* 可执行文件组成，还适用于使用其他平台编译的程序。通常还涉及其他要求，如共享库。即使是用C语言编写的静态链接其依赖项的单一可执行二进制文件，在技术上仍依赖于内核提供的系统调用API。
+- en: There are many different ways that programs are distributed and executed. Each
+    of these approaches has trade-offs concerning portability, efficiency, security,
+    and brittleness.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 程序的分发和执行有许多不同的方法。每种方法都涉及到可移植性、效率、安全性和脆弱性的权衡。
+- en: Sometimes it’s nice to “just ship a binary.” But this means, at the very least,
+    shipping a different binary for different operating systems, and sometimes (as
+    is often the case when a binary depends on OpenSSL) it requires shipping multiple
+    binaries depending on operating system *and* library versions. This is an issue
+    of portability.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时“只需发布一个二进制文件”很好。但这意味着至少需要为不同的操作系统发布不同的二进制文件，有时（例如当一个二进制文件依赖于OpenSSL时）需要根据操作系统和库版本发布多个二进制文件。这是一个可移植性问题。
+- en: One of the biggest issues is with shared libraries. Consider a server running
+    the Linux operating system. This single machine is then expected to run two pieces
+    of software, *Resizer Service A* and *Resizer Service B*. However, one version
+    depends on *ImageMagick v7*, and the other relies on *ImageMagick v5*. It’s now
+    no longer a straightforward task of installing the ImageMagick shared library;
+    instead, it is a juggling act of isolating the different library versions. This
+    situation is brittle.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 共享库存在的一个最大问题之一。考虑一台运行Linux操作系统的服务器。这台单一机器预期要运行两个软件，*调整大小服务A* 和 *调整大小服务B*。然而，一个版本依赖于
+    *ImageMagick v7*，而另一个则依赖于 *ImageMagick v5*。现在安装ImageMagick共享库不再是一件简单的任务；而是需要在不同的库版本之间进行隔离操作。这种情况非常脆弱。
+- en: Other problems may arise when running multiple programs. Perhaps two programs
+    need to maintain a lock file in the filesystem and the path is hard-coded. Or
+    perhaps the programs want to listen on the same port. Or maybe one of the programs
+    gets compromised and may then be used by an attacker to interfere with the other
+    program, which is an issue of security.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行多个程序可能会出现其他问题。也许两个程序需要在文件系统中维护一个锁文件，并且路径是硬编码的。或者这些程序希望监听同一个端口。或者可能其中一个程序被入侵，然后被攻击者用来干扰另一个程序，这是一个安全问题。
+- en: '*Virtual machines* (VMs) were created to solve many of these problems. A VM
+    is able to emulate computer hardware within a host operating system, having access
+    to an isolated subset of memory and disk space. An operating system installed
+    within this VM is able to run programs completely isolated from the host OS. This
+    is a very powerful concept, one that is still extremely important today. However,
+    it comes with the disadvantage that every running VM needs an entire copy of an
+    OS. It also means that freshly deployed VMs need to take time to boot up the guest
+    OS. This overhead can make it prohibitive to dedicate one VM per program and is
+    a problem of efficiency.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*虚拟机*（VMs）被创建来解决这些问题。虚拟机能够在主机操作系统内部仿真计算机硬件，具有对内存和磁盘空间的隔离子集的访问能力。安装在虚拟机中的操作系统能够完全隔离地运行程序，与主机操作系统无关。这是一个非常强大的概念，今天仍然非常重要。然而，它的缺点是每个运行的虚拟机都需要整个操作系统的副本。这也意味着新部署的虚拟机需要花费时间来启动客户操作系统。这种开销可能会导致每个程序专用一个虚拟机变得不切实际，这是一个效率问题。'
+- en: '*Containers* are a way to describe and bundle the requirements of a program
+    into a distributable package. This includes the contents of a private filesystem
+    and the shared libraries therein, an isolated list of PIDs, and isolated ports
+    that may be listened on without the risk of conflicting with another container,
+    all without allowing access to memory dedicated to other containers. The only
+    thing that isn’t bundled within a container is the operating system itself—instead,
+    the containers rely on the host operating system (or perhaps more specifically,
+    the kernel of the host OS). System calls made within a container go through some
+    light translation before being provided to the host OS.'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*容器* 是描述并捆绑程序要求的一种方式，以可分发的包装形式提供。这包括私有文件系统及其中的共享库内容，隔离的 PID 列表和可以监听的隔离端口，而无需担心与另一个容器发生冲突，同时不允许访问其他容器的内存。唯一未捆绑在容器中的是操作系统本身，而是依赖于主机操作系统（或更具体地说，主机操作系统的内核）。容器内部的系统调用在提供给主机操作系统之前会进行轻微的转换。'
+- en: '[Figure 5-1](#fig_classic_vm_container) compares three approaches to program
+    isolation. The first approach, which I call the *classic* approach, relies on
+    running programs directly on the OS running on hardware. In this case, a complicated
+    juggling act with shared libraries is likely to happen. A system administrator
+    may be needed when new programs are deployed, or an organization might need to
+    agree to use the same exact dependencies everywhere. However, the overhead is
+    the smallest. The second approach, *virtual machines*, conveys the redundant copies
+    of an OS kernel, possibly for each program (though multiple programs often run
+    within the same VM). VM nomenclature refers to a parent OS as the *host OS* and
+    a child OS as a *guest OS*. The third approach, *containers*, shows how the container
+    abstraction can reuse a kernel, but shared libraries will likely be redundant.
+    It also illustrates the need to have smaller containers.'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 5-1](#fig_classic_vm_container) 比较了三种程序隔离方法。第一种方法，我称之为 *经典* 方法，依赖于直接在硬件上运行的操作系统上运行程序。在这种情况下，可能会出现与共享库的复杂协调。当部署新程序时可能需要系统管理员，或者组织可能需要同意在所有地方使用完全相同的依赖项。然而，其开销最小。第二种方法，*虚拟机*，涉及操作系统内核的冗余副本，可能为每个程序（尽管通常在同一个虚拟机内运行多个程序）。虚拟机的命名法将父操作系统称为
+    *主机操作系统*，将子操作系统称为 *客户操作系统*。第三种方法，*容器*，展示了容器抽象如何重用内核，但共享库可能会是冗余的。它还说明了需要更小的容器。'
+- en: The ideal situation is that a program can very quickly be deployed, regardless
+    of whatever dependencies it has, to some location where it can then consume CPU
+    and RAM and reply to network requests. Once this program is no longer needed,
+    it can be torn down very quickly without leaving behind a mess.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理想情况下，一个程序可以很快地被部署到任何地方，无论它需要什么依赖关系，然后可以消耗 CPU 和 RAM 并回应网络请求。一旦不再需要这个程序，可以快速地将其拆除，而不会留下任何混乱。
+- en: Note
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Modern technology stacks should leverage at least two of these approaches. While
+    containers are great for deploying stateless, first-party programs that are updated
+    and deployed frequently and scale up and down, stateful databases will benefit
+    more by running directly on an OS, virtual or otherwise.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代技术栈应至少利用这两种方法中的两种。虽然容器非常适合部署无状态的第一方程序，这些程序经常更新和部署，并且可以进行垂直和水平扩展，但是对于运行在操作系统上的有状态数据库来说，直接运行更为有利，无论是虚拟的还是其他类型的操作系统。
+- en: '![Architectural comparison between Classic, Virtual Machines, and Containers](assets/dsnj_0501.png)'
+  id: totrans-12
+  prefs: []
+  type: TYPE_IMG
+  zh: '![经典、虚拟机和容器之间的架构比较](assets/dsnj_0501.png)'
+- en: Figure 5-1\. Classic versus virtual machines versus containers
+  id: totrans-13
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-1\. 经典 vs. 虚拟机 vs. 容器
+- en: Containers have won the battle for program encapsulation. They have become the
+    basic unit of program deployment within modern service-oriented architecture.
+    This layer of abstraction, having redundancy of shared libraries but not of an
+    OS, hits the sweet spot where memory efficiency is traded for portability, all
+    while being robust and secure. There have been several different container formats,
+    but only one format has become ubiquitous.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容器已经赢得了程序封装的战斗。它们已经成为现代面向服务的架构中程序部署的基本单位。这种抽象层次具有共享库的冗余性但不具有操作系统的冗余性，这正好命中了内存效率和可移植性的最佳平衡点，同时又具有健壮性和安全性。已经存在几种不同的容器格式，但只有一种格式变得无处不在。
+- en: Introduction to Docker
+  id: totrans-15
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Docker 简介
+- en: Docker is a conglomeration of related tools. The first tool worth mentioning
+    is the `dockerd` daemon, which exposes an HTTP API for receiving commands. The
+    next tool is the `docker` CLI, which makes calls to the daemon and is how you’ve
+    interacted with Docker so far in this book. A killer feature of Docker is [Docker
+    Hub](https://hub.docker.com/), which is a central repository of Docker images.
+    While there may be competing container formats, none of them has a marketplace
+    as impressive.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 是一组相关工具的集合。首先要提到的工具是 `dockerd` 守护程序，它公开了一个用于接收命令的 HTTP API。下一个工具是 `docker`
+    CLI，它调用守护程序，并且是你在本书中迄今为止与 Docker 交互的方式。Docker 的一个重要功能是 [Docker Hub](https://hub.docker.com/)，这是
+    Docker 镜像的中央仓库。虽然可能存在竞争的容器格式，但没有一个像它一样令人印象深刻的市场。
+- en: A Docker image is an immutable representation of a filesystem that you can run
+    applications within. One Docker image can also extend from another. For example,
+    one might have a base Ubuntu image, followed by a Node.js image, and finally an
+    application image. In this situation, the Ubuntu image provides things like a
+    basic filesystem (*/usr/bin*, users and permissions, and common libraries). The
+    Node.js image provides the *node* and *npm* binaries and shared libraries required
+    by Node.js. Finally, the application image provides the *.js* application code,
+    the *node_modules* directory (which might include modules compiled for Linux),
+    and even other application-specific dependencies (such as a compiled ImageMagick
+    binary).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 Docker 镜像是一个不可变的文件系统表示，你可以在其中运行应用程序。一个 Docker 镜像也可以从另一个镜像扩展。例如，一个基本的 Ubuntu
+    镜像，接着是一个 Node.js 镜像，最后是一个应用程序镜像。在这种情况下，Ubuntu 镜像提供了基本的文件系统（*/usr/bin*、用户和权限以及常见库）。Node.js
+    镜像提供了 Node.js 需要的 *node* 和 *npm* 二进制文件和共享库。最后，应用程序镜像提供了 *.js* 应用程序代码，*node_modules*
+    目录（可能包括为 Linux 编译的模块），甚至其他应用程序特定的依赖项（比如编译的 ImageMagick 二进制文件）。
+- en: Docker runs Linux applications. However, the Linux kernel is not actually provided
+    in any of these image layers, not even a base Ubuntu image. Instead, that ultimately
+    comes from a Linux OS running outside of Docker. When the machine running Docker
+    is a Linux machine (which is how production applications running on a server typically
+    work), then there’s likely only a single OS involved. When Docker is running on
+    a non-Linux OS, such as macOS or Windows development machine, then a Linux virtual
+    machine is required. *Docker Desktop* is a tool created by Docker for just this
+    situation. Docker Desktop not only provides a VM, but it also provides other niceties
+    such as an admin UI and Kubernetes (which is covered in more detail in [Chapter 7](ch07.html#ch_kubernetes)).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 运行 Linux 应用程序。然而，在这些镜像层中实际上并没有提供 Linux 内核，甚至没有基本的 Ubuntu 镜像。相反，这最终来自于在
+    Docker 外部运行的 Linux 操作系统。当运行 Docker 的机器是 Linux 机器（这通常是服务器上运行的生产应用程序的工作方式），那么可能只涉及一个操作系统。当
+    Docker 运行在非 Linux 操作系统上，比如 macOS 或 Windows 开发机器上，那么需要一个 Linux 虚拟机。*Docker Desktop*
+    是 Docker 为这种情况创建的工具。Docker Desktop 不仅提供了一个虚拟机，还提供了其他便利功能，比如管理 UI 和 Kubernetes（在[第
+    7 章](ch07.html#ch_kubernetes)中有更详细的介绍）。
+- en: A Docker container is an instance of a Docker image associated with configuration
+    such as a name, port mappings, and volume mappings—which is how the filesystem
+    within the container can be mapped to the host filesystem. This means that you
+    can run as many containers pointing to the same image on a single machine as you
+    want—assuming you have the computing resources to do so. Containers can be started
+    and stopped and interacted with in many ways.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 Docker 容器是与配置相关联的 Docker 镜像的实例，配置包括名称、端口映射和卷映射，这就是容器内的文件系统如何映射到主机文件系统的方式。这意味着你可以在单台机器上运行指向同一镜像的多个容器，只要你有足够的计算资源。容器可以以多种方式启动、停止和交互。
+- en: An important aspect of Docker is the *Dockerfile*, which is a declarative file
+    describing a Docker image. A Dockerfile can contain many different lines, which
+    describe how the container ends up being built. Directives are listed on different
+    lines, with directives being run from top to bottom. The first directive usually
+    ends up being the `FROM` directive, which is how an image declares which image
+    to use as a parent. The official Node.js Alpine container, for example, uses `FROM
+    alpine:3.11` as the first line of the Dockerfile. In this case it’s declaring
+    that the Docker image named `alpine` tagged with a version of `3.11` is its base
+    container. An application might then extend from that image by using the `FROM
+    node:lts-alpine3.11` directive. These directives will be covered in more detail
+    shortly. Note that a Docker image cannot have more than one parent Docker images—no
+    multi-inheritance here! However it can have multiple `FROM` directives, which
+    is called a multistage Dockerfile. Again, more on this later.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 的一个重要方面是*Dockerfile*，它是描述 Docker 镜像的声明性文件。Dockerfile 可以包含许多不同的行，描述容器最终是如何构建的。指令被列在不同的行上，指令从上到下依次运行。第一个指令通常是`FROM`指令，这是一个图像声明要使用的父图像的方式。例如，官方
+    Node.js Alpine 容器使用`FROM alpine:3.11`作为 Dockerfile 的第一行。在这种情况下，它声明了名为`alpine`的
+    Docker 镜像标记为`3.11`版本是其基础容器。然后，应用程序可以通过使用`FROM node:lts-alpine3.11`指令来扩展该图像。这些指令将很快详细介绍。请注意，Docker
+    镜像不能有多个父 Docker 镜像——这里没有多重继承！但是可以有多个`FROM`指令，这被称为多阶段 Dockerfile。稍后会详细介绍这一点。
+- en: Each new directive in a Dockerfile creates a new *layer*. A layer is a partial
+    representation of an image after that particular directive has finished running.
+    Each one of these layers increases the storage size and, potentially, the startup
+    time of an image. [Figure 5-2](#fig_Docker_image_layer_fs) shows the relationship
+    between images and layers and how they can contribute to the resulting filesystem.
+    For these reasons it’s common for applications to combine as many operations into
+    as few lines as possible by chaining commands. Each layer can be represented as
+    a hash of its contents, much like *git* does when you check out a specific commit
+    hash. For this reason, if a line in a Dockerfile is expected to change frequently,
+    it should be placed later in a Dockerfile. This will allow the previous layers
+    to be reused between multiple versions of an application’s Docker image.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个 Dockerfile 中的新指令都会创建一个新的*层*。层是在特定指令运行后图像的部分表示。每个层增加了存储大小，可能也增加了图像的启动时间。[图 5-2](#fig_Docker_image_layer_fs)展示了图像和层之间的关系，以及它们如何对最终文件系统产生影响。因此，应用程序通常会将尽可能多的操作组合成尽可能少的行，通过链接命令。每个层可以被表示为其内容的哈希值，就像*git*在检出特定提交哈希时所做的那样。因此，如果
+    Dockerfile 中的一行预计会经常更改，应将其放在 Dockerfile 的后面。这将允许在应用程序的 Docker 镜像的多个版本之间重用先前的层。
+- en: Docker images are often tuned for performance by shrinking the filesystem to
+    the smallest version required by the application. The Ubuntu Linux distribution
+    is intended for generic use on desktops and servers and can be rather large. Debian
+    is a lighter distribution, but it also contains many tools that are needed by
+    whole server machines but aren’t required within a container. Alpine is an extremely
+    stripped-down Linux distribution and is often the base image of choice for storage-concious
+    developers. Sometimes an application does rely on features that aren’t provided
+    by such a simple base image and may need to instead use a more complex one. The
+    [official Node.js Docker images](https://hub.docker.com/_/node/) contain variants
+    for both Debian and Alpine.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 镜像通常通过将文件系统缩小到应用程序所需的最小版本来进行性能调优。Ubuntu Linux 发行版旨在用于桌面和服务器的通用用途，可能相当庞大。Debian
+    是一个更轻量级的发行版，但它也包含许多整个服务器机器需要但在容器中不需要的工具。Alpine 是一个极度精简的 Linux 发行版，通常是存储意识开发人员的首选基础镜像。有时，一个应用程序确实依赖于这样一个简单基础镜像无法提供的功能，可能需要使用一个更复杂的基础镜像。[官方
+    Node.js Docker 镜像](https://hub.docker.com/_/node/)包含了 Debian 和 Alpine 的变体。
+- en: '![Images are made up of layers, and layers can provide parts of the overall
+    filesystem](assets/dsnj_0502.png)'
+  id: totrans-23
+  prefs: []
+  type: TYPE_IMG
+  zh: '![图像由层组成，层可以提供整体文件系统的部分内容](assets/dsnj_0502.png)'
+- en: Figure 5-2\. Images contain layers, and layers contribute to the filesystem
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-2\. 图像包含层，层对文件系统有贡献
+- en: When you work with Docker images, such as when you previously ran all of those
+    `docker run` commands, a version of the image is downloaded and cached on your
+    machine. This is very similar to how `npm install` works. Both npm and Docker
+    cache remote files and can keep track of multiple versions of these files. Docker
+    even tracks each layer of the images.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用 Docker 图片工作时，例如之前运行的所有 `docker run` 命令，图片的一个版本将被下载并缓存在您的机器上。这与 `npm install`
+    的工作方式非常相似。npm 和 Docker 都会缓存远程文件，并可以跟踪这些文件的多个版本。Docker 甚至会跟踪图片的每一层。
+- en: 'To see a list of the Docker images that are currently cached on your machine,
+    run this command:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看当前缓存在您机器上的 Docker 图片列表，请运行此命令：
+- en: '[PRE0]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'You should then see a list of images. The list that I see looks like this:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您应该看到一个图片列表。我看到的列表如下所示：
+- en: '[PRE1]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'This list hints at a lot of things—other than how much time it takes to write
+    a book. First, notice how large some of the images can get. In the case of `sebp/elk`,
+    the image is just over 2GB in size! Also, notice the *TAG* column. This column
+    references the version. A version is usually one of three values: either a version
+    string, the string `latest` (which refers to the most recent version of an image
+    *when it was last downloaded from the registry*), or the value `<none>`, which
+    usually happens when you build an image for your own software but don’t provide
+    a version string.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个列表暗示了很多事情——除了写一本书需要多少时间。首先，注意一些图片可以有多大。在 `sebp/elk` 的情况下，图片的大小超过了 2GB！另外，请注意
+    *TAG* 列。这一列引用版本。版本通常是三个值之一：一个版本字符串，字符串 `latest`（表示从注册表中下载时的最新版本），或者值 `<none>`，通常在为自己的软件构建图片但未提供版本字符串时发生。
+- en: Every image has two ways to refer to it. The permanent way is by using the *image
+    ID*. This value should always refer to the same exact content. The other way to
+    refer to an image is by its repository and tag name. In my results the `grafana/grafana`
+    repository with a tag of `6.5.2` happens to point to the same image as the one
+    with a tag of `latest` since they have the same image ID. When I download the
+    `latest` version of Grafana again in a few weeks, it might point to a different
+    image ID.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每张图片都有两种引用方式。永久的方式是使用*图像 ID*。这个值应该始终引用完全相同的内容。另一种引用图片的方式是使用其仓库和标签名称。在我的结果中，`grafana/grafana`
+    仓库的 `6.5.2` 标签指向与 `latest` 标签相同的图片，因为它们具有相同的图片 ID。当我再过几周下载 `latest` 版本的 Grafana
+    时，可能会指向不同的图片 ID。
+- en: 'Next, it’s time to gain some insight into the layers used by each of these
+    images by using another command. This time run the following command (or substitute
+    a different version number if your listing is different):'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，使用另一个命令来了解每个图片使用的层。这次运行以下命令（如果您的列表不同，请替换为不同的版本号）：
+- en: '[PRE2]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'You will then see a list of the different layers of the image. The results
+    that I get look like this:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后您将看到图片不同的层的列表。我得到的结果看起来是这样的：
+- en: '[PRE3]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: In this case, prior to truncating the list, the [Grafana version 6.5.2 image](https://github.com/grafana/grafana/blob/v6.5.2/Dockerfile)
+    is composed of 15 different layers. The list correlates to the steps in a Dockerfile
+    backwards; the earlier entries in the list are later lines in the Dockerfile.
+    The list displayed as the result of the `docker history` command only includes
+    steps for the specific image being queried, not any parent images.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，在截断列表之前，[Grafana 版本 6.5.2 图片](https://github.com/grafana/grafana/blob/v6.5.2/Dockerfile)
+    由 15 个不同的层组成。该列表与 Dockerfile 中的步骤反向对应；列表中较早的条目是 Dockerfile 中较后的行。`docker history`
+    命令显示的列表仅包括查询的特定图片的步骤，而不包括任何父图片的步骤。
+- en: 'The `docker pull` command is used to download an image from a remote repository.
+    Run the following command to download such an image:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`docker pull` 命令用于从远程仓库下载图片。运行以下命令以下载这样的图片：'
+- en: '[PRE4]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'This will begin downloading the layers of the Alpine variant of the most recent
+    LTS release. In my case, I’m greeted with the following output:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将开始下载最新 LTS 发行版的 Alpine 变体的层。在我的情况下，我看到以下输出：
+- en: '[PRE5]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: In my case, there are four layers with a file size greater than 0 being downloaded
+    (some of the layers don’t modify the filesystem and won’t be listed as having
+    been downloaded).
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，有四个文件大小大于 0 的层被下载（一些层不会修改文件系统，因此不会被列为已下载）。
+- en: The Debian variant is a lot larger than the Alpine variant. For example, this
+    LTS Alpine image is 85.2MB. If you were to download the Debian variant using the
+    `**docker pull node:lts**` command, you would see that it’s a much larger 913MB.
+    One thing to keep in mind is that these layers end up getting cached on the different
+    machines they’re used on. If you were to deploy an application using the Debian
+    variant, the first time it’s deployed, the server would need to download the nearly
+    800MB Debian base image. However, for subsequent deploys, the Debian layer would
+    already be present and the deploy would be faster.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Debian 变体比 Alpine 变体大得多。例如，这个 LTS Alpine 镜像大小为85.2MB。如果你使用`**docker pull node:lts**`命令下载
+    Debian 变体，你会发现它的大小大约是913MB。需要记住的一件事是，这些层最终会在不同的机器上被缓存使用。如果你部署一个使用 Debian 变体的应用程序，第一次部署时，服务器需要下载近800MB的
+    Debian 基础镜像。然而，对于后续的部署，Debian 层已经存在，部署速度会更快。
+- en: Storage isn’t the only concern with large images. Another thing to consider
+    is security. If a Node.js application running inside of Debian gets hacked, there
+    will be many utilities available in the filesystem that can get executed. However,
+    if an application based on Alpine is compromised, there will be less binaries
+    around. In theory, this will lead to a smaller attack surface area.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于大型镜像，存储并不是唯一的关注点。另一个需要考虑的问题是安全性。如果一个在 Debian 中运行的 Node.js 应用程序被黑客攻击，文件系统中会有很多可执行的实用程序。然而，如果一个基于
+    Alpine 的应用程序被入侵，可执行的二进制文件会更少。理论上，这将导致更小的攻击面。
+- en: Tip
+  id: totrans-44
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: As a rule of thumb, if your application works with Alpine,^([1](ch05.html#idm46291186560600))
+    use Alpine! If your application needs a few shared libraries, install those libraries
+    in your Alpine image. Only for complex applications should you consider using
+    a heavier base container like Debian or Ubuntu.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为经验法则，如果你的应用程序可以使用 Alpine[^1]，就使用 Alpine 吧！如果你的应用程序需要一些共享库，那就在你的 Alpine 镜像中安装这些库。只有对于复杂的应用程序，你才应考虑使用像
+    Debian 或者 Ubuntu 这样更重的基础容器。
+- en: 'Now that you’re more familiar with some of the theory behind Docker, it’s time
+    to start running more containers. For this first example, you’ll run a plain Ubuntu
+    container without packaging an application with it. The previous sections in this
+    book have done just this. However, this time, you’ll run the container in an interactive
+    mode. Run the following command to enter an interactive `bash` session within
+    an Ubuntu container:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你对 Docker 背后的一些理论更加熟悉了，是时候开始运行更多的容器了。对于这个第一个示例，你将运行一个纯净的 Ubuntu 容器，而不用打包一个应用程序进去。本书的前几节已经这样做过。不过，这次你将以交互模式运行容器。运行以下命令进入
+    Ubuntu 容器内的交互`bash`会话：
+- en: '[PRE6]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The `-i` flag means that the session is interactive, and the `-t` flag means
+    that Docker should use a TTY session (as a convention they’ve been combined into
+    simply `-it`). Both these flags are set to make the session interactive. The `--rm`
+    flag tells Docker to remove all traces of the container once it exits. The `--name`
+    flag sets a name for the container, which will help to identify it in a list.
+    The argument `ubuntu` is the name of the image being run (which really translates
+    into `ubuntu:latest`). The final argument of `/bin/bash` is the binary that Docker
+    will execute inside the container.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`-i`标志表示会话是交互式的，而`-t`标志表示 Docker 应该使用一个 TTY 会话（作为一个约定，它们已经组合成`-it`）。这两个标志设置为使会话交互式。`--rm`标志告诉
+    Docker 在退出时删除容器的所有痕迹。`--name`标志为容器设置一个名称，在列表中有助于识别它。参数`ubuntu`是正在运行的镜像的名称（实际上是`ubuntu:latest`的翻译）。`/bin/bash`的最终参数是
+    Docker 将在容器内执行的二进制文件。'
+- en: 'Once Docker downloads the necessary layers, you should see your terminal prompt
+    change. At this point, you are able to execute commands within the running container
+    itself. Run the command `**ps -e**`. This will list all currently running processes
+    inside the container. The output I get when I run the command looks like this:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦 Docker 下载了必要的层，你应该看到你的终端提示符发生变化。在这一点上，你可以在正在运行的容器内执行命令。运行命令`**ps -e**`。这将列出容器内当前正在运行的所有进程。当我运行这个命令时，得到的输出看起来像这样：
+- en: '[PRE7]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: The root process within the container, the one with a PID value of 1, is `bash`.
+    Only a second process is also being run, namely `ps`. If this same command were
+    run on a more traditional Linux server, the root process would probably be a more
+    complex *service manager* such as `systemd` or `init`. There would also be dozens
+    if not hundreds of other processes listed. Service managers handle things like
+    reading configuration files, running services and managing their interdependencies,
+    and managing process restarts in a configurable manner when a child fails. In
+    short, they’re complex tools required for managing a complete operating system.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容器内的根进程，PID 值为 1 的进程是`bash`。只有第二个进程也在运行，即`ps`。如果在更传统的 Linux 服务器上运行相同的命令，根进程可能是更复杂的*服务管理器*，如`systemd`或`init`。还会列出数十甚至数百个其他进程。服务管理器处理诸如读取配置文件、运行服务及管理其相互依赖性、以及在子进程失败时以可配置的方式管理进程重启等任务。简而言之，它们是管理完整操作系统所需的复杂工具。
+- en: Within a Docker container, such service management features are usually overkill,
+    and a simpler program should be used. For an interactive shell, `bash` will suffice
+    as the root process. However, in more complex situations, you might need to reach
+    for another program. For example, sometimes it’s beneficial to run a *sidecar
+    process* within a Docker container. A sidecar is an external process that performs
+    certain duties, such as providing a proxy to make service discovery easier for
+    an application or providing a health-checking daemon that polls the application
+    for health stats and relays the stats to another service. In those situations,
+    restart policies become very important. For example, if the sidecar crashes, it
+    might simply be restarted, but if the main application crashes, the whole container
+    should then exit. In those cases, you may need to research an alternative service
+    manager, one that allows for granular configuration.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Docker 容器内，这种服务管理功能通常过于复杂，应该使用更简单的程序。对于交互式 shell，`bash`作为根进程就足够了。然而，在更复杂的情况下，您可能需要使用其他程序。例如，有时在
+    Docker 容器内运行*sidecar 进程*是有益的。Sidecar 是执行某些任务的外部进程，例如提供代理以便应用程序更轻松地进行服务发现，或者提供健康检查守护程序以轮询应用程序的健康统计信息，并将统计信息中继到另一个服务中。在这些情况下，重启策略变得非常重要。例如，如果
+    sidecar 崩溃，可能只需重新启动它，但如果主应用程序崩溃，则整个容器应退出。在这些情况下，您可能需要研究一种允许进行细粒度配置的替代服务管理器。
+- en: 'Now switch to a new terminal window and run this command:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在切换到新的终端窗口，并运行以下命令：
+- en: '[PRE8]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'This Docker subcommand is different than the `ps` command that was run within
+    the container, but in spirit, both commands intend to list a snapshot of currently
+    running *things*. The output I get when I run this command looks like this:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 Docker 子命令与容器内运行的`ps`命令不同，但在精神上，两个命令都意在列出当前运行的*东西*的快照。当我运行此命令时，输出看起来像这样：
+- en: '[PRE9]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Note that you might see more entries if you still have some other containers
+    running.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，如果您仍在运行其他容器，则可能会看到更多条目。
+- en: It’s even possible to manually execute a command within a currently running
+    Docker container. This is useful if you need to debug a runaway Node.js application.
+    The subcommand to do this is `exec`. Switch to a new terminal window and run **`docker
+    exec ephemeral /bin/ls /var`** to execute a new command within your running Ubuntu
+    container. You’ve just executed a second command within your container without
+    disrupting the other commands.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在当前运行的 Docker 容器中手动执行命令是完全可能的。如果需要调试运行失控的 Node.js 应用程序，这将非常有用。执行此操作的子命令是`exec`。切换到新的终端窗口，并运行**`docker
+    exec ephemeral /bin/ls /var`**命令，以在运行中的 Ubuntu 容器内执行新命令。您刚刚在容器中执行了第二个命令，而不会干扰其他命令。
+- en: You’re now free to exit the container. Switch back to the terminal running the
+    Docker container and type `**exit**`. The container will be torn down, and, since
+    it was run with the `--rm` flag, it will be completely removed from your system.
+    Running **`docker ps`** again will prove that it is no longer running. However,
+    to prove that it is no longer on your system, run the **`docker ps --all`** command.
+    You will see several entries listed in the results, though the *ephemeral* container
+    you created earlier will not be listed amongst them.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您可以自由地退出容器。切换回运行 Docker 容器的终端，并键入`**exit**`。容器将被关闭，并且由于使用了`--rm`标志，它将从您的系统中完全移除。再次运行**`docker
+    ps`**将证明它已不再运行。但是，为了证明它已经不在您的系统上，请运行**`docker ps --all`**命令。您将看到结果中列出了几个条目，尽管您之前创建的*ephemeral*容器将不会在其中列出。
+- en: Tip
+  id: totrans-60
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: At this point, you might want to prune some of the old containers that you’re
+    no longer using, as they do consume disk space. To remove a container from your
+    machine, you can run the **`docker rm <name/id>`** command, using either the hexadecimal
+    container identifier or the human-friendly container name. Similarly, you can
+    run the **`docker images`** command to see a list of all the images still available
+    on your computer. You can then run **`docker rmi <image id>`** to remove any unused
+    images. Note that you cannot remove an image currently being used by a container;
+    the container will need to be removed first.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，您可能希望删除一些不再使用的旧容器，因为它们会占用磁盘空间。要从计算机中删除容器，您可以运行**`docker rm <name/id>`**命令，使用十六进制容器标识符或人性化的容器名称。类似地，您可以运行**`docker
+    images`**命令以查看计算机上仍然可用的所有镜像列表。然后，您可以运行**`docker rmi <image id>`**以删除任何未使用的镜像。请注意，您无法删除当前由容器使用的镜像；必须先删除容器。
+- en: Containers aren’t that useful if external applications can’t interface with
+    them. Luckily, Docker provides two important methods to do just that. The first
+    method is by sharing part of the filesystem within a running container with part
+    of the filesystem in the host operating system. This is done by using the `-v`
+    / `--volume` or the `--mount` flags (the first two are an alias for each other,
+    and the third flag accepts a more verbose syntax, but they essentially do the
+    same thing). The other method for interfacing with a container is by mapping a
+    port inside the container to the host operating system by using the `-p` / `--publish`
+    flag.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果外部应用程序无法与其接口，那么容器的用处并不大。幸运的是，Docker提供了两种重要的方法来实现这一点。第一种方法是通过在运行容器内的部分文件系统与主机操作系统中的部分文件系统共享来实现。这是通过使用`-v`
+    / `--volume`或`--mount`标志（前两个是彼此的别名，第三个标志接受更详细的语法，但它们本质上是相同的）来实现的。另一种与容器接口的方法是通过使用`-p`
+    / `--publish`标志将容器内的端口映射到主机操作系统中。
+- en: 'Execute the following commands to download an example *index.html* file and
+    to run a container with nginx configured to read from the directory:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行以下命令下载示例*index.html*文件并运行已配置为从该目录读取的nginx容器：
+- en: '[PRE10]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Both the `volume` and `publish` flags have a verbose syntax for configuring
+    the way the mapping between the host and the container work. For example, it’s
+    possible to specify if a volume mapping is read only or if a port mapping should
+    be UDP. Both flags support a simple syntax as well, where a resource on the host
+    is mapped with reasonable defaults to a resource on the guest. The command you
+    just ran uses this simple syntax for both volume mapping and port mapping. In
+    this case, port 8080 on the host is mapped to port 80 in the container by using
+    `-p 8080:80`. The current directory is mapped to the directory used by nginx to
+    read static files with the `-v $PWD:/usr/share/nginx/html` flag (the `-v` flag
+    expects absolute directories, which is why the command uses `$PWD` instead of
+    “`.`”).
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`volume`和`publish`标志都具有详细的语法，用于配置主机和容器之间映射的方式。例如，可以指定卷映射是只读的还是端口映射应该是UDP。这两个标志还支持简单的语法，其中主机上的资源与客户端上的资源映射到合理的默认值。您刚才运行的命令同时为卷映射和端口映射使用了这种简单的语法。在此示例中，使用`-p
+    8080:80`将主机上的端口8080映射到容器中的端口80。当前目录使用`-v $PWD:/usr/share/nginx/html`标志映射到nginx用于读取静态文件的目录（`-v`标志需要绝对目录，这就是为什么命令使用`$PWD`而不是“`.`”）。'
+- en: Now that the nginx container is running, visit [*http://localhost:8080/*](http://localhost:8080/)
+    in your browser to see the rendered *index.html* page. The `volume mount` flag
+    is very useful when running database services that need to persist state. However,
+    it’s not that common to mount the host’s filesystem for a Node.js application
+    because such services should be run in a stateless manner. For that reason, you
+    probably won’t need to use the `volume` flag with your apps.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在nginx容器正在运行，请在浏览器中访问[*http://localhost:8080/*](http://localhost:8080/)以查看渲染的*index.html*页面。`volume
+    mount`标志在运行需要持久状态的数据库服务时非常有用。但是，对于Node.js应用程序来说，将主机文件系统挂载是不那么常见的，因为这些服务应该以无状态方式运行。因此，您可能不需要在应用程序中使用`volume`标志。
+- en: Containerizing a Node.js Service
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Node.js服务容器化
+- en: In this section, you’ll create a Docker container for the *recipe-api* service.
+    This container will be used for two different purposes. The first will be to install
+    packages, and the second will be to set up the environment to run the Node.js
+    application. These two operations sound similar, but as you’ll see, it’s important
+    to keep the two concepts separated.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，你将为 *recipe-api* 服务创建一个 Docker 容器。这个容器将用于两个不同的目的。第一个目的是安装包，第二个目的是设置运行 Node.js
+    应用程序的环境。这两个操作听起来很相似，但正如你将看到的那样，保持这两个概念的分离非常重要。
+- en: The fact that Docker will be used to install the project’s packages might sound
+    a bit odd at first. Right now, on disk, within your *recipe-api* directory, you
+    already have a *node_modules* directory that contains all the modules required
+    to run the application! Why aren’t those modules good enough?
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 Docker 来安装项目的包，一开始听起来可能有点奇怪。现在，在你的 *recipe-api* 目录下，已经有一个 *node_modules*
+    目录，其中包含运行应用程序所需的所有模块！为什么这些模块不够好呢？
+- en: For the most part, this comes down to the fact that packages installed via package
+    manager don’t simply download JavaScript files and place them on the filesystem.
+    Instead, the installation of packages from the npm registry is actually a fairly
+    nondeterministic operation. For one thing, if an npm package has native code involved,
+    such as C++ files, that code will need to be compiled. There’s no guarantee that
+    the compiled output on your local development machine will be compatible with
+    that of the Linux Docker environment (for example, a local development machine
+    might be a macOS or Windows machine, or a Linux machine with different shared
+    library versions).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大部分情况下，这归结于通过包管理器安装的包不仅仅是下载 JavaScript 文件并将其放在文件系统上。相反，从 npm 注册表安装包实际上是一个相当非确定性的操作。首先，如果一个
+    npm 包涉及本地代码，比如 C++ 文件，那么该代码将需要编译。不能保证在你的本地开发机上编译的输出与 Linux Docker 环境（例如本地开发机可能是
+    macOS 或 Windows 机器，或者是具有不同共享库版本的 Linux 机器）兼容。
+- en: If you’ve ever deployed an application and then saw many error logs mentioning
+    the `chokidar` or `fsevents` packages, it might be due to deploying a macOS *node_modules*
+    directory to a Linux server. Another reason for this nondeterminism is the `postinstall`
+    and `preinstall` scripts of a package, which can run any arbitrary code the package
+    author likes. Sometimes this is used to do things like download a binary from
+    the internet. For these reasons, the package installation must happen in an environment
+    similar to where the code will ultimately run.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你曾部署过一个应用程序，然后看到很多错误日志提到了`chokidar`或`fsevents`包，那可能是因为将 macOS 的 *node_modules*
+    目录部署到了 Linux 服务器上。这种不确定性的另一个原因是包的 `postinstall` 和 `preinstall` 脚本，它们可以运行包作者喜欢的任意代码。有时这被用来下载互联网上的二进制文件。因此，包的安装必须在与最终运行代码相似的环境中进行。
+- en: As part of both the installation step, as well as preparing the execution environment,
+    some files will need to be copied from the directory where your project files
+    live. Much like git has the concept of a *.gitignore* file and npm has an *.npmignore*
+    file, Docker has its own *.dockerignore* file. This file, similar to the others,
+    specifies patterns of files that should be ignored. In the case of Docker, files
+    matching these patterns won’t be copied into the containers. Ignoring such files
+    is convenient because wild cards can later be used when specifying which files
+    to copy. Create a new file at *recipe-api/.dockerignore* and add the content from
+    [Example 5-1](#ex_dockerignore) to it.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为安装步骤的一部分，以及准备执行环境的一部分，需要从项目文件所在的目录中复制一些文件。就像 git 有 *.gitignore* 文件和 npm 有
+    *.npmignore* 文件一样，Docker 也有自己的 *.dockerignore* 文件。这个文件类似于其他文件，指定了应被忽略的文件模式。在 Docker
+    中，匹配这些模式的文件不会被复制到容器中。忽略这些文件是方便的，因为稍后在指定要复制的文件时可以使用通配符。在 *recipe-api/.dockerignore*
+    中创建一个新文件，并将 [Example 5-1](#ex_dockerignore) 中的内容添加到其中。
+- en: Example 5-1\. *recipe-api/.dockerignore*
+  id: totrans-73
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 5-1\. *recipe-api/.dockerignore*
+- en: '[PRE11]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The entries in this file are pretty similar to the files that you might already
+    have in a *.gitignore* for other Node.js projects. Much like you wouldn’t want
+    the *node_modules* directory checked into git, you also don’t want those packages
+    copied into the Docker image.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件中的条目与你可能在其他 Node.js 项目的 *.gitignore* 中已经有的文件非常相似。就像你不希望将 *node_modules*
+    目录提交到 git 一样，你也不希望这些包被复制到 Docker 镜像中。
+- en: Dependency Stage
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 依赖阶段
+- en: Now it’s time to consider the Dockerfile itself. This example will use a multistage
+    Dockerfile. The first stage will build the dependencies and the second will prepare
+    the application container. The build stage will be based on the official Node.js
+    Docker image. This image is built with the intention to satisfy the needs of as
+    many Node.js developers as possible, providing tools that they will likely need.
+    As an example, it includes both the npm and yarn package manager. For this reason
+    it’s a pretty useful base image for the build stage of an application.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是考虑Dockerfile本身的时候了。这个例子将使用多阶段的Dockerfile。第一阶段将构建依赖项，第二阶段将准备应用程序容器。构建阶段将基于官方Node.js
+    Docker镜像。这个镜像旨在满足尽可能多的Node.js开发者的需求，提供他们可能需要的工具。例如，它包括npm和yarn包管理器。因此，它是构建应用程序的构建阶段的一个非常有用的基础镜像。
+- en: Create a new file at *recipe-api/Dockerfile* and add the content from [Example 5-2](#ex_dockerfile_deps)
+    to it. Keep the file open because you’ll add more content to it in a moment.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*recipe-api/Dockerfile*中创建一个新文件，并将内容从[示例 5-2](#ex_dockerfile_deps)添加到其中。保持文件打开，因为你稍后将会添加更多内容。
+- en: Example 5-2\. *recipe-api/Dockerfile* “deps” stage
+  id: totrans-79
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-2\. *recipe-api/Dockerfile* “deps” 阶段
+- en: '[PRE12]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: The first line in this file, beginning with `FROM`, specifies that the `node:14.8.0-alpine3.12`
+    image will be used as a base. If this were the only `FROM` directive in the entire
+    file, it would be the base of the resulting image. However, since you’ll add another
+    one later, it’s only the base image of the first stage. This line also states
+    that the first stage of the build is being named `deps`. This name will be useful
+    in the next stage.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件的第一行，以`FROM`开头，指定了`node:14.8.0-alpine3.12`镜像作为基础。如果这是整个文件中唯一的`FROM`指令，它将成为结果镜像的基础。但是，由于稍后将添加另一个`FROM`指令，它只是构建的第一阶段的基础镜像。此行还指定构建的第一阶段被命名为`deps`。这个名称将在下一个阶段中非常有用。
+- en: The `WORKDIR /srv` line states that the actions that follow will take place
+    within the */srv* directory. This is similar to running the `cd` command in your
+    shell, which changes the current working directory.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`WORKDIR /srv` 表示接下来的操作将在 */srv* 目录内进行。这类似于在Shell中运行`cd`命令，改变当前工作目录。'
+- en: Next is the `COPY` statement. The first argument of the statement represents
+    the filesystem in the host, and the second represents the filesystem within the
+    container. In this case, the command is stating that files matching `package*.json`
+    (specifically *package.json* and *package-lock.json*) will be copied to `./` within
+    the container (being the */srv* directory). Alternatively, if you prefer to use
+    yarn, you would instead copy the *yarn.lock* file.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是`COPY`语句。语句的第一个参数表示主机文件系统，第二个参数表示容器内的文件系统。在这种情况下，命令指定匹配`package*.json`（具体为*package.json*和*package-lock.json*）的文件将被复制到容器内的`./`目录（即*/srv*目录）。或者，如果你更喜欢使用yarn，你可以复制*yarn.lock*文件。
+- en: After that is the `RUN` command. This command will execute the specified command
+    within the container. In this case, it’s executing the `npm ci --only=production`
+    command. This performs a clean installation of all nondevelopment dependencies.
+    In general, the `npm ci` command is faster than `npm install` when dealing with
+    a clean environment such as a Docker image. Alternatively, if you were using yarn,
+    you might instead run `yarn install --production`. Again, both the `npm` and `yarn`
+    binaries are provided in the image due to inheriting from the official `node`
+    base image.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是`RUN`命令。此命令将在容器内执行指定的命令。在这种情况下，它执行`npm ci --only=production`命令。这将对所有非开发依赖项进行干净的安装。一般来说，当处理类似Docker镜像这样的干净环境时，`npm
+    ci`命令比`npm install`要快。或者，如果你使用yarn，你可以运行`yarn install --production`。同样，由于继承自官方`node`基础镜像，镜像中都提供了`npm`和`yarn`二进制文件。
+- en: Tip
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Some people like to create an earlier stage in their build where they install
+    dev dependencies and run their test suite. This can help increase confidence that
+    the resulting image is free of bugs. But, since this likely involves two separate
+    `npm install` steps (one with dev dependencies and one without), it won’t necessarily
+    find all bugs, like if application code mistakenly requires a dev dependency.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有些人喜欢在构建的早期阶段安装开发依赖项并运行测试套件。这可以增加对生成镜像没有错误的信心。但是，由于这可能涉及两个单独的`npm install`步骤（一个带有开发依赖项，一个没有），它并不一定能找到所有的错误，比如如果应用程序代码错误地需要一个开发依赖项。
+- en: Release Stage
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 发布阶段
+- en: Now you’re ready to work on the second half of the Dockerfile. Add the content
+    from [Example 5-3](#ex_dockerfile_release_1) to the same *recipe-api/Dockerfile*
+    file that you’ve been working with.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以开始处理Dockerfile的下半部分了。将内容从[示例 5-3](#ex_dockerfile_release_1)添加到你正在处理的同一*recipe-api/Dockerfile*文件中。
+- en: Example 5-3\. *recipe-api/Dockerfile* “release” stage part one
+  id: totrans-89
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-3\. *recipe-api/Dockerfile* “release”阶段第一部分
+- en: '[PRE13]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Unlike the first *deps* stage of the Dockerfile, this second *release* stage
+    of the build doesn’t make use of the official Node.js image. Instead, it’s using
+    a rather plain `alpine` image. The reason for this is that some of the niceties
+    provided by the official Node.js image aren’t needed in a production application.
+    For example, once the dependencies are squared away, it’s uncommon for an application
+    to later invoke the `npm` or `yarn` binaries. By using the `alpine` image directly,
+    the image will be just a little smaller and simpler. It also helps for demonstrating
+    more complex Dockerfile directives.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与Dockerfile的第一个*deps*阶段不同，构建的第二个*release*阶段没有使用官方Node.js镜像。相反，它使用了一个相对简单的`alpine`镜像。原因是官方Node.js镜像提供的某些便利在生产应用中是不需要的。例如，一旦依赖项解决，应用程序很少再调用`npm`或`yarn`二进制文件。直接使用`alpine`镜像可以使镜像稍微小一些，更简单一些。它还有助于演示更复杂的Dockerfile指令。
+- en: The next two lines define environment variables that are used by the other directives.
+    This is a convenient way to prevent common strings from being repeated in the
+    file. The first variable is called `V` and represents the version. In this case,
+    the Dockerfile is working with Node.js *v14.8.0*. The second variable is called
+    `FILE` and is the name of the tarball to be downloaded.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来的两行定义了其他指令使用的环境变量。这是一种方便的方法，可以防止文件中重复使用常见字符串。第一个变量称为`V`，表示版本。在本例中，Dockerfile正在使用Node.js
+    *v14.8.0*。第二个变量称为`FILE`，是要下载的tar包的名称。
+- en: After the environment variables is a complex series of commands that will be
+    run inside the container using the `RUN` directive. The Dockerfile is stating
+    that several commands will be executed, but they’re wrapped up in a single `RUN`
+    directive to keep the number of intermediate layers small. The backslash at the
+    end of the line states that the next line is still part of the same line, and
+    the ampersands state that a new command is being run (and that if a previous command
+    fails, the following commands should not be run).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在环境变量之后是一系列复杂的命令，将使用`RUN`指令在容器内部执行。Dockerfile声明将执行多个命令，但它们都包装在一个单独的`RUN`指令中，以保持中间层的数量较少。行尾的反斜杠表示下一行仍然是同一行的一部分，而`&&`表示正在运行新的命令（如果前一个命令失败，则不应运行后续命令）。
+- en: The Alpine operating system comes with a package manager called `apk`, and the
+    first two commands in the `RUN` directive install packages using it. The packages
+    are installed by running `apk add`. The `--no-cache` flag tells `apk` not to leave
+    behind any package management files tracking the installs, which helps keep the
+    image that much smaller. The first package being installed is `libstdc++`. This
+    package provides a shared library required by Node.js. The second package is `curl`.
+    This package is only needed during setup and will later be removed. The `--virtual
+    .deps` flag tells `apk` to keep track of the installed package and its dependencies.
+    Then, later, that group of packages can be removed all at once.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Alpine操作系统配备了一个称为`apk`的包管理器，`RUN`指令中的前两个命令使用它来安装软件包。通过运行`apk add`来安装软件包。`--no-cache`标志告诉`apk`不要留下任何跟踪安装的软件包管理文件，这有助于保持镜像尽可能小。第一个安装的软件包是`libstdc++`。该软件包提供Node.js所需的共享库。第二个软件包是`curl`。此软件包仅在设置期间需要，并且稍后将被删除。`--virtual
+    .deps`标志告诉`apk`跟踪安装的软件包及其依赖项。稍后，可以一次性删除该组软件包。
+- en: The next command executes `curl` inside of the container and downloads the Node.js
+    release tarball. After that, the `tar` command tarextracts the contents of the
+    tarball into */usr/local*. The tarball doesn’t include yarn but it does include
+    npm, so the following `rm` commands remove npm and its dependent files. Finally,
+    the `apk del .deps` command removes `curl` and its dependencies.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来的命令在容器内部执行`curl`，并下载Node.js发布的tar包。然后，`tar`命令解压tar包的内容到*/usr/local*。tar包不包括yarn，但包括npm，因此接下来的`rm`命令删除npm及其依赖的文件。最后，`apk
+    del .deps`命令删除`curl`及其依赖项。
+- en: This was the most complex part of the Dockerfile. Now add the final contents
+    from [Example 5-4](#ex_dockerfile_release_2), which contains the second half of
+    the directives for the *release* stage.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 Dockerfile 中最复杂的部分。现在从 [示例 5-4](#ex_dockerfile_release_2) 添加最终内容，其中包含 *release*
+    阶段的后半部分指令。
+- en: Example 5-4\. *recipe-api/Dockerfile* “release” stage part two
+  id: totrans-97
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-4\. *recipe-api/Dockerfile* “release” 阶段第二部分
+- en: '[PRE14]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Again, the working directory is set to `/srv`. This is a common convention on
+    Linux servers, but otherwise, the application code could reside almost anywhere.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次设置工作目录为 `/srv`。这是 Linux 服务器上的常见约定，但否则，应用程序代码几乎可以位于任何位置。
+- en: The more interesting line, though, is the following `COPY` directive. The `--from`
+    flag instructs the `COPY` directive to copy files from another stage of the image
+    build process, not from the host operating filesystem like it usually does. This
+    is where the magic of the multistage presents itself. In this case, the */srv/node_modules*
+    directory from the `deps` stage is being copied to the */srv/node_modules* directory
+    within the `release` container. This ensures that the packages are built for the
+    proper architecture.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过，更有趣的一行是以下 `COPY` 指令。 `--from` 标志指示 `COPY` 指令从镜像构建过程的另一个阶段复制文件，而不是像通常那样从主机操作系统文件系统复制。这就是多阶段构建的魔力所在。在本例中，从
+    `deps` 阶段复制 */srv/node_modules* 目录到 `release` 容器内的 */srv/node_modules* 目录。这确保了包是为正确的架构构建的。
+- en: The next `COPY` directive copies files from the current directory (*.*) into
+    the */srv* directory (*.* with a `WORKDIR` of */srv*). This is where the *.dockerignore*
+    file comes into play. Normally, the *node_modules* would get copied as well, overwriting
+    the *node_modules* that were just copied from the `deps` stage. Note that in the
+    case of this example application, every single one of the *producer-*.js* files
+    will get copied into the image. Technically only one of them is needed for a service
+    to run. But the `COPY .` approach is more applicable to a real-world application.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一个 `COPY` 指令将文件从当前目录（*.*）复制到 */srv* 目录（*.*，`WORKDIR` 设置为 */srv*）。这是 *.dockerignore*
+    文件发挥作用的地方。通常，*node_modules* 也会被复制，覆盖刚从 `deps` 阶段复制过来的 *node_modules*。请注意，在这个示例应用程序的情况下，每一个
+    *producer-*.js* 文件都将被复制到镜像中。技术上，只需要其中一个文件即可运行服务。但 `COPY .` 的方法更适用于真实的应用程序。
+- en: Warning
+  id: totrans-102
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: In general, using `COPY .` is a decent approach to copying application files
+    into a Docker image. One caveat to be aware of is that this copies *every* file
+    that isn’t ignored, including the *Dockerfile* itself, a potentially massive *.git*
+    directory (if run in the project root directory). It will even copy temporary
+    files used by your text editors!
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总的来说，使用 `COPY .` 将应用程序文件复制到 Docker 镜像是一个不错的方法。需要注意的一个警告是，这会复制每一个未被忽略的文件，包括 *Dockerfile*
+    本身，可能是一个庞大的 *.git* 目录（如果在项目根目录运行）。甚至会复制文本编辑器使用的临时文件！
+- en: For this reason, you’ll need to be diligent about adding entries to your *.dockerignore*
+    file, and you’ll occasionally want to look at the filesystem of the Docker image
+    (such as with **`docker exec <name> ls -la /srv`**). You should also consider
+    building Docker images *only* on a special build server and not on a local development
+    machine.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，您需要勤奋地向 *.dockerignore* 文件添加条目，并且偶尔查看 Docker 镜像的文件系统（例如使用 **`docker exec
+    <name> ls -la /srv`**）。您还应考虑仅在专用构建服务器上构建 Docker 镜像，而不是在本地开发机器上进行。
+- en: Having specific `COPY` directives for every file that should be copied can be
+    risky too. For example, your application might require a JSON file that is read
+    at runtime that isn’t explicitly copied, leading to a buggy image.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个应该复制的文件都有特定的 `COPY` 指令可能也存在风险。例如，您的应用程序可能需要一个运行时读取的 JSON 文件，但没有显式复制，导致图像中的错误。
+- en: The `EXPOSE` directive is a way of documenting that the image plans on listening
+    using a specific port, in this case 1337\. This doesn’t actually open the port
+    to the outside world; instead, that is done later when a container is run from
+    the image.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`EXPOSE` 指令是一种文档化镜像计划使用特定端口（此处为 1337）进行监听的方式。这并不会实际打开端口给外部世界；相反，当从镜像运行容器时才会执行这一操作。'
+- en: The two `ENV` directives set environment variables, and this time the variables
+    are going to be used by the application itself. Specifically, the `HOST` and `PORT`
+    environment variables are what the services have been using to decide which interface
+    and port to listen on. The application defaults to listening for connections on
+    the `127.0.0.1` interface. Leaving this as-is would mean that the application
+    only listens for requests originating *within the Docker container*, not from
+    requests generated from the host, which wouldn’t be very useful.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个`ENV`指令设置环境变量，这些变量这次将由应用程序本身使用。具体来说，`HOST`和`PORT`环境变量是服务用来决定监听哪个接口和端口的。应用程序默认监听`127.0.0.1`接口。保持不变将意味着应用程序只监听来自*Docker容器内部*的请求，而不是来自主机生成的请求，这并不是非常有用。
+- en: Finally, the Dockerfile ends with a `CMD` directive. This is a way of declaring
+    what command should be executed when a container is run. In this case, the `node`
+    binary will be executed and it will run the *producer-http-basic.js* file. This
+    command can be overridden at run time.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，Dockerfile以一个`CMD`指令结束。这是声明在运行容器时应该执行什么命令的一种方式。在这种情况下，将执行`node`二进制文件，并且它将运行*producer-http-basic.js*文件。这个命令可以在运行时被覆盖。
+- en: This image is far from perfect. The official Node.js containers, while a little
+    heavier, do provide some other niceties. For example, when they download the compiled
+    Node.js tarballs, they also compare them against checksum values to ensure the
+    files haven’t been tampered with. They also create a specialized user and set
+    up filesystem permissions for running the Node.js application. It’s up to you
+    to decide which of these features you want for your application.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个镜像还远非完美。官方的Node.js容器虽然稍微重一些，但也提供了其他一些便利之处。例如，当它们下载编译后的Node.js tarballs时，它们还会对它们进行校验和，以确保文件没有被篡改。它们还会创建一个专门的用户并设置文件系统权限以运行Node.js应用程序。你可以决定你的应用程序需要哪些功能。
+- en: From Image to Container
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 从镜像到容器
+- en: With the Dockerfile complete, it’s now time to build an image from the Dockerfile.
+    The Dockerfile and its supporting files exist on disk and are usually checked
+    into version control. The images that are generated from them are managed by the
+    Docker daemon.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Dockerfile完成后，现在是从Dockerfile构建镜像的时候了。Dockerfile及其支持文件存在于磁盘上，并且通常被检入版本控制。从它们生成的映像由Docker守护程序管理。
+- en: Run the commands in [Example 5-5](#ex_dockerfile_build) to enter the *recipe-api*
+    directory and then build a Docker image.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行[示例5-5](#ex_dockerfile_build)中的命令，进入*recipe-api*目录，然后构建一个Docker镜像。
+- en: Example 5-5\. Building an image from a Dockerfile
+  id: totrans-113
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例5-5. 从Dockerfile构建镜像
+- en: '[PRE15]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: This `docker build` command has one flag and one argument. The flag is the `-t`
+    flag that represents the *tag* for the image. The tag used in this example has
+    three parts to it, following the pattern `repository/name:version`. In this case,
+    the repository, which is a way to namespace image names, is *tlhunter*. The name
+    represents the actual content of the image and in this case is *recipe-api*. The
+    version, which is used for differentiating different releases of the image, is
+    `v0.0.1`.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个`docker build`命令有一个标志和一个参数。标志是`-t`标志，表示镜像的*标签*。在本例中，使用的标签有三部分，遵循`repository/name:version`的模式。在这种情况下，仓库是命名空间镜像名称的一种方式，是*tlhunter*。名称表示镜像的实际内容，在这种情况下是*recipe-api*。版本用于区分镜像的不同发布版本，是`v0.0.1`。
+- en: Regarding versions, an image doesn’t necessarily need to follow along with a
+    particular pattern. In this case, I chose to use a value that looks like a *SemVer*
+    version string, a value familiar to many Node.js developers. However, applications
+    don’t usually have a SemVer version assigned to them like packages do. One common
+    approach is to simply use an integer, one that gets incremented with each new
+    container build. If a version isn’t supplied, Docker will supply a default version
+    tag of `latest`. Generally, you should always supply a version.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于版本，镜像不一定需要遵循特定的模式。在这种情况下，我选择了使用类似*SemVer*版本字符串的值，这是许多Node.js开发者熟悉的值。然而，应用程序通常不像包一样有一个SemVer版本分配给它们。一个常见的方法是简单地使用一个整数，每次新建容器时递增一个值。如果未提供版本，Docker将提供一个默认的版本标签`latest`。一般来说，您应该始终提供一个版本。
+- en: 'While this command runs, you’ll see the output as each of the directives in
+    the Dockerfile builds a new layer. Each one of these layers has its hash printed,
+    as well as the directive for that layer. The output that I get when the command
+    has finished looks like this:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此命令运行时，您将会看到每个Dockerfile指令构建一个新层时的输出。每一个层都会打印其哈希值及其指令。命令完成时，我得到的输出看起来像这样：
+- en: '[PRE16]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Once the image has been built, you’re ready to run a container instance based
+    off of this image. Each container instance has metadata attached to it to differentiate
+    it from other running containers. Run the following command to create a new running
+    container instance from your container:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦镜像构建完成，您就可以基于此镜像运行一个容器实例。每个容器实例都附带有元数据，用于区分它与其他正在运行的容器。运行以下命令从您的容器创建一个新的运行容器实例：
+- en: '[PRE17]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: This command uses the `--rm` flag, which previous examples have used, to clean
+    up the container once it’s done. The `--name` flag sets the name of this container
+    to `recipe-api-1`. The `-p` flag maps the 8000 port of the host to the 1337 port
+    within the container that the Node.js application is listening on. The final argument
+    is the tag for the image being run.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令使用 `--rm` 标志来清理容器一旦运行完毕。 `--name` 标志将此容器命名为 `recipe-api-1`。 `-p` 标志将主机的8000端口映射到容器内Node.js应用程序正在监听的1337端口。最后一个参数是运行镜像的标签。
+- en: Once you’ve run the command, you’ll see some output from the service printed
+    to the screen. The first piece of information logged is the PID of the process
+    within the container. In this case, it prints `worker pid=1`, meaning it’s the
+    main process within the container. The next piece of information printed is that
+    the service is listening at *http://0.0.0.0:1337*. This is the interface and port
+    that the Node.js service is available at *within the container*.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您运行了该命令，您将会看到服务输出到屏幕上的一些信息。记录的第一条信息是容器内进程的PID。在这种情况下，它打印出 `worker pid=1`，这意味着它是容器内的主进程。接下来打印的信息是服务正在监听的地址
+    *http://0.0.0.0:1337*。这是Node.js服务在 *容器内* 可用的接口和端口。
+- en: Note
+  id: totrans-123
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Keep in mind that the address the service thinks it is available at isn’t going
+    to be the same as the address that clients will use to contact it. This can affect
+    a service that needs to report its URL to the client (like an API providing URLs
+    to other resources). In these cases you can provide an environment variable containing
+    the external host and port combination for the service to relay to consumers.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请记住，服务认为它可用的地址与客户端用于联系它的地址不同。这可能会影响需要向客户端报告其URL的服务（例如提供其他资源URL的API）。在这些情况下，您可以提供一个包含外部主机和端口组合的环境变量，供服务传递给消费者使用。
+- en: 'At this point, you’re ready to confirm that the service runs. Since the container
+    is mapping the internal 1337 port to 8000 on the host, you’ll need to use the
+    host’s port when making a request. Run the following command to make a request
+    to your containerized service:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经准备好确认服务是否运行。由于容器将内部的1337端口映射到主机的8000端口，因此在发出请求时需要使用主机的端口。运行以下命令向您的容器化服务发出请求：
+- en: '[PRE18]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Once you run the command, you should see the familiar JSON data in response.
+    If you were to change the command to use the port 1337, you would get an error
+    that the connection was refused.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦运行该命令，您应该会看到熟悉的JSON数据作为响应。如果您更改命令以使用端口1337，则会收到连接被拒绝的错误。
+- en: 'Unfortunately, with the way this container is set up, you won’t be able to
+    type Ctrl + C and have the container stop running. Instead, you’ll need to run
+    the following command in a new terminal window to terminate the service:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，由于该容器的设置方式，您无法键入Ctrl + C来停止运行容器。相反，您需要在新的终端窗口中运行以下命令来终止服务：
+- en: '[PRE19]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Rebuilding and Versioning an Image
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 重新构建和版本化镜像
+- en: Now that you’ve built an application image and run a container, you’re ready
+    to modify the application and produce a second version. Applications change all
+    the time, and it’s important to be able to repackage these different versions
+    of an application and run them. It’s also important to retain old versions of
+    an application so that if a new version is troublesome, an old version can quickly
+    be restored.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经构建了应用程序镜像并运行了一个容器，您可以修改应用程序并生成第二个版本了。应用程序随时都在变化，重要的是能够重新打包这些不同版本的应用程序并运行它们。保留旧版本的应用程序也很重要，因此如果新版本有问题，可以快速恢复到旧版本。
+- en: 'Within the *recipe-api* directory, run the `docker build` command shown in
+    [Example 5-5](#ex_dockerfile_build) again. This time, note the layers being created
+    when the command is run. This will serve as a baseline for examining the effects
+    of building an application and how modifications will change the resulting Docker
+    images. In my case, I see the following layers:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*recipe-api*目录中，再次运行[示例5-5](#ex_dockerfile_build)中显示的`docker build`命令。这次，注意当命令运行时创建的层。这将作为检查构建应用程序的效果以及修改如何改变结果Docker镜像的基准。在我的情况下，看到的层如下：
+- en: '[PRE20]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Next, make a change to the .*recipe-api/producer-http-basic.js* file (the entrypoint
+    to the application) by replacing the route handler with the code in [Example 5-6](#ex_docker_recipe_route).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，通过将路由处理程序替换为[示例5-6](#ex_docker_recipe_route)中的代码，对.*recipe-api/producer-http-basic.js*文件（应用程序的入口点）进行更改。
+- en: Example 5-6\. *recipe-api/producer-http-basic.js*, truncated
+  id: totrans-135
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例5-6。*recipe-api/producer-http-basic.js*，已截断
+- en: '[PRE21]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'This time, run the `build` command from [Example 5-5](#ex_dockerfile_build).
+    Keep an eye on the output and modify the command to use a version tag of *v0.0.2*.
+    In my case, I now see the following layers:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，从[示例5-5](#ex_dockerfile_build)中运行`build`命令。注意输出并修改命令以使用*v0.0.2*的版本标签。在我的情况下，现在看到的层如下：
+- en: '[PRE22]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: In this case, the final five layers of the image have changed. Specifically,
+    everything from the `COPY . .` line and below.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，镜像的最后五层已更改。具体来说，从`COPY . .`行及以下的所有内容都已更改。
+- en: 'Next, revert the changes to the *producer-http-basic.js* file, restoring the
+    request handler to its previous state. Then, modify the application build process
+    at an earlier stage by running the following command:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，恢复*producer-http-basic.js*文件的更改，将请求处理程序恢复到之前的状态。然后，通过运行以下命令修改应用程序构建过程的较早阶段：
+- en: '[PRE23]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'By installing a new package, the contents of the *package.json* and *package-lock.json*
+    files will be different. Because of this, Docker will know not to reuse the existing
+    layer correlating with the early `COPY` directive, which copies those files to
+    the `deps` stage. It knows not to reuse the cached layer because the hash of the
+    filesystem represented in the layer will be different. Run the [Example 5-5](#ex_dockerfile_build)
+    command again, this time with a version tag of *v0.0.3*, to see the effects that
+    the changes have had on the image build process. In my case, the layers now look
+    like this:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过安装新软件包，*package.json*和*package-lock.json*文件的内容将会不同。因此，Docker将知道不要重用与早期`COPY`指令将这些文件复制到`deps`阶段的现有层相关的层。它知道不要重用缓存的层，因为表示在层中的文件系统的哈希将会不同。再次运行[示例5-5](#ex_dockerfile_build)命令，这次使用*v0.0.3*的版本标签，以查看更改对镜像构建过程的影响。在我的情况下，现在看到的层如下：
+- en: '[PRE24]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: In this case, the last six layers of the `release` image have changed. This
+    means that everything from the `COPY --from=deps` directive and below has changed.
+    Also, the last two layers of the `deps` stage have also changed. This part isn’t
+    as important since the layers in the `deps` stage don’t directly contribute to
+    the overall image based on the `release` stage.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`release`镜像的最后六层已更改。这意味着从`COPY --from=deps`指令及以下的所有内容都已更改。此外，`deps`阶段的最后两层也已更改。由于`deps`阶段的层不直接影响基于`release`阶段的整体镜像，所以这部分并不那么重要。
+- en: 'So, what exactly does this difference of five layers versus six layers mean?
+    Well, each layer contributes different filesystem entries to the overall stack
+    of layers representing the Docker image. Run the following command to view the
+    size of each of the layers of the *v0.0.1* version of your application:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，五层和六层的这种区别究竟意味着什么？嗯，每一层都为代表Docker镜像的整体层堆栈贡献了不同的文件系统条目。运行以下命令查看您的应用程序*v0.0.1*版本的每个层的大小：
+- en: '[PRE25]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Some of the directives don’t contribute to the filesystem size and have a size
+    of 0B. For example, the `ENV`, `CMD`, `EXPOSE`, and `WORKDIR` directives correlate
+    to layers that don’t have file sizes. Others do contribute. For example, the `FROM
+    ... release` directive contributes about 5.6MB to the resulting image. The `RUN
+    apk add` directive adds 80MB. The actual application code, resulting from the
+    `COPY . .` directive, only contributes about `140kB` to the image. However, the
+    part that is likely to vary the most between application updates is the `COPY
+    --from=deps` directive. For this example application, the *node_modules* directory
+    contains tons of entries not needed by the application, since it contains packages
+    for other project files, such as the GraphQL and gRPC packages. In this case,
+    it weighs in at about 68MB. Most projects written in Node.js consist of around
+    3% first-party application code and about [97% third-party code](https://slides.com/seldo/npm-and-the-future-of-javascript/#/8),
+    so this file size ratio isn’t that far-fetched.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 某些指令不会对文件系统大小产生贡献，大小为 0B。例如，`ENV`、`CMD`、`EXPOSE` 和 `WORKDIR` 指令对不具有文件大小的层次进行了关联。其他指令则有所贡献。例如，`FROM
+    ... release` 指令对生成的图像贡献了约 5.6MB。`RUN apk add` 指令增加了 80MB。从 `COPY . .` 指令得到的实际应用程序代码仅对图像贡献了约
+    `140kB`。然而，在应用程序更新中最有可能变化的部分是 `COPY --from=deps` 指令。对于这个示例应用程序，*node_modules*
+    目录包含了大量不需要的条目，因为它包含了其他项目文件的包，如 GraphQL 和 gRPC 包。在这种情况下，它的大小约为 68MB。大多数使用 Node.js
+    编写的项目由约 3% 的第一方应用程序代码和约 [97% 的第三方代码](https://slides.com/seldo/npm-and-the-future-of-javascript/#/8)
+    组成，因此这种文件大小比例并不过分。
+- en: '[Table 5-1](#table_docker_image_layers) contains a summary of the three different
+    application versions that you have created. The *Layer* column contains the number
+    of the layer and a shorthand reference to the directive being run. The *Size*
+    column contains the size of that layer. Technically, the layer sizes across the
+    three different versions of the application do vary slightly, like when the `left-pad`
+    package was installed, but the size difference is mostly negligible so that only
+    the size of the layer in the *v0.0.1* image is shown. Finally, the columns under
+    the version numbers contain the hash of that layer. The hash is in bold if it
+    has diverged from a previous version.'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表格 5-1](#table_docker_image_layers) 包含了你创建的三个不同应用程序版本的摘要。*层次* 列包含层次编号和指令运行的简称。*大小*
+    列包含该层次的大小。技术上，三个应用程序版本的层次大小有所不同，例如在安装 `left-pad` 包时，但层次大小差异基本可以忽略，所以只显示了 *v0.0.1*
+    图像中的层次大小。最后，版本号下的列包含该层次的哈希值。如果哈希与先前版本有所不同，则用粗体显示。'
+- en: The effect of changing application code, which is layer 11 in the *v0.0.2* column,
+    is that an additional 138kB of space is required when deploying image *v0.0.2*
+    to a server that already has image *v0.0.1*. By changing the content of a layer,
+    every subsequent layer that depends on it will also change. Since layers 12 through
+    15 don’t contribute to the overall file size, it results in only a 138kB increase.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更改应用程序代码的效果，即 *v0.0.2* 列中的第 11 层，当将图像 *v0.0.2* 部署到已有图像 *v0.0.1* 的服务器时，需要额外增加
+    138kB 的空间。通过更改某一层的内容，每个依赖于它的后续层也会发生变化。由于第 12 至 15 层不会对整体文件大小产生影响，因此仅导致总体增加了 138kB。
+- en: Table 5-1\. Docker image layers comparison
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5-1\. Docker 图像层比较
+- en: '| Layer | Size | v0.0.1 | v0.0.2 | v0.0.3 |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| 层次 | 大小 | v0.0.1 | v0.0.2 | v0.0.3 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| 1: `FROM node AS deps` | N/A | `532fd65ecacd` | `532fd65ecacd` | `532fd65ecacd`
+    |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1: `FROM node AS deps` | N/A | `532fd65ecacd` | `532fd65ecacd` | `532fd65ecacd`
+    |'
+- en: '| 2: `WORKDIR /srv` | N/A | `bec6e0fc4a96` | `bec6e0fc4a96` | `bec6e0fc4a96`
+    |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2: `WORKDIR /srv` | N/A | `bec6e0fc4a96` | `bec6e0fc4a96` | `bec6e0fc4a96`
+    |'
+- en: '| 3: `COPY package*` | N/A | `58341ced6003` | `58341ced6003` | **`959c7f2c693b`**
+    |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3: `COPY package*` | N/A | `58341ced6003` | `58341ced6003` | **`959c7f2c693b`**
+    |'
+- en: '| 4: `RUN npm ci` | N/A | `dd6cd3c5a283` | `dd6cd3c5a283` | **`6e9065bacad0`**
+    |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4: `RUN npm ci` | N/A | `dd6cd3c5a283` | `dd6cd3c5a283` | **`6e9065bacad0`**
+    |'
+- en: '| 5: `FROM alpine AS release` | 5.6MB | `e7d92cdc71fe` | `e7d92cdc71fe` | `e7d92cdc71fe`
+    |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5: `FROM alpine AS release` | 5.6MB | `e7d92cdc71fe` | `e7d92cdc71fe` | `e7d92cdc71fe`
+    |'
+- en: '| 6: `ENV V` | 0 | `4f2ea97869f7` | `4f2ea97869f7` | `4f2ea97869f7` |'
+  id: totrans-158
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6: `ENV V` | 0 | `4f2ea97869f7` | `4f2ea97869f7` | `4f2ea97869f7` |'
+- en: '| 7: `ENV FILE` | 0 | `b5b203367e62` | `b5b203367e62` | `b5b203367e62` |'
+  id: totrans-159
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7: `ENV FILE` | 0 | `b5b203367e62` | `b5b203367e62` | `b5b203367e62` |'
+- en: '| 8: `RUN apk ...` | 79.4MB | `0dc0f7fddd33` | `0dc0f7fddd33` | `0dc0f7fddd33`
+    |'
+  id: totrans-160
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8: `RUN apk ...` | 79.4MB | `0dc0f7fddd33` | `0dc0f7fddd33` | `0dc0f7fddd33`
+    |'
+- en: '| 9: `WORKDIR /srv` | 0 | `4c9a03ee9903` | `4c9a03ee9903` | `4c9a03ee9903`
+    |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| 9: `WORKDIR /srv` | 0 | `4c9a03ee9903` | `4c9a03ee9903` | `4c9a03ee9903`
+    |'
+- en: '| 10: `COPY node_modules` | 67.8MB | `a86f6f94fc75` | `a86f6f94fc75` | **`b97b002f4734`**
+    |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| 10: `COPY node_modules` | 67.8MB | `a86f6f94fc75` | `a86f6f94fc75` | **`b97b002f4734`**
+    |'
+- en: '| 11: `COPY . .` | 138kB | `cab24763e869` | **`7f6f49f5bc16`** | **`f2c9ac237a1c`**
+    |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| 11: `COPY . .` | 138kB | `cab24763e869` | **`7f6f49f5bc16`** | **`f2c9ac237a1c`**
+    |'
+- en: '| 12: `EXPOSE` | 0 | `0efe3d9cd543` | **`4fc6b68804c9`** | **`f4b64a1c5e64`**
+    |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| 12: `EXPOSE` | 0 | `0efe3d9cd543` | **`4fc6b68804c9`** | **`f4b64a1c5e64`**
+    |'
+- en: '| 13: `ENV HOST` | 0 | `9104495370ba` | **`df073bd1c682`** | **`fee5ff92855c`**
+    |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| 13: `ENV HOST` | 0 | `9104495370ba` | **`df073bd1c682`** | **`fee5ff92855c`**
+    |'
+- en: '| 14: `ENV PORT` | 0 | `04d6b8f0afce` | **`f67d0897cb11`** | **`638a7ff0c240`**
+    |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| 14: `ENV PORT` | 0 | `04d6b8f0afce` | **`f67d0897cb11`** | **`638a7ff0c240`**
+    |'
+- en: '| 15: `CMD` | 0 | `b3babfadde8e` | **`9b6514336e72`** | **`12d0c7e37935`**
+    |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| 15: `CMD` | 0 | `b3babfadde8e` | **`9b6514336e72`** | **`12d0c7e37935`**
+    |'
+- en: '| Cost per Deploy |  | N/A | 138kB | 68MB |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每次部署成本 |  | N/A | 138kB | 68MB |'
+- en: The effect of changing the installed packages, which is layer 10 of the *v0.0.3*
+    column, is that an additional 67.8MB of data will need to be sent to a server
+    that already has *v0.0.2*, or even *v0.0.1*, of the image installed.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更改安装包的影响是 *v0.0.3* 列的第 10 层，将需要向已安装 *v0.0.2* 或甚至 *v0.0.1* 的服务器发送额外的 67.8MB 数据。
+- en: Typically, Node.js application code will change much more frequently than changes
+    to the *package.json* file (and, therefore, the entries in *node_modules*). The
+    operating system packages installed by the `apk` command are even less likely
+    to change. For this reason, you usually want the directive to copy the application
+    files to be later than the directive to copy *node_modules*, which itself should
+    be later than the directive to install operating system packages.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，Node.js 应用程序代码的变化频率要比 *package.json* 文件（因此也就是 *node_modules* 中的条目）高得多。通过
+    `apk` 命令安装的操作系统包更不可能改变。因此，通常希望将复制应用程序文件的指令放在复制 *node_modules* 的指令之后，后者又应该放在安装操作系统包的指令之后。
+- en: One final note is that you’ll often see Docker containers tagged with a version
+    of `latest`. If you wanted to make such a tag available when building images,
+    you can build each image twice. The first time you build the image, supply a version
+    string for it. Then the second time, don’t supply a version string. When the version
+    is omitted, Docker will fill in `latest`, but this can get confusing. For example,
+    if you were to tag an image as `v0.1.0` and also tag it as `latest`, and then
+    go back and tag an image as `v0.0.4` and tag that as `latest`, then the `latest`
+    tag wouldn’t refer to the highest version of the image (`v0.1.0`); it would instead
+    refer to the most recently generated image (`v0.0.4`). For that reason, it’s sometimes
+    best to not tag an image as `latest` and only publish images with exact version
+    numbers.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后需要注意的是，您经常会看到 Docker 容器标记为 `latest` 的版本。如果要在构建镜像时使此标记可用，您可以将每个镜像构建两次。第一次构建镜像时，为其提供一个版本字符串。然后第二次构建时，不要提供版本字符串。当省略版本时，Docker
+    将填充为 `latest`，但这可能会让人感到困惑。例如，如果您将一个镜像标记为 `v0.1.0`，同时将其标记为 `latest`，然后回头再标记一个镜像为
+    `v0.0.4` 并将其标记为 `latest`，那么 `latest` 标签不会指向最高版本的镜像（`v0.1.0`），而是指向最近生成的镜像（`v0.0.4`）。因此，有时最好不要将镜像标记为
+    `latest`，而只发布带有确切版本号的镜像。
+- en: Basic Orchestration with Docker Compose
+  id: totrans-172
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Docker Compose 进行基本编排
+- en: Docker is a convenient tool for packaging the dependencies of a service, whether
+    it be a stable backing store like Postgres or a highly dynamic Node.js application
+    that changes daily. Often, one of these services will depend on another service
+    to run. In fact, the *web-api* and *recipe-api* services that you’ve been building
+    so far are examples of this very situation.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 是一种方便的工具，用于打包服务的依赖关系，无论是像 Postgres 这样的稳定后端存储还是每天都在变化的高动态 Node.js 应用程序。通常，其中一个服务将依赖于另一个服务的运行。事实上，到目前为止您构建的
+    *web-api* 和 *recipe-api* 服务就是这种情况的典型示例。
+- en: So far, with these services, you’ve been required to manually copy and paste
+    shell commands to spin up dependent services, but managing such a collection of
+    scripts for a project can become unruly. Each of the `docker run` commands can
+    require several configuration flags, especially if they rely on volume mounts
+    and complex port assignments.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 迄今为止，通过这些服务，您需要手动复制并粘贴 shell 命令来启动依赖服务，但是管理项目的这种脚本集合可能变得难以控制。每个`docker run`命令可能需要多个配置标志，特别是如果它们依赖于卷挂载和复杂的端口分配。
+- en: Sometimes, multiple services are packed into the same container. The *sebp/elk*
+    image used in [“Logging with ELK”](ch04.html#ch_monitoring_sec_log) does just
+    this, providing Elasticsearch, Logstash, and Kibana all in one place. This approach
+    sometimes makes sense when using closely related services, and it certainly makes
+    instantiating such services easier on a local development machine. But when working
+    with application code, it doesn’t make as much sense to bundle backing services
+    with the main app.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，多个服务被打包到同一个容器中。在 [“使用 ELK 进行日志记录”](ch04.html#ch_monitoring_sec_log) 中使用的
+    *sebp/elk* 镜像就是这样，提供了 Elasticsearch、Logstash 和 Kibana 的集成。在本地开发机上使用这种方法有时是有意义的，特别是当使用密切相关的服务时，它确实简化了这些服务的实例化过程。但是在处理应用程序代码时，将后端服务与主应用程序捆绑在一起就不太合适了。
+- en: Consider a Node.js service that depends on Redis. Bundling Redis with the app
+    would make it easier to run the app locally. But in production, multiple services
+    might need to use the same Redis instance, and this convenience falls apart. You’d
+    then need to either have two Dockerfiles created—one combining Redis for local
+    development and one without it for production—or have a single Dockerfile that
+    optionally starts Redis if a flag is set. The approach with multiple Dockerfiles
+    means two files need to be maintained—files that might accidentally diverge. The
+    approach with a single Dockerfile means you’d be shipping dead weight to production.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个依赖于 Redis 的 Node.js 服务。将 Redis 与应用程序捆绑在一起可以使在本地运行应用程序变得更加容易。但是在生产环境中，多个服务可能需要使用同一个
+    Redis 实例，这种便利性就不再适用了。那时，你需要创建两个 Dockerfile——一个将 Redis 与本地开发结合在一起，另一个则不包含 Redis
+    用于生产环境；或者使用单一的 Dockerfile，根据设置的标志选择性地启动 Redis。使用多个 Dockerfile 的方法意味着需要维护两个文件——这些文件可能会意外地分歧。而使用单个
+    Dockerfile 的方法则意味着你会在生产环境中运送一些不必要的内容。
+- en: Luckily, there’s another tool available for managing these container relationships.
+    In fact, this tool was already used previously in [“Running Cabot via Docker”](ch04.html#ch_monitoring_sec_alert_subsec_cabot).
+    This tool is *Docker Compose*. Docker Compose is built into Docker Desktop. If
+    you’re using Docker on Linux, you will need to install it separately. Take a look
+    at [Appendix B](app02.html#appendix_install_docker) for more information.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，有另一种工具可以管理这些容器之间的关系。事实上，这个工具之前已经在 [“通过 Docker 运行 Cabot”](ch04.html#ch_monitoring_sec_alert_subsec_cabot)
+    中使用过。这个工具就是 *Docker Compose*。Docker Compose 已经集成在 Docker Desktop 中。如果你在 Linux
+    上使用 Docker，则需要单独安装它。查看 [附录 B](app02.html#appendix_install_docker) 获取更多信息。
+- en: Docker Compose allows for the configuration of multiple dependant Docker containers
+    by using a single declarative *docker-compose.yml* file. This file contains the
+    same configuration data that can be represented as `docker run` flags, as well
+    as other information, like the dependency graph between those containers.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker Compose 允许通过使用单个声明性的 *docker-compose.yml* 文件配置多个依赖的 Docker 容器。该文件包含可以表示为
+    `docker run` 标志的相同配置数据，以及这些容器之间的依赖关系图等其他信息。
+- en: Composing Node.js Services
+  id: totrans-179
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 组合 Node.js 服务
+- en: Now it’s time to convert that pair of applications you’ve been working on to
+    run with Docker Compose. For this section you’ll work with the Zipkin variant
+    of the services that you created in [“Distributed Request Tracing with Zipkin”](ch04.html#ch_monitoring_sec_trace).
+    The dependency graph for these services is visualized in [Figure 5-3](#fig_docker_compose_zipkin).
+    In this case, the *web-api* service depends on the *recipe-api* service, and both
+    of those services depend on Zipkin.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候将你一直在处理的那对应用程序转换为使用 Docker Compose 运行了。在本节中，你将使用你在 [“使用 Zipkin 进行分布式请求跟踪”](ch04.html#ch_monitoring_sec_trace)
+    中创建的服务的 Zipkin 变体。这些服务的依赖图在 [图 5-3](#fig_docker_compose_zipkin) 中可视化。在这种情况下，*web-api*
+    服务依赖于 *recipe-api* 服务，而这两个服务都依赖于 Zipkin。
+- en: '![Consumer depends on Producer, Producer and Consumer depends on Zipkin](assets/dsnj_0503.png)'
+  id: totrans-181
+  prefs: []
+  type: TYPE_IMG
+  zh: '![消费者依赖于生产者，生产者和消费者依赖于 Zipkin](assets/dsnj_0503.png)'
+- en: Figure 5-3\. Consumer, producer, and Zipkin dependency graph
+  id: totrans-182
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-3\. 消费者、生产者和 Zipkin 依赖图
+- en: Once you’re done with this section, you’ll be able to run all three services
+    by executing a single command. Within a larger organization, this approach can
+    be used to ease local development for part of the backend stack.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成本节后，你将能够通过执行单个命令来运行所有三个服务。在一个较大的组织中，这种方法可以用来简化部分后端堆栈的本地开发。
+- en: First, copy the *recipe-api/.dockerignore* file that you created in [Example 5-1](#ex_dockerignore)
+    to *web-api/.dockerignore*. This file is rather generic and is useful for both
+    applications.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，将你在[示例 5-1](#ex_dockerignore)中创建的*recipe-api/.dockerignore*文件复制到*web-api/.dockerignore*。这个文件相当通用，对于两种应用程序都很有用。
+- en: Next, you’ll create a simpler variant of a Dockerfile. This version doesn’t
+    do all the powerful multistage work to create a slim image like what was covered
+    in [“Containerizing a Node.js Service”](#ch_containers_subsec_node). But it is
+    simple enough to quickly get two new applications up and running. Create a file
+    at *recipe-api/Dockerfile-zipkin* containing the content in [Example 5-7](#ex_dockerfile_zipkin).
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，你将创建一个更简单的Dockerfile变体。这个版本不执行所有强大的多阶段工作，以创建像在[“容器化一个Node.js服务”](#ch_containers_subsec_node)中涵盖的那样的瘦身镜像，但它足够简单，可以快速启动两个新的应用程序。在*recipe-api/Dockerfile-zipkin*中创建一个文件，包含[示例 5-7](#ex_dockerfile_zipkin)中的内容。
+- en: Example 5-7\. *recipe-api/Dockerfile-zipkin*
+  id: totrans-186
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例5-7\. *recipe-api/Dockerfile-zipkin*
+- en: '[PRE26]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Once you’ve created that file, copy it to *web-api/Dockerfile-zipkin* then modify
+    the `CMD` directive on the last line to execute the correct *consumer-http-zipkin.js*
+    file.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦你创建了那个文件，将其复制到*web-api/Dockerfile-zipkin*，然后修改最后一行的`CMD`指令以执行正确的*consumer-http-zipkin.js*文件。
+- en: When certain commands like `docker build` are run, they assume that configuration
+    happens using a file named *Dockerfile*, but you already have a *Dockerfile* in
+    *recipe-api* that runs the *producer-http-basic.js* service. In cases like this
+    where a project has multiple configurations, the convention is to name the files
+    *Dockerfile-**. The various `docker` subcommands accept a flag to specify a different
+    Dockerfile.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当运行像`docker build`这样的特定命令时，它们假定配置是使用名为*Dockerfile*的文件完成的，但是你已经在*recipe-api*中有一个运行*producer-http-basic.js*服务的*Dockerfile*。在像这样的项目中存在多个配置的情况下，惯例是将文件命名为*Dockerfile-**。各种`docker`子命令接受一个标志来指定不同的Dockerfile。
+- en: With the preliminary work out of the way, you’re now ready to start creating
+    the *docker-compose.yml* file. If you work on a service that depends on other
+    services, you might find yourself checking this file into the source code repository.
+    In this case, create the file in the root of your *distributed-node/* directory.
+    Then, begin the file by adding the content from [Example 5-8](#ex_docker_compose_1)
+    to it.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过初步工作，你现在可以开始创建*docker-compose.yml*文件了。如果你的服务依赖于其他服务，你可能会发现自己将这个文件检入源代码仓库。在这种情况下，在*distributed-node/*目录的根目录中创建文件。然后，从[示例 5-8](#ex_docker_compose_1)中添加内容开始。
+- en: Example 5-8\. *docker-compose.yml*, part one
+  id: totrans-191
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例5-8\. *docker-compose.yml*，第一部分
+- en: '[PRE27]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '[![1](assets/1.png)](#co_containers_CO1-1)'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_containers_CO1-1)'
+- en: This line defines a service named “zipkin.”
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此行定义了一个名为“zipkin”的服务。
+- en: '[![2](assets/2.png)](#co_containers_CO1-2)'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_containers_CO1-2)'
+- en: This is the name of the image.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是镜像的名称。
+- en: '[![3](assets/3.png)](#co_containers_CO1-3)'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_containers_CO1-3)'
+- en: Port mapping for this service.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此服务的端口映射。
+- en: This is just the start of the Docker Compose file. The first `version` key is
+    how the file declares which compose file version it is using. The official Docker
+    website [maintains a Compose version to Docker version](https://docs.docker.com/compose/compose-file/)
+    compatibility matrix. Docker occasionally adds backwards-incompatible features.
+    In this case, the file is using version 3.7, which is compatible with at least
+    Docker version 18.06.0.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是Docker Compose文件的开始。第一个`version`键声明文件正在使用的Compose文件版本。官方Docker网站[维护Compose版本与Docker版本](https://docs.docker.com/compose/compose-file/)兼容矩阵。Docker偶尔会添加不向后兼容的功能。在这种情况下，文件使用的是版本3.7，这与至少Docker版本18.06.0兼容。
+- en: After that is the `services` key, which contains a list of services managed
+    by the file. A service basically refers to a container, though a service can technically
+    refer to multiple replicated container instances. In this first part of the Compose
+    file, the *zipkin* service has been declared. Within each service definition are
+    further key/value pairs, like the two used for the *zipkin* service.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其后是`services`键，其中包含文件管理的服务列表。服务基本上是指一个容器，尽管一个服务在技术上可以引用多个复制的容器实例。在Compose文件的第一部分中，已声明了*zipkin*服务。在每个服务定义内部都有进一步的键值对，就像用于*zipkin*服务的两个所用的那样。
+- en: The `image` key is one way to refer to the image that will be used as a template
+    for the service. In the case of the *zipkin* service, the *openzipkin/zipkin-slim*
+    image will be used. This value is equivalent to the argument passed into `docker
+    run`.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`image`键是引用将用作服务模板的图像的一种方式。对于*zipkin*服务，将使用*openzipkin/zipkin-slim*镜像。该值等效于传递给`docker
+    run`的参数。'
+- en: The `ports` key is used to define port mappings. In this case, port 9411 in
+    the container will map to port 9411 in the host, and it will only be accessible
+    from within the host. This entry correlates with the `-p` flag for the `docker
+    run` command.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ports`关键字用于定义端口映射。在这种情况下，容器中的端口9411将映射到主机的端口9411，并且只能从主机内部访问。此条目与`docker run`命令的`-p`标志对应。'
+- en: Now that the first service has been defined, add the content from [Example 5-9](#ex_docker_compose_2)
+    to your *docker-compose.yml* file for the second service.^([2](ch05.html#idm46291185807640))
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在第一个服务已经定义好了，请将[示例 5-9](#ex_docker_compose_2)的内容添加到您的*docker-compose.yml*文件中以添加第二个服务。
+- en: Example 5-9\. *docker-compose.yml*, part two
+  id: totrans-204
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-9\. *docker-compose.yml*，第二部分
+- en: '[PRE28]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: '[![1](assets/1.png)](#co_containers_CO2-1)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_containers_CO2-1)'
+- en: Instead of using a named image, a path to a Dockerfile is provided.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不使用命名图像，而是提供Dockerfile的路径。
+- en: '[![2](assets/2.png)](#co_containers_CO2-2)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_containers_CO2-2)'
+- en: Environment variable pairs used by the service.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务使用的环境变量对。
+- en: '[![3](assets/3.png)](#co_containers_CO2-3)'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_containers_CO2-3)'
+- en: The *zipkin* service should be started before this container.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*zipkin*服务应在此容器之前启动。'
+- en: This service entry represents the *recipe-api* service and is a bit more complicated
+    than the *zipkin* service.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此服务条目代表*recipe-api*服务，比*zipkin*服务复杂一些。
+- en: First, the `image` entry has been replaced with a more complex `build` object.
+    `image` is useful for referring to an image already built somewhere else. However,
+    the `build` object allows Docker Compose to build a Dockerfile into an image at
+    the time when Docker Compose is invoked. This `build` object has two keys within
+    it. The first is `context`, which refers to the directory to build the image in,
+    in this case the *recipe-api* subdirectory. The `dockerfile` key is only required
+    when the configuration file has a name other than *Dockerfile*, and in this case
+    it points to the *Dockerfile-zipkin* file.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，`image`条目已被更复杂的`build`对象替换。`image`对于引用已在其他地方构建的镜像很有用。但是，`build`对象允许Docker
+    Compose在调用时将Dockerfile构建成镜像。该`build`对象内部有两个键。第一个是`context`，指的是构建镜像的目录，本例中是*recipe-api*子目录。当配置文件名称不是*Dockerfile*时，`dockerfile`键是必需的，在本例中指向*Dockerfile-zipkin*文件。
+- en: The `environment` object contains key/value pairs where the key is the name
+    of the environment variable and the value is the environment variable’s value.
+    In this case, the `HOST` value is overridden to 0.0.0.0 so that the application
+    will accept requests coming from outside the Docker container. The `ZIPKIN` environment
+    variable refers to the host/port combination that the application will communicate
+    with, in this case a hostname of *zipkin* and a port of 9411.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`environment`对象包含键/值对，其中键是环境变量的名称，值是环境变量的值。在本例中，`HOST`值被覆盖为0.0.0.0，以便应用程序接受来自Docker容器外部的请求。`ZIPKIN`环境变量指的是应用程序将与之通信的主机/端口组合，本例中是*zipkin*主机名和9411端口。'
+- en: That hostname might look a little suspicious at first. Where is it coming from?
+    Shouldn’t Docker be using something like `localhost` instead? By default, any
+    Docker service can reach any other service using the service name. The `depends_on`
+    directive ensures containers are started in a specific order. There are also directives
+    available to change the name of one container’s host in another container.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初始主机名可能看起来有点可疑。它来自哪里？Docker不应该使用类似`localhost`的东西吗？默认情况下，任何Docker服务都可以使用服务名称访问任何其他服务。`depends_on`指令确保容器按特定顺序启动。还有其他可用指令可以更改一个容器在另一个容器中的主机名。
+- en: You’re now ready to add the final service definition to your *docker-compose.yml*
+    file. Add the content from [Example 5-10](#ex_docker_compose_3) to describe the
+    *web-api* service.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您可以向*docker-compose.yml*文件添加最终的服务定义了。将[示例 5-10](#ex_docker_compose_3)的内容添加到描述*web-api*服务中。
+- en: Example 5-10\. *docker-compose.yml*, part three
+  id: totrans-217
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 5-10\. *docker-compose.yml*，第三部分
+- en: '[PRE29]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'With the final piece of the puzzle in place, tell Docker Compose to start your
+    services by running the following command:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一块拼图完成后，告诉Docker Compose通过运行以下命令启动您的服务：
+- en: '[PRE30]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Once you do that, you’ll need to wait a minute until the output stabilizes.
+    During this time, each of the three services will be started. Once things have
+    calmed down, run the three `curl` commands one after another in another terminal
+    window to generate some requests:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦完成这些步骤，你需要等待一分钟，直到输出稳定下来。在此期间，将启动这三个服务。一旦事情平静下来，可以在另一个终端窗口依次运行三个`curl`命令来生成一些请求：
+- en: '[PRE31]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: The first `curl` command confirms that the *web-api* service is listening for
+    requests. The following command confirms that the *recipe-api* is also listening
+    for requests. The final command confirms that Zipkin is running and also listening
+    for requests.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个`curl`命令确认*web-api*服务正在监听请求。接下来的命令确认*recipe-api*也正在监听请求。最后一个命令确认Zipkin正在运行并且也在监听请求。
+- en: Tip
+  id: totrans-224
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Assuming this Docker Compose file was created to bootstrap the *web-api* service
+    for local development, you technically do not need to expose the *zipkin* and
+    *recipe-api* ports to the host. In other words, omitting the `ports` field for
+    *recipe-api* would still allow *web-api* to make requests to *recipe-api*. But
+    in my experience, exposing the ports of the upstream services makes it much easier
+    to debug a faulty service.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设此Docker Compose文件是为了本地开发中的*web-api*服务而创建的，你技术上不需要将*zipkin*和*recipe-api*端口暴露给主机。换句话说，省略*recipe-api*的`ports`字段仍然允许*web-api*向*recipe-api*发出请求。但根据我的经验，将上游服务的端口暴露出来可以更轻松地调试故障服务。
+- en: Docker Compose provides a convenient way to describe the configuration and relationships
+    between multiple containers. However, it describes such relationships in a fairly
+    static manner. It doesn’t help with things like dynamically increasing or decreasing
+    the number of running services, or with deploying updated versions of a service.
+    In short, it’s great for local development but is a bit lacking when it comes
+    to deploying dynamic applications to production. [Chapter 7](ch07.html#ch_kubernetes)
+    describes a more robust approach for deploying applications to production.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker Compose提供了一种描述多个容器之间配置和关系的便捷方式。然而，它以相当静态的方式描述这些关系。它不帮助动态增加或减少运行中服务的数量，也不帮助部署服务的更新版本。简而言之，它非常适合本地开发，但在部署动态应用程序到生产环境时有些欠缺。[第7章](ch07.html#ch_kubernetes)描述了部署应用程序到生产环境的更强大方法。
+- en: 'At this point, you’re free to remove the services that were created by Docker
+    Compose. Switch to the terminal window where you have it running and press Ctrl
+    + C to kill it. Once that’s done, run the following command to remove the services:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，你可以删除由Docker Compose创建的服务。切换到运行它的终端窗口，并按下Ctrl + C来终止它。完成后，运行以下命令来删除这些服务：
+- en: '[PRE32]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Internal Docker Registry
+  id: totrans-229
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 内部Docker注册表
+- en: A *Docker registry* is a place where Docker images and their accompanying layers
+    can be stored. By default, the Docker CLI is configured to make use of [Docker
+    Hub](https://hub.docker.com/), the official public registry of Docker. Throughout
+    this book you’ve been downloading images hosted on Docker Hub, everything from
+    the ELK stack to the official Node.js images. The convention in Docker-land is
+    that open source projects are expected to have their images available on Docker
+    Hub.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Docker注册表*是存储Docker镜像及其伴随层的地方。默认情况下，Docker CLI配置为使用[Docker Hub](https://hub.docker.com/)，即Docker的官方公共注册表。在本书中，你已经下载了托管在Docker
+    Hub上的各种镜像，从ELK堆栈到官方Node.js镜像。在Docker领域，开源项目应该有它们的镜像在Docker Hub上可用的惯例。'
+- en: This works great for uploading and downloading public, open source projects.
+    You can even create an account with Docker Hub, and as of this writing, you can
+    use it to host one private repository for free. You can also choose to upgrade
+    to a paid account to host even more private repositories, currently for the cost
+    of about one dollar per repository.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这对于上传和下载公共的开源项目非常有用。你甚至可以在Docker Hub上创建一个帐户，在本文撰写时，你可以免费托管一个私有仓库。你还可以选择升级到付费帐户，以更多地托管私有仓库，每个仓库的成本大约为一美元。
+- en: Tip
+  id: totrans-232
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: The `repository/name:version` convention that you’ve been working with so far
+    is actually shorthand for a longer version of the command, `server/repository/name:version`.
+    When the `server` part is missing, the Docker CLI defaults to using the Docker
+    Hub repository of *docker.io*. The `repository` part also has a default value.
+    As an example of this, the command **`docker pull node:14.8.0-alpine3.12`** can
+    also be represented using the more terse version of **`docker pull docker.io/library/node:14.8.0-alpine3.12`**.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，您一直在使用的 `repository/name:version` 约定实际上是命令 `server/repository/name:version`
+    的简写。当省略 `server` 部分时，Docker CLI 默认使用 *docker.io* 的 Docker Hub 仓库。`repository`
+    部分也有默认值。例如，命令 **`docker pull node:14.8.0-alpine3.12`** 也可以用更简洁的版本 **`docker pull
+    docker.io/library/node:14.8.0-alpine3.12`** 表示。
+- en: Many organizations instead choose to host their own internal Docker Registry.
+    Depending on the number of repositories, this might prove to be more or less expensive
+    than using Docker Hub. Noncost requirements also come into play. For example,
+    the ability to lock up the service behind a corporate firewall for security/compliance
+    purposes may be important. Many organizations require the ability to deploy applications
+    even when external public services like Docker Hub may be down or unreachable.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多组织选择托管自己的内部 Docker Registry。根据仓库的数量，这可能比使用 Docker Hub 更昂贵或更便宜。还有非成本方面的要求。例如，将服务锁定在企业防火墙后以达到安全/合规目的可能很重要。许多组织需要能够在外部公共服务（如
+    Docker Hub）不可用或无法访问时部署应用程序。
+- en: Running the Docker Registry
+  id: totrans-235
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 运行 Docker Registry
+- en: Docker provides an official [Docker Registry](https://docs.docker.com/registry/)
+    Docker image that can be used to run a self-hosted service for storing Docker
+    images. In turn, the Docker CLI utilities can be configured to communicate with
+    this registry, allowing you and others in your organization to store and interact
+    with private images.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 提供了一个官方的 [Docker Registry](https://docs.docker.com/registry/) Docker
+    镜像，可用于运行一个自托管的服务，用于存储 Docker 镜像。反过来，Docker CLI 工具可以配置为与此注册表通信，使您和组织内其他人员能够存储和与私有镜像交互。
+- en: Docker hasn’t been the best approach for running many of the backing services
+    you’ve worked with so far, assuming they require production traffic. For example,
+    Graphite and StatsD might receive such high load in production—receiving requests
+    from dozens of service instances—that the overhead of running them inside Docker
+    might not let them keep up. The Docker Registry, however, doesn’t receive load
+    based on the amount of traffic your public-facing application receives. Instead,
+    it might only receive hundreds of requests per day as images are built and deployed.
+    For that reason it’s perfectly fine to run the Docker Registry within a Docker
+    container.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，Docker 并不是运行您已使用的许多后端服务的最佳方法，假设它们需要处理生产流量。例如，Graphite 和 StatsD 在生产中可能接收到如此高的负载，以至于在
+    Docker 中运行它们的开销可能无法跟上。然而，Docker Registry 并不根据您的公共面向应用程序接收的流量量来接收负载。相反，它可能每天只接收几百个请求，因为镜像被构建和部署。因此，在
+    Docker 容器中运行 Docker Registry 完全没问题。
+- en: 'Run the following command to start a copy of the Docker Registry:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令以启动 Docker Registry 的副本：
+- en: '[PRE33]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: This command is *almost* suitable for production use, though you would need
+    to mount the volume somewhere more permanent than */mnt/*. You would also want
+    to keep it from being publicly accessible, to enable TLS termination, and even
+    to enable authentication before putting anything sensitive on it.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令几乎适用于生产使用，尽管您需要将卷挂载到比 */mnt/* 更永久的位置。您还希望保持它不被公开访问，以启用 TLS 终止，并在放置任何敏感内容之前甚至在启用身份验证。
+- en: The `-d` flag forks the service to the background. This is useful in a production
+    setting, though if you have problems getting the registry to start, you might
+    want to omit that flag.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`-d` 标志将服务分叉到后台运行。这在生产环境中非常有用，但如果启动注册表遇到问题，您可能希望省略该标志。'
+- en: Now that your registry is up and running, it’s time to publish some of the images
+    you’ve been working on. Previously, in [“Containerizing a Node.js Service”](#ch_containers_subsec_node),
+    you created three versions of the same *recipe-api* application. You’ll use those
+    tagged images to supply the registry with some fresh data.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您的注册表已经运行起来了，是时候发布您正在工作的一些镜像了。之前在[“容器化 Node.js 服务”](#ch_containers_subsec_node)中，您创建了同一
+    *recipe-api* 应用程序的三个版本。您将使用这些带标签的镜像为注册表提供一些新鲜数据。
+- en: 'There are two sets of commands that you’ll need to run for each of the tagged
+    images. The first is `docker image tag`, which is a way to assign a new tag to
+    an already tagged image. This is useful for specifying which server a tagged image
+    should be published to, such as your new Docker Registry service. Run the following
+    command three times, once for each of the versions of your application that you
+    created earlier:'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两组命令你需要为每个带标签的镜像运行。第一组是`docker image tag`，这是一种为已经有标签的镜像指定新标签的方法。这对于指定一个标签的镜像应该发布到哪个服务器非常有用，比如你的新Docker注册表服务。运行以下命令三次，每次为你之前创建的每个应用程序版本运行一次：
+- en: '[PRE34]'
+  id: totrans-244
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Pushing and Pulling to the Registry
+  id: totrans-245
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 推送和拉取到注册表
+- en: Once that’s done, you’re just about ready to publish the images that you’ve
+    built on your local development machine to the Docker Registry. Technically, you’re
+    running the registry on the same machine on which you’ve built the images, but
+    these commands do work if you’re running the registry on a remote machine. In
+    fact, even when you’re running the registry service locally, it’s still isolated
+    from the Docker daemon on your local machine.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成后，你几乎可以发布你在本地开发机器上构建的镜像到Docker注册表上。从技术上讲，你正在运行注册表与你在其上构建镜像的同一台机器上，但即使你在本地运行注册表服务，这些命令也可以工作。事实上，甚至当你在本地运行注册表服务时，它仍然与本地机器上的Docker守护程序隔离开来。
+- en: Before you run the commands, recall the conclusion regarding image layer sizes
+    that was covered in [Table 5-1](#table_docker_image_layers). According to that
+    data, the added cost of deploying *v0.0.2* after *v0.0.1* is in the hundreds of
+    kilobytes. However, deploying *v0.0.3* after deploying *v0.0.2* is in the tens
+    of megabytes. Keep this in mind when you run the next set of commands.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行这些命令之前，请回想一下关于镜像层大小的结论，该结论在[表格 5-1](#table_docker_image_layers) 中有所涉及。根据这些数据，部署*v0.0.2*之后部署*v0.0.1*的额外成本是数百千字节。然而，部署*v0.0.3*在部署*v0.0.2*之后是数十兆字节。运行下一组命令时请记住这一点。
+- en: 'The commands you’ll use to send the images to the Docker Registry begin with
+    `docker push`. This is a lot like running `git push` or `npm publish`, and it
+    will send a local copy of the image to the remote server. Run the following command
+    three times, once for each version of your application:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将用来将镜像发送到Docker注册表的命令以`docker push`开头。这很像运行`git push`或`npm publish`，它会将镜像的本地副本发送到远程服务器上。运行以下命令三次，每次为你的应用程序的每个版本运行一次：
+- en: '[PRE35]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: This command has been prefixed with the `time` command, which will print how
+    much time it took to copy the images. [Table 5-2](#table_docker_deploy_times)
+    lists the amount of time each image took to deploy on my machine.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个命令已经用`time`命令前缀了，它会打印复制镜像所花费的时间。[表格 5-2](#table_docker_deploy_times) 列出了每个镜像在我的机器上部署所花费的时间。
+- en: Table 5-2\. Docker image deployment times
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 5-2\. Docker镜像部署时间
+- en: '| Version | Time |'
+  id: totrans-252
+  prefs: []
+  type: TYPE_TB
+  zh: '| 版本 | 时间 |'
+- en: '| --- | --- |'
+  id: totrans-253
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| v0.0.1 | 4.494s |'
+  id: totrans-254
+  prefs: []
+  type: TYPE_TB
+  zh: '| v0.0.1 | 4.494秒 |'
+- en: '| v0.0.2 | 0.332s |'
+  id: totrans-255
+  prefs: []
+  type: TYPE_TB
+  zh: '| v0.0.2 | 0.332秒 |'
+- en: '| v0.0.3 | 3.035s |'
+  id: totrans-256
+  prefs: []
+  type: TYPE_TB
+  zh: '| v0.0.3 | 3.035秒 |'
+- en: The first deployment takes the longest because all of the base images need to
+    be copied, such as the Alpine image and the first iteration of *node_modules*.
+    The second is the quickest because it only involves the small application change.
+    The third is slow because it needs a new iteration of *node_modules*. Overall,
+    the deployment time of a few seconds might not seem that bad, but in production
+    you’ll see larger images being copied, likely weighing in at hundreds of megabytes,
+    and they will probably be copied between separate machines over a network. The
+    real takeaway is that changing the *node_modules* directory resulted in a tenfold
+    increase in deployment time.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首次部署耗时最长，因为需要复制所有基础镜像，比如Alpine镜像和第一个迭代的*node_modules*。第二次部署最快，因为只涉及小的应用程序更改。第三次较慢，因为需要一个新的*node_modules*迭代。总体而言，几秒钟的部署时间可能看起来不算太糟糕，但在生产环境中，你会看到大型镜像被复制，可能会达到数百兆字节，并且它们可能会在不同的机器之间通过网络复制。真正的要点是更改*node_modules*目录导致部署时间增加了十倍。
+- en: 'With your application images safely stored inside your Docker Registry, it’s
+    time to simulate a situation where you would need to download the images to a
+    new server. This can be done by removing the copies of the images on your local
+    machine. Run the following commands to first remove the images from your machine
+    and then to try and start a container from the missing image:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你的应用程序镜像安全存储在Docker注册表中时，现在是模拟需要将镜像下载到新服务器的情况的时候了。这可以通过从本地机器上移除镜像的副本来完成。运行以下命令，首先从你的机器上删除镜像，然后尝试从丢失的镜像启动一个容器：
+- en: '[PRE36]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: The tags ultimately point to an image, referenced by the hash of the image.
+    The first `docker rmi` command deletes a tag that points to the image, but the
+    files for the image still exist on disk somewhere. Once the second command is
+    run, the final reference to the image is removed, and the actual files on disk
+    are removed. The call to `docker run` will fail because the referenced tag is
+    no longer present. The error message for this should look like *Unable to find
+    image *tlhunter/recipe-api:v0.0.2* locally*. The Docker CLI will attempt to grab
+    the image from the public repository and, assuming I haven’t accidentally published
+    such an image under my `tlhunter` account, will also fail.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标签最终指向一个镜像，由镜像的哈希引用。第一个`docker rmi`命令删除指向镜像的标签，但是镜像文件仍然存在于磁盘的某个地方。运行第二个命令后，对镜像的最终引用被删除，并且磁盘上的实际文件也被删除。调用`docker
+    run`将失败，因为引用的标签已不存在。此错误消息应该类似于*Unable to find image *tlhunter/recipe-api:v0.0.2*
+    locally*。Docker CLI 将尝试从公共仓库获取镜像，并且假设我没有意外地在我的`tlhunter`帐户下发布了这样的镜像，也将失败。
+- en: 'Your machine now resembles a fresh server, one that doesn’t have the *recipe-api:v0.0.2*
+    image stored on it (technically, it does have some of the layers, but it doesn’t
+    have the full image). It’s now time to download the image to your machine from
+    the Docker Registry, just like a server you’re deploying an application to might.
+    Run the following commands to simulate this process:'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，你的机器类似于一个全新的服务器，上面没有存储*recipe-api:v0.0.2*镜像（技术上说，它确实有一些层，但没有完整的镜像）。现在是时候从
+    Docker Registry 下载镜像到你的机器上了，就像你部署应用程序到服务器上一样。运行以下命令模拟此过程：
+- en: '[PRE37]'
+  id: totrans-262
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: The first `docker pull` command downloads the image to your machine. The name
+    of the image is the fully qualified name containing the *localhost:5000* server
+    prefix. The next `docker image tag` command makes the image available using the
+    shorter name. The final `docker run` command executes a copy of the container
+    using the shorter name alias. Technically, you could have skipped step three and
+    used `docker run` with the full name, but this way you’re using the same run command
+    from before.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个`docker pull`命令将镜像下载到你的机器上。镜像的名称是包含*localhost:5000*服务器前缀的完全限定名称。接下来的`docker
+    image tag`命令使用较短的名称使镜像可用。最后的`docker run`命令使用较短的名称别名执行容器的副本。技术上，你可以跳过第三步并使用完整名称的`docker
+    run`，但这样做可以使用之前的相同运行命令。
+- en: Running a Docker Registry UI
+  id: totrans-264
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 运行 Docker Registry UI
+- en: So far, you’ve been able to interact with the Docker Registry entirely using
+    the Docker CLI tool. This is certainly convenient for doing things programmatically,
+    but sometimes having a UI to browse images is more convenient. The Docker Registry
+    image doesn’t come with a UI. This is probably because Docker would rather you
+    purchase its paid products, which do come with a UI.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，你已经能够完全使用 Docker CLI 工具与 Docker Registry 进行交互。这对于以编程方式执行操作当然很方便，但有时候使用
+    UI 浏览镜像更加便利。Docker Registry 镜像并不带有 UI。这可能是因为 Docker 更希望你购买其付费产品，这些产品带有 UI。
+- en: 'There are several different projects out there that provide a Docker Registry
+    UI. Unexpectedly, most of them run within a Docker container. Run the following
+    commands to start a container that provides a UI for your Docker Registry:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有几个项目提供 Docker Registry UI，其中大多数出乎意料地运行在 Docker 容器内。运行以下命令启动提供 Docker Registry
+    UI 的容器：
+- en: '[PRE38]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: This container doesn’t need any persistence and is configured to be removed
+    once it’s done running. The `--link` and `-e DOCKER_REGISTRY_URL` flags allow
+    it to connect directly to the Docker Registry that you already have running. This
+    container should start up pretty quickly. Once it’s ready, visit [*http://localhost:8080*](http://localhost:8080)
+    in your browser.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此容器不需要任何持久性，并配置为一旦完成运行就会被删除。`--link` 和 `-e DOCKER_REGISTRY_URL` 标志允许它直接连接到你已经运行的
+    Docker Registry。这个容器应该很快启动。一旦准备就绪，请在浏览器中访问[*http://localhost:8080*](http://localhost:8080)。
+- en: Once the web page has loaded, you should see a screen containing the namespaces
+    of the images you’ve pushed. In this case, you should see a single workspace named
+    *tlhunter*. This workspace should list a single image entry, *recipe-api*, which
+    is the only image pushed so far. Click that entry.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网页加载完成后，应该能看到一个包含你推送的镜像命名空间的屏幕。在这种情况下，你应该看到一个名为*tlhunter*的单个工作区。这个工作区应该列出一个名为*recipe-api*的镜像条目，这是目前唯一推送的镜像。点击该条目。
+- en: On the next screen, you should see a list of tags associated with this image.
+    Since you already pushed three tags for this image, you should see *v0.0.3*, *v0.0.2*,
+    and *v0.0.1* listed, similar to what is shown in [Figure 5-4](#fig_docker_registry_browser).
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接下来的屏幕上，您应该看到与此镜像相关的标签列表。由于您已经为此镜像推送了三个标签，您应该看到列出的*v0.0.3*、*v0.0.2*和*v0.0.1*，类似于[图 5-4](#fig_docker_registry_browser)中显示的内容。
+- en: Click whichever tag your heart desires. On the next screen, you’ll see more
+    information about that particular tag, such as when it was created, the hash for
+    the image, the environment variables associated with the image, and even the layers
+    (and their associated file sizes) used by the image. There’s even a section titled
+    History, which contains the same information as if you had run `docker history`.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 点击您心仪的任何标签。在接下来的屏幕上，您将看到关于该特定标签的更多信息，例如创建时间、镜像哈希、与镜像关联的环境变量，甚至是镜像使用的层（及其关联的文件大小）。甚至还有一个名为“历史”的部分，其中包含与运行`docker
+    history`相同的信息。
+- en: '![Screenshot of the tlhunter/recipe-api image and its associated tags](assets/dsnj_0504.png)'
+  id: totrans-272
+  prefs: []
+  type: TYPE_IMG
+  zh: '![tlhunter/recipe-api镜像及其关联标签的截图](assets/dsnj_0504.png)'
+- en: Figure 5-4\. Docker Registry browser screenshot
+  id: totrans-273
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 5-4\. Docker Registry 浏览器截图
+- en: 'Now that you’re done with this section, it’s time to do some cleanup. The Registry
+    Browser container can be killed by running Ctrl + C in its terminal window. The
+    Docker Registry itself will take another step since it’s running in the background.
+    Run the following command to stop the container:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经完成了本节，是时候进行一些清理工作了。可以通过在其终端窗口中运行Ctrl + C来终止Registry Browser容器。Docker Registry本身将需要另一步骤，因为它在后台运行。运行以下命令来停止容器：
+- en: '[PRE39]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: ^([1](ch05.html#idm46291186560600-marker)) Alpine uses *musl* instead of *glibc*
+    as its C standard library, which can cause compatibility issues.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch05.html#idm46291186560600-marker)) Alpine使用*musl*而不是*glibc*作为其C标准库，这可能会导致兼容性问题。
+- en: ^([2](ch05.html#idm46291185807640-marker)) This section of the file starts off
+    with some comment symbols. This is to avoid ambiguity with leading whitespace,
+    which can cause YAML errors.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch05.html#idm46291185807640-marker)) 该文件的这一部分以一些注释符号开头。这是为了避免前导空格引起的歧义，因为这可能导致YAML错误。

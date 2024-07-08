@@ -1,0 +1,1076 @@
+- en: Chapter 6\. The Request and Response Objects
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第6章 请求和响应对象
+- en: In this chapter, we’ll learn the important details of the request and response
+    objects—which are very much the beginning and end of everything that happens in
+    an Express application. When you’re building a web server with Express, most of
+    what you’ll be doing starts with a request object and ends with a response object.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将学习请求和响应对象的重要细节，这些对象基本上是Express应用程序中发生的一切的起点和终点。当你使用Express构建Web服务器时，你将大部分时间都是从请求对象开始，然后结束于响应对象。
+- en: These two objects originate in Node and are extended by Express. Before we delve
+    into what these objects offer us, let’s establish a little background on how a
+    client (a browser, usually) requests a page from a server and how that page is
+    returned.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个对象起源于Node并由Express扩展。在我们深入研究这些对象提供的内容之前，让我们先了解一下客户端（通常是浏览器）如何从服务器请求页面以及页面如何返回的背景知识。
+- en: The Parts of a URL
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: URL的组成部分
+- en: 'We see URLs all the time, but we don’t often stop to think about their component
+    parts. Let’s consider three URLs and examine their component parts:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们经常看到URL，但很少停下来考虑它们的组成部分。让我们考虑三个URL并检查它们的组成部分。
+- en: '![Parts of a URL](Images/bwne_06in01.png)'
+  id: totrans-5
+  prefs: []
+  type: TYPE_IMG
+  zh: '![URL的组成部分](Images/bwne_06in01.png)'
+- en: Protocol
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 协议
+- en: The protocol determines how the request will be transmitted. We will be dealing
+    exclusively with *http* and *https*. Other common protocols include *file* and
+    *ftp*.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 协议决定了请求如何传输。我们将专门处理*http*和*https*。其他常见的协议包括*file*和*ftp*。
+- en: Host
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主机
+- en: The host identifies the server. Servers on your computer (localhost) or a local
+    network may be identified simply be one word or by a numeric IP address. On the
+    internet, the host will end in a top-level domain (TLD) like *.com* or *.net*.
+    Additionally, there may be *subdomains*, which prefix the hostname. *www* is a
+    common subdomain, though it can be anything. Subdomains are optional.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主机标识服务器。在你的计算机（本地主机）或本地网络上的服务器可能仅用一个单词或数字IP地址来标识。在互联网上，主机将以顶级域名（TLD）结尾，如*.com*或*.net*。此外，可能还有*子域*，作为主机名的前缀。*www*是常见的子域，虽然可以是任何东西。子域是可选的。
+- en: Port
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 端口
+- en: Each server has a collection of numbered ports. Some port numbers are special,
+    like 80 and 443\. If you omit the port, port 80 is assumed for HTTP and 443 for
+    HTTPS. In general, if you aren’t using port 80 or 443, you should use a port number
+    greater than 1023.^([1](ch06.xhtml#idm45053596946424)) It’s common to use easy-to-remember
+    port numbers like 3000, 8080, and 8088. Only one server can be associated with
+    a given port, and even though there are plenty of numbers to choose from, you
+    may have to change the port number if you’re using a commonly used port number.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每台服务器都有一组编号的端口。一些端口号是特殊的，比如80和443。如果省略端口，则假定为HTTP的端口80和HTTPS的端口443。通常情况下，如果不使用80或443端口，则应使用大于1023的端口号。^([1](ch06.xhtml#idm45053596946424))
+    使用易记的端口号如3000、8080和8088是很常见的。每个端口只能与一个服务器关联，尽管可以选择很多端口号，但如果使用了常用端口号，则可能需要更改端口号。
+- en: Path
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路径
+- en: The path is generally the first part of the URL that your app cares about (it
+    is possible to make decisions based on protocol, host, and port, but it’s not
+    good practice). The path should be used to uniquely identify pages or other resources
+    in your app.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路径通常是URL中你的应用程序关心的第一部分（虽然可以根据协议、主机和端口做出决策，但这不是一个好的做法）。路径应用于唯一标识你的应用程序中的页面或其他资源。
+- en: Querystring
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询字符串
+- en: 'The querystring is an optional collection of name/value pairs. The querystring
+    starts with a question mark (*?*), and name/value pairs are separated by ampersands
+    (*&*). Both names and values should be *URL encoded*. JavaScript provides a built-in
+    function to do that: `encodeURIComponent`. For example, spaces will be replaced
+    with plus signs (*+*). Other special characters will be replaced with numeric
+    character references. Sometimes the querystring will be referred to as the *search
+    string* or simply the *search*.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询字符串是一个可选的名称/值对集合。查询字符串以问号（*?*）开头，名称/值对之间用和号（*&*）分隔。名称和值都应进行*URL编码*。JavaScript提供了内置函数来完成这个操作：`encodeURIComponent`。例如，空格将被加号（*+*）替换。其他特殊字符将被数字字符引用替换。有时查询字符串也被称为*搜索字符串*或简称*搜索*。
+- en: Fragment
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 片段
+- en: 'The fragment (or *hash*) is not passed to the server at all; it is strictly
+    for use by the browser. Some single-page applications use the fragment to control
+    application navigation. Originally, the fragment’s sole purpose was to cause the
+    browser to display a specific part of the document, marked by an anchor tag (for
+    example: `<a id="chapter06">`).'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 片段（或*哈希*）根本不会传递给服务器；它严格用于浏览器使用。一些单页面应用程序使用片段来控制应用程序导航。最初，片段的唯一目的是导致浏览器显示文档的特定部分，由锚标记标记（例如：<a
+    id="chapter06">）。
+- en: HTTP Request Methods
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: HTTP 请求方法
+- en: The HTTP protocol defines a collection of *request methods* (often referred
+    to as *HTTP verbs*) that a client uses to communicate with a server. Far and away,
+    the most common methods are `GET` and `POST`.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP 协议定义了一组*请求方法*（通常称为*HTTP 动词*），客户端用它们与服务器通信。远远地，最常见的方法是 `GET` 和 `POST`。
+- en: When you type a URL into a browser (or click a link), the browser issues an
+    HTTP `GET` request to the server. The important information passed to the server
+    is the URL path and querystring. The combination of method, path, and querystring
+    is what your app uses to determine how to respond.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器中键入 URL（或点击链接）时，浏览器会向服务器发出 HTTP `GET` 请求。传递给服务器的重要信息是 URL 路径和查询字符串。方法、路径和查询字符串的组合是应用程序用来确定如何响应的关键。
+- en: For a website, most of your pages will respond to `GET` requests. `POST` requests
+    are usually reserved for sending information back to the server (form processing,
+    for example). It’s quite common for `POST` requests to respond with the same HTML
+    as the corresponding `GET` request after the server has processed any information
+    included in the request (like a form). Browsers will primarily use the `GET` and
+    `POST` methods when communicating with your server. The Ajax requests your application
+    makes, however, may use any HTTP verb. For example, there’s an HTTP method called
+    `DELETE` that is useful for, well, an API call that deletes things.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于网站，大多数页面将响应 `GET` 请求。`POST` 请求通常用于向服务器发送信息（例如表单处理）。服务器处理请求后，通常会使用与相应 `GET`
+    请求相同的 HTML 响应。浏览器主要在与服务器通信时使用 `GET` 和 `POST` 方法。然而，您的应用程序进行的 Ajax 请求可能使用任何 HTTP
+    动词。例如，有一种称为 `DELETE` 的 HTTP 方法非常适合用于 API 调用来删除事物。
+- en: With Node and Express, you are fully in charge of what methods you respond to.
+    In Express, you’ll usually be writing handlers for specific methods.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Node 和 Express 中，您完全可以控制如何响应方法。在 Express 中，通常会编写特定方法的处理程序。
+- en: Request Headers
+  id: totrans-23
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 请求头
+- en: 'The URL isn’t the only thing that’s passed to the server when you navigate
+    to a page. Your browser is sending a lot of “invisible” information every time
+    you visit a website. I’m not talking about spooky personal information (though
+    if your browser is infected by malware, that can happen). The browser will tell
+    the server what language it prefers to receive the page in (for example, if you
+    download Chrome in Spain, it will request the Spanish version of pages you visit,
+    if they exist). It will also send information about the *user agent* (the browser,
+    operating system, and hardware) and other bits of information. All this information
+    is sent as a request header, which is made available to you through the request
+    object’s `headers` property. If you’re curious to see the information your browser
+    is sending, you can create a simple Express route to display that information
+    (*ch06/00-echo-headers.js* in the companion repo):'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您导航到页面时，传递给服务器的不仅是 URL。每次访问网站时，您的浏览器都会发送大量“隐形”信息。我不是在谈论神秘的个人信息（尽管如果您的浏览器感染了恶意软件，这可能会发生）。浏览器会告诉服务器它喜欢以哪种语言接收页面（例如，如果您在西班牙下载
+    Chrome，则会请求访问的页面的西班牙语版本，如果存在的话）。它还会发送关于*用户代理*（浏览器、操作系统和硬件）和其他信息的信息。所有这些信息都作为请求头发送，通过请求对象的
+    `headers` 属性可供您使用。如果您想查看浏览器发送的信息，可以创建一个简单的 Express 路由来显示该信息（在配套仓库中的 *ch06/00-echo-headers.js*）。
+- en: '[PRE0]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Response Headers
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 响应头
+- en: Just as your browser sends hidden information to the server in the form of request
+    headers, when the server responds, it also sends information back that is not
+    necessarily rendered or displayed by the browser. The information typically included
+    in response headers is metadata and server information. We’ve already seen the
+    `Content-Type` header, which tells the browser what kind of content is being transmitted
+    (HTML, an image, CSS, JavaScript, etc.). Note that the browser will respect the
+    `Content-Type` header regardless of what the URL path is. So you could serve HTML
+    from a path of */image.jpg* or an image from a path of */text.html*. (There’s
+    no legitimate reason to do this; it’s just important to understand that paths
+    are abstract, and the browser uses `Content-Type` to determine how to render content.)
+    In addition to `Content-Type`, headers can indicate whether the response is compressed
+    and what kind of encoding it’s using. Response headers can also contain hints
+    for the browser about how long it can cache the resource. This is an important
+    consideration for optimizing your website, and we’ll be discussing that in detail
+    in [Chapter 17](ch17.xhtml#ch_static_content).
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你的浏览器通过请求头将隐藏信息发送到服务器一样，当服务器响应时，它也会发送一些不一定由浏览器渲染或显示的信息。响应头通常包括元数据和服务器信息。我们已经看到了`Content-Type`头部，它告诉浏览器正在传输的内容类型（HTML、图片、CSS、JavaScript等）。请注意，浏览器将尊重`Content-Type`头部，无论
+    URL 路径是什么。因此，你可以从 */image.jpg* 的路径提供 HTML 或从 */text.html* 的路径提供图片。 （没有合理的理由这样做；重要的是理解路径是抽象的，浏览器使用`Content-Type`来确定如何渲染内容。）除了`Content-Type`，头部还可以指示响应是否压缩以及使用的编码类型。响应头还可以包含有关浏览器可以缓存资源多长时间的提示。这是优化网站的重要考虑因素，我们将在[第17章](ch17.xhtml#ch_static_content)中详细讨论这一点。
+- en: 'It is also common for response headers to contain some information about the
+    server, indicating what type of server it is and sometimes even details about
+    the operating system. The downside about returning server information is that
+    it gives hackers a starting point to compromise your site. Extremely security-conscious
+    servers often omit this information or even provide false information. Disabling
+    Express’s default `X-Powered-By` header is easy (*ch06/01-disable-x-powered-by.js*
+    in the companion repo):'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 响应头中通常也包含一些关于服务器的信息，指示服务器类型以及有时甚至有关操作系统的详细信息。返回服务器信息的缺点是，它给黑客一个入手点来危害你的网站。极端注重安全的服务器通常会省略这些信息，甚至提供错误信息。禁用
+    Express 默认的`X-Powered-By`头部很容易（在附带的存储库中的 *ch06/01-disable-x-powered-by.js*）：
+- en: '[PRE1]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'If you want to see the response headers, they can be found in your browser’s
+    developer tools. To see the response headers in Chrome, for example:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想查看响应头，可以在浏览器的开发者工具中找到。例如，要在 Chrome 中查看响应头：
+- en: Open the JavaScript console.
+  id: totrans-31
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 打开 JavaScript 控制台。
+- en: Click the Network tab.
+  id: totrans-32
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 点击网络选项卡。
+- en: Reload the page.
+  id: totrans-33
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 刷新页面。
+- en: Pick the HTML from the list of requests (it will be the first one).
+  id: totrans-34
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 从请求列表中选择 HTML（这将是第一个）。
+- en: Click the Headers tab; you will see all response headers.
+  id: totrans-35
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 点击头部选项卡，你将看到所有的响应头。
+- en: Internet Media Types
+  id: totrans-36
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 互联网媒体类型
+- en: The `Content-Type` header is critically important; without it, the client would
+    have to painfully guess how to render the content. The format of the `Content-Type`
+    header is an *internet media type*, which consists of a type, subtype, and optional
+    parameters. For example, `text/html; charset=UTF-8` specifies a type of “text,”
+    a subtype of “html,” and a character encoding of UTF-8\. The Internet Assigned
+    Numbers Authority maintains an [official list of internet media types](https://www.iana.org/assignments/media-types/media-types.xhtml).
+    Often, you will hear “content type,” “Internet media type,” and “MIME type” used
+    interchangeably. MIME (Multipurpose Internet Mail Extensions) was a precursor
+    of internet media types and, for the most part, is equivalent.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Content-Type`头部非常重要；没有它，客户端将痛苦地猜测如何渲染内容。`Content-Type`头部的格式是 *互联网媒体类型*，包括类型、子类型和可选参数。例如，`text/html;
+    charset=UTF-8` 指定了“text”类型，“html”子类型和UTF-8字符编码。互联网分配号码管理局维护着[互联网媒体类型的官方列表](https://www.iana.org/assignments/media-types/media-types.xhtml)。通常情况下，“内容类型”、“互联网媒体类型”和“MIME
+    类型”可以互换使用。MIME（多用途互联网邮件扩展）是互联网媒体类型的前身，在大多数情况下是等效的。'
+- en: Request Body
+  id: totrans-38
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 请求正文
+- en: In addition to the request headers, a request can have a *body* (just like the
+    body of a response is the actual content that’s being returned). Normal `GET`
+    requests don’t have bodies, but `POST` requests usually do. The most common media
+    type for `POST` bodies is `application/x-www-form-urlencoded`, which is simply
+    encoded name/value pairs separated by ampersands (essentially the same format
+    as a querystring). If the `POST` needs to support file uploads, the media type
+    is `multipart/form-data`, which is a more complicated format. Lastly, Ajax requests
+    can use `application/json` for the body. We’ll learn more about request bodies
+    in [Chapter 8](ch08.xhtml#ch_form_handling).
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了请求头部外，请求还可以有一个*主体*（就像响应的主体是实际返回的内容一样）。普通的`GET`请求没有主体，但`POST`请求通常有。最常见的`POST`主体媒体类型是`application/x-www-form-urlencoded`，它简单地编码了用与号分隔的名称/值对（本质上与查询字符串的格式相同）。如果`POST`需要支持文件上传，则媒体类型是`multipart/form-data`，这是一种更复杂的格式。最后，Ajax请求可以使用`application/json`作为主体。我们将在[第8章](ch08.xhtml#ch_form_handling)学习更多有关请求主体的内容。
+- en: The Request Object
+  id: totrans-40
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 请求对象
+- en: 'The *request object* (which is passed as the first parameter of a request handler,
+    meaning you can name it whatever you want; it is common to name it `req` or `request`)
+    starts its life as an instance of `http.IncomingMessage`, a core Node object.
+    Express adds further functionality. Let’s look at the most useful properties and
+    methods of the request object (all of these methods are added by Express, except
+    for `req.headers` and `req.url`, which originate in Node):'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*请求对象*（作为请求处理程序的第一个参数传递，这意味着您可以随意命名它；通常将其命名为`req`或`request`）从`http.IncomingMessage`的实例开始其生命周期，这是一个核心Node对象。Express添加了更多功能。让我们看看请求对象的最有用的属性和方法（所有这些方法都是由Express添加的，除了`req.headers`和`req.url`，它们起源于Node）：'
+- en: '`req.params`'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.params`'
+- en: An array containing the *named route parameters*. We’ll learn more about this
+    in [Chapter 14](ch14.xhtml#ch_routing).
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含*命名路由参数*的数组。我们将在[第14章](ch14.xhtml#ch_routing)学习更多相关内容。
+- en: '`req.query`'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.query`'
+- en: An object containing querystring parameters (sometimes called `GET` parameters)
+    as name/value pairs.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含查询字符串参数（有时称为`GET`参数）的名称/值对的对象。
+- en: '`req.body`'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.body`'
+- en: An object containing `POST` parameters. It is so named because `POST` parameters
+    are passed in the body of the request, not in the URL as querystring parameters
+    are. To make `req.body` available, you’ll need middleware that can parse the body
+    content type, which we will learn about in [Chapter 10](ch10.xhtml#ch_middleware).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含`POST`参数的对象。之所以这样命名，是因为`POST`参数是在请求的主体中传递的，而不是像查询字符串参数那样在URL中。要使`req.body`可用，您需要能够解析主体内容类型的中间件，我们将在[第10章](ch10.xhtml#ch_middleware)中学习。
+- en: '`req.route`'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.route`'
+- en: Information about the currently matched route. This is primarily useful for
+    route debugging.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前匹配路由的信息。这主要用于路由调试。
+- en: '`req.cookies`/`req.signedCookies`'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.cookies`/`req.signedCookies`'
+- en: Objects containing cookie values passed from the client. See [Chapter 9](ch09.xhtml#ch_cookies_and_sessions).
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含从客户端传递的cookie值的对象。参见[第9章](ch09.xhtml#ch_cookies_and_sessions)。
+- en: '`req.headers`'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.headers`'
+- en: The request headers received from the client. This is an object whose keys are
+    the header names and whose values are the header values. Note that this comes
+    from the underlying `http.IncomingMessage` object, so you won’t find it listed
+    in the Express documentation.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从客户端接收的请求头部。这是一个对象，其键是头部名称，值是头部值。请注意，这是来自底层`http.IncomingMessage`对象的，因此您在Express文档中找不到它。
+- en: '`req.accepts(types)`'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.accepts(types)`'
+- en: A convenience method to determine whether the client accepts a given type or
+    types (optional `types` can be a single MIME type, such as `application/json`,
+    a comma-delimited list, or an array). This method is of primary interest to those
+    writing public APIs; it is assumed that browsers will always accept HTML by default.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个方便的方法，用于确定客户端是否接受给定的类型或类型（可选的`types`可以是单个MIME类型，如`application/json`，逗号分隔的列表或数组）。这个方法对于编写公共API的人来说非常重要；默认情况下假定浏览器总是接受HTML。
+- en: '`req.ip`'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.ip`'
+- en: The IP address of the client.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端的IP地址。
+- en: '`req.path`'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.path`'
+- en: The request path (without protocol, host, port, or querystring).
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求路径（不包括协议、主机、端口或查询字符串）。
+- en: '`req.hostname`'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.hostname`'
+- en: A convenience method that returns the hostname reported by the client. This
+    information can be spoofed and should not be used for security purposes.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回客户端报告的主机名的方便方法。此信息可以伪造，不应用于安全目的。
+- en: '`req.xhr`'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.xhr`'
+- en: A convenience property that returns `true` if the request originated from an
+    Ajax call.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个方便的属性，如果请求来自Ajax调用，则返回`true`。
+- en: '`req.protocol`'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.protocol`'
+- en: The protocol used in making this request (for our purposes, it will be either
+    `http` or `https`).
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于发起此请求的协议（对我们而言，可能是 `http` 或 `https`）。
+- en: '`req.secure`'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.secure`'
+- en: A convenience property that returns `true` if the connection is secure. This
+    is equivalent to `req.protocol === 'https'`.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个便捷属性，如果连接安全则返回 `true`。这等同于 `req.protocol === 'https'`。
+- en: '`req.url`/`req.originalUrl`'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`req.url`/`req.originalUrl`'
+- en: A bit of a misnomer, these properties return the path and querystring (they
+    do not include protocol, host, or port). `req.url` can be rewritten for internal
+    routing purposes, but `req.originalUrl` is designed to remain the original request
+    and querystring.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有些名称并不完全准确，这些属性返回路径和查询字符串（不包括协议、主机或端口）。`req.url` 可以为内部路由目的重写，但 `req.originalUrl`
+    设计为保留原始请求和查询字符串。
+- en: The Response Object
+  id: totrans-70
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 响应对象
+- en: 'The *response object* (which is passed as the second parameter of a request
+    handler, meaning you can name it whatever you want; it is common to name it `res`,
+    `resp`, or `response`) starts its life as an instance of `http.ServerResponse`,
+    a core Node object. Express adds further functionality. Let’s look at the most
+    useful properties and methods of the response object (all of these are added by
+    Express):'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*响应对象*（作为请求处理程序的第二个参数传递，意味着可以随意命名为 `res`、`resp` 或 `response`）起初是 `http.ServerResponse`
+    的实例，这是 Node 的核心对象。Express 添加了更多功能。让我们看看响应对象的最有用的属性和方法（所有这些都是 Express 添加的）：'
+- en: '`res.status(code)`'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.status(code)`'
+- en: 'Sets the HTTP status code. Express defaults to 200 (OK), so you will have to
+    use this method to return a status of 404 (Not Found) or 500 (Server Error), or
+    any other status code you want to use. For redirects (status codes 301, 302, 303,
+    and 307), there is a method `redirect`, which is preferable. Note that `res.status`
+    returns the response object, meaning you can chain calls: `res.status(404).send(''Not
+    found'')`.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置 HTTP 状态码。Express 默认为 200（OK），因此您需要使用这个方法来返回 404（未找到）或 500（服务器错误）等其他状态码。对于重定向（状态码
+    301、302、303 和 307），有一个 `redirect` 方法，这是首选方法。请注意，`res.status` 返回响应对象，这意味着您可以链接调用：`res.status(404).send('Not
+    found')`。
+- en: '`res.set(name, value)`'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.set(name, value)`'
+- en: Sets a response header. This is not something you will normally be doing manually.
+    You can also set multiple headers at once by passing a single object argument
+    whose keys are the header names and whose values are the header values.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置响应头。这通常不是您手动操作的内容。您也可以通过传递一个对象参数一次性设置多个头部，对象的键是头部名称，值是头部的值。
+- en: '`res.cookie(name, value, [options])`, `res.clearCookie(name, [options])`'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.cookie(name, value, [options])`，`res.clearCookie(name, [options])`'
+- en: Sets or clears cookies that will be stored on the client. This requires some
+    middleware support; see [Chapter 9](ch09.xhtml#ch_cookies_and_sessions).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置或清除将存储在客户端的 cookie。这需要一些中间件支持；请参见[第九章](ch09.xhtml#ch_cookies_and_sessions)。
+- en: '`res.redirect([status], url)`'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.redirect([status], url)`'
+- en: Redirects the browser. The default redirect code is 302 (Found). In general,
+    you should minimize redirection unless you are permanently moving a page, in which
+    case you should use the code 301 (Moved Permanently).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重定向浏览器。默认的重定向代码是 302（Found）。通常情况下，应尽量减少重定向，除非您要永久移动页面，此时应使用代码 301（Moved Permanently）。
+- en: '`res.send(body)`'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.send(body)`'
+- en: Sends a response to the client. Express defaults to a content type of `text/html`,
+    so if you want to change it to `text/plain` (for example), you’ll have to call
+    `res.type('text/plain’)` before calling `res.send`. If `body` is an object or
+    an array, the response is sent as JSON (with the content type being set appropriately),
+    though if you want to send JSON, I recommend doing so explicitly by calling `res.json`
+    instead.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向客户端发送响应。Express 默认为 `text/html` 类型的内容，因此如果您希望将其更改为 `text/plain`（例如），您需要在调用
+    `res.send` 之前调用 `res.type('text/plain')`。如果 `body` 是对象或数组，则响应将以 JSON 形式发送（内容类型会适当设置），但如果要发送
+    JSON，建议直接调用 `res.json`。
+- en: '`res.json(json)`'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.json(json)`'
+- en: Sends JSON to the client.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向客户端发送 JSON。
+- en: '`res.jsonp(json)`'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.jsonp(json)`'
+- en: Sends JSONP to the client.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向客户端发送 JSONP。
+- en: '`res.end()`'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.end()`'
+- en: Ends the connection without sending a response. To learn more about the differences
+    between `res.send`, `res.json`, and `res.end`, see [this article](https://blog.fullstacktraining.com/res-json-vs-res-send-vs-res-end-in-express/)
+    by Tamas Piros.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结束连接而不发送响应。要了解 `res.send`、`res.json` 和 `res.end` 之间的区别，请参阅 Tamas Piros 的[这篇文章](https://blog.fullstacktraining.com/res-json-vs-res-send-vs-res-end-in-express/)。
+- en: '`res.type(type)`'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.type(type)`'
+- en: A convenience method to set the `Content-Type` header. This is essentially equivalent
+    to `res.set(\'Content-Type ', type)`, except that it will also attempt to map
+    file extensions to an internet media type if you provide a string without a slash
+    in it. For example, `res.type(\'txt ')` will result in a `Content-Type` of `text/plain`.
+    There are areas where this functionality could be useful (for example, automatically
+    serving disparate multimedia files), but in general, you should avoid it in favor
+    of explicitly setting the correct internet media type.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个便捷方法来设置`Content-Type`头部。这基本上等同于`res.set('Content-Type', type)`，除非您提供一个没有斜杠的字符串，它还将尝试将文件扩展名映射到互联网媒体类型。例如，`res.type('txt')`将导致`Content-Type`为`text/plain`。在某些情况下，这种功能可能很有用（例如，自动服务不同的多媒体文件），但通常情况下，您应该避免这样做，而是显式设置正确的互联网媒体类型。
+- en: '`res.format(object)`'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.format(object)`'
+- en: 'This method allows you to send different content depending on the `Accept`
+    request header. This is of primary use in APIs, and we will discuss this more
+    in [Chapter 15](ch15.xhtml#ch_rest_apis_and_json). Here’s a simple example: `res.format({''text/plain'':
+    ''hi there'', ''text/html'': ''<b>hi there</b>''})`.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这种方法允许您根据`Accept`请求头发送不同的内容。这在API中非常有用，我们将在[第15章](ch15.xhtml#ch_rest_apis_and_json)进一步讨论这个问题。这里有一个简单的例子：`res.format({''text/plain'':
+    ''hi there'', ''text/html'': ''<b>hi there</b>''})`。'
+- en: '`res.attachment([filename])`, `res.download(path, [filename], [callback])`'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.attachment([filename])`，`res.download(path, [filename], [callback])`'
+- en: Both of these methods set a response header called `Content-Disposition` to
+    `attachment`; this will prompt the browser to download the content instead of
+    displaying it in a browser. You may specify `filename` as a hint to the browser.
+    With `res.download`, you can specify the file to download, whereas `res.attachment`
+    just sets the header; you still have to send content to the client.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种方法都将`Content-Disposition`响应头设置为`attachment`；这将提示浏览器下载内容而不是在浏览器中显示它。您可以指定`filename`作为浏览器的提示。使用`res.download`，您可以指定要下载的文件，而`res.attachment`仅设置头部；您仍然需要向客户端发送内容。
+- en: '`res.sendFile(path, [options], [callback])`'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.sendFile(path, [options], [callback])`'
+- en: This method will read a file specified by `path` and send its contents to the
+    client. There should be little need for this method; it’s easier to use the `static`
+    middleware and put files you want available to the client in the *public* directory.
+    However, if you want to have a different resource served from the same URL depending
+    on some condition, this method could come in handy.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法将读取由`path`指定的文件，并将其内容发送到客户端。对于这种方法几乎没有什么需求；使用`static`中间件并将您希望客户端能够访问的文件放在*public*目录中更容易。但是，如果您希望根据某些条件从同一个URL提供不同的资源，那么这种方法可能会有用。
+- en: '`res.links(links)`'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.links(links)`'
+- en: Sets the `Links` response header. This is a specialized header that has little
+    use in most applications.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置`Links`响应头。在大多数应用程序中几乎没有实际用途的专用头部。
+- en: '`res.locals`, `res.render(view, [locals], callback)`'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.locals`，`res.render(view, [locals], callback)`'
+- en: '`res.locals` is an object containing *default* context for rendering views.
+    `res.render` will render a view using the configured templating engine (the `locals`
+    parameter to `res.render` shouldn’t be confused with `res.locals`: it will override
+    the context in `res.locals`, but context not overridden will still be available).
+    Note that `res.render` will default to a response code of 200; use `res.status`
+    to specify a different response code. Rendering views will be covered in depth
+    in [Chapter 7](ch07.xhtml#ch_templating).'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`res.locals`是一个包含*默认*渲染视图上下文的对象。`res.render`将使用配置的模板引擎来渲染视图（`res.render`的`locals`参数不应与`res.locals`混淆：它将覆盖`res.locals`中的上下文，但未被覆盖的上下文仍将可用）。注意，`res.render`默认响应码为200；使用`res.status`指定不同的响应码。视图渲染将在[第7章](ch07.xhtml#ch_templating)详细讨论。'
+- en: Getting More Information
+  id: totrans-100
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 获取更多信息
+- en: 'Because of JavaScript’s prototypal inheritance, knowing exactly what you’re
+    dealing with can sometimes be challenging. Node provides you with objects that
+    Express extends, and packages that you add may also extend those. Figuring out
+    exactly what’s available to you can be challenging sometimes. In general, I recommend
+    working backward: if you’re looking for some functionality, first check the [Express
+    API documentation](http://expressjs.com/api.html). The Express API is pretty complete,
+    and chances are, you’ll find what you’re looking for there.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于JavaScript的原型继承，确切地知道你正在处理的东西有时可能是具有挑战性的。Node提供了Express扩展的对象，而你添加的包也可能会扩展这些对象。有时候确切地弄清楚可用的功能是具有挑战性的。总的来说，我建议你往回推导：如果你在寻找某些功能，首先检查[Express
+    API文档](http://expressjs.com/api.html)。Express的API非常完整，很有可能你会在那里找到你要找的内容。
+- en: 'If you need information that isn’t documented, sometimes you have to dive into
+    the [Express source](https://github.com/expressjs/express). I encourage you to
+    do this! You’ll probably find that it’s a lot less intimidating than you might
+    think. Here’s a quick roadmap to where you’ll find things in the Express source:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你需要查找未记录的信息，有时候你必须深入研究[Express源代码](https://github.com/expressjs/express)。我鼓励你这样做！你可能会发现这并没有你想象中的那么吓人。以下是在Express源代码中找到信息的快速路线图：
+- en: '*lib/application.js*'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*lib/application.js*'
+- en: The main Express interface. If you want to understand how middleware is linked
+    in or how views are rendered, this is the place to look.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主要的Express接口。如果你想了解中间件是如何链接或者如何渲染视图的，这是你应该查看的地方。
+- en: '*lib/express.js*'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*lib/express.js*'
+- en: A relatively short file that primarily provides the `createApplication` function
+    (the default export of this file), which creates an Express application instance.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个相对较短的文件，主要提供`createApplication`函数（该文件的默认导出），用于创建Express应用程序实例。
+- en: '*lib/request.js*'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*lib/request.js*'
+- en: Extends Node’s `http.IncomingMessage` object to provide a robust request object.
+    For information about all the request object properties and methods, this is where
+    to look.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展Node的`http.IncomingMessage`对象以提供强大的请求对象。要了解有关请求对象的所有属性和方法的信息，这就是你要查找的地方。
+- en: '*lib/response.js*'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*lib/response.js*'
+- en: Extends Node’s `http.ServerResponse` object to provide the response object.
+    For information about response object properties and methods, this is where to
+    look.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展Node的`http.ServerResponse`对象以提供响应对象。要了解响应对象的所有属性和方法的信息，这就是你要查找的地方。
+- en: '*lib/router/route.js*'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*lib/router/route.js*'
+- en: Provides basic routing support. While routing is central to your app, this file
+    is less than 230 lines long; you’ll find that it’s quite simple and elegant.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供基本的路由支持。虽然路由是你应用程序的核心，但是这个文件不到230行；你会发现它非常简单和优雅。
+- en: As you dig into the Express source code, you’ll probably want to refer to the
+    [Node documentation](https://nodejs.org/en/docs/), especially the section on the
+    `HTTP` module.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你深入研究Express源代码时，你可能会想参考[Node文档](https://nodejs.org/en/docs/)，特别是关于`HTTP`模块的部分。
+- en: Boiling It Down
+  id: totrans-114
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 简化问题
+- en: This chapter has provided an overview of the request and response objects, which
+    are the meat and potatoes of an Express application. However, the chances are
+    that you will be using a small subset of this functionality most of the time.
+    So let’s break it down by functionality you’ll be using most frequently.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章已经概述了请求和响应对象，这些是Express应用程序的核心部分。然而，你大部分时间可能只会使用它们的一个小子集功能。所以让我们按照你最频繁使用的功能来详细讨论一下。
+- en: Rendering Content
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 渲染内容
+- en: When you’re rendering content, you’ll be using `res.render` most often, which
+    renders views within layouts, providing maximum value. Occasionally, you may want
+    to write a quick test page, so you might use `res.send` if you just want a test
+    page. You may use `req.query` to get querystring values, `req.session` to get
+    session values, or `req.cookie`/`req.signedCookies` to get cookies. [Example 6-1](#rendering_content_1)
+    to [Example 6-8](#rendering_content_8) demonstrate common content rendering tasks.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你渲染内容时，你最常使用的是`res.render`，它在布局中呈现视图，提供最大的价值。偶尔，你可能想要编写一个快速的测试页面，所以如果只是想要一个测试页面，你可能会使用`res.send`。你可以使用`req.query`获取查询字符串的值，使用`req.session`获取会话值，或者使用`req.cookie`/`req.signedCookies`获取cookie。[示例 6-1](#rendering_content_1)到[示例 6-8](#rendering_content_8)演示了常见的内容渲染任务。
+- en: Example 6-1\. Basic usage (*ch06/02-basic-rendering.js*)
+  id: totrans-118
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-1\. 基本用法（*ch06/02-basic-rendering.js*）
+- en: '[PRE2]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Example 6-2\. Response codes other than 200 (*ch06/03-different-response-codes.js*)
+  id: totrans-120
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-2\. 除了200之外的响应代码（*ch06/03-different-response-codes.js*）
+- en: '[PRE3]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Example 6-3\. Passing a context to a view, including querystring, cookie, and
+    session values (*ch06/04-view-with-content.js*)
+  id: totrans-122
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-3\. 将上下文传递给视图，包括查询字符串、cookie 和会话值（*ch06/04-view-with-content.js*）
+- en: '[PRE4]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Example 6-4\. Rendering a view without a layout (*ch06/05-view-without-layout.js*)
+  id: totrans-124
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-4\. 渲染不带布局的视图（*ch06/05-view-without-layout.js*）
+- en: '[PRE5]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Example 6-5\. Rendering a view with a custom layout (*ch06/06-custom-layout.js*)
+  id: totrans-126
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-5\. 使用自定义布局渲染视图（*ch06/06-custom-layout.js*）
+- en: '[PRE6]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Example 6-6\. Rendering plain text output (*ch06/07-plaintext-output.js*)
+  id: totrans-128
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-6\. 渲染纯文本输出（*ch06/07-plaintext-output.js*）
+- en: '[PRE7]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Example 6-7\. Adding an error handler (*ch06/08-error-handler.js*)
+  id: totrans-130
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-7\. 添加错误处理程序（*ch06/08-error-handler.js*）
+- en: '[PRE8]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Example 6-8\. Adding a 404 handler (*ch06/09-custom-404.js*)
+  id: totrans-132
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-8\. 添加一个 404 处理程序（*ch06/09-custom-404.js*）
+- en: '[PRE9]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Processing Forms
+  id: totrans-134
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 处理表单
+- en: 'When you’re processing forms, the information from the forms will usually be
+    in `req.body` (or occasionally in `req.query`). You may use `req.xhr` to determine
+    whether the request was an Ajax request or a browser request (this will be covered
+    in depth in [Chapter 8](ch08.xhtml#ch_form_handling)). See [Example 6-9](#ajax_or_browser_1)
+    and [Example 6-10](#ajax_or_browser_2). For the following examples, you’ll need
+    to have body parser middleware linked in:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在处理表单时，表单信息通常在 `req.body` 中（有时在 `req.query` 中）。您可以使用 `req.xhr` 来判断请求是 Ajax 请求还是浏览器请求（这将在
+    [Chapter 8](ch08.xhtml#ch_form_handling) 中详细介绍）。参见 [Example 6-9](#ajax_or_browser_1)
+    和 [Example 6-10](#ajax_or_browser_2)。在以下示例中，您需要链接 body parser 中间件：
+- en: '[PRE10]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: We’ll learn more about body parser middleware in [Chapter 8](ch08.xhtml#ch_form_handling).
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在第 8 章详细学习关于 body parser 中间件的内容，[Chapter 8](ch08.xhtml#ch_form_handling)。
+- en: Example 6-9\. Basic form processing (*ch06/10-basic-form-processing.js*)
+  id: totrans-138
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-9\. 基本表单处理（*ch06/10-basic-form-processing.js*）
+- en: '[PRE11]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Example 6-10\. More robust form processing (*ch06/11-more-robust-form-processing.js*)
+  id: totrans-140
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-10\. 更健壮的表单处理（*ch06/11-more-robust-form-processing.js*）
+- en: '[PRE12]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Providing an API
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 提供 API
+- en: 'When you’re providing an API, much like processing forms, the parameters will
+    usually be in `req.query`, though you can also use `req.body`. What’s different
+    about APIs is that you’ll usually be returning JSON, XML, or even plain text,
+    instead of HTML, and you’ll often be using less common HTTP methods like `PUT`,
+    `POST`, and `DELETE`. Providing an API will be covered in [Chapter 15](ch15.xhtml#ch_rest_apis_and_json).
+    [Example 6-11](#products_array_2) and [Example 6-12](#products_array_3) use the
+    following “products” array (which would normally be retrieved from a database):'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在提供 API 时，类似处理表单，参数通常在 `req.query` 中，尽管您也可以使用 `req.body`。API 的不同之处在于，通常会返回 JSON、XML
+    或纯文本，而不是 HTML，并且经常使用较少见的 HTTP 方法如 `PUT`、`POST` 和 `DELETE`。API 的提供将在 [Chapter 15](ch15.xhtml#ch_rest_apis_and_json)
+    中介绍。[Example 6-11](#products_array_2) 和 [Example 6-12](#products_array_3) 使用以下“products”数组（通常从数据库中检索）：
+- en: '[PRE13]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Note
+  id: totrans-145
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The term *endpoint* is often used to describe a single function in an API.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 术语 *endpoint* 常用来描述 API 中的单个函数。
+- en: Example 6-11\. Simple GET endpoint returning only JSON (*ch06/12-api.get.js*)
+  id: totrans-147
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-11\. 简单的 GET 端点仅返回 JSON（*ch06/12-api.get.js*）
+- en: '[PRE14]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '[Example 6-12](#products_array_3) uses the `res.format` method in Express to
+    respond according to the preferences of the client.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Example 6-12](#products_array_3) 使用 Express 中的 `res.format` 方法根据客户端的偏好来响应。'
+- en: Example 6-12\. GET endpoint that returns JSON, XML, or text (*ch06/13-api-json-xml-text.js*)
+  id: totrans-150
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-12\. 返回 JSON、XML 或文本的 GET 端点（*ch06/13-api-json-xml-text.js*）
+- en: '[PRE15]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: In [Example 6-13](#products_array_4), the PUT endpoint updates a product and
+    returns JSON. Parameters are passed in the request body (the `:id` in the route
+    string tells Express to add an `id` property to `req.params`).
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [Example 6-13](#products_array_4) 中，PUT 端点更新产品并返回 JSON。参数通过请求体传递（路由字符串中的 `:id`
+    告诉 Express 将 `id` 属性添加到 `req.params`）。
+- en: Example 6-13\. PUT endpoint for updating (*ch06/14-api-put.js*)
+  id: totrans-153
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-13\. 用于更新的 PUT 端点（*ch06/14-api-put.js*）
+- en: '[PRE16]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Finally, [Example 6-14](#products_array_5) shows a DELETE endpoint.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，[Example 6-14](#products_array_5) 展示了一个 DELETE 端点。
+- en: Example 6-14\. DELETE endpoint for deleting (*ch06/15-api-del.js*)
+  id: totrans-156
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-14\. 删除端点用于删除（*ch06/15-api-del.js*）
+- en: '[PRE17]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Conclusion
+  id: totrans-158
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: I hope the micro-examples in this chapter gave you a feel for the kind of functionality
+    that is common in an Express application. These examples are intended to be a
+    quick reference you can revisit in the future.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 希望本章中的微型示例让您对 Express 应用程序中常见的功能有所了解。这些示例旨在成为您将来可以重访的快速参考。
+- en: In the next chapter, we’ll dig deeper into templating, which we touched on in
+    the rendering examples in this chapter.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将深入探讨模板化，这在本章的渲染示例中有所涉及。
+- en: ^([1](ch06.xhtml#idm45053596946424-marker)) Ports 0–1023 are “well-known ports”
+    reserved for [common services](http://bit.ly/33InJu7).
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch06.xhtml#idm45053596946424-marker)) 端口 0–1023 是保留给[常见服务](http://bit.ly/33InJu7)的“众所周知的端口”。

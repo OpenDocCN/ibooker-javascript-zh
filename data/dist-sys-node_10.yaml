@@ -1,0 +1,2058 @@
+- en: Chapter 9\. Distributed Primitives
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第9章 分布式原语
+- en: Data primitives are rather straightforward when dealing with a single-threaded
+    program. Want to make a lock? Just use a boolean. Want a key/value store? A `Map`
+    instance is your friend. Want to keep an ordered list of data? Reach for an array.
+    When only a single thread reads and writes to an array, it’s as simple as calling
+    `Array#push()` and `Array#pop()`. In this situation, the array instance is the
+    complete source of truth. There are no other copies that can get out of sync,
+    no messages in transit that can be received out of order. Persisting the data
+    to disk is as easy as calling `JSON.stringify()` and `fs.writeFileSync()`.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据原语在处理单线程程序时相对直接。想要创建一个锁？只需使用布尔值。想要一个键/值存储？`Map`实例是你的朋友。想要保持有序的数据列表？可以使用数组。当只有单个线程读取和写入数组时，调用`Array#push()`和`Array#pop()`就像呼吸一样简单。在这种情况下，数组实例是完整的真实源。没有其他可能会失步的副本，也没有可能接收到顺序不对的传输中的消息。将数据持久化到磁盘只需调用`JSON.stringify()`和`fs.writeFileSync()`。
+- en: Unfortunately, the performance impact of such an approach is huge, and scaling
+    to a sizeable userbase is nearly impossible. Not to mention such a system has
+    a single point of failure! Instead, as you’ve seen throughout this book, the answer
+    to performance and avoiding a single point of failure depends on redundant distributed
+    processes. Care must be put into the storage and manipulation of data, particularly
+    when it comes to distributed systems.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，这种方法的性能影响巨大，而且几乎不可能扩展到规模庞大的用户群。更不用说这样的系统存在单点故障！相反，正如你在本书中看到的，性能和避免单点故障的解决方案取决于冗余的分布式进程。在存储和操作数据时必须特别小心，特别是涉及分布式系统时。
+- en: Not every problem can be solved using the same data store. Depending on the
+    data requirements—such as entity relationships, the amount of data, and requirements
+    with consistency, durability, and latency—different solutions must be chosen.
+    It’s not uncommon for an application composed of distributed services to require
+    several data storage tools. Sometimes you need a graph database and sometimes
+    you need a document store, but more often than not you might just need a relational
+    database.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并非每个问题都能使用相同的数据存储来解决。根据数据需求（如实体关系、数据量以及一致性、持久性和延迟要求），必须选择不同的解决方案。对于由分布式服务组成的应用程序来说，有时需要几种数据存储工具。有时你需要图数据库，有时你需要文档存储，但更常见的情况可能是你只需要关系型数据库。
+- en: This chapter covers several different data primitives, ones that are easy to
+    represent in a single Node.js process, and shows how they may be modeled in a
+    distributed system. While there are many different tools that can be used to implement
+    various primitives, this chapter focuses on using just one of them. But before
+    diving in, it’s useful to first explore a problem that might seem easy to model
+    with a single instance but ends up being rather complex when modeled in a distributed
+    environment.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章涵盖了几种不同的数据原语，这些数据原语在单个 Node.js 进程中很容易表示，并展示了它们在分布式系统中的建模方式。虽然有许多不同的工具可以用来实现各种原语，但本章集中在使用其中一种。但在深入研究之前，先探讨一下在单个实例中可能看似容易模拟但在分布式环境中却变得相当复杂的问题。
+- en: The ID Generation Problem
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: ID 生成问题
+- en: 'Not long ago I found myself on the receiving end of several job interviews.
+    This batch of interviews was the most that I’ve ever had to go through in such
+    a short period of time. Ironically, the purpose wasn’t even so that I could find
+    a new job, but that’s a story for another day. During this round of interviews
+    I was asked the same question by multiple companies. This might even be a question
+    that you’ve received yourself:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不久前，我发现自己接受了几次面试。这一批面试是我有史以来在如此短的时间内经历过的最多的面试。讽刺的是，目的甚至不是为了找到新工作，但这是另一天的故事了。在这一轮面试中，多家公司问了我同样的问题。这甚至可能是你自己曾经收到过的一个问题：
+- en: “How would you design a link shortening service?”
+  id: totrans-7
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “你会如何设计一个链接缩短服务？”
+- en: ''
+  id: totrans-8
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Seemingly every Silicon Valley tech company
+  id: totrans-9
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 看起来每家硅谷的科技公司
+- en: 'You might already know the song and dance, but just in case you don’t, it goes
+    a little like this: a link shortener is an HTTP service where a user agent can
+    make a request to a short URL (such as *http://sho.rt/3cUzamh*), and the request
+    will be redirected to a longer URL (like *http://example.org/foo/bar?id=123*).
+    First, the candidate is supposed to ask a bunch of questions. “How many users
+    will use the service? How long should the short URL be? Is it okay if a user is
+    able to guess a short URL?” Once that’s done, the interviewer takes some notes,
+    and the candidate hits the whiteboard, where they begin drawing architecture diagrams
+    and writing pseudocode.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能已经知道这一套路，但以防万一，就像这样：一个链接缩短器是一个HTTP服务，用户代理可以向短网址（如*http://sho.rt/3cUzamh*）发出请求，请求将被重定向到一个更长的网址（比如*http://example.org/foo/bar?id=123*）。首先，候选人应该提出一系列问题。“有多少用户会使用这项服务？短网址应该有多长？如果用户能够猜到短网址，这样可以吗？”一旦完成，面试官会做些笔记，然后候选人到白板上，开始画架构图和编写伪代码。
+- en: 'There are a lot of facets to grading the candidate, and usually the interviewer
+    isn’t so much looking for the perfect answer as they are looking for the candidate
+    to reveal the depth of their computer science knowledge (“…and here we need a
+    DNS server…” or “…a NoSQL key/value store might make more sense than a relational
+    store due to…” or “…a cache for frequently used URLs…”). The part of this question
+    I find most interesting is this: how do you generate IDs used for the short URL?'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 评估候选人有许多方面，通常面试官并不是在寻找完美的答案，而是希望候选人展示他们的计算机科学知识深度（“……在这里我们需要一个DNS服务器……”或“……一个NoSQL键/值存储可能比关系型存储更合适……”或“……一个用于频繁使用的URL的缓存……”）。我认为这个问题最有趣的部分是：你是如何生成用于短网址的ID的？
+- en: Ultimately the URL IDs represent a key, and the associated value contains the
+    original full URL. Whether or not the secrecy of the short URL is a requirement,
+    the system will be built differently. Either way, the implications in a distributed
+    environment are pretty similar. For the sake of argument, it’s acceptable in this
+    situation for URLs to be guessable by users. With this requirement it’s then acceptable
+    to have an identifier that is a counter, essentially incrementing from 1 until
+    the service is sunset. Usually there’s some sort of encoding involved to make
+    the URL more efficient. For example, hexadecimal (`0-9A-F`) allows for representing
+    16 unique values per byte instead of the 10 values offered by decimal (`0-9`).
+    Base62 allows for representing 62 unique values per byte (`0-9a-zA-Z`). For simplicity
+    purposes I’ll just discuss these identifiers in decimal, but in a real system
+    they’d be encoded to save space.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，URL ID代表一个键，关联的值包含原始完整的URL。无论短网址的保密性是否是一个要求，系统都将以不同的方式构建。无论如何，在分布式环境中的影响几乎相似。就争论而言，允许用户猜测短网址是可以接受的。有了这个要求，有一个标识符是一个计数器，从1递增到服务终止是可以接受的。通常，涉及某种编码以使URL更有效。例如，十六进制（`0-9A-F`）每字节允许表示16个唯一值，而十进制（`0-9`）只提供10个值。Base62每字节允许表示62个唯一值（`0-9a-zA-Z`）。出于简单起见，我只讨论这些标识符的十进制表示，但在实际系统中，它们会被编码以节省空间。
+- en: '[Example 9-1](#ex_link_shortener) demonstrates how this link shortener could
+    be built using a single Node.js process.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 9-1](#ex_link_shortener)演示了如何使用单个Node.js进程构建此链接缩短器。'
+- en: Example 9-1\. *link-shortener.js*
+  id: totrans-14
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-1\. *link-shortener.js*
+- en: '[PRE0]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: A single-threaded approach can’t get much simpler than that (at the expense
+    of any error handling). When it comes to setting a link, the identifier for the
+    URL is a number, the identifier is mapped to the full URL, and any call to `setUrl()`
+    with the full URL will atomically write the URL to disk and return with the identifier
+    used to represent the URL. To get the link, the appropriate file is read. Two
+    primitives are required to build this link shortener. The first is a counter (the
+    `counter` variable), and the second is a map (the files stored in */tmp/*). [Figure 9-1](#fig_single_thread_get_set)
+    visualizes how the two `setUrl()` and `getUrl()` operations work on a timeline.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单线程方法简直无法再简单了（牺牲了任何错误处理）。在设置链接时，URL的标识符是一个数字，该标识符映射到完整的URL，任何使用完整URL调用`setUrl()`将原子地将URL写入磁盘并返回用于表示URL的标识符。为了获取链接，读取相应的文件。构建此链接缩短器需要两种原语。第一个是计数器（`counter`变量），第二个是映射（存储在*/tmp/*中的文件）。[图 9-1](#fig_single_thread_get_set)展示了这两个`setUrl()`和`getUrl()`操作在时间轴上的工作方式。
+- en: '![The setUrl() method uses both the counter and the map, while the getUrl()
+    method only uses the map.](assets/dsnj_0901.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![setUrl()方法同时使用计数器和映射，而getUrl()方法只使用映射。](assets/dsnj_0901.png)'
+- en: Figure 9-1\. Single-threaded `get` and `set` operations
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-1\. 单线程 `get` 和 `set` 操作
+- en: This diagram breaks up the operations in the single-threaded Node.js application
+    into different lanes representing the primitive being consulted. In this case,
+    the *client* lane represents an outside entity calling the two methods. If the
+    code sample exposed a web server, then the client could very well be an external
+    client. The *logic* lane represents the coordination logic around the primitives;
+    basically it represents the JavaScript code itself. The *counter* lane represents
+    interaction with the counter primitive, and the *map* lane represents interaction
+    with the map primitive. Only the `setUrl()` method needs to access the counter;
+    the `getUrl()` method is much simpler and only reads from the map.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个图表将单线程 Node.js 应用程序中的操作分解为不同的通道，每个通道代表被查询的原语。在这种情况下，*client* 通道代表外部实体调用这两种方法。如果代码示例暴露了一个
+    web 服务器，那么客户端很可能是外部客户端。*logic* 通道表示围绕原语的协调逻辑；基本上它表示 JavaScript 代码本身。*counter*
+    通道表示与计数器原语的交互，*map* 通道表示与映射原语的交互。只有`setUrl()`方法需要访问计数器；`getUrl()`方法更简单，只是从映射中读取。
+- en: 'Other than the lack of error handling, this code is technically fine for a
+    single-threaded service. But throw in a second service instance, and the application
+    is completely broken. In particular, the identifier increment is not atomic. Three
+    steps are required to increment: the first is to read the counter value, the second
+    is to increment the value, and the third is to write the value back to persistent
+    storage. If two separate services receive a request at the same time, they’ll
+    both read the same id value (such as 100), they’ll both increment the value (to
+    101), and they’ll both write the same value to disk (101). They’ll also both write
+    to the same file (*101.txt*), and the second process to write will then clobber
+    the value written by the first process.'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了缺少错误处理之外，这段代码在单线程服务中技术上是可以接受的。但是，加入第二个服务实例后，应用程序就完全崩溃了。特别是，标识符增量不是原子的。需要三个步骤来增加：第一步是读取计数器值，第二步是增加该值，第三步是将该值写回持久存储。如果两个单独的服务同时接收到请求，它们将同时读取相同的
+    id 值（例如 100），它们将同时增加该值（变为 101），它们将同时将相同的值写入磁盘（101）。它们还将同时写入同一个文件（*101.txt*），第二个进程写入的内容将覆盖第一个进程写入的内容。
+- en: 'One way to fix this is with another primitive, called a lock, though it will
+    introduce a lot of complexity. A lock is essentially a Boolean value. If the value
+    is true, then a resource is locked by one client and should be considered read-only
+    by other clients. If the value is false, then the resource is not locked and a
+    client is to try to set a lock. A lock can be implemented using the filesystem
+    by attempting to create a file, but only if the file doesn’t already exist. This
+    can be done using the `wx` flag when writing a file:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复这个问题的一种方法是使用另一个原语，称为锁，尽管这会引入很多复杂性。锁本质上是一个布尔值。如果值为 true，则资源由一个客户端锁定，并且其他客户端应该将其视为只读。如果值为
+    false，则资源未锁定，客户端可以尝试设置锁。可以使用文件系统来实现锁，方法是在写文件时使用`wx`标志，但仅当文件不存在时才能创建文件。
+- en: '[PRE1]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Assuming the file doesn’t already exist, this code will create an empty file
+    named *lock.txt* and will continue running. At that point the application is free
+    to grab the counter value, increment the value, write the counter value again,
+    and release the lock by deleting the lock file with `fs.unlinkSync()`. However,
+    if the file does exist, then the application needs to do something a little different.
+    For example, the call to `fs.writeFileSync()` can be made inside of a `while`
+    loop. If the call throws an error, then catch the error and continue looping.
+    Eventually, the other program should finish writing to the counter and will release
+    the lock, at which point the call should succeed.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设文件不存在，此代码将创建一个名为*lock.txt*的空文件并继续运行。此时，应用程序可以自由获取计数器值，增加该值，再次写入计数器值，并使用`fs.unlinkSync()`删除锁定文件释放锁定。但是，如果文件已经存在，则应用程序需要做一些不同的事情。例如，可以在`while`循环中调用`fs.writeFileSync()`。如果调用抛出错误，则捕获错误并继续循环。最终，另一个程序应该完成对计数器的写入并释放锁定，此时调用应该成功。
+- en: Sounds a little far-fetched, I know, but that’s essentially what happens under
+    the hood with multithreaded programming. This loop while waiting for a lock to
+    be unlocked is called a *spinlock*. What happens if a client crashes and doesn’t
+    release a lock? The other client would then sit there waiting forever! In more
+    complex situations involving multiple locks, program instance A and program instance
+    B might end up stuck while they wait for each other to release a lock. When this
+    happens it’s called a *deadlock*. Manually maintaining locks like this in application
+    code is risky business.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 听起来有点牵强，我知道，但这基本上就是多线程编程的底层发生的事情。在等待锁解锁时循环，这称为*自旋锁*。如果客户端崩溃并且没有释放锁，会发生什么？那么其他客户端将永远等待！在涉及多个锁的更复杂情况中，程序实例A和程序实例B可能会因为彼此等待释放锁而陷入僵局。当这种情况发生时，称为*死锁*。在应用程序代码中手动维护这些锁是一件风险很高的事情。
+- en: This section covered just one situation where a data primitive is made more
+    complex by moving from a single instance to a distributed system, and as you might
+    have imagined, there are many more situations left for you to discover. Now that
+    you’re familiar with how distributed primitives can be complex, you’re ready to
+    get your hands dirty with a service built to store primitives in a distributed
+    environment.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此部分仅涵盖了一个情况，即通过从单个实例移动到分布式系统使数据原语变得更加复杂，正如您可能想象的那样，还有许多其他情况等待您去发现。现在您已经了解了分布式原语如何变得复杂，您可以开始动手使用构建用于在分布式环境中存储原语的服务了。
+- en: Introduction to Redis
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Redis简介
+- en: 'Redis is a powerful service exposing several useful data structures while providing
+    many different commands to interact with them. Redis has a limitation that many
+    alternative data storage services don’t: the data stored in a Redis instance must
+    fit completely in memory. For this reason, it’s often passed over when considering
+    tools to act as a primary data store—that is, a service to act as the source of
+    truth. More often than not it is pigeonholed into merely serving as a cache.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis是一个强大的服务，提供多个有用的数据结构，并提供许多不同的命令与这些数据结构交互。Redis具有许多替代数据存储服务没有的限制：Redis实例中存储的数据必须完全适合内存。因此，当考虑作为主数据存储（即作为真相源的服务）的工具时，Redis通常被忽略。它更多地被固定在仅充当缓存的角色中。
+- en: To truly integrate Redis into your arsenal, and not just treat it as another
+    cache, you must leverage the unique querying capabilities it offers. To do this,
+    you may need to store a subset of data from your primary backing store (such as
+    Postgres) within Redis. Redis often allows for data to be queried in fast and
+    unique ways that other database systems don’t necessarily support.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要真正将Redis整合到您的工具库中，而不仅仅将其视为另一个缓存，您必须利用它提供的独特查询能力。为此，您可能需要在Redis中存储来自主要后备存储（如Postgres）的数据子集。Redis通常允许以快速和独特的方式查询数据，而其他数据库系统不一定支持。
+- en: For example, Redis supports a geospatial data type. This data type stores a
+    list of latitude and longitude pairs associated with an identifier. The identifier
+    can be used to reference a primary key in the primary data store. This geospatial
+    data structure can be queried to get a list of all IDs belonging to records within
+    a configurable distance of a provided latitude and longitude pair. In this case,
+    by querying Redis with a user’s location, a query can be made to look up entries
+    with the matching identifiers. With this approach, Redis only stores a copy of
+    the identifiers and geolocation; the primary backing store contains all that data
+    and more. Since Redis only has a subset of data in this situation, it can be rebuilt
+    using the data in the primary store if Redis were to crash.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，Redis支持一种地理空间数据类型。这种数据类型存储与标识符关联的一组纬度和经度对。该标识符可用于引用主数据存储中的主键。可以查询这种地理空间数据结构，以获取与提供的纬度和经度对距离可配置的记录内的所有ID列表。在这种情况下，通过使用用户位置查询Redis，可以查询具有匹配标识符的条目。采用这种方法，Redis仅存储标识符和地理位置的副本；主要后备存储器包含所有这些数据以及更多内容。由于Redis在此情况下仅具有数据的子集，因此如果Redis崩溃，可以使用主存储中的数据重建Redis。
+- en: Redis is similar to Node.js in some regards. The commands that are run within
+    Redis happen in a single-threaded manner, with one command always sequentially
+    running after another command. However, the fringes of the service do support
+    some multi-threading, such as I/O when data is read from the network or persisted
+    to disk. Essentially, a single Redis instance is single-threaded. However, Redis
+    can be run as part of a cluster, which helps overcome the memory limitation. Three
+    Redis instances with access to 2GB of memory will be able to store a collective
+    of 6GB of data.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 在某些方面类似于 Node.js。在 Redis 中运行的命令以单线程方式进行，一个命令总是在另一个命令之后顺序运行。然而，在服务的边缘支持一些多线程，例如从网络读取或将数据持久化到磁盘时的I/O。基本上，单个
+    Redis 实例是单线程的。但是，Redis 可以作为集群的一部分运行，有助于克服内存限制。具有2GB内存访问权限的三个 Redis 实例将能够存储共计6GB的数据。
+- en: 'Run the following command to start a Redis server on your machine:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令在您的机器上启动 Redis 服务器：
+- en: '[PRE2]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This command runs Redis while exposing the default port of `6379`, tying up
+    the terminal window until the server is killed. The server will only display information
+    about the most important operations that happen, such as a server shutdown or
+    when data is written to disk.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令在暴露默认端口`6379`的同时运行 Redis，将终端窗口绑定，直到服务器被终止。服务器仅会显示最重要的操作信息，例如服务器关闭或将数据写入磁盘时的信息。
+- en: 'The protocol used by Redis is extremely simple and is mostly based on sending
+    plain text over the network. Execute the following netcat command to illustrate
+    this:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 使用的协议非常简单，主要是通过网络发送纯文本。执行以下 netcat 命令以说明这一点：
+- en: '[PRE3]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: In this case, two commands were sent to Redis. The first is the `PING` command
+    and the second is `QUIT`. The commands are separated by carriage return and linefeed
+    characters to differentiate one command from another. Commands can be combined
+    like this, a feature called pipelining, or they can exist as separate TCP messages.
+    The two responses correlate to the two commands. The `QUIT` command also instructs
+    the Redis server to close the TCP connection. If you received an error while running
+    this command, check to see if your Redis Docker command is formatted properly.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，向 Redis 发送了两个命令。第一个是`PING`命令，第二个是`QUIT`命令。命令通过回车和换行字符分隔以区分彼此。命令可以像这样组合，这是一个称为管道化的特性，或者它们可以存在为单独的
+    TCP 消息。两个响应与两个命令对应。`QUIT`命令还指示 Redis 服务器关闭 TCP 连接。如果在运行此命令时遇到错误，请检查您的 Redis Docker
+    命令是否格式正确。
+- en: 'Echoing text directly over TCP isn’t the easiest way to interact with a service.
+    Redis comes with a REPL that can be used by running the `redis-cli` command inside
+    of the container. The REPL provides some basic autocomplete and coloration features.
+    Run the following command in your terminal to start an interactive Redis REPL:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接通过TCP回声文本并不是与服务进行交互的最简单方法。Redis 提供了一个 REPL，可以通过在容器内运行`redis-cli`命令来使用。REPL
+    提供了一些基本的自动完成和着色功能。在您的终端中运行以下命令启动交互式 Redis REPL：
+- en: '[PRE4]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Once you have the REPL up and running, type the command **`INFO server`** and
+    press enter. You should then see some information about the server as a response.
+    With your Redis server running and your REPL connected, you’re now ready to experiment
+    with the capabilities of the server.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您启动并运行 REPL 后，输入命令**`INFO server`**并按回车键。您将看到关于服务器的一些信息作为响应。Redis 服务器运行并且 REPL
+    连接成功后，您现在可以开始尝试服务器的功能了。
+- en: Redis Operations
+  id: totrans-40
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Redis 操作
+- en: Redis stores data using key/value pairs. Each key contains data of a specific
+    type, and depending on the data type, different commands may be used to interact
+    with a given key. As of Redis 6, there are over 250 commands available!
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 使用键值对存储数据。每个键包含特定类型的数据，并且根据数据类型，可能会使用不同的命令与给定键交互。截至 Redis 6，已经有超过250个可用命令！
+- en: When using Redis in a cluster, the name of the key is hashed to determine which
+    Redis instance holds a particular key, a technique called *sharding*. It’s possible
+    to perform operations that deal with multiple keys, but only if those keys all
+    happen to reside in the same instance. Keep this in mind when modeling your data.
+    In this section, you’re going to work with a single Redis instance.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用 Redis 集群时，键的名称将被散列以确定哪个 Redis 实例持有特定键，这种技术称为*分片*。如果这些键全部位于同一个实例中，可以执行处理多个键的操作。在建模数据时，请记住这一点。在本节中，您将使用单个
+    Redis 实例。
+- en: A Redis key is a string that can contain binary data, but using a reduced encoding
+    like ASCII^([1](ch09.html#idm46291174815176)) might make application development
+    easier. Since key names are a single string, it’s fairly common for them to contain
+    a compound set of information. For example, a key representing a user might look
+    like `user:123`, while a key representing the friends of a user might instead
+    resemble `user:123:friends`. Keys are unique across a Redis database. It’s important
+    to come up with a naming convention ahead of time because any client using the
+    Redis database will need to generate names in the same manner, and unrelated entities
+    shouldn’t have a name collision.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 键是一个可以包含二进制数据的字符串，但使用像 ASCII^([1](ch09.html#idm46291174815176)) 这样的简化编码可能会使应用程序开发更加简便。由于键名是一个单一的字符串，它们通常包含一组复合信息是很常见的。例如，代表用户的键可能看起来像
+    `user:123`，而代表用户朋友的键则可能类似于 `user:123:friends`。Redis 数据库中的键是唯一的。提前确定命名约定非常重要，因为任何使用
+    Redis 数据库的客户端都需要以相同的方式生成名称，并且不相关的实体不应该有名称冲突。
+- en: There is metadata attached to every key regardless of the type of data it contains.
+    This includes data like access time, which is useful for cache expiration when
+    the server is configured as an LRU cache, as well as a TTL value, which allows
+    a key to be expired at a specified time.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论键包含的数据类型是什么，每个键都附有元数据。这包括像访问时间这样的数据，对于当服务器配置为 LRU 缓存时非常有用，以及 TTL 值，允许在指定时间过期键。
+- en: 'Create a new directory named *redis*. In this directory, initialize a new npm
+    project and install the `ioredis` dependency:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为 *redis* 的新目录。在此目录中，初始化一个新的 npm 项目并安装 `ioredis` 依赖：
+- en: '[PRE5]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: While you’re in the directory, create a new file named *basic.js*. Add the content
+    from [Example 9-2](#ex_redis_basic) to the file.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您在目录中时，请创建一个名为 *basic.js* 的新文件。将内容从 [示例 9-2](#ex_redis_basic) 添加到该文件中。
+- en: Example 9-2\. *redis/basic.js*
+  id: totrans-48
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-2\. *redis/basic.js*
+- en: '[PRE6]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The `ioredis` package exposes methods on the `redis` object named after the
+    equivalent Redis command. In this case, the `redis.get()` method correlates to
+    the Redis `GET` command. Arguments passed into these methods then correlate to
+    arguments passed to the underlying Redis command. In this case, the `redis.set('foo',
+    'bar')` call in JavaScript results in the `SET foo bar` command being run in Redis.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ioredis` 包在 `redis` 对象上公开了与等效的 Redis 命令同名的方法。在这种情况下，`redis.get()` 方法对应于 Redis
+    的 `GET` 命令。传递给这些方法的参数然后对应于传递给底层 Redis 命令的参数。在这种情况下，在 JavaScript 中调用 `redis.set(''foo'',
+    ''bar'')` 结果是在 Redis 中运行 `SET foo bar` 命令。'
+- en: 'Next, execute the file:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，执行该文件：
+- en: '[PRE7]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: If you get the same response, your application was able to successfully communicate
+    with the Redis server. If you receive a connection error, then check the command
+    you used to start the Docker container and ensure the connection string is formatted
+    correctly.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您收到相同的响应，则表示您的应用程序能够成功与 Redis 服务器通信。如果收到连接错误，请检查您用于启动 Docker 容器的命令，并确保连接字符串格式正确。
+- en: Tip
+  id: totrans-54
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: One thing you might have noticed is that the application doesn’t wait for a
+    connection to Redis before sending commands. Internally the `ioredis` package
+    queues up commands until the connection is ready before dispatching them. This
+    is a convenient pattern used by many database packages. Sending too many commands
+    when an application first runs might constrain resources.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能注意到的一件事是，应用程序在发送命令之前并不等待与 Redis 的连接。`ioredis` 包在内部将命令排队，直到连接准备就绪才将其分发。这是许多数据库包使用的便利模式。当应用程序首次运行时发送太多命令可能会限制资源。
+- en: The remainder of this section is dedicated to common [Redis commands](https://redis.io/commands),
+    categorized by the data types they work with. Familiarizing yourself with them
+    will give you an understanding of the capabilities of Redis. If you would like
+    to run them, you can either modify the *redis/basic.js* script you made or paste
+    commands into the Redis REPL that you should still have open.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节剩余部分专注于常见的 [Redis 命令](https://redis.io/commands)，按其所操作的数据类型进行分类。熟悉它们将使您了解
+    Redis 的能力。如果您想要运行它们，可以修改您创建的 *redis/basic.js* 脚本，或者将命令粘贴到您仍然保持打开的 Redis REPL 中。
+- en: Strings
+  id: totrans-57
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 字符串
+- en: Strings store binary data and are the most basic data type available in Redis.
+    In a sense, this is the only data type offered by Memcached, a competing cache
+    service. If you strictly use Redis as a cache, then you might not ever need to
+    touch another data type.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 字符串存储二进制数据，并且是 Redis 中提供的最基本的数据类型。从某种意义上说，这是 Memcached 提供的唯一数据类型，一个竞争缓存服务。如果您严格将
+    Redis 用作缓存，则可能永远不需要接触其他数据类型。
+- en: 'The most basic operations that can be performed on a string are to set a value
+    and to get the value. Switch back to your Redis REPL and run the following command:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在字符串上执行的最基本操作是设置值和获取值。切换回你的 Redis REPL 并运行以下命令：
+- en: '[PRE8]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'When you type the `SET` command, the `redis-cli` REPL will offer hints as to
+    the remaining arguments for the command. Many of the Redis commands offer more
+    complex arguments, in particular when it comes to changing metadata. The full
+    form of the `SET` command, according to the REPL, looks like this:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你输入`SET`命令时，`redis-cli` REPL 将为命令的剩余参数提供提示。许多 Redis 命令提供更复杂的参数，特别是在改变元数据时。根据
+    REPL，`SET`命令的完整形式如下：
+- en: '[PRE9]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Options in square brackets are optional, and the pipe symbol means one or the
+    other can be used. The first option allows the command to set a TTL value and
+    allows a value to be provided using either seconds (`EX 1`) or milliseconds (`PX
+    1000`). The second pair of options deals with replacing existing values. The `NX`
+    option will only perform a replacement if a key with the same name does not already
+    exist, while the `XX` option will only set a value if it already does exist. Finally,
+    the `KEEPTTL` can be used to retain the existing TTL value of a key that already
+    exists.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方括号中的选项是可选的，竖线表示可以使用其中之一。第一个选项允许命令设置 TTL 值，并且可以使用秒数（`EX 1`）或毫秒数（`PX 1000`）提供值。第二对选项处理替换现有值。`NX`选项仅在尚不存在具有相同名称的键时执行替换，而`XX`选项仅在已存在值时设置值。最后，`KEEPTTL`可用于保留已存在的键的现有
+    TTL 值。
+- en: 'Now that you’ve set a value in Redis, run the following command to retrieve
+    it:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经在 Redis 中设置了一个值，请运行以下命令来检索它：
+- en: '[PRE10]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: In this case, the string *bar* is returned.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，字符串*bar*被返回。
+- en: 'For the most part, Redis doesn’t care about the values stored within keys,
+    but there are a few notable exceptions. The string data type, for example, allows
+    for numeric modifications to the values. As an example of this, run the following
+    commands in your REPL:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数情况下，Redis 不关心存储在键中的值，但有几个显著的例外。例如，字符串数据类型允许对值进行数值修改。作为此功能的示例，在你的 REPL 中运行以下命令：
+- en: '[PRE11]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The first command sets a key named *visits* to the string value of `100`. The
+    next command increments the value of the key and returns the result; in this case,
+    the result is the value `101`. The `INCR` and `INCRBY` commands allow applications
+    to atomically increment a value without having to first retrieve the value, increment
+    it locally, and then set the value. This removes the race condition that was present
+    in the single-threaded Node.js service you built in [Example 9-1](#ex_link_shortener).
+    Note that the return prompt displays some metadata about the result. In this case,
+    it hints that the value is an integer. If you were to run the **`GET visits`**
+    command, the value would be retrieved as a string again.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个命令将名为*visits*的键设置为字符串值`100`。下一个命令增加键的值并返回结果；在这种情况下，结果是值`101`。`INCR`和`INCRBY`命令允许应用程序原子地增加一个值，而不必首先检索该值，本地增加它，然后设置该值。这消除了在你在
+    [示例 9-1](https://example.org/ex_link_shortener) 中构建的单线程 Node.js 服务中存在的竞态条件。请注意，返回提示显示有关结果的一些元数据。在这种情况下，它暗示该值为整数。如果你运行**`GET
+    visits`**命令，该值将再次作为字符串检索。
+- en: Note that if you hadn’t first set a value for the *visits* key, the `INCR` command
+    would assume the missing value was zero. Redis assumes an appropriate empty value
+    with most operations. This makes interacting with Redis in a distributed environment
+    more convenient. For example, without this zero default, if you were to deploy
+    a fleet of Node.js app instances, each of them incrementing the *visits* value
+    when a request is received, you would need to manually set *visits* to zero before
+    your applications run.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，如果你未首先为*visits*键设置值，则`INCR`命令将假定缺失的值为零。大多数操作中，Redis 假定适当的空值。这使得在分布式环境中与
+    Redis 交互更加方便。例如，如果没有这个零默认值，如果你部署了一组 Node.js 应用实例，每当接收到请求时都会递增*visits*值，那么你需要在应用程序运行之前手动将*visits*设置为零。
+- en: Redis has dozens of commands dedicated to operating on strings. Values can be
+    appended to a string using the `APPEND` command. Bitwise read and write operations
+    can be applied to a subset of a string, and increments can use floating point
+    values using the `INCRBYFLOAT` command.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 有数十个专门用于操作字符串的命令。可以使用`APPEND`命令将值附加到字符串。可以对字符串的子集应用位读写操作，并且可以使用`INCRBYFLOAT`命令使用浮点值进行增量。
+- en: Lists
+  id: totrans-72
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 列表
+- en: The list data structure stores a linked list of string values and is comparable
+    to a JavaScript array. Much like a JavaScript array, entries are ordered and duplicates
+    are fine.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 列表数据结构存储了一系列字符串值的链表，并且与 JavaScript 数组类似。与 JavaScript 数组类似，条目是有序的，允许重复。
+- en: 'Run the following commands to add some entries to a list named *list* and then
+    to retrieve them:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令向名为 *list* 的列表添加一些条目，然后检索它们：
+- en: '[PRE12]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Again, like with strings, Redis assumes the appropriate empty value for the
+    list data type. In this case, when you ran the first `RPUSH` command, the key
+    named *list* didn’t already exist. Redis assumed an empty list and added an entry
+    to the list. The result of the `RPUSH` command is the length of the list, first
+    returning a 1 and later returning a 2\. Finally, the `LRANGE` command gets a list
+    of entries in the list. Much like with JavaScript, Redis assumes list indexes
+    are zero based. The first argument to `LRANGE` is the starting index, and the
+    second argument is the end index. Negative values go from the end of the list,
+    with -1 representing the final element, -2 the penultimate element, etc. The `LRANGE
+    key 0 -1` command can always be used to retrieve an entire list regardless of
+    its length.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样地，就像处理字符串一样，Redis 假定列表数据类型的适当空值。在这种情况下，当您运行第一个 `RPUSH` 命令时，名为 *list* 的键不存在。Redis
+    假定这是一个空列表，并向列表添加了一个条目。`RPUSH` 命令的结果是列表的长度，首先返回1，然后返回2。最后，`LRANGE` 命令获取列表中的条目列表。与
+    JavaScript 类似，Redis 假定列表索引从零开始。`LRANGE key 0 -1` 命令始终可以用来检索整个列表，无论其长度如何。
+- en: There are more than a dozen commands related to the list data type available
+    in Redis. [Table 9-1](#table_js_array_redis_list) lists many of the Redis list
+    commands and their equivalent operation if performed on a JavaScript array.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 提供了超过十几个与列表数据类型相关的命令。[表 9-1](#table_js_array_redis_list) 列出了许多 Redis 列表命令及其在
+    JavaScript 数组上的等效操作。
+- en: Table 9-1\. Redis list commands and equivalent JavaScript array operations
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-1\. Redis 列表命令及其等效 JavaScript 数组操作
+- en: '| Operation | Redis command | JavaScript array equivalent |'
+  id: totrans-79
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis 命令 | JavaScript 数组等价操作 |'
+- en: '| --- | --- | --- |'
+  id: totrans-80
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Add entry to right | `RPUSH key element` | `arr.push(element)` |'
+  id: totrans-81
+  prefs: []
+  type: TYPE_TB
+  zh: '| 右侧添加条目 | `RPUSH key element` | `arr.push(element)` |'
+- en: '| Add entry to left | `LPUSH key element` | `arr.unshift(element)` |'
+  id: totrans-82
+  prefs: []
+  type: TYPE_TB
+  zh: '| 左侧添加条目 | `LPUSH key element` | `arr.unshift(element)` |'
+- en: '| Take entry from right | `RPOP key element` | `arr.pop(element)` |'
+  id: totrans-83
+  prefs: []
+  type: TYPE_TB
+  zh: '| 从右侧获取条目 | `RPOP key element` | `arr.pop(element)` |'
+- en: '| Take entry from left | `LPOP key element` | `arr.shift(element)` |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 从左侧获取条目 | `LPOP key element` | `arr.shift(element)` |'
+- en: '| Get length | `LLEN key` | `arr.length` |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取长度 | `LLEN key` | `arr.length` |'
+- en: '| Retrieve element at index | `LINDEX key index` | `x = arr[index]` |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检索索引处元素 | `LINDEX key index` | `x = arr[index]` |'
+- en: '| Replace element at index | `LSET key index element` | `arr[index] = x` |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 替换索引处元素 | `LSET key index element` | `arr[index] = x` |'
+- en: '| Move element | `RPOPLPUSH source dest` | `dest.push(source.pop())` |'
+  id: totrans-88
+  prefs: []
+  type: TYPE_TB
+  zh: '| 移动元素 | `RPOPLPUSH source dest` | `dest.push(source.pop())` |'
+- en: '| Get element range | `LRANGE key start stop` | `arr.slice(start, stop+1)`
+    |'
+  id: totrans-89
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取元素范围 | `LRANGE key start stop` | `arr.slice(start, stop+1)` |'
+- en: '| Get first occurence | `LPOS key element` | `arr.indexOf(element)` |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取第一次出现 | `LPOS key element` | `arr.indexOf(element)` |'
+- en: '| Get last occurence | `RPOS key element` | `arr.lastIndexOf(element)` |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取最后一次出现 | `RPOS key element` | `arr.lastIndexOf(element)` |'
+- en: '| Reduce size | `LTRIM key start stop` | `arr=arr.slice(start,stop+1)` |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| 缩减大小 | `LTRIM key start stop` | `arr=arr.slice(start,stop+1)` |'
+- en: Some of these commands may seem a little weird at first. For example, why does
+    Redis need the `RPOPLPUSH` command when it could be rebuilt using a combination
+    of other commands? It all comes down to the need to support many distributed clients
+    performing atomic operations against data in a centralized location. If the `RPOPLPUSH`
+    command didn’t exist, a client would need to perform both `RPOP` and `LPUSH` commands
+    separately, which allows another client to interleave commands that can leave
+    the data in an inconsistent state. [“Seeking Atomicity”](#ch_primitives_sec_redis_subsec_atomicity)
+    discuses such situations in more detail.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有些命令一开始看起来可能有点奇怪。例如，为什么 Redis 需要 `RPOPLPUSH` 命令，而不是使用其他命令的组合来重建？这主要是因为需要支持许多分布式客户端对位于集中位置的数据执行原子操作。如果没有
+    `RPOPLPUSH` 命令，客户端需要分别执行 `RPOP` 和 `LPUSH` 命令，这使得另一个客户端可以交错执行命令，可能导致数据处于不一致的状态。有关这类情况的更详细信息，请参见[“追求原子性”](#ch_primitives_sec_redis_subsec_atomicity)。
+- en: Note
+  id: totrans-94
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: When the final element from a list is removed, the key is removed entirely from
+    Redis. You can see this by running the **`RPOP list`** command twice and then
+    running the **`KEYS *`** command; the *list* key is no longer present. This behavior
+    is different from the string data type, which can contain an empty string.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当从列表中删除最后一个元素时，Redis 将完全删除该键。您可以通过两次运行 **`RPOP list`** 命令，然后运行 **`KEYS *`**
+    命令来验证此行为；*list* 键不再存在。这种行为与字符串数据类型不同，字符串数据类型可以包含空字符串。
+- en: Sets
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 集合
+- en: A Redis set is an unordered collection of unique values. It is comparable to
+    `new Set()` in JavaScript. When inserting redundant values into either a JavaScript
+    or Redis set, the redundant entry will silently be ignored.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 集合是一组唯一值的无序集合。它类似于 JavaScript 中的 `new Set()`。当向 JavaScript 或 Redis 集合中插入冗余值时，冗余条目将被静默忽略。
+- en: 'Run the following commands in your REPL to add some entries to a set and then
+    to retrieve them:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的 REPL 中运行以下命令以向集合中添加条目，并随后检索它们：
+- en: '[PRE13]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: The first `SADD` command adds an entry named *alpha* to a set named *set*. The
+    second command adds an entry named *beta* to the same set. Both of these commands
+    get a response of 1, meaning that a single entry was successfully added. The third
+    `SADD` command attempts to add *beta* to the set again. This time, a 0 was returned,
+    meaning no entries were added. Finally, the `SMEMBERS` command returns a list
+    of each of the members in the set.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个 `SADD` 命令将名为 *alpha* 的条目添加到名为 *set* 的集合中。第二个命令将名为 *beta* 的条目添加到同一集合中。这两个命令都返回
+    1，表示成功添加了一个条目。第三个 `SADD` 命令尝试再次向集合中添加 *beta*。这次返回 0，表示未添加任何条目。最后，`SMEMBERS` 命令返回集合中每个成员的列表。
+- en: '[Table 9-2](#table_js_array_redis_set) is a list of some of the Redis set commands
+    and their equivalent operations using a JavaScript `Set`.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 9-2](#table_js_array_redis_set) 是一些 Redis 集合命令及其使用 JavaScript `Set` 的等效操作的列表。'
+- en: Table 9-2\. Redis set commands and equivalent JavaScript `set` operations
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-2\. Redis 集合命令及其等效的 JavaScript `set` 操作
+- en: '| Operation | Redis command | JavaScript set equivalent |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis 命令 | JavaScript set 等效操作 |'
+- en: '| --- | --- | --- |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Add entry to set | `SADD key entry` | `set.add(entry)` |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| 向集合添加条目 | `SADD key entry` | `set.add(entry)` |'
+- en: '| Count entries | `SCARD key` | `set.size` |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| 计算条目数 | `SCARD key` | `set.size` |'
+- en: '| See if set has entry | `SISMEMBER key entry` | `set.has(entry)` |'
+  id: totrans-107
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检查集合是否包含条目 | `SISMEMBER key entry` | `set.has(entry)` |'
+- en: '| Remove entry from set | `SREM key entry` | `set.delete(entry)` |'
+  id: totrans-108
+  prefs: []
+  type: TYPE_TB
+  zh: '| 从集合中删除条目 | `SREM key entry` | `set.delete(entry)` |'
+- en: '| Retrieve all entries | `SMEMBERS key` | `Array.from(set)` |'
+  id: totrans-109
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检索所有条目 | `SMEMBERS key` | `Array.from(set)` |'
+- en: '| Move between sets | `SMOVE src dest entry` | `s2.delete(entry) && s1.add(entry)`
+    |'
+  id: totrans-110
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在集合之间移动 | `SMOVE src dest entry` | `s2.delete(entry) && s1.add(entry)` |'
+- en: Redis exposes several other commands for interacting with sets, notably commands
+    for acting on unions and differences between sets. There is also the `SRANDMEMBER`
+    and `SPOP` commands for reading a random entry of the set and for popping off
+    an entry. The `SSCAN` command allows a client to iterate through the entries of
+    a set while using a cursor, which is a way of performing pagination of results.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 还提供了几个与集合交互的其他命令，特别是用于处理集合之间的并集和差集的命令。还有 `SRANDMEMBER` 和 `SPOP` 命令，用于读取集合的随机条目和弹出一个条目。`SSCAN`
+    命令允许客户端通过使用游标迭代集合的条目，这是执行结果分页的一种方式。
+- en: Similar to a list, a set that has all of its entries removed will result in
+    its key being removed.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与列表类似，清空集合中的所有条目将导致其键被移除。
+- en: Hash
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 哈希
+- en: A Redis hash is a single key that contains multiple field/value pairs within
+    it. A Redis hash most closely resembles a `new Map()` in JavaScript. Values within
+    a hash are also treated as strings, though they do have *some* of the same operations
+    available as normal Redis strings (like the ability to increment a value). Unlike
+    normal Redis strings, the individual fields in a hash cannot have their own metadata
+    applied (such as a TTL). When it comes to sharding, all fields in a hash will
+    end up on the same machine.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 哈希是一个单一键，其中包含多个字段/值对。Redis 哈希最接近 JavaScript 中的 `new Map()`。哈希内的值也被视为字符串，虽然它们具有一些与普通
+    Redis 字符串相同的操作（如增加值的能力）。与普通 Redis 字符串不同的是，哈希中的各个字段不能应用自己的元数据（例如 TTL）。在分片方面，哈希中的所有字段最终都会在同一台机器上。
+- en: 'Run the following commands in your REPL to experiment with a hash:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的 REPL 中运行以下命令以进行哈希实验：
+- en: '[PRE14]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Much like with the list commands, the hash command for adding an entry returns
+    the number of entries that were added, though with a slightly different meaning.
+    In this case, the first time `HSET obj b` is called, the *b* field didn’t already
+    exist, so the result of the operation is a 1, meaning that one new field was added
+    for the first time. The second time the command is run, it returns a 0, meaning
+    that the field wasn’t newly added. Instead, the call replaced the value that already
+    existed. Finally, the `HGETALL` command retrieves a list of all the field/value
+    pairs in the hash. Note that the simple protocol used by Redis doesn’t have a
+    way of differentiating a field from a value; the two types of data alternate!
+    When using most Redis client packages, including `ioredis`, this is automatically
+    converted into the equivalent JavaScript object `{a:1,b:2}`.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像列表命令一样，添加条目的哈希命令返回已添加的条目数量，尽管含义稍有不同。在这种情况下，第一次调用`HSET obj b`时，*b*字段尚不存在，因此操作的结果是1，意味着首次添加了一个新字段。第二次运行命令时，返回值为0，表示字段并非新添加。相反，调用替换了已经存在的值。最后，`HGETALL`命令检索哈希中所有字段/值对的列表。请注意，Redis使用的简单协议无法区分字段和值；这两种类型的数据是交替的！当使用大多数Redis客户端包（包括`ioredis`）时，这会自动转换为等效的JavaScript对象`{a:1,b:2}`。
+- en: '[Table 9-3](#table_js_array_redis_map) is a list of some of the Redis hash
+    commands and their equivalent operations using a JavaScript `Map`.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 9-3](#table_js_array_redis_map) 列出了一些Redis哈希命令及其在JavaScript `Map`中的等效操作。'
+- en: Table 9-3\. Redis hash commands and equivalent JavaScript `map` operations
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-3\. Redis哈希命令及等效JavaScript `Map`操作
+- en: '| Operation | Redis command | JavaScript map equivalent |'
+  id: totrans-120
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis命令 | JavaScript map等效 |'
+- en: '| --- | --- | --- |'
+  id: totrans-121
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Set an entry | `HSET key field value` | `map.set(field, value)` |'
+  id: totrans-122
+  prefs: []
+  type: TYPE_TB
+  zh: '| 设置条目 | `HSET key field value` | `map.set(field, value)` |'
+- en: '| Remove an entry | `HDEL key field` | `map.delete(field)` |'
+  id: totrans-123
+  prefs: []
+  type: TYPE_TB
+  zh: '| 移除条目 | `HDEL key field` | `map.delete(field)` |'
+- en: '| Has an entry | `HEXISTS key field` | `map.has(field)` |'
+  id: totrans-124
+  prefs: []
+  type: TYPE_TB
+  zh: '| 存在条目 | `HEXISTS key field` | `map.has(field)` |'
+- en: '| Retrieve an entry | `HGET key field` | `map.get(field)` |'
+  id: totrans-125
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检索条目 | `HGET key field` | `map.get(field)` |'
+- en: '| Get all entries | `HGETALL key` | `Array.from(map)` |'
+  id: totrans-126
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取所有条目 | `HGETALL key` | `Array.from(map)` |'
+- en: '| List keys | `HKEYS key` | `Array.from(map.keys())` |'
+  id: totrans-127
+  prefs: []
+  type: TYPE_TB
+  zh: '| 列出键 | `HKEYS key` | `Array.from(map.keys())` |'
+- en: '| List values | `HVALS key` | `Array.from(map.values())` |'
+  id: totrans-128
+  prefs: []
+  type: TYPE_TB
+  zh: '| 列出值 | `HVALS key` | `Array.from(map.values())` |'
+- en: To increment a `Map` entry in JavaScript, you would need to first retrieve the
+    entry, increment the value, and then set it again, assuming the map contains a
+    value that is a `Number` instance. If the values contained an object with property
+    `v`, then you could increment them with something like `map.get(field).v++`. The
+    equivalent command using Redis is `HINCRBY key field 1`.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript中增加`Map`条目时，您首先需要检索条目，增加值，然后再次设置它，假设映射包含一个`Number`实例的值。如果值包含具有属性`v`的对象，则可以像这样增加它们：`map.get(field).v++`。使用Redis的等效命令是`HINCRBY
+    key field 1`。
+- en: Consider that the string data type in Redis can hold anything that can be represented
+    as a string of bytes. This includes a JSON object. With that in mind, why might
+    you choose to use a hash instead of a JSON-encoded string? Hashes are useful when
+    you want to store multiple properties close together, when all properties should
+    have the same TTL, and when you need to atomically manipulate a subset of the
+    keys. It’s also useful when the size of all the field values is so large that
+    you wouldn’t want to retrieve the whole thing at once.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到Redis中的字符串数据类型可以保存任何可以表示为字节字符串的内容，包括JSON对象。在这种情况下，为什么您可能会选择使用哈希而不是JSON编码的字符串？哈希在以下情况下非常有用：当您希望将多个属性紧密存储在一起时，当所有属性应具有相同的TTL时，以及当您需要原子地操作一组键时。当所有字段值的大小非常大时，一次性检索整个内容是不可取的时候，哈希也非常有用。
+- en: 'As an example of this, say that you have a 1MB JSON object representing an
+    employee. One of the fields is the employee’s wages. The JSON representation for
+    this might look something like this:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为示例，假设你有一个表示员工的1MB JSON对象。其中一个字段是员工的工资。这个工资的JSON表示可能如下所示：
+- en: '[PRE15]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: To modify the `wage` field in that document, you would need to call `GET key`
+    to retrieve it, `result = JSON.parse(response)` to parse it, `result.wage += 1000`
+    to increment the wage, `payload = JSON.stringify(result)` to serialize it, and
+    `SET key payload` to persist it. These modifications can’t easily be performed
+    atomically because you’d need some sort of lock to prevent other clients from
+    modifying the data simultaneously. There’s also overhead of reading and writing
+    the 1MB payload, as well as for parsing and encoding the payload. By representing
+    this data as a Redis hash, you’re free to directly modify exactly the field you
+    want.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要修改该文档中的`wage`字段，您需要调用`GET key`检索它，`result = JSON.parse(response)`解析它，`result.wage
+    += 1000`增加工资，`payload = JSON.stringify(result)`序列化它，以及`SET key payload`持久化它。这些修改不能轻松地原子性地执行，因为您需要某种锁来防止其他客户端同时修改数据。还有读取和写入1MB负载的开销，以及解析和编码负载的开销。通过将这些数据表示为Redis哈希，您可以直接修改您想要的字段。
+- en: Since all the fields in a hash are stored together on a single Redis instance,
+    it’s important to make sure that the majority of your data isn’t represented using
+    a single massive hash. For example, if you wanted to store payroll information
+    about every employee in Redis, it would be better to use a single key per employee
+    instead of a single hash key with a field per employee.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于哈希中的所有字段都存储在单个Redis实例上，因此确保大部分数据不要使用单个庞大的哈希表示是很重要的。例如，如果您想在Redis中存储每个员工的工资信息，最好使用每个员工一个单独的键，而不是使用一个单一的哈希键和每个员工一个字段。
+- en: Sorted Sets
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 有序集合
+- en: A Redis sorted set is one of the more complicated data structures available
+    in Redis. It stores a collection of unique string values that are sorted by numeric
+    scores. Entries can be queried based on score ranges. JavaScript doesn’t have
+    a built-in equivalent to a Redis sorted set, though one could be built using multiple
+    data structures.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis有序集合是Redis中可用的较为复杂的数据结构之一。它存储一组按数值分数排序的唯一字符串值。可以根据分数范围查询条目。JavaScript没有内置等效于Redis有序集合的数据结构，尽管可以使用多个数据结构构建一个。
+- en: The stereotypical Redis sorted set example is a leaderboard of player scores
+    for a game. In this use-case, the numeric score is what the player has achieved
+    and the value is an identifier for the player. Redis provides dozens of commands
+    for interacting with sorted sets, many for retrieving entries based on ranges
+    of scores values.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis有序集合的典型示例是游戏玩家得分排行榜。在这种用例中，数值分数是玩家所取得的成就，而值是玩家的标识符。Redis提供了许多命令用于与有序集合交互，其中许多用于根据分数值范围检索条目。
+- en: 'Run the following commands to create an example player leaderboard:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令创建一个示例玩家排行榜：
+- en: '[PRE16]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: The first three commands add entries to the sorted set. Calling multiple `ZADD`
+    calls with the same member will replace the member’s score. The `ZADD` command
+    returns a 1 when the member is new and a 0 when the entry already exists, much
+    like with lists and sets. The `ZINCRBY` command increments the score of a member,
+    assuming a score of 0 if the member doesn’t already exist.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前三个命令向有序集合添加条目。多次调用`ZADD`命令并使用相同的成员将替换成员的分数。当成员是新的时，`ZADD`命令返回1，当条目已经存在时返回0，就像列表和集合一样。`ZINCRBY`命令增加成员的分数，如果成员不存在，则假定分数为0。
+- en: The `ZRANGE` command retrieves a list of entries in the sorted set, based on
+    score order. You can universally use the `ZRANGE key 0 -1` command to get a list
+    of all members in a sorted set. The `WITHSCORES` option instructs Redis to also
+    include their scores.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ZRANGE`命令根据分数顺序检索有序集合中的条目列表。您可以普遍使用`ZRANGE key 0 -1`命令获取有序集合中所有成员的列表。`WITHSCORES`选项指示Redis也包括它们的分数。'
+- en: '[Table 9-4](#table_redis_sorted_set) is a list of some of the commands available
+    with sorted sets.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 9-4](#table_redis_sorted_set) 列出了一些有序集合可用的命令。'
+- en: Table 9-4\. Redis sorted set commands
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-4\. Redis有序集合命令
+- en: '| Operation | Redis command |'
+  id: totrans-144
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis命令 |'
+- en: '| --- | --- |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Add an entry | `ZADD key score member` |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| 添加条目 | `ZADD key score member` |'
+- en: '| Count entries | `ZCARD key` |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| 计算条目数量 | `ZCARD key` |'
+- en: '| Remove an entry | `ZREM key member` |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| 移除条目 | `ZREM key member` |'
+- en: '| Get member’s score | `ZSCORE key member` |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取成员的分数 | `ZSCORE key member` |'
+- en: '| Increment member’s score | `ZINCRBY key score member` |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| 增加成员的分数 | `ZINCRBY key score member` |'
+- en: '| Get a page of results | `ZRANGE key min max` |'
+  id: totrans-151
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取结果页 | `ZRANGE key min max` |'
+- en: '| Get the numeric rank of a member | `ZRANK key member` |'
+  id: totrans-152
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取成员的数值排名 | `ZRANK key member` |'
+- en: '| Get the reverse numeric rank of a member | `ZREVRANK key member` |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取成员的逆序数值排名 | `ZREVRANK key member` |'
+- en: '| Get members within score range | `ZRANGEBYSCORE key min max` |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取分数范围内的成员 | `ZRANGEBYSCORE key min max` |'
+- en: '| Remove members within score range | `ZREMRANGEBYSCORE key min max` |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| 删除分数范围内的成员 | `ZREMRANGEBYSCORE key min max` |'
+- en: Using the leaderboard analogy, you can find out what the numeric rank of a player
+    is by calling `ZREVRANK scores tlhunter`, which returns a 0 because it has the
+    highest score. Many of the commands have a `REV` variant that treats the rankings
+    in a reverse manner. Several also have a `REM` variant that removes the entry
+    from the sorted set.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以排行榜类比，通过调用 `ZREVRANK scores tlhunter` 可以查找玩家的数值排名，返回值为0，因为其分数最高。许多命令都有一个 `REV`
+    变体，以反向方式处理排名。还有一些命令有一个 `REM` 变体，从排序集合中移除条目。
+- en: Generic Commands
+  id: totrans-157
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 通用命令
+- en: Most of the commands available in Redis are tied to keys with a specific data
+    type. For example, the `HDEL` command deletes a field from a hash. But there are
+    plenty of commands that either affect keys of any type or globally affect the
+    Redis instance.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 中的大多数命令都与特定数据类型的键相关联。例如，`HDEL` 命令从哈希中删除字段。但也有很多命令要么影响任何类型的键，要么全局影响 Redis
+    实例。
+- en: '[Table 9-5](#table_redis_generic_commands) contains some popular commands that
+    affect a key of any data type.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 9-5](#table_redis_generic_commands) 包含一些影响任何数据类型键的流行命令。'
+- en: Table 9-5\. Generic Redis commands
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-5\. 通用 Redis 命令
+- en: '| Operation | Redis command |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis 命令 |'
+- en: '| --- | --- |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Delete a key | `DEL key` |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| 删除键 | `DEL key` |'
+- en: '| Check if key exists | `EXISTS key` |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| 检查键是否存在 | `EXISTS key` |'
+- en: '| Set key expiration | `EXPIRE key seconds`, `PEXPIRE key ms` |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| 设置键的过期时间 | `EXPIRE key seconds`, `PEXPIRE key ms` |'
+- en: '| Get key expiration | `TTL key`, `PTTL key` |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取键的过期时间 | `TTL key`, `PTTL key` |'
+- en: '| Remove key expiration | `PERSIST key` |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| 移除键的过期时间 | `PERSIST key` |'
+- en: '| Get data type of key | `TYPE key` |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取键的数据类型 | `TYPE key` |'
+- en: '| Rename a key | `RENAME key newkey` |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| 重命名键 | `RENAME key newkey` |'
+- en: '| Get list of keys | `KEYS pattern` (`*` means all keys) |'
+  id: totrans-170
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取键列表 | `KEYS pattern`（`*`表示所有键） |'
+- en: Note that the `KEYS` command helps with local debugging but is inefficient and
+    shouldn’t be used in production.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，`KEYS` 命令用于本地调试，但效率低下，不应在生产环境中使用。
+- en: '[Table 9-6](#table_redis_server_commands) lists some popular commands that
+    interact with the Redis server in ways that aren’t associated with an individual
+    key.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 9-6](#table_redis_server_commands) 列出了一些与 Redis 服务器交互的流行命令，这些命令不与单个键关联。'
+- en: Table 9-6\. Redis server commands
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-6\. Redis 服务器命令
+- en: '| Operation | Redis Command |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| 操作 | Redis 命令 |'
+- en: '| --- | --- |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Get the number of keys | `DBSIZE` |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取键的数量 | `DBSIZE` |'
+- en: '| Remove all keys | `FLUSHDB` |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| 移除所有键 | `FLUSHDB` |'
+- en: '| Get info about server | `INFO` |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| 获取服务器信息 | `INFO` |'
+- en: '| List commands being run | `MONITOR` |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| 列出正在运行的命令 | `MONITOR` |'
+- en: '| Save data to disk | `BGSAVE`, `SAVE` |'
+  id: totrans-180
+  prefs: []
+  type: TYPE_TB
+  zh: '| 将数据保存到磁盘 | `BGSAVE`, `SAVE` |'
+- en: '| Close the connection | `QUIT` |'
+  id: totrans-181
+  prefs: []
+  type: TYPE_TB
+  zh: '| 关闭连接 | `QUIT` |'
+- en: '| Shut the server down | `SHUTDOWN` |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| 关闭服务器 | `SHUTDOWN` |'
+- en: Note that the `MONITOR` command helps with local debugging but is inefficient
+    and shouldn’t be used in production.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，`MONITOR` 命令用于本地调试，但效率低下，不应在生产环境中使用。
+- en: Other Types
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 其他类型
+- en: Redis supports a few other data types and related commands that aren’t covered
+    in this chapter.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 还支持一些其他数据类型及其相关命令，本章节未涵盖。
+- en: One of these command sets deal with geolocation data. Internally, the geolocation
+    commands operate on a sorted set containing entries scored by latitude and longitude
+    values represented as a geohash. These values can be quickly retrieved using another
+    command to find all the entries located within a configurable radius of a given
+    latitude and longitude pair. This can be useful to do things like find all the
+    businesses within a 1km radius.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中一组命令处理地理位置数据。在内部，地理位置命令操作按纬度和经度值排序的有序集合，这些值表示为地理哈希。可以使用另一个命令快速检索所有位于给定经纬度对可配置半径内的条目。这对于查找1公里半径内的所有企业等操作非常有用。
+- en: There’s also a HyperLogLog data structure, which is a way of storing a compressed
+    representation of a large set of data. This allows you to measure an approximate
+    number of occurrences of an event. It’s useful for storing sampled data that doesn’t
+    need to be 100% accurate.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，还有一种 HyperLogLog 数据结构，用于存储大型数据集的压缩表示。这允许你测量事件发生的大致次数。适用于存储不需要百分之百准确性的采样数据。
+- en: Another interesting set of commands available in Redis is the PubSub (Publish/Subscribe)
+    family of commands. These commands allow clients to subscribe to channels to receive
+    messages or publish messages to channels. A copy of the message is sent to every
+    client listening on the channel, though channels can have zero subscribers as
+    well. This makes it convenient to blast information to several clients at once.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis中另一组有趣的命令是PubSub（发布/订阅）命令系列。这些命令允许客户端订阅通道以接收消息或向通道发布消息。消息的副本将发送到每个监听该通道的客户端，尽管通道也可以没有订阅者。这使得一次性向多个客户端发送信息变得非常方便。
+- en: Streams are the latest addition to Redis. They are a persistent set of append-only
+    events, similar in use to the PubSub commands in that a client can receive events,
+    but much more powerful. Events are identified by a combination timestamp and sequence
+    number so that identifiers are ordered. Streams use something called “Consumer
+    Groups” to allow messages to either fan out to multiple clients or to be consumed
+    by just one client. Redis streams compete with Kafka.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Streams是Redis的最新添加。它们是一组持久的只追加事件，类似于PubSub命令，客户端可以接收事件，但更强大。事件由时间戳和序列号组合来标识，因此标识符是有序的。流使用所谓的“消费者组”允许消息要么扇出到多个客户端，要么仅由一个客户端消费。Redis
+    Streams与Kafka竞争。
+- en: Seeking Atomicity
+  id: totrans-190
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 追求原子性
+- en: Atomicity is a property of a series of actions where either all or none of the
+    actions are performed. It’s also important that when these actions are being carried
+    out that an intermediary state where only some of the actions have been applied
+    will never be observed from an external client. The *hello world* example of atomicity
+    is when an account balance of $100 is transferred between account A and account
+    B. For the transfer to be atomic, the balance of account A must be decremented
+    by $100 and the balance of account B must be incremented by $100\. If a failure
+    happens, then neither of the changes should happen. And while the transfer is
+    happening, no client should see that one balance changed while the other hasn’t.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 原子性是一系列操作的属性，其中要么所有操作都执行，要么一个都不执行。当这些操作正在执行时，外部客户端永远不会观察到中间状态，即只有一些操作已经应用了。原子性的“hello
+    world”示例是在账户A和账户B之间转移100美元的账户余额。为了使转账是原子的，账户A的余额必须减少100美元，账户B的余额必须增加100美元。如果发生故障，则这两个更改都不应发生。并且在转账过程中，没有客户端应该看到一个余额已经改变而另一个没有改变。
+- en: Within a single Redis server, every *single* command that is executed is atomic.
+    For example, the fun-to-pronounce `RPOPLPUSH` command operates on two separate
+    lists, removing an entry from one and adding it to another. Redis enforces the
+    complete success or failure of that command. At no point will the server end up
+    in a state where the popped value disappears, or is present in both lists, either
+    by failure or from another client performing a read operation on the lists while
+    the command is in progress. On the other hand, running *multiple* commands in
+    succession is not atomic. For example, if a client were to run `RPOP` and then
+    `LPUSH`, another client could read or write to the lists in between the two commands
+    being executed.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在单个Redis服务器中，执行的每一个*单一*命令都是原子的。例如，好玩的 `RPOPLPUSH` 命令在两个不同的列表上操作，从一个列表中移除一个条目并添加到另一个列表。Redis强制执行该命令的完全成功或失败。服务器在任何时候都不会处于弹出值消失或同时存在于两个列表中的状态，无论是由于失败还是另一个客户端在命令执行期间对列表进行读取操作。另一方面，*多个*连续命令的执行不是原子的。例如，如果客户端运行
+    `RPOP` 然后 `LPUSH`，另一个客户端可以在这两个命令执行之间读取或写入列表。
+- en: Redis provides several “compound commands,” which is a term I just invented
+    meaning that a single command can be used in place of multiple commands. Redis
+    provides such compound commands for common use-cases where atomicity is important.
+    [Table 9-7](#table_redis_compound_commands) is an example of some of these compound
+    commands, as well as their equivalent Redis commands and application pseudocode.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis提供了几种“复合命令”，这是我刚刚发明的一个术语，意思是一个单一命令可以替代多个命令。Redis为常见用例提供了这些复合命令，其中原子性很重要。[表 9-7](#table_redis_compound_commands)
+    是这些复合命令的示例，以及它们对应的Redis命令和应用伪代码。
+- en: Table 9-7\. Redis compound commands
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 9-7\. Redis复合命令
+- en: '| Command | Alternative pseudocode |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| Command | Alternative pseudocode |'
+- en: '| --- | --- |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `INCR key` | `GET key ; value++ ; SET KEY value` |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| `INCR key` | `GET key ; value++ ; SET KEY value` |'
+- en: '| `SETNX key value` | `!EXISTS key ; SET key value` |'
+  id: totrans-198
+  prefs: []
+  type: TYPE_TB
+  zh: '| `SETNX key value` | `!EXISTS key ; SET key value` |'
+- en: '| `LPUSHX key value` | `EXISTS key ; LPUSH key value` |'
+  id: totrans-199
+  prefs: []
+  type: TYPE_TB
+  zh: '| `LPUSHX key value` | `EXISTS key ; LPUSH key value` |'
+- en: '| `RPOPLPUSH src dest` | `RPOP src ; LPUSH dest value` |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| `RPOPLPUSH src dest` | `RPOP src ; LPUSH dest value` |'
+- en: '| `GETSET key value` | `GET key ; SET key value` |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| `GETSET key value` | `GET key ; SET key value` |'
+- en: By running a compound command, you’re guaranteed to atomically modify the dataset—and
+    do so efficiently. By running the alternative version of the commands, you’ll
+    need to make multiple round trips from application code, during which time the
+    Redis database is left in an undesirable state. When this happens, another client
+    can read the intermediary state, or the application may crash, leaving the data
+    forever invalid.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过运行一个复合命令，您可以保证原子地修改数据集，并且效率高。如果选择运行命令的替代版本，则需要从应用程序代码进行多次往返，此期间Redis数据库处于不良状态。在这种情况下，另一个客户端可能会读取中间状态，或者应用程序可能会崩溃，使数据永远无效。
+- en: This conundrum is illustrated in [Figure 9-2](#fig_redis_get_set) where two
+    clients run the `GET`, increment, and `SET` commands simultaneously.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个难题在[图9-2](#fig_redis_get_set)中有所体现，两个客户端同时运行`GET`、递增和`SET`命令。
+- en: '![Two clients call GET at the same time, receiving the same value of 0, then
+    increment locally to 1 and SET the same value.](assets/dsnj_0902.png)'
+  id: totrans-204
+  prefs: []
+  type: TYPE_IMG
+  zh: '![两个客户端同时调用`GET`，接收到值为0，然后在本地递增到1并`SET`相同的值。](assets/dsnj_0902.png)'
+- en: Figure 9-2\. Sequential Redis commands like `GET` and `SET` aren’t atomic
+  id: totrans-205
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-2\. 类似`GET`和`SET`的顺序Redis命令不是原子的
+- en: In this case, both client A and client B want to increment a number. They both
+    read the value of `counter` at about the same time and get the value 0\. Next,
+    both clients increment the value locally, calculating a value of 1\. Finally,
+    both clients write their incremented values at about the same time, both setting
+    the value to 1, instead of the proper value of 2.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，客户端A和客户端B都希望递增一个数字。他们几乎同时读取`counter`的值，并得到值0。接下来，两个客户端在本地递增值，计算出值1。最后，两个客户端几乎同时写入他们递增后的值，将值设置为1，而不是正确的值2。
+- en: Sometimes you’ll get lucky and an operation that you need to perform with Redis
+    has a single command available. [Figure 9-3](#fig_redis_incr) illustrates the
+    proper way to solve the previous conundrum by using the `INCR` command.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时候你会很幸运，需要在Redis中执行的操作具有单个可用命令。[图9-3](#fig_redis_incr)展示了如何使用`INCR`命令正确解决前述难题。
+- en: '![Two clients call INCR at the same time, and Redis handles them sequentially,
+    incrementing value to 2.](assets/dsnj_0903.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![两个客户端同时调用`INCR`命令，Redis依次处理它们，将值增加到2。](assets/dsnj_0903.png)'
+- en: Figure 9-3\. `INCR` is atomic in Redis
+  id: totrans-209
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-3\. `INCR`在Redis中是原子操作
+- en: In this case, both clients run the `INCR` command at about the same time. The
+    Redis server handles the details of the mutation internally, and the clients no
+    longer risk losing data. In this case, the value is safely incremented to 2.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，两个客户端几乎同时运行`INCR`命令。Redis服务器在内部处理变化的细节，客户端不再有数据丢失的风险。在这种情况下，值安全地增加到2。
+- en: 'Other times you might not get so lucky. For example, you might need to both
+    remove employee ID #42 from a set named `employees` while also removing the company
+    ID from a hash named `employee-42`. In this case, there is no Redis command to
+    both remove from a set and remove from a hash. It might take thousands of commands
+    to capture every permutation like this. When this happens, you’ll need to reach
+    for another tool.'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时候你可能就没那么幸运了。例如，你可能需要从名为`employees`的集合中删除员工ID＃42，同时还要从名为`employee-42`的哈希表中删除公司ID。在这种情况下，没有Redis命令可以同时从集合中删除并从哈希表中删除。可能需要成千上万个命令来处理类似的每种情况。当遇到这种情况时，你需要使用另一个工具。
+- en: Note
+  id: totrans-212
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注
+- en: Redis does have a feature called *pipelining* where a client sends a series
+    of commands separated by newlines instead of as individual messages. This ensures
+    that commands are run sequentially for a given client but does not guarantee that
+    other clients won’t run commands in the middle of another client’s pipeline. Individual
+    commands in a pipeline may fail. This means pipelines do not make commands atomic.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis确实有一种称为*流水线*的特性，其中客户端发送一系列由换行符分隔的命令，而不是作为单独的消息。这确保了命令在给定客户端内部按顺序运行，但不能保证其他客户端不会在另一个客户端的流水线中间运行命令。流水线中的单个命令可能失败。这意味着流水线不会使命令原子化。
+- en: The ID generation problem mentioned in [“The ID Generation Problem”](#ch_primitives_sec_id)
+    can be solved by using two of these compound commands. The first operation to
+    atomically increment a counter is achieved using the `INCR` command. A single
+    key is used to represent the next available short URL code. The second operation
+    to set the URL value can be done using the `SETNX` command. True to the original
+    example where files are written to, the operation would fail if an entry already
+    exists (which shouldn’t happen).
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[“ID生成问题”](#ch_primitives_sec_id)中提到的ID生成问题可以通过这两个复合命令来解决。首先使用`INCR`命令原子地增加计数器来实现。一个单一的键用于表示下一个可用的短URL代码。第二个操作使用`SETNX`命令设置URL值。与原始示例一致，在写入文件的操作中，如果条目已经存在（这不应该发生），操作将失败。
+- en: Transactions
+  id: totrans-215
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 事务
+- en: Redis does provide a mechanism to ensure that multiple commands are executed
+    atomically. This is done by preceding a series of commands with `MULTI` and then
+    following them with `EXEC`. This allows all of the commands sent from a single
+    client connection to be executed entirely and without interruption. If any of
+    the commands within the transaction fail, then the effects of the commands that
+    succeeded will be rolled back.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis确实提供了一种机制来确保多个命令的原子执行。这是通过在一系列命令之前加上`MULTI`，然后跟随`EXEC`来完成的。这允许从单个客户端连接发送的所有命令完全执行而没有中断。如果事务中的任何命令失败，那么成功执行的命令的效果将被回滚。
+- en: '[Example 9-3](#ex_redis_transaction) demonstrates how to create a Redis transaction
+    using the `ioredis` package. Create a new file named *redis/transaction.js* and
+    add the code to it.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 9-3](#ex_redis_transaction)演示了如何使用`ioredis`包创建Redis事务。创建一个名为*redis/transaction.js*的新文件，并将代码添加到其中。'
+- en: Example 9-3\. *redis/transaction.js*
+  id: totrans-218
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-3\. *redis/transaction.js*
+- en: '[PRE17]'
+  id: totrans-219
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '[![1](assets/1.png)](#co_distributed_primitives_CO1-1)'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_distributed_primitives_CO1-1)'
+- en: '`ioredis` exposes a chainable `.multi()` method to begin a transaction.'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ioredis`提供了一个可链式调用的`.multi()`方法来开始一个事务。'
+- en: '[![2](assets/2.png)](#co_distributed_primitives_CO1-2)'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_distributed_primitives_CO1-2)'
+- en: The `.exec()` method finishes the transaction.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`.exec()`方法完成事务。'
+- en: 'This application runs a transaction containing two commands. The first command
+    removes an employee from a set, and the second removes the employee’s company
+    ID from a hash. Run the following commands in a new terminal window to first create
+    some data and then to execute the Node.js application:'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此应用程序运行一个包含两个命令的事务。第一个命令从一个集合中移除一个员工，第二个命令从一个哈希中移除员工的公司ID。在新的终端窗口中运行以下命令，首先创建一些数据，然后执行Node.js应用程序：
+- en: '[PRE18]'
+  id: totrans-225
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Several results are returned when running a transaction with Redis, one for
+    each of the commands executed in the transaction. The `ioredis` package represents
+    the result of these commands as an array, which the application destructures into
+    two variables. Each of these variables is also an array, with the first element
+    being an error state (null in this case) and the second being the result of the
+    command (1 in this case). Run the Node.js application a second time and the output
+    should display `srem? false hdel? false`.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行Redis事务时会返回多个结果，每个命令在事务中执行一次。`ioredis`包将这些命令的结果表示为一个数组，应用程序将其解构为两个变量。每个变量也是一个数组，第一个元素是错误状态（在本例中为null），第二个是命令的结果（在本例中为1）。再次运行Node.js应用程序，输出应该显示`srem?
+    false hdel? false`。
+- en: While Redis is receiving a transaction from client A, which is to say that it
+    has received the `MULTI` command but hasn’t yet received the `EXEC` command, other
+    clients are still free to issue commands. This is important because a slow client
+    would prevent Redis from responding to other clients. This at first may seem to
+    violate the rules of atomicity, but the key detail is that Redis simply queues
+    up the commands without running them. Once the server finally receives the `EXEC`
+    command, all the commands in the transaction are then run. It’s at this point
+    that other clients aren’t able to interact with Redis. [Figure 9-4](#fig_redis_transaction)
+    illustrates a swimlane diagram of such a situation.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当Redis从客户端A接收到一个事务时，也就是说它已经收到了`MULTI`命令但还没有收到`EXEC`命令，其他客户端仍然可以自由发出命令。这一点很重要，因为一个慢速的客户端会阻止Redis响应其他客户端。乍看起来可能违反了原子性的规则，但关键在于Redis只是将命令排队而不运行它们。一旦服务器最终接收到`EXEC`命令，事务中的所有命令就会运行。此时其他客户端无法与Redis交互。[图 9-4](#fig_redis_transaction)展示了这种情况的泳道图。
+- en: 'Transactions are useful but they do have a major limitation: the output of
+    one command can’t be used as input for another. For example, using `MULTI` and
+    `EXEC`, it’s not possible to build a version of the `RPOPLPUSH` command. That
+    command depends on the element being output from `RPOP` to be used as an argument
+    for the `LPUSH` command.'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事务很有用，但它们也有一个主要限制：一个命令的输出不能作为另一个命令的输入。例如，使用`MULTI`和`EXEC`，不能构建`RPOPLPUSH`命令的版本。该命令依赖于从`RPOP`输出的元素作为`LPUSH`命令的参数使用。
+- en: '![The Redis server queues up transaction commands until the EXEC command is
+    received.](assets/dsnj_0904.png)'
+  id: totrans-229
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Redis服务器将事务命令排队，直到接收到EXEC命令。](assets/dsnj_0904.png)'
+- en: Figure 9-4\. Redis transactions wait for `EXEC` before committing changes
+  id: totrans-230
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图9-4\. Redis事务在提交更改前等待`EXEC`
+- en: It’s also impossible to perform other types of logic within a transaction. For
+    example, it’s not possible to check if an employee hash has a field named *resigned*
+    and then conditionally run a command to set the *salary* field to 0\. To overcome
+    these limitations, an even more powerful tool is required.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在事务内部也无法执行其他类型的逻辑。例如，无法检查员工哈希是否有名为*resigned*的字段，然后有条件地运行一个命令将*salary*字段设置为0。要克服这些限制，需要更强大的工具。
+- en: Lua Scripting
+  id: totrans-232
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Lua脚本
+- en: Redis provides a mechanism to execute procedural scripts within the Redis server.
+    This makes complex data interaction possible (for example, reading one key and
+    making a decision before writing to another key). Similar concepts exist in other
+    databases, such as Postgres’s stored procedures or MongoDB’s ability to run JavaScript.
+    Redis chose to use the easily embedded Lua scripting language instead of inventing
+    a new one.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis提供了一种在Redis服务器内执行过程化脚本的机制。这使得复杂的数据交互成为可能（例如，在写入另一个键之前读取一个键并做出决策）。其他数据库中也存在类似的概念，比如Postgres的存储过程或MongoDB运行JavaScript的能力。Redis选择使用易于嵌入的Lua脚本语言，而不是发明一种新的语言。
+- en: Lua has many of the same features that other languages, such as JavaScript,^([2](ch09.html#idm46291174077400))
+    come with. It offers arrays (though the indexing approach starts with 1 instead
+    of 0) and tables (like a JavaScript `Map`), and it is dynamically typed like JavaScript.
+    There is a nil (null) type, booleans, numbers, strings, and functions. It supports
+    `for` and `while` loops, `if` statements, etc. The complete syntax of Lua isn’t
+    covered here, but it is something that you can easily research while writing scripts
+    for Redis.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Lua具有许多与其他语言（例如JavaScript）^([2](ch09.html#idm46291174077400)) 相同的特性。它提供数组（尽管索引从1开始而不是0）和表（类似于JavaScript的`Map`），并且像JavaScript一样是动态类型的。它有空值（null）类型、布尔值、数字、字符串和函数。它支持`for`和`while`循环、`if`语句等。Lua的完整语法在此不作详述，但在编写Redis脚本时，您可以轻松查阅相关信息。
+- en: There are multiple patterns available for running Lua scripts with Redis. The
+    first pattern is simpler to use but is less efficient. Use it by calling the `EVAL`
+    command while passing in an entire Lua script as a string argument. This isn’t
+    ideal because it consumes bandwidth by sending potentially long scripts each time
+    the command is called. This pattern is akin to running an SQL query where each
+    query call requires an entire copy of the query string.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Redis中有多种模式可用于运行Lua脚本。第一种模式使用更简单，但效率较低。通过调用`EVAL`命令并将整个Lua脚本作为字符串参数传入来使用。这并非理想之选，因为每次调用命令时都会消耗带宽，可能会发送较长的脚本。这种模式类似于运行SQL查询，每次查询调用都需要整个查询字符串的副本。
+- en: The second pattern is more efficient but requires additional work to get it
+    right. In this pattern the `SCRIPT LOAD` command is first called, while also passing
+    in a script as an argument. When Redis receives this command, it will return a
+    SHA1 string to use to reference the command in the future.^([3](ch09.html#idm46291174053656))
+    This script can later be executed using the `EVALSHA` command with the SHA1 as
+    an argument. This results in less data sent over the wire.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二种模式更高效，但需要额外的工作来确保其正确性。在这种模式下，首先调用`SCRIPT LOAD`命令，并将脚本作为参数传递。当Redis接收到该命令时，将返回一个SHA1字符串以便将来引用该命令。^([3](ch09.html#idm46291174053656))
+    稍后可以使用`EVALSHA`命令执行该脚本，并将SHA1作为参数。这样可以减少传输的数据量。
+- en: 'The `EVAL` and `EVALSHA` commands essentially have the same arguments, except
+    that the first argument is either a full script or a script reference, respectively.
+    Here’s what the command signatures look like:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`EVAL`和`EVALSHA`命令本质上具有相同的参数，不同之处在于第一个参数分别是完整脚本或脚本引用。以下是命令签名的样式：'
+- en: '[PRE19]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Recall from before that groups of Redis commands can only affect keys that each
+    exist on the same Redis instance. This applies to transactions as well as Lua
+    scripts. This means Redis needs to know which keys are going to be accessed before
+    attempting to execute the script. For this reason all keys need to be provided
+    as arguments when executing the script.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请回忆之前提到的，Redis 命令组只能影响存在于同一 Redis 实例上的键。这也适用于事务和 Lua 脚本。这意味着在尝试执行脚本之前，Redis
+    需要知道将要访问哪些键。因此，在执行脚本时需要提供所有键作为参数。
+- en: Warning
+  id: totrans-240
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: It’s possible to embed key names, or even generate them dynamically, within
+    a Lua script without passing the key names in as arguments. Don’t do this! It’ll
+    work when you test it on a single-Redis instance but will cause headaches if you
+    grow to a Redis cluster in the future.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以在 Lua 脚本中嵌入键名，甚至动态生成它们，而不必将键名作为参数传入。但不要这样做！在单个 Redis 实例上测试时可能会正常工作，但如果未来扩展到
+    Redis 集群，则会带来麻烦。
+- en: Both key names and arguments can be provided when running a script. The second
+    `numkeys` argument is required so that Redis may differentiate the names of keys
+    from other arguments. This value tells Redis that the next `numkeys` arguments
+    are keys and that anything after that is a script argument.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行脚本时可以提供键名和参数。第二个 `numkeys` 参数是必需的，以便 Redis 可以区分键名和其他参数。该值告诉 Redis，接下来的 `numkeys`
+    参数是键，之后的任何参数是脚本参数。
+- en: Writing a Lua Script File
+  id: totrans-243
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 编写 Lua 脚本文件
+- en: Now that you’re familiar with some of the theory behind Lua scripting, you’re
+    ready to build something yourself. For this example, you’re going to build a waiting
+    lobby for a multiplayer game. When players attempt to join a game, they are added
+    to the lobby. If enough players have been added to the lobby, four players in
+    this case, then the players are removed from the lobby and a game is created.
+    A hash is created to contain a collection of actively running games and the players
+    within them. At this point, the application could theoretically notify players
+    that a game has started, but this is an exercise left to the reader.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经熟悉 Lua 脚本背后的一些理论，可以开始自己动手做些什么了。例如，您可以为多人游戏构建一个等待大厅。当玩家尝试加入游戏时，他们将被添加到大厅中。如果大厅中已经有足够多的玩家（在这种情况下是四个玩家），那么玩家将从大厅中移除，并创建一个游戏。将创建一个哈希来包含正在运行的游戏集合及其中的玩家。此时，应用程序理论上可以通知玩家游戏已经开始，但这是留给读者的一项练习。
+- en: For the first part of the application, you’ll create a Lua file containing the
+    code to be executed on the Redis server. Create a new file named *redis/add-user.lua*
+    and add the content from [Example 9-4](#ex_redis_lua) to it. I bet you never thought
+    you’d be writing Lua code in a Node.js book!
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于应用程序的第一部分，您将创建一个 Lua 文件，其中包含要在 Redis 服务器上执行的代码。创建一个名为 *redis/add-user.lua*
+    的新文件，并将内容从 [Example 9-4](#ex_redis_lua) 添加到其中。我敢打赌你从未想过会在 Node.js 书中编写 Lua 代码！
+- en: Example 9-4\. *redis/add-user.lua*
+  id: totrans-246
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-4\. *redis/add-user.lua*
+- en: '[PRE20]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The Lua scripting environment provided by Redis comes with two global arrays
+    for accessing arguments provided to the script. The first is called `KEYS`, which
+    contains the list of Redis keys, and the second is `ARGV`, which contains the
+    normal arguments. The first key is assigned to a variable named `LOBBY`. This
+    is a Redis set that contains a list of player identifiers. The `local` keyword
+    is how Lua declares a local variable. The second key is assigned to the variable
+    `GAME`, which is a hash containing active games. Finally, the only argument to
+    the script is assigned to `USER_ID`, which is the ID of the player that was just
+    added to the lobby.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redis 提供的 Lua 脚本环境附带两个全局数组，用于访问脚本提供的参数。第一个称为 `KEYS`，其中包含 Redis 键的列表，第二个称为 `ARGV`，其中包含普通参数。第一个键分配给名为
+    `LOBBY` 的变量。这是一个包含玩家标识符列表的 Redis 集合。`local` 关键字是 Lua 声明局部变量的方式。第二个键分配给名为 `GAME`
+    的变量，这是一个包含活动游戏的哈希表。最后，脚本的唯一参数分配给 `USER_ID`，这是刚刚添加到大厅的玩家的 ID。
+- en: Next, the player identifier is added to the `LOBBY` key. The Redis Lua environment
+    provides the method `redis.call()` that allows Lua to call Redis commands. The
+    first command being called in this file is the `SADD` (set add) command.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将玩家标识符添加到 `LOBBY` 键中。Redis Lua 环境提供了 `redis.call()` 方法，允许 Lua 调用 Redis 命令。在此文件中调用的第一个命令是
+    `SADD`（集合添加）命令。
+- en: The next construct is where the first line of imperative programming happens
+    (in this case, an `if` statement). This statement calls the `SCARD` (set cardinality)
+    command to count the number of entries on the set. If the number of entries is
+    not equal to 4 (which it isn’t for the very first run), then the `if` statement
+    body is skipped. Then, the final line is called, and a `nil` value is returned.
+    The `nil` value is then converted into a JavaScript `null` by the `ioredis` package.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一个构造是第一行命令式编程发生的地方（在这种情况下是一个`if`语句）。此语句调用`SCARD`（集合基数）命令来计算集合中条目的数量。如果条目数量不等于4（对于第一次运行来说确实不是），则跳过`if`语句的主体。然后，调用最后一行，并返回一个`nil`值。`nil`值然后由`ioredis`包转换为JavaScript的`null`。
+- en: However, once the fourth player has been added to the lobby, the `if` statement
+    body will execute. The list of players is retrieved from the lobby by using the
+    `SMEMBERS` (set members) command. This list of players is converted into a comma-separated
+    string using the Lua `table.concat()` function. Next, the lobby is emptied. Recall
+    that an empty list gets deleted, so in this case the `DEL` (delete) command is
+    called to essentially clear the list.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，一旦大厅中添加了第四名玩家，`if`语句的主体将被执行。通过使用`SMEMBERS`（集合成员）命令从大厅中检索玩家列表。使用Lua的`table.concat()`函数将玩家列表转换为逗号分隔的字符串。接下来，大厅被清空。请记住，空列表会被删除，因此在这种情况下，调用`DEL`（删除）命令实际上是清空列表。
+- en: Next, an identifier for the game is generated. There are many ways such an ID
+    could have been generated, but in this case, a SHA1 hash of the members string
+    is used. Lua doesn’t come with its own SHA1 function, but the Lua environment
+    that Redis provides does. In this case, the function is provided via `redis.sha1hex()`.
+    The string that is returned should be unique across all games, assuming the same
+    players can’t join multiple games at the same time.^([4](ch09.html#idm46291173911128))
+    This identifier is then set into the games hash using `HSET`, where the field
+    name is the game ID and the value is a comma-separated list of player IDs.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，游戏的标识符被生成。有很多方法可以生成这样一个ID，但在这种情况下，使用了成员字符串的SHA1哈希。Lua没有自带的SHA1函数，但Redis提供的Lua环境中有。在这种情况下，函数通过`redis.sha1hex()`提供。返回的字符串应该在所有游戏中是唯一的，假设相同的玩家不能同时加入多个游戏。^([4](ch09.html#idm46291173911128))
+    然后，将此标识符使用`HSET`设置到游戏哈希中，其中字段名是游戏ID，值是逗号分隔的玩家ID列表。
+- en: Finally, an array (table) with two elements is returned, where the first is
+    the game ID and the second is the list of players. Scripts can return data of
+    different types between runs, and in this case, the script returns either a table
+    or a nil.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，返回一个包含两个元素的数组（表），其中第一个是游戏ID，第二个是玩家列表。脚本可以在运行之间返回不同类型的数据，在这种情况下，脚本返回表或nil。
+- en: This script atomically adds players to a lobby and creates games. It does require
+    that both the lobby and the game hash be stored in the same Redis instance. You
+    can ensure this happens either by using a single Redis instance or by using curly
+    braces when naming keys. Normally, Redis chooses which instance to host a key
+    on by hashing the key. However, if you wrap a subset of the key name in curly
+    braces, only the value inside of the curly braces is used for the hash. In this
+    case, if the lobby key was named `lobby{pvp}` and the game key was named `game{pvp}`,
+    then the keys would always end up together.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该脚本原子性地向大厅添加玩家并创建游戏。它要求大厅和游戏哈希都存储在同一个Redis实例中。您可以通过使用单个Redis实例或在命名键时使用大括号来确保这一点。通常，Redis通过对键进行哈希来选择将哪个实例托管在哪个实例上。但是，如果在键名的子集中使用大括号，则仅使用大括号内的值进行哈希。在这种情况下，如果大厅键名为`lobby{pvp}`，游戏键名为`game{pvp}`，那么键总是会在一起。
+- en: The Lua script isn’t too interesting on its own, but things will get a little
+    more exciting once you create a Node.js application.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单独看Lua脚本并不是很有趣，但一旦创建了Node.js应用程序，事情将变得更加有趣。
+- en: Loading the Lua Script
+  id: totrans-256
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 加载Lua脚本
+- en: This application connects to the Redis server, evaluates the script, and inserts
+    four players. It’s rather basic and was built to illustrate how to call the commands,
+    instead of integrating with a web server to expose a fully functioning game application.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此应用程序连接到Redis服务器，评估脚本，并插入四名玩家。这相当基础，旨在说明如何调用命令，而不是与Web服务器集成以暴露完全功能的游戏应用程序。
+- en: Create a new file named *redis/script.js* and add the content from [Example 9-5](#ex_redis_script)
+    to it.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为*redis/script.js*的新文件，并将[示例 9-5](#ex_redis_script)的内容添加到其中。
+- en: Example 9-5\. *redis/script.js*
+  id: totrans-259
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-5\. *redis/script.js*
+- en: '[PRE21]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: This file begins by requiring the `ioredis` package and establishing a connection.
+    Next, the content of the *add-user.lua* script is read and passed into the `redis.defineCommand()`
+    method. This method abstracts away the Lua commands and has the application define
+    a command using a chosen name. In this example, the script is aliased to a command
+    named *adduser*.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件从要求`ioredis`包并建立连接开始。接下来，读取*add-user.lua*脚本的内容，并传递给`redis.defineCommand()`方法。此方法抽象了Lua命令，并使应用程序能够使用所选择的名称定义命令。在这个例子中，脚本被别名为一个名为*adduser*的命令。
+- en: Next, the two key names are declared that are used by the Redis Lua scripts.
+    In this case, the lobby list key is `lobby` and the game hash is `game`. Theoretically,
+    these key names can change on a per-call basis since they aren’t part of the scripts
+    themselves. This could allow a game to have multiple lobbies, for example, one
+    for silver-ranked players and one for gold-ranked players.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，声明了两个由Redis Lua脚本使用的键名。在这种情况下，大厅列表键是`lobby`，游戏哈希是`game`。从理论上讲，这些键名可以根据每次调用而变化，因为它们并不是脚本本身的一部分。例如，这可以允许游戏有多个大厅，例如一个用于银级玩家，另一个用于金级玩家。
+- en: Next, the async function calls the `redis.adduser()` method four times to simulate
+    four different players joining the lobby. The previous `redis.defineCommand()`
+    method you called creates this new `redis.adduser()` method on the `redis` object.
+    The arguments to this new method reflect the arguments passed to the Lua script
+    (in this case, the lobby key, the game key, and the player ID). Note that this
+    *doesn’t* create a command called `ADDUSER` on the Redis server; it’s just a local
+    JavaScript method.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，异步函数调用`redis.adduser()`方法四次，模拟四个不同的玩家加入大厅。之前调用的`redis.defineCommand()`方法在`redis`对象上创建了这个新的`redis.adduser()`方法。这个新方法的参数反映了传递给Lua脚本的参数（在本例中为大厅键、游戏键和玩家ID）。请注意，这并不会在Redis服务器上创建一个名为`ADDUSER`的命令；它只是一个本地JavaScript方法。
+- en: The calls to `redis.adduser()` will each run the *add-user.lua* script stored
+    in Redis. The first three times it is called will each result in a `null` being
+    returned. However, the final fourth call triggers the game creation logic. When
+    that happens, an array is returned, with the first value being the game ID (`gid`)
+    and the second returning the list of players (`players`).
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用`redis.adduser()`将分别运行存储在Redis中的*add-user.lua*脚本。前三次调用将各自返回`null`。然而，第四次调用会触发游戏创建逻辑。在这种情况下，将返回一个数组，第一个值是游戏ID
+    (`gid`)，第二个值是玩家列表 (`players`)。
+- en: Tying It All Together
+  id: totrans-265
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 将所有内容整合在一起
+- en: 'With your application file and Lua file now ready, it’s time to run the application.
+    Run the following two commands in two separate terminal windows. The first will
+    run the `MONITOR` command, which prints all the commands that the Redis server
+    receives. The second command runs the application:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，应用程序文件和Lua文件已准备就绪，是时候运行应用程序了。在两个单独的终端窗口中运行以下两个命令。第一个命令将运行`MONITOR`命令，打印Redis服务器接收到的所有命令。第二个命令运行应用程序：
+- en: '[PRE22]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'The application displays the results of the four calls to `redis.adduser()`.
+    In my case, the output from the application looks like this:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序显示了对`redis.adduser()`的四次调用的结果。在我的情况下，应用程序的输出如下所示：
+- en: '[PRE23]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: This illustrates that the first three players that joined didn’t cause a game
+    to start, but the fourth player did. With the returned information, the application
+    could then choose to notify the four players, perhaps by pushing a message to
+    them via WebSocket.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这说明加入的前三位玩家并未引发游戏启动，但第四位玩家引发了游戏。通过返回的信息，应用程序随后可以选择通知这四名玩家，例如通过WebSocket向他们推送消息。
+- en: 'The output from the `MONITOR` command might prove to be a little more interesting.
+    This command displays a few columns of information. The first is the timestamp
+    of the command, the second is an identifier for the client running the command
+    (or the string `lua` if run by a Lua script), and the remainder is the command
+    being executed. A simplified version of the output on my machine looks like this:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`MONITOR`命令的输出可能会更有趣一些。该命令显示几列信息。第一列是命令的时间戳，第二列是运行命令的客户端标识符（或如果是由Lua脚本运行，则是字符串`lua`），剩余部分是正在执行的命令。在我的机器上，输出的简化版本如下所示：'
+- en: '[PRE24]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: The first command that is executed is the `INFO` command. The `ioredis` package
+    runs this to learn the capabilities of the Redis server. Afterwards, `ioredis`
+    hashes the Lua script itself and attempts to run it for player *alice* by sending
+    the `EVALSHA` command with the SHA1 it calculated (abbreviated as `1c..32`). That
+    command fails, and `ioredis` falls back to running `EVAL` directly, passing in
+    the script’s content (abbreviated as `local…`). Once that happens the server now
+    has the hash of the script stored in memory. The Lua script calls the `SADD` and
+    `SCARD` commands. The `EVALSHA`, `SADD`, and `SCARD` commands are each repeated
+    two more times, once for *bob* and once for *cindy*.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行的第一个命令是 `INFO` 命令。`ioredis` 包运行此命令以了解 Redis 服务器的功能。之后，`ioredis` 对 Lua 脚本本身进行哈希并尝试通过发送带有它计算的
+    SHA1 的 `EVALSHA` 命令来为玩家 *alice* 执行它（缩写为 `1c..32`）。该命令失败，`ioredis` 回退到直接运行 `EVAL`，并传递脚本的内容（缩写为
+    `local…`）。一旦这发生，服务器现在在内存中存储了脚本的哈希。Lua 脚本调用了 `SADD` 和 `SCARD` 命令。`EVALSHA`、`SADD`
+    和 `SCARD` 命令分别再次重复两次，一次为 *bob*，一次为 *cindy*。
+- en: Finally, the fourth call is made for player *tlhunter*. This results in the
+    `SADD`, `SCARD`, `SMEMBERS`, `DEL`, and `HSET` commands being run.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，第四次调用是为玩家 *tlhunter* 进行的。这导致执行 `SADD`、`SCARD`、`SMEMBERS`、`DEL` 和 `HSET` 命令。
+- en: At this point, you’re now finished with the Redis server. Switch to the terminal
+    window running the `MONITOR` command and kill it with Ctrl + C. You can also switch
+    to the terminal running the Redis server and kill it with the same key sequence,
+    unless you’d like to keep it running for more experimentation.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，你已经完成了对 Redis 服务器的操作。切换到运行 `MONITOR` 命令的终端窗口，并使用 Ctrl + C 终止它。你也可以切换到运行 Redis
+    服务器的终端，并使用相同的键序列终止它，除非你想继续进行更多实验。
+- en: As a rule of thumb, you should only use Lua scripts if it’s impossible to perform
+    the same actions atomically with regular commands and transactions. For one thing,
+    there’s at least a minimal memory overhead of storing scripts in Redis. More importantly,
+    though, is that Redis is single-threaded, and so is the Lua that it executes.
+    Any slow Lua scripts (or even infinite loops) are going to slow down other clients
+    connected to the server. There’s also a performance penalty for parsing code and
+    evaluating it. If you ran a Lua script to execute a single Redis command, it would
+    undoubtedly be slower than running the Redis command directly.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为经验法则，只有当使用常规命令和事务无法原子执行相同操作时，才应使用 Lua 脚本。首先，将脚本存储在 Redis 中至少会带来一定的内存开销。然而更重要的是，Redis
+    是单线程的，执行的 Lua 也是如此。任何缓慢的 Lua 脚本（甚至是无限循环）都会拖慢连接到服务器的其他客户端。解析代码和评估它也会有性能损失。如果运行
+    Lua 脚本来执行单个 Redis 命令，它无疑会比直接运行 Redis 命令慢。
+- en: ^([1](ch09.html#idm46291174815176-marker)) For example, an È has both a single-byte
+    and multibyte UTF representations, which are considered unequal when doing a binary
+    comparison.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch09.html#idm46291174815176-marker)) 例如，一个字符“È”有单字节和多字节 UTF 表示，二进制比较时会被视为不相等。
+- en: ^([2](ch09.html#idm46291174077400-marker)) Check out the [Luvit.io](http://luvit.io)
+    project if you’d like to see what a Node.js-like platform implemented in Lua looks
+    like.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch09.html#idm46291174077400-marker)) 如果你想看看用 Lua 实现的类似 Node.js 的平台是什么样子，请查看
+    [Luvit.io](http://luvit.io) 项目。
+- en: ^([3](ch09.html#idm46291174053656-marker)) Redis generates a SHA1 hash of the
+    script and uses that to refer to scripts in an internal cache.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch09.html#idm46291174053656-marker)) Redis 生成脚本的 SHA1 哈希并用其在内部缓存中引用。
+- en: ^([4](ch09.html#idm46291173911128-marker)) And assuming the players haven’t
+    discovered a SHA1 collision.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch09.html#idm46291173911128-marker)) 假设玩家们没有发现 SHA1 冲突。

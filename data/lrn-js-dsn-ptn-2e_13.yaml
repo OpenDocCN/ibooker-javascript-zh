@@ -1,0 +1,1379 @@
+- en: Chapter 13\. Rendering Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第13章。渲染模式
+- en: As we moved to more interactive websites, the number of events handled and the
+    amount of content rendered on the client side grew, resulting in SPAs rendered
+    primarily on the client, as in the case of React.js.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着我们转向更加交互式的网站，处理事件的数量和客户端渲染的内容量增加，导致像React.js一样的SPA主要在客户端渲染。
+- en: However, web pages can be as static or dynamic as the function they serve. We
+    continue to serve a lot of static content on the web, for example, blog/news pages
+    that you can generate on the server and push as-is to the clients. Static content
+    is stateless, does not fire events, and does not need rehydration after rendering.
+    Conversely, dynamic content (buttons, filters, search bar) has to be rewired to
+    its events after rendering. The DOM has to be regenerated on the client side (virtual
+    DOM). This regeneration, rehydration, and event handling functions contribute
+    to the JavaScript sent to the client.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，网页可以像它们服务的功能一样静态或动态。例如，博客/新闻页面仍然可以在服务器上生成并按原样推送给客户端的静态内容。静态内容是无状态的，不触发事件，并且在渲染后不需要重新注水。相反，动态内容（按钮、筛选器、搜索栏）必须在渲染后重新连接到其事件。DOM必须在客户端重新生成（虚拟DOM）。这种重新生成、重新注水和事件处理函数会导致发送到客户端的JavaScript增加。
+- en: 'A Rendering pattern provides the ideal solution for rendering content for a
+    given use case. The Rendering patterns in this table are popular:'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染模式为特定用例提供了渲染内容的理想解决方案。此表中的渲染模式很受欢迎：
+- en: '| **Rendering patterns** |  |'
+  id: totrans-4
+  prefs: []
+  type: TYPE_TB
+  zh: '| **渲染模式** |  |'
+- en: '| *Client-side rendering (CSR)* | HTML is rendered completely on the client
+    |'
+  id: totrans-5
+  prefs: []
+  type: TYPE_TB
+  zh: '| *客户端渲染（CSR）* | HTML完全在客户端上渲染 |'
+- en: '| *Server-side rendering (SSR)* | Dynamically rendering HTML content on the
+    server before rehydrating it on the client |'
+  id: totrans-6
+  prefs: []
+  type: TYPE_TB
+  zh: '| *服务器端渲染（SSR）* | 在客户端重启动前在服务器上动态渲染HTML内容 |'
+- en: '| *Static rendering* | Building a static site to render pages on the server
+    at build time |'
+  id: totrans-7
+  prefs: []
+  type: TYPE_TB
+  zh: '| *静态渲染* | 在构建时构建静态站点以在服务器上呈现页面 |'
+- en: '| *Incremental static generation* | Being able to dynamically augment or modify
+    a static site even after the initial build (Next.js ISR, Gatsby DSG) |'
+  id: totrans-8
+  prefs: []
+  type: TYPE_TB
+  zh: '| *增量静态生成* | 能够在初始构建后动态增强或修改静态站点（Next.js ISR，Gatsby DSG） |'
+- en: '| *Streaming SSR* | Breaking down server-rendered content into smaller streamed
+    chunks |'
+  id: totrans-9
+  prefs: []
+  type: TYPE_TB
+  zh: '| *流式SSR* | 将服务器渲染的内容拆分为更小的流式块 |'
+- en: '| *Edge rendering* | Altering rendered HTML at the edge before sending it on
+    to the client |'
+  id: totrans-10
+  prefs: []
+  type: TYPE_TB
+  zh: '| *边缘渲染* | 在发送到客户端之前在边缘修改渲染的HTML |'
+- en: '| *Hybrid rendering* | Combines build-time, server, and client rendering to
+    create a more flexible approach to web development (e.g., React Server Components
+    and Next.js App Router) |'
+  id: totrans-11
+  prefs: []
+  type: TYPE_TB
+  zh: '| *混合渲染* | 结合构建时、服务器和客户端渲染，以创建更灵活的Web开发方法（例如，React Server Components和Next.js
+    App Router） |'
+- en: '| *Partial hydration* | Only hydrating some of your components on the client
+    (e.g., React Server Components and Gatsby) |'
+  id: totrans-12
+  prefs: []
+  type: TYPE_TB
+  zh: '| *部分注水* | 仅在客户端注水部分组件（例如，React Server Components和Gatsby） |'
+- en: '| *Progressive hydration* | Controlling the order of component hydration on
+    the client |'
+  id: totrans-13
+  prefs: []
+  type: TYPE_TB
+  zh: '| *逐步注水* | 控制客户端上组件注水的顺序 |'
+- en: '| *Islands architecture* | Isolated islands of dynamic behavior with multiple
+    entry points in an otherwise static site (Astro, Eleventy) |'
+  id: totrans-14
+  prefs: []
+  type: TYPE_TB
+  zh: '| *岛屿架构* | 在否则静态站点中具有多个入口点的孤立动态行为的孤岛（Astro、Eleventy） |'
+- en: '| *Progressive enhancement* | Making sure an app is functional even without
+    JavaScript |'
+  id: totrans-15
+  prefs: []
+  type: TYPE_TB
+  zh: '| *逐步增强* | 确保应用即使没有JavaScript也能正常运行 |'
+- en: 'This chapter introduces some of these Rendering patterns and will help you
+    decide which pattern is most suitable for your needs. It will help you make foundational
+    decisions such as:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了一些这些渲染模式，并将帮助您决定哪种模式最适合您的需求。它将帮助您做出基础决策，例如：
+- en: How and where do I want to render content?
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我想要如何以及在何处渲染内容？
+- en: Should content be rendered on the web server, on the build server, on an edge
+    network, or directly on the client?
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 内容应该在Web服务器、构建服务器、边缘网络还是直接在客户端上渲染呢？
+- en: Should content be rendered all at once, partially, or progressively?
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 内容应该一次性渲染、部分渲染还是逐步渲染呢？
+- en: Importance of Rendering Patterns
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 渲染模式的重要性
+- en: Choosing the most suitable Rendering pattern for a given use case can make a
+    world of difference to the developer experience (DX) you create for the engineering
+    team and the UX you design for your end users. Choosing the correct pattern could
+    lead to faster builds and excellent loading performance at low processing costs.
+    On the other hand, a wrong choice of pattern can kill an app that could have brought
+    to life a great business idea.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择给定用例的最适合的渲染模式可以为开发团队创造的开发体验（DX）和为最终用户设计的用户体验（UX）带来天壤之别。选择正确的模式可能导致更快的构建和卓越的低处理成本加载性能。另一方面，错误的模式选择可能会毁掉本可以实现伟大商业创意的应用程序。
+- en: 'To create great UX, we must optimize our apps for user-centric metrics, such
+    as the [Core Web Vitals (CWV)](https://oreil.ly/R20lq):'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建出色的用户体验，我们必须优化我们的应用程序以支持用户中心的指标，例如[核心Web要素（CWV）](https://oreil.ly/R20lq)：
+- en: Time to First Byte (TTFB)
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首字节时间（TTFB）
+- en: Time it takes for a client to receive the first byte of page content
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端接收页面内容的首字节所需的时间
+- en: First Contentful Paint(FCP)
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首次内容绘制（FCP）
+- en: Time it takes the browser to render the first piece of content after navigation
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导航后浏览器渲染第一个内容片段所需的时间
+- en: Time to Interactive (TTI)
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 交互时间（TTI）
+- en: Time from when the page starts loading to when it responds quickly to user input
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面开始加载到快速响应用户输入所需的时间
+- en: Largest Contentful Paint (LCP)
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最大内容绘制（LCP）
+- en: Time it takes to load and render the page’s main content
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 加载和渲染页面主要内容所需的时间
+- en: Cumulative Layout Shift (CLS)
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 累积布局移位（CLS）
+- en: Measures visual stability to avoid unexpected layout shift
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测量视觉稳定性，以避免意外的布局移位
+- en: First Input Delay (FID)
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首次输入延迟（FID）
+- en: Time from when the user interacts with the page to the time when the event handlers
+    can run
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户与页面交互开始到事件处理程序能够运行的时间
+- en: The CWV metrics measure parameters most relevant to UX. Optimizing the CWV can
+    ensure a great UX and optimal search engine optimization (SEO) for our apps.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CWV指标衡量最与用户体验相关的参数。优化CWV可以确保应用程序具有出色的用户体验和优化的搜索引擎优化（SEO）。
+- en: 'To create a great DX for our product/engineering teams, we have to optimize
+    our development environments by ensuring faster build times, easy rollbacks, scalable
+    infrastructure, and many other features that help developers succeed:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要为我们的产品/工程团队创建出色的开发体验（DX），我们必须通过确保更快的构建时间、简单的回滚操作、可扩展的基础设施等功能来优化我们的开发环境：
+- en: Fast build times
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 快速的构建时间
+- en: The project should build fast for quick iteration and deployment.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 项目应该快速构建，以便快速迭代和部署。
+- en: Low server costs
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 低服务器成本
+- en: The website should limit and optimize the server execution time to reduce execution
+    costs.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网站应限制和优化服务器执行时间，以减少执行成本。
+- en: Dynamic content
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 动态内容
+- en: The page should be able to load dynamic content performantly.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面应能够高效加载动态内容。
+- en: Easy rollbacks
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简单的回滚操作
+- en: You can quickly revert to a previous build version and deploy it.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以快速恢复到先前的构建版本并部署它。
+- en: Reliable uptime
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可靠的正常运行时间
+- en: Users should always be able to visit your website through operational servers.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户应始终能够通过运行良好的服务器访问您的网站。
+- en: Scalable infrastructure
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可扩展的基础设施
+- en: Your project may grow or shrink without facing performance issues.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的项目可能会随着发展而增大或减小，而不会面临性能问题。
+- en: Setting up a development environment based on these principles enables our development
+    teams to build a great product efficiently.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于这些原则建立开发环境使我们的开发团队能够高效地构建出色的产品。
+- en: We have now built quite a long list of expectations. But, if you choose the
+    correct Rendering pattern, you can get most of these benefits automatically.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在已经列出了许多期望。但是，如果选择正确的渲染模式，您可以自动获得大多数这些好处。
+- en: Rendering patterns have come a long way, from SSR and CSR to highly nuanced
+    patterns discussed and judged today on different forums. While this can get overwhelming,
+    it’s important to remember that every pattern was designed to address specific
+    use cases. A pattern characteristic beneficial for one use case can be detrimental
+    in the case of another. It is also quite likely that different types of pages
+    require different Rendering patterns on the same website.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染模式已经发展了很长一段时间，从SSR和CSR到今天在不同论坛上讨论和评判的高度细化模式。虽然这可能令人不知所措，但重要的是要记住每种模式都是为了解决特定的用例而设计的。对于一个用例有益的模式特征，在另一个用例中可能是有害的。同样重要的是，同一网站上不同类型的页面可能需要不同的渲染模式。
+- en: The Chrome team has encouraged developers to consider static or SSR over a full
+    rehydration approach. Over time, progressive loading and rendering techniques
+    may help strike a good balance of performance and feature delivery when using
+    a modern framework.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Chrome 团队鼓励开发者考虑静态或 SSR 方案，而不是完全重新注水的方法。随着时间的推移，渐进式加载和渲染技术可以帮助在使用现代框架时取得性能和功能交付的良好平衡。
+- en: The following sections cover different patterns in detail.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的部分详细介绍了不同的模式。
+- en: Client-Side Rendering
+  id: totrans-54
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 客户端渲染（Client-Side Rendering）
+- en: We have already discussed CSR with React in the previous chapter. Here is a
+    brief overview to help us relate it to the other Rendering patterns.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经在前一章中讨论了 React 的 CSR。这里是一个简要概述，以帮助我们将其与其他渲染模式联系起来。
+- en: With React CSR, most of the application logic is executed on the client, and
+    it interacts with the server through API calls to fetch or save data. Almost all
+    of the UI is thus generated on the client. The entire web application is loaded
+    on the first request. As the user navigates by clicking on links, no new request
+    is generated to the server for rendering the pages. The code runs on the client
+    to change the view/data.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 React CSR，大部分应用程序逻辑在客户端执行，并通过 API 调用与服务器交互以获取或保存数据。因此，几乎所有的 UI 都在客户端生成。整个
+    Web 应用程序在第一次请求时加载。当用户通过点击链接进行导航时，不会生成新的请求到服务器以渲染页面。代码在客户端运行以更改视图/数据。
+- en: CSR allows us to have an SPA that supports navigation without page refresh and
+    provides a great UX. As the data processed to change the view is limited, routing
+    between pages is generally faster, making the CSR application seem more responsive.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSR 允许我们拥有支持导航但无需页面刷新的 SPA，并提供出色的用户体验。由于用于更改视图的数据处理是有限的，页面之间的路由通常更快，使 CSR 应用程序看起来更具响应性。
+- en: As the complexity of the page increases to show images, display data from a
+    data store, and include event handling, the complexity and size of the JavaScript
+    code required to render the page will also increase. CSR resulted in large JavaScript
+    bundles, which increased the FCP and TTI of the page. Large payloads and a waterfall
+    of network requests (e.g., for API responses) may also result in meaningful content
+    not being rendered fast enough for a crawler to index it. This can affect the
+    SEO of the website.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着页面复杂度的增加，展示图片、显示来自数据存储的数据以及包含事件处理，用于渲染页面所需的 JavaScript 代码的复杂性和大小也会增加。CSR 导致了大量的
+    JavaScript 捆绑包，增加了页面的 FCP 和 TTI。大型负载和网络请求的瀑布流（例如用于 API 响应）也可能导致内容无法快速呈现，从而无法被爬虫索引。这可能影响网站的
+    SEO。
+- en: 'Loading and processing excess JavaScript can hurt performance. However, some
+    interactivity and JavaScript are often required, even on primarily static websites.
+    The rendering techniques discussed in the following sections try to find a balance
+    between:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 加载和处理过多的 JavaScript 可能会影响性能。然而，即使在主要是静态网站上，通常也需要一些交互性和 JavaScript。以下部分讨论的渲染技术试图在以下方面找到平衡：
+- en: Interactivity comparable to CSR applications
+  id: totrans-60
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 与 CSR 应用程序相媲美的互动性
+- en: SEO and performance benefits that are comparable to SSR applications
+  id: totrans-61
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: SEO 和性能优势与 SSR 应用程序相媲美
+- en: Server-Side Rendering
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 服务器端渲染（Server-Side Rendering）
+- en: With SSR, we generate the HTML for every request. This approach is most suitable
+    for pages containing highly personalized data, for example, data based on the
+    user cookie or generally any data obtained from the user’s request. It’s also
+    suitable for pages that should be render-blocking, perhaps based on the authentication
+    state.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 SSR，我们为每个请求生成 HTML。这种方法最适合包含高度个性化数据的页面，例如基于用户 cookie 的数据或一般从用户请求获取的任何数据。它也适用于应该是渲染阻塞的页面，也许基于认证状态。
+- en: SSR is one of the oldest methods of rendering web content. SSR generates the
+    complete HTML for the page content to be rendered in response to a user request.
+    The content may include data from a data store or external API.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SSR 是最古老的 Web 内容渲染方法之一。SSR 生成完整的 HTML，以响应用户请求渲染页面内容。内容可能包括来自数据存储或外部 API 的数据。
+- en: The connect and fetch operations are handled on the server. HTML required to
+    format the content is also generated on the server. Thus, with SSR, we can avoid
+    making additional round trips for data fetching and templating. As such, rendering
+    code is not required on the client and the JavaScript corresponding to this need
+    not be sent to the client.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 连接和获取操作在服务器上处理。用于格式化内容的 HTML 也在服务器上生成。因此，通过 SSR，我们可以避免为数据获取和模板化进行额外的往返。因此，客户端不需要渲染代码，也不需要将其对应的
+    JavaScript 发送到客户端。
+- en: With SSR, every request is treated independently and processed as a new request
+    by the server. Even if the output of two consecutive requests is not very different,
+    the server will process and generate it from scratch. Since the server is common
+    to multiple users, the processing capability is shared by all active users at
+    a given time.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用SSR，每个请求都被服务器独立处理并视为新请求处理。即使两个连续请求的输出不是很不同，服务器也会重新处理并生成它。由于服务器对多个用户共享，处理能力在给定时间由所有活跃用户共享。
+- en: A personalized dashboard is an excellent example of highly dynamic content on
+    a page. Most of the content is based on the user’s identity or authorization level
+    that may be contained in a user cookie. This dashboard shows only when a user
+    is authenticated and possibly shows user-specific sensitive data that should not
+    be visible to others.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 个性化仪表板是页面上高度动态内容的一个很好的例子。大部分内容基于用户的身份或授权级别，这可能包含在用户的cookie中。此仪表板仅在用户经过身份验证时显示，并可能显示不应对其他人可见的用户特定敏感数据。
+- en: The core principle for SSR is that HTML is rendered on the server and shipped
+    with the necessary JavaScript to rehydrate it on the client. Rehydration is regenerating
+    the state of UI components on the client side after the server renders it. Since
+    rehydration comes at a cost, each variation of SSR tries to optimize the rehydration
+    process.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SSR的核心原则是在服务器上呈现HTML，并与必要的JavaScript一起在客户端重新注入它。重新注入是在服务器呈现后在客户端重新生成UI组件状态。由于重新注入会带来成本，每个SSR变体都尝试优化重新注入过程。
+- en: Static Rendering
+  id: totrans-69
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 静态渲染
+- en: With static rendering, the HTML for the entire page gets generated at build
+    time and does not change until the next build. The HTML content is static and
+    easily cacheable on a content delivery network (CDN) or an edge network. CDNs
+    can quickly serve the prerendered cached HTML to clients when they request a specific
+    page. This considerably cuts down the time it would otherwise take to process
+    the request, render HTML content, and respond to a request in a typical SSR setup.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用静态渲染，整个页面的HTML在构建时生成，并在下一次构建之前不会更改。HTML内容是静态的，并且可以轻松地在内容交付网络（CDN）或边缘网络上缓存。当客户端请求特定页面时，CDN可以快速提供预渲染的缓存HTML。这大大缩短了在典型SSR设置中处理请求、呈现HTML内容和响应请求所需的时间。
+- en: This process is most suitable for pages that do not change often and display
+    the same data no matter who requests them. Static pages like the “About us,” “Contact
+    us,” and “Blog” pages for websites, or product pages for ecommerce apps are ideal
+    candidates for static rendering. Frameworks like Next.js, Gatsby, and VuePress
+    support static generation.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此过程最适合那些不经常更改并且无论谁请求都显示相同数据的页面。像网站的“关于我们”，“联系我们”和“博客”页面，或电子商务应用程序的产品页面都是静态渲染的理想候选者。像Next.js，Gatsby和VuePress这样的框架支持静态生成。
+- en: 'At its core, plain static rendering does not involve any dynamic data. Let
+    us understand it using a Next.js example:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在其核心，纯静态渲染不涉及任何动态数据。让我们通过一个Next.js的例子来理解它：
+- en: '[PRE0]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: When the site is built (using `next build`), this page will be prerendered into
+    an HTML file *about.html* accessible at the route */about*.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建站点时（使用`next build`），此页面将预渲染为一个HTML文件*about.html*，可通过路由*/about*访问。
+- en: 'You can have several variations of static rendering as follows:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以有以下几种静态渲染的变体：
+- en: Static generation of a listing page with dynamic data from a database
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用数据库动态数据静态生成列表页面
+- en: The listing page is generated on the server with the data. This is suitable
+    for pages where the listing itself is not very dynamic. In Next.js, you can export
+    the function [`getStaticProps()`](https://oreil.ly/QcNhk) in the page component
+    for this.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 列表页面是在服务器上使用数据生成的。这适用于列表本身不是非常动态的页面。在Next.js中，您可以在页面组件中导出[`getStaticProps()`](https://oreil.ly/QcNhk)函数来实现此目的。
+- en: Static generation of detail pages with dynamic routes
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用动态路由静态生成详细页面
+- en: Product pages or blog pages usually follow a fixed template with data populated
+    in placeholders. In this case, individual pages can be generated on the server
+    by merging the template with the dynamic data giving us several individual routes
+    for each detailed page. The Next.js [dynamic routes](https://oreil.ly/2Bugb) feature
+    helps to achieve this using the `getStaticPaths()` function.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 产品页面或博客页面通常遵循填充数据占位符的固定模板。在这种情况下，通过将模板与动态数据合并，可以在服务器上生成单独的页面。Next.js的[动态路由](https://oreil.ly/2Bugb)功能通过使用`getStaticPaths()`函数来实现这一点。
+- en: Static rendering with client-side fetch
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用客户端获取的静态渲染
+- en: This pattern is helpful for a reasonably dynamic listing page that should display
+    fresh listings always. You can still use static rendering for the website to render
+    the UI with a skeleton component where you want to place the dynamic listing data.
+    Then, after the page has loaded, we can fetch the data using SWR. SWR (inspired
+    by the Stale-While-Revalidate pattern) are React Hooks for data fetching. A custom
+    API route is used to fetch the data from the CMS and return this data. The pregenerated
+    HTML file is sent to the client when the user requests the page. The user initially
+    sees the skeleton UI without any data. The client fetches the data from the API
+    route, receives the response, and shows the listings.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式对于相对动态的列表页面很有帮助，应始终显示最新的列表。您仍然可以使用静态渲染网站，在您想放置动态列表数据的地方渲染 UI 骨架组件。然后，在页面加载后，我们可以使用
+    SWR 获取数据。SWR（受到陈旧-同时重新验证模式启发）是用于数据获取的 React Hooks。使用自定义 API 路由从 CMS 获取数据并返回该数据。当用户请求页面时，预生成的
+    HTML 文件将发送到客户端。用户最初看到没有任何数据的骨架 UI。客户端从 API 路由获取数据，接收响应并显示列表。
+- en: 'The key highlights of static rendering include the following:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态渲染的主要亮点包括以下几点：
+- en: HTML gets generated at build time.
+  id: totrans-83
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: HTML 在构建时生成。
+- en: Easily cacheable by CDN/Vercel Edge Network.
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 可以轻松通过 CDN/Vercel Edge 网络进行缓存。
+- en: Plain static rendering is best for pages that do not require request-based data.
+  id: totrans-85
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于不需要基于请求数据的页面，纯静态渲染是最佳选择。
+- en: Static with client-side fetch is best for pages that contain data that should
+    refresh on every page load and is contained in stable placeholder components.
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 静态页面与客户端获取结合使用最适合包含应在每次页面加载时刷新的数据的页面，并且这些数据包含在稳定的占位符组件中。
+- en: Incremental Static Regeneration
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 增量静态再生成
+- en: ISR is a hybrid of static and SSR because it allows us to prerender only certain
+    static pages and render the dynamic pages on-demand when the user requests them.
+    This results in shorter build times and allows automatic invalidation of the cache
+    and regeneration of the page after a specific interval.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ISR 是静态渲染和 SSR 的混合体，因为它允许我们仅预渲染某些静态页面，并在用户请求时按需渲染动态页面。这导致构建时间缩短，并允许在特定间隔后自动使缓存失效并重新生成页面。
+- en: 'ISR works on two fronts to incrementally introduce updates to an existing static
+    site after it has been built:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ISR 在两个方面工作，用于在构建后增量引入现有静态站点的更新：
+- en: Allows addition of new pages
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 允许添加新页面
+- en: The lazy-loading concept is used to include new pages on the website after the
+    build. This means that the new page is generated immediately on the first request.
+    While the generation takes place, a fallback page or a loading indicator can be
+    shown to the user on the frontend.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 懒加载概念用于在构建后将新页面包含在网站中。这意味着新页面在第一次请求时立即生成。在生成过程中，前端可以向用户显示回退页面或加载指示器。
+- en: Update existing pages
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新现有页面
+- en: A suitable timeout is defined for every page. This will ensure that the page
+    is revalidated whenever the defined timeout period has elapsed. The timeout could
+    be set to as low as 1 second. The user will continue to see the previous version
+    of the page until the page has finished revalidation. Thus, ISR uses the stale-while-revalidate
+    strategy, where the user receives the cached or stale version while the revalidation
+    takes place. The revalidation occurs entirely in the background and does not need
+    a full rebuild.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对每个页面定义合适的超时时间。这将确保在经过定义的超时周期后重新验证页面。超时时间可以设置得低至1秒。用户在页面完成重新验证之前将继续看到先前的页面版本。因此，ISR
+    使用陈旧-同时重新验证策略，在重新验证进行时，用户接收到缓存或陈旧版本。重新验证完全在后台进行，无需完全重建。
+- en: On-Demand ISR
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 按需 ISR
+- en: In this variation of ISR, the regeneration occurs on certain events rather than
+    at fixed intervals. With regular ISR, the updated page is cached only at the edge
+    nodes that have handled user requests for the page. On-demand ISR regenerates
+    and redistributes the page across the edge network so that users worldwide will
+    automatically see the most recent version of the page from the edge cache without
+    seeing stale content. We also avoid unnecessary regenerations and serverless function
+    calls, reducing operational costs compared to regular ISR. Thus on-demand ISR
+    gives us performance benefits and a great DX. On-demand ISR is best for pages
+    that should be regenerated based on specific events. It allows us to have fast
+    and dynamic websites that are always online at a reasonable cost.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种ISR的变体中，再生发生在特定事件而不是固定间隔上。对于常规ISR，更新的页面仅在处理了页面用户请求的边缘节点上缓存。按需ISR重新生成并在边缘网络上重新分发页面，以便全球用户可以自动从边缘缓存中看到页面的最新版本，而无需看到过时内容。我们还避免了不必要的再生和无服务器函数调用，与常规ISR相比，减少了运营成本。因此，按需ISR为我们带来了性能优势和出色的开发体验。按需ISR最适合应基于特定事件重新生成的页面。它使我们能够以合理的成本拥有快速和动态的网站，始终在线。
+- en: Summary of Static Rendering
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 静态渲染摘要
+- en: 'Static rendering is an excellent pattern for websites where HTML can be generated
+    at build time. We have now covered different variations of static generation,
+    each of which is suitable for different use cases:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态渲染是在构建时可以生成HTML的网站的优秀模式。现在我们已经涵盖了静态生成的不同变体，每种都适合不同的用例：
+- en: Plain static rendering
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 纯静态渲染
+- en: Best for pages that do not contain dynamic data
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最适合不包含动态数据的页面
+- en: Static with client-side fetch
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态与客户端获取
+- en: Best for pages where data should refresh on every page load and which have stable
+    placeholder components
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最适合在每次页面加载时刷新数据并具有稳定占位符组件的页面
+- en: Incremental static regeneration
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 增量静态再生
+- en: Best for pages that should be regenerated on a certain interval or on-demand
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最适合应在特定间隔或按需重新生成的页面
+- en: On-demand ISR
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按需ISR
+- en: Best for pages that should be regenerated based on certain events
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最适合应基于特定事件重新生成的页面
+- en: There are use cases where static isn’t the best option. For example, SSR is
+    ideal for highly dynamic, personalized pages that are different for every user.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存在静态不是最佳选择的用例。例如，SSR非常适合高度动态、个性化的页面，这些页面对每个用户都不同。
+- en: Streaming SSR
+  id: totrans-107
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 流式SSR
+- en: With SSR or static rendering, you can reduce the amount of JavaScript so that
+    the time taken for the page to become interactive (TTI) is closer to the time
+    for FCP. Streaming the contents can reduce the TTI/FCP further while still server-rendering
+    the application. Instead of generating one large HTML file containing the necessary
+    markup for the current navigation, we can split it into smaller chunks. Node streams
+    allow us to stream data into the response object, which means we can continuously
+    send data down to the client. When the client receives the chunks of data, it
+    can start rendering the contents.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用SSR或静态渲染，可以减少JavaScript的量，使页面交互时间（TTI）接近FCP的时间。流式传输内容可以进一步减少TTI/FCP，同时仍然在服务器端渲染应用程序。不再生成一个包含当前导航所需标记的大型HTML文件，而是将其分割为较小的块。节点流允许我们将数据流式传输到响应对象中，这意味着我们可以持续向客户端发送数据。当客户端接收到数据块时，可以开始渲染内容。
+- en: React’s built-in `renderToNodeStream` allows us to send our application in smaller
+    chunks. As the client can start painting the UI when it’s still receiving data,
+    we can create a very performant first-load experience. Calling the `hydrate` method
+    on the received DOM nodes will attach the corresponding event handlers, which
+    makes the UI interactive.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React内置的`renderToNodeStream`允许我们将应用程序以较小的块发送。客户端在接收数据时可以开始绘制UI，因此我们可以创建非常高效的首次加载体验。在接收到的DOM节点上调用`hydrate`方法将附加相应的事件处理程序，使UI变得交互。
+- en: Streaming responds well to network backpressure. If the network is clogged and
+    unable to transfer any more bytes, the renderer gets a signal and stops streaming
+    until the network is cleared up. Thus, the server uses less memory and is more
+    responsive to I/O conditions. This enables your Node.js server to render multiple
+    requests simultaneously and prevents heavier requests from blocking lighter requests
+    for a long time. As a result, the site stays responsive even in challenging conditions.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 流式传输对网络背压响应良好。如果网络拥塞并且无法传输更多字节，则渲染器收到信号并停止流式传输，直到网络情况得以清理。因此，服务器使用的内存较少，对 I/O
+    条件更响应灵敏。这使得您的 Node.js 服务器能够同时渲染多个请求，并防止较重的请求长时间阻塞较轻的请求。结果，即使在复杂条件下，网站仍能保持响应性。
+- en: 'React introduced support for streaming in React 16, released in 2016\. It included
+    the following APIs in the `ReactDOMServer` to support streaming:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 在 2016 年发布的 React 16 中引入了对流式传输的支持。它在 `ReactDOMServer` 中包含以下 API 以支持流式传输：
+- en: '`ReactDOMServer.renderToNodeStream(element)`'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ReactDOMServer.renderToNodeStream(element)`'
+- en: The output HTML from this function is the same as `ReactDOMServer.renderToString(element)`
+    but is in a Node.js `ReadableStream` format instead of a string. The function
+    will only work on the server to render HTML as a stream. The client receiving
+    this stream can call `ReactDOM.hydrate()` to hydrate the page and make it interactive.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该函数的输出 HTML 与 `ReactDOMServer.renderToString(element)` 相同，但格式为 Node.js 的 `ReadableStream`，而不是字符串。该函数仅在服务器上工作，以流的形式渲染
+    HTML。接收此流的客户端可以调用 `ReactDOM.hydrate()` 来注水页面并使其交互。
+- en: '`ReactDOMServer.renderToStaticNodeStream(element)`'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ReactDOMServer.renderToStaticNodeStream(element)`'
+- en: This corresponds to `ReactDOMServer.renderToStaticMarkup(element)`. The HTML
+    output is the same but in a stream format. You can use it to render static, noninteractive
+    pages on the server and then stream them to the client.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这对应于 `ReactDOMServer.renderToStaticMarkup(element)`。输出的 HTML 格式相同，但以流格式提供。您可以使用它在服务器上渲染静态的非交互式页面，然后将其流式传输到客户端。
+- en: The readable stream output by both functions can emit bytes once you start reading
+    from it. You can achieve this by piping the readable stream to a writable stream,
+    such as the response object. The response object progressively sends chunks of
+    data to the client while waiting for new chunks to be rendered.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由这两个函数输出的可读流在开始读取后可以逐字节发出。您可以通过将可读流传送到可写流（如响应对象）来实现此目的。响应对象在等待新的数据块被渲染时，逐步向客户端发送数据块。
+- en: Edge SSR
+  id: totrans-117
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 边缘 SSR
+- en: Edge SSR enables you to server-render from all regions of a CDN and experience
+    a near-zero cold boot.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 边缘 SSR 能够让你从 CDN 的所有区域进行服务器渲染，并体验接近零冷启动。
+- en: Serverless functions can be used to generate the entire page server-side. The
+    edge runtime also allows HTTP streaming so that you can stream parts of the document
+    as soon as they are ready and hydrate these components granularly. This reduces
+    the time to FCP.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无服务器函数可用于在服务器端生成整个页面。边缘运行时还允许 HTTP 流式传输，因此您可以在文档部分准备就绪时立即流式传输它们，并逐个注水这些组件。这减少了首次内容渲染（FCP）的时间。
+- en: A use case for this pattern is building region-specific listing pages for users.
+    The majority of the page contains only static data; it’s just the listings that
+    require request-based data. Instead of server-rendering the entire page, we can
+    now choose to render only the listing component server-side and the rest edge-side.
+    Whereas we initially had to server-render the whole page to achieve this behavior,
+    we can now get the excellent performance of static rendering on the edge with
+    the dynamic benefits of SSR.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此模式的一个用例是为用户构建特定于区域的列表页面。页面的大部分仅包含静态数据；仅需基于请求的数据的列表。现在，我们可以选择仅在服务器端渲染列表组件并在边缘渲染其余部分，而不是必须完全服务器渲染整个页面以实现此行为。因此，我们现在可以在边缘获取静态渲染的优秀性能，并享有
+    SSR 的动态优势。
+- en: Hybrid Rendering
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 混合渲染
+- en: As the name suggests, hybrid rendering combines different approaches to focus
+    on delivering an optimal result. It represents a mental shift in how developers
+    approach web development, moving from a client-only starting point to a more versatile
+    combination of rendering strategies. Pages that can be served statically will
+    be prerendered. A dynamic strategy may be chosen for other pages in the app (e.g.,
+    ISR or SSR or CSR and streaming for subsequent navigations).
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如其名称所示，混合渲染结合了不同的方法，侧重于提供最佳结果。它代表了开发人员在如何处理 Web 开发时的心理转变，从仅客户端开始点到更多样化的渲染策略组合。可以静态提供的页面将被预渲染。对于应用程序中的其他页面（例如
+    ISR 或 SSR 或 CSR，并用于后续导航的流式传输），可能会选择动态策略。
+- en: Hybrid rendering conceptually challenges traditional terminology (SPA, MPA,
+    SSR, SSG) and emphasizes the need for new verbiage to describe modern web development
+    practices better. A web app need not be classified as an SPA or MPA anymore. It
+    can easily transition from one to the other based on the function served. Thus,
+    it provides the benefits of SPAs (no server needed) while avoiding issues with
+    static rendering (navigation without page reloads).
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 混合渲染在概念上挑战了传统的术语（SPA、MPA、SSR、SSG），并强调了描述现代网络开发实践的新术语的必要性。一个Web应用程序不再需要被分类为SPA或MPA。它可以根据提供的功能轻松过渡。因此，它提供了SPA的优点（无需服务器）同时避免了静态渲染（无页面重新加载的导航）的问题。
+- en: The shift in focus is not from writing SPAs to not writing SPAs but rather from
+    being locked into SPAs to using whatever rendering mode makes sense for each page,
+    thus entering the hybrid era. This shift is primarily mental, where developers
+    start with build-time and client rendering and add server rendering as needed
+    on a per-page basis.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意重点不是从编写SPA到不编写SPA，而是从被锁定于SPA到根据每个页面需求使用合适的渲染模式，因此进入了混合时代。这种转变主要是心态上的，开发人员从构建时和客户端渲染开始，并根据需要逐页添加服务器渲染。
+- en: 'As the web development landscape converges toward hybrid rendering, we see
+    that many frameworks, both within and outside the React universe, have started
+    supporting it. For example:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着网络开发景观向混合渲染收敛，我们看到许多框架，无论是在React宇宙内还是之外，都开始支持它。例如：
+- en: Next.js 13 combines React Server Components and the [Next.js App Router](https://oreil.ly/UEnVf)
+    to demonstrate the potential of hybrid rendering.
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Next.js 13结合React Server Components和[Next.js 应用程序路由器](https://oreil.ly/UEnVf)，展示了混合渲染的潜力。
+- en: '[Astro 2.0](https://oreil.ly/Sbfu8) brings the best of both static and dynamic
+    rendering instead of choosing between SSG and SSR.'
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Astro 2.0](https://oreil.ly/Sbfu8)带来了静态和动态渲染的最佳结合，而不是选择SSG或SSR。'
+- en: '[Angular Universal 11.1](https://oreil.ly/g076-) has native hybrid rendering
+    support. It can perform prerendering (SSG) for static routes and SSR for dynamic
+    routes.'
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Angular Universal 11.1](https://oreil.ly/g076-)支持原生混合渲染。它可以对静态路由执行预渲染（SSG），对动态路由执行SSR。'
+- en: '[Nuxt 3.0](https://oreil.ly/gCriy) lets you configure route rules for hybrid
+    rendering support.'
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Nuxt 3.0](https://oreil.ly/gCriy)允许你配置路由规则以支持混合渲染。'
+- en: Progressive Hydration
+  id: totrans-130
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 渐进式水合
+- en: Progressive hydration implies you can individually hydrate nodes over time so
+    that you request only the minimum necessary JavaScript at any time. By progressively
+    hydrating the application, we can delay the hydration of less critical parts of
+    the page.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渐进式水合意味着你可以随时间逐个水合节点，这样你可以在任何时候只请求最少必要的JavaScript。通过逐步水合应用程序，我们可以延迟页面较不重要部分的水合。
+- en: This way, we reduce the amount of JavaScript requested to make the page interactive
+    and only hydrate the nodes once the user needs them, for example, when a component
+    is visible in the viewport. Progressive hydration also helps avoid the most common
+    SSR rehydration pitfalls, where a server-rendered DOM tree is destroyed and immediately
+    rebuilt.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式，我们减少了请求页面交互所需的JavaScript量，并且仅在用户需要时才水合节点，例如，当组件在视口中可见时。渐进式水合还有助于避免最常见的SSR再水合陷阱，即服务器渲染的DOM树被销毁并立即重建。
+- en: 'The idea behind progressive hydration is to provide excellent performance by
+    activating your app in chunks. Any progressive hydration solution should also
+    consider how it will impact the overall UX. You cannot have chunks of the screen
+    popping up one after the other and blocking any activity or user input on the
+    chunks that have already loaded. Thus, the requirements for a holistic progressive
+    hydration implementation are as follows:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渐进式水合的理念是通过分块激活你的应用程序来提供优异的性能。任何渐进式水合解决方案都应考虑其对整体用户体验的影响。你不能让屏幕的块一个接一个地弹出，并阻止已加载的块上的任何活动或用户输入。因此，全面的渐进式水合实现需求如下：
+- en: Allows usage of SSR for all components
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 允许所有组件使用SSR
+- en: Supports splitting of code into individual components or chunks
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 支持将代码拆分为单独的组件或块
+- en: Supports client-side hydration of these chunks in a developer-defined sequence
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 支持按开发者定义的顺序在客户端水合这些块
+- en: Does not block user input on chunks that are already hydrated
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不会阻塞已经水合的块上的用户输入
+- en: Allows usage of some loading indicator for chunks with deferred hydration
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 允许在延迟水合的块中使用一些加载指示器
+- en: React concurrent mode will address all these requirements once it is available.
+    It allows React to work on different tasks simultaneously and switch between them
+    based on the given priority. When switching, a partially rendered tree need not
+    be committed so that the rendering task can continue once React switches back
+    to the same task.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦React并发模式可用，它将满足所有这些要求。它允许React同时处理不同的任务，并根据给定的优先级在它们之间进行切换。在切换时，不需要提交部分渲染树，这样渲染任务可以在React切换回相同任务时继续进行。
+- en: Concurrent mode can be used to implement progressive hydration. In this case,
+    the hydration of each chunk on the page becomes a task for React concurrent mode.
+    If a task of higher priority, like user input, needs to be performed, React will
+    pause the hydration task and switch to accepting the user input. Features like
+    `lazy()` and `Suspense()` allow you to use declarative loading states. These can
+    be used to show the loading indicator while chunks are lazy-loaded. `SuspenseList()`
+    can be used to define the priority for lazy-loading components. Dan Abramov has
+    shared a great [demo](https://oreil.ly/JHhPm) that shows the concurrent mode in
+    action and implements progressive hydration.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并发模式可用于实现渐进hydration。在这种情况下，页面上每个chunk的hydration成为React并发模式的一个任务。如果需要执行高优先级的任务，如用户输入，React将暂停hydration任务并切换到接受用户输入的状态。像`lazy()`和`Suspense()`这样的功能允许您使用声明式加载状态。这些状态可用于在懒加载chunk时显示加载指示器。`SuspenseList()`可用于定义懒加载组件的优先级。Dan
+    Abramov展示了一个很棒的[demo](https://oreil.ly/JHhPm)，展示了并发模式的运行并实现了渐进hydration。
+- en: Islands Architecture
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 岛屿架构
+- en: Katie Sylor-Miller and Jason Miller popularized the term [Islands architecture](https://oreil.ly/CYhom)
+    to describe a paradigm that aims to reduce the volume of JavaScript shipped through
+    “islands” of interactivity that can be independently delivered on top of otherwise
+    static HTML. Islands are a component-based architecture that suggests a compartmentalized
+    page view with static and dynamic islands. Most pages are a combination of static
+    and dynamic content. Usually, a page consists of static content with sprinkles
+    of interactive regions that you can demarcate. The static regions of the page
+    are pure noninteractive HTML and do not need hydration. The dynamic regions are
+    a combination of HTML and scripts capable of rehydrating themselves after rendering.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Katie Sylor-Miller和Jason Miller流行了术语[岛屿架构](https://oreil.ly/CYhom)，用来描述一种旨在通过可以独立交付的“互动岛屿”减少通过的JavaScript体积的范式。岛屿是一种基于组件的架构，建议采用具有静态和动态岛屿的隔离页面视图。大多数页面都是静态和动态内容的组合。通常，页面由纯非交互式HTML组成，并且不需要hydration。动态区域是HTML和脚本的组合，在渲染后能够重新hydration自己。
+- en: The Islands architecture facilitates SSR of pages with all of their static content.
+    However, in this case, the rendered HTML will include placeholders for dynamic
+    content. The dynamic content placeholders contain self-contained component widgets.
+    Each widget is similar to an app and combines server-rendered output and JavaScript
+    to hydrate the app on the client.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 岛屿架构有助于SSR页面及其所有静态内容。但在这种情况下，渲染的HTML将包含动态内容的占位符。动态内容占位符包含独立的组件小部件。每个小部件类似于一个应用程序，结合了服务器渲染的输出和JavaScript来在客户端hydration应用程序。
+- en: Islands architecture may be confused with progressive hydration, but there are
+    pretty distinct. In progressive hydration, the hydration architecture of the page
+    is top-down. The page controls the scheduling and hydration of individual components.
+    Each component has its hydration script in the Islands architecture that executes
+    asynchronously, independent of any other script on the page. A performance issue
+    in one component should not affect the other.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 岛屿架构可能会与渐进式hydration混淆，但它们是非常不同的。在渐进式hydration中，页面的hydration架构是自顶向下的。页面控制着各个组件的调度和hydration。而在岛屿架构中，每个组件都有自己的hydration脚本，可以独立于页面上的任何其他脚本异步执行。一个组件的性能问题不应影响其他组件。
+- en: Implementing Islands
+  id: totrans-145
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 实施岛屿
+- en: The Island architecture borrows concepts from different sources and aims to
+    combine them optimally. Template-based static site generators such as [Jekyll](https://oreil.ly/dlxdC)
+    and [Hugo](https://oreil.ly/WOKTz) support rendering static components to pages.
+    Most modern JavaScript frameworks also support [isomorphic rendering](https://oreil.ly/mre3v),
+    which allows you to use the same code to render elements on the server and client.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Island架构借鉴了不同来源的概念，并旨在最优地结合它们。基于模板的静态站点生成器（如[Jekyll](https://oreil.ly/dlxdC)和[Hugo](https://oreil.ly/WOKTz)）支持将静态组件渲染到页面上。大多数现代JavaScript框架也支持[同构渲染](https://oreil.ly/mre3v)，允许您在服务器和客户端上使用相同的代码来渲染元素。
+- en: 'Jason Miller’s post suggests using [`requestIdleCallback()`](https://oreil.ly/x7dpf)
+    to implement a scheduling approach for hydrating components. A framework that
+    supports Islands architecture should do the following:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jason Miller的帖子建议使用[`requestIdleCallback()`](https://oreil.ly/x7dpf)来实现组件水合的调度方法。支持Island架构的框架应执行以下操作：
+- en: Support static rendering of pages on the server with zero JavaScript.
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 支持在服务器上以零JavaScript进行页面的静态渲染。
+- en: Support embedding independent dynamic components via placeholders in static
+    content. Each dynamic component contains its scripts and can hydrate itself using
+    `requestIdleCallback()` as soon as the main thread is free.
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 支持通过静态内容中的占位符嵌入独立的动态组件。每个动态组件包含其脚本，并可以在主线程空闲时使用`requestIdleCallback()`进行水合。
+- en: Allow isomorphic rendering of components on the server with hydration on the
+    client to recognize the same component at both ends.
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 允许在服务器上以同构方式渲染组件，并在客户端上进行水合以识别同一组件。
+- en: 'The following frameworks support this to some extent at present:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，以下框架在某种程度上支持这一点：
+- en: Marko
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Marko
+- en: '[Marko](https://oreil.ly/-l3QP) is an open source framework developed and maintained
+    by eBay to improve server rendering performance. It supports Islands architecture
+    by combining streaming rendering with automatic partial hydration. HTML and other
+    static assets are streamed to the client as soon as they are ready. Automatic
+    partial hydration allows interactive components to hydrate themselves. Hydration
+    code is only shipped for interactive components, which can change state on the
+    browser. It is isomorphic, and the Marko compiler generates optimized code depending
+    on where it will run (client or server).'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Marko](https://oreil.ly/-l3QP) 是由eBay开发和维护的开源框架，旨在提高服务器渲染性能。它通过结合流式渲染和自动部分水合支持Island架构。HTML和其他静态资产会在准备好时即时流式传输到客户端。自动部分水合允许交互式组件自行水合。水合代码仅针对可在浏览器上更改状态的交互式组件进行提供。它是同构的，Marko编译器根据其将运行的位置（客户端或服务器）生成优化代码。'
+- en: Astro
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Astro
+- en: '[Astro](https://oreil.ly/QT77v) is a static site builder that can generate
+    lightweight static HTML pages from UI components built in other frameworks such
+    as React, Preact, Svelte, Vue, and others. Components that need client-side JavaScript
+    are loaded individually with their dependencies. Thus it provides built-in partial
+    hydration. Astro can also lazy-load components depending on when they become visible.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Astro](https://oreil.ly/QT77v) 是一个静态站点生成器，可以从在其他框架（如React、Preact、Svelte、Vue等）中构建的UI组件生成轻量级的静态HTML页面。需要客户端JavaScript的组件会单独加载其依赖项。因此，它提供了内置的部分水合能力。Astro还可以根据组件何时变得可见而进行懒加载。'
+- en: Eleventy + Preact
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Eleventy + Preact
+- en: '[Markus Oberlehner](https://oreil.ly/PBckZ) demonstrates the use of Eleventy
+    (11ty), a static site generator with isomorphic Preact components that can be
+    partially hydrated. It also supports lazy hydration. The component itself declaratively
+    controls its hydration. Interactive components use a `WithHydration` wrapper so
+    that they are hydrated on the client.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Markus Oberlehner](https://oreil.ly/PBckZ) 演示了Eleventy（11ty）的使用，这是一个具有同构Preact组件的静态站点生成器，可以进行部分水合。它还支持懒加载水合。组件本身可以声明式地控制其水合。交互式组件使用`WithHydration`包装器，以便它们在客户端上进行水合。'
+- en: Note that Marko and Eleventy predate the definition of Islands provided by Jason
+    but contain some of the features required to support it. Astro, however, was built
+    based on the definition and inherently supports the Islands architecture.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，Marko和Eleventy早于Jason提供的Islands定义，但包含了支持其所需功能的一些特性。然而，Astro是根据该定义构建的，并天生支持Island架构。
+- en: Pros and Cons
+  id: totrans-159
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 优缺点
+- en: 'Some of the potential benefits of implementing islands are as follows:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实施Islands的一些潜在好处如下：
+- en: Performance
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: Reduces the amount of JavaScript code shipped to the client. The code sent consists
+    only of the script required for interactive components. This is considerably less
+    than the script needed to re-create the virtual DOM for the entire page and rehydrate
+    all the elements. The smaller size of JavaScript automatically corresponds to
+    faster page loads.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 减少发送到客户端的JavaScript代码量。发送的代码仅包含用于交互式组件所需的脚本。这远远少于重新创建整个页面的虚拟DOM所需的脚本并重新hydrate所有元素的脚本。较小的JavaScript大小自动对应更快的页面加载。
+- en: SEO
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SEO
+- en: Since all the static content is rendered on the server, pages are SEO-friendly.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于所有静态内容都在服务器上呈现，页面对SEO友好。
+- en: Prioritization of important content
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重要内容的优先级设置
+- en: Key content (especially for blogs, news articles, and product pages) is available
+    almost immediately to the user.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主要内容（尤其是博客、新闻文章和产品页面）几乎立即向用户提供。
+- en: Accessibility
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 辅助功能
+- en: Using standard static HTML links to access other pages helps to improve the
+    accessibility of the website.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用标准静态HTML链接访问其他页面有助于提高网站的可访问性。
+- en: Component-based
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于组件的
+- en: The design offers all advantages of component-based architecture, such as reusability
+    and maintainability.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该设计提供了基于组件的架构的所有优势，例如可重用性和可维护性。
+- en: Despite the advantages, the concept is still in a nascent stage. The only options
+    for developers to implement Islands are to use one of the few available frameworks
+    or develop the architecture yourself. Migrating existing sites to Astro or Marko
+    would require additional efforts. The architecture is also unsuitable for highly
+    interactive pages like social media apps that would probably require thousands
+    of islands.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管有这些优势，这一概念仍处于初期阶段。开发人员实施Islands的唯一选项是使用少数可用的框架之一或自行开发架构。将现有网站迁移到Astro或Marko将需要额外的工作。该架构也不适用于像社交媒体应用程序这样可能需要成千上万个Islands的高度互动页面。
+- en: React Server Components
+  id: totrans-172
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React服务器组件
+- en: '[React Server Components (RSC)](https://oreil.ly/nYygy) are stateless React
+    components designed to run on the server. They aim to enable modern UX with a
+    server-driven mental model. These zero-bundle-size components facilitate a seamless
+    code transition experience, or “knitting”, between server and client components.
+    This differs from the SSR of components and could result in significantly smaller
+    client-side JavaScript bundles.'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[React服务器组件（RSC）](https://oreil.ly/nYygy)是设计用于在服务器上运行的无状态React组件。它们旨在通过服务器驱动的心理模型实现现代UX。这些零捆绑大小的组件促进了在服务器和客户端组件之间的无缝代码转换体验或“编织”。这与组件的SSR不同，可能会导致客户端JavaScript包的显著减少。'
+- en: RSC uses `async`/`await` as the primary way to fetch data from Server Components.
+    They let you incorporate data fetching as an integral part of the component tree,
+    allowing for top-level `await` and server-side data serialization. Components
+    can thus be refetched regularly. An application with components that re-render
+    when there is new data can be run on the server, limiting how much code needs
+    to be sent to the client. This combines the rich interactivity of client-side
+    apps with the improved performance of traditional server rendering.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RSC使用`async`/`await`作为从服务器组件获取数据的主要方式。它们允许您将数据获取作为组件树的一部分，支持顶层`await`和服务器端数据序列化。组件因此可以定期重新获取。具有在有新数据时重新渲染组件的应用程序可以在服务器上运行，从而限制需要发送到客户端的代码量。这结合了客户端应用程序的丰富交互性和传统服务器渲染的改进性能。
+- en: RSC protocol enables the server to expose a special endpoint for the client
+    to request parts of the component tree, allowing for SPA-like routing with MPA-like
+    architecture. This allows merging the server component tree with the client-side
+    tree without a loss of state and enables scaling up to more components.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RSC协议使服务器能够为客户端公开一个特殊的端点，以请求组件树的部分，允许SPA样式的路由与MPA样式的架构结合。这允许将服务器组件树与客户端树合并而无状态丢失，并支持扩展到更多组件。
+- en: Server Components are not a replacement for SSR. When paired together, they
+    support quickly rendering in an intermediate format, then having SSR infrastructure
+    rendering this into HTML, enabling early paints to still be fast. We SSR the Client
+    Components, which the Server Components emit, similar to how SSR is used with
+    other data-fetching mechanisms.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '服务器组件不能替代SSR。当两者配合使用时，它们支持快速以中间格式渲染，然后通过SSR基础设施将其呈现为HTML，从而仍然实现快速首次绘制。我们将客户端组件作为服务器组件发出，类似于其他数据获取机制中使用的SSR。 '
+- en: RSC provides the specification for components. Adoption of RSC depends on frameworks
+    implementing the feature. It is technically possible to use RSC with any React
+    framework, enabling React’s own flavor of [partial hydration](https://oreil.ly/CTvSX)
+    with an end-state of hybrid rendering. Next.js has already introduced support
+    through its App Router feature. The React team believes RSC will eventually be
+    widely adopted and change the ecosystem.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RSC 提供了组件的规范。RSC 的采纳取决于框架是否实现了该功能。技术上可以在任何 React 框架中使用 RSC，通过其 App Router 功能启用了
+    React 自己的部分水合功能。React 团队认为 RSC 最终将被广泛采用并改变生态系统。Next.js 已经通过其 App Router 功能引入了支持。
+- en: Hybrid Rendering with RSC and the Next.js App Router
+  id: totrans-178
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 RSC 和 Next.js App Router 进行混合渲染
+- en: Next.js 13 introduced the [App Router](https://oreil.ly/2fkjH) with new features,
+    conventions, and support for RSC. Components in the app directory are RSC by default,
+    promoting automatic adoption and improved performance.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 13 引入了 [App Router](https://oreil.ly/2fkjH)，带来了新特性、约定和对 RSC 的支持。应用目录中的组件默认为
+    RSC，促进了自动采纳和提升了性能。
+- en: RSC provide benefits such as leveraging server infrastructure and keeping large
+    dependencies server-side, leading to better performance and reduced client-side
+    bundle size. The Next.js App Router combines server rendering and client-side
+    interactivity, progressively enhancing the application for a seamless user experience.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RSC 提供了诸如利用服务器基础设施、将大型依赖保留在服务器端等优点，从而提升了性能并减少了客户端捆绑包的大小。Next.js App Router 结合了服务器渲染和客户端交互，逐步增强了应用程序，提供了无缝的用户体验。
+- en: Client Components can be added to introduce client-side interactivity, similar
+    to the functionality in Next.js 12 and earlier versions. The “use client” directive
+    can mark components as Client Components. Components without the “use client”
+    directive are automatically rendered as Server Components if not imported by another
+    Client Component.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以添加客户端组件以引入类似于 Next.js 12 及更早版本中的客户端交互功能。"use client" 指令可以标记组件为客户端组件。如果未被其他客户端组件导入，则未带
+    "use client" 指令的组件将自动渲染为服务器组件。
+- en: Server and Client Components can be interleaved in the same component tree,
+    with React handling the merge of both environments. Next.js users have seen [performance
+    improvements](https://oreil.ly/sfKEC) after adopting RSC and the app directory
+    in production.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Server 和 Client 组件可以交错在同一组件树中，React 负责合并这两种环境。在生产中采用 RSC 和应用目录后，Next.js 用户看到了
+    [性能改进](https://oreil.ly/sfKEC)。
+- en: Summary
+  id: totrans-183
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: This chapter introduced many patterns that attempt to balance the capabilities
+    of CSR and SSR. Depending on the type of the application or the page type, some
+    of the patterns may be more suitable than others. The chart in [Figure 13-1](#renderingpatterns)
+    compares the highlights of different patterns and provides use cases for each.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了许多试图平衡 CSR 和 SSR 能力的模式。根据应用程序类型或页面类型的不同，某些模式可能比其他模式更适合。图表中的 [图 13-1](#renderingpatterns)
+    比较了不同模式的亮点，并为每个模式提供了使用案例。
+- en: '![ljd2 1301](Images/ljd2_1301.png)'
+  id: totrans-185
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ljd2 1301](Images/ljd2_1301.png)'
+- en: Figure 13-1\. Rendering patterns
+  id: totrans-186
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-1\. 渲染模式
+- en: The following table from [Patterns for Building JavaScript Websites in 2022](https://oreil.ly/Qg_h6)
+    offers another view pivoted by key application characteristics. It should be helpful
+    for anyone looking for a suitable pattern for common [application holotypes](https://oreil.ly/qgaKE).
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自 [2022 年构建 JavaScript 网站的模式](https://oreil.ly/Qg_h6) 的以下表格提供了另一种通过关键应用特征进行旋转的视图。对于寻找常见
+    [应用原型](https://oreil.ly/qgaKE) 的合适模式的任何人都应该很有帮助。
+- en: '|  | **Portfolio** | **Content** | **Storefront** | **Social network** | **Immersive**
+    |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | **投资组合** | **内容** | **商店前端** | **社交网络** | **沉浸式** |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| **Holotype** | Personal blog | CNN | Amazon | Social network | Figma |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| **Holotype** | 个人博客 | CNN | Amazon | 社交网络 | Figma |'
+- en: '| **Interactivity** | Minimal | Linked articles | Purchase | Multipoint, real
+    time | Everything |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| **互动性** | 最小化 | 关联文章 | 购买 | 多点实时 | 一切 |'
+- en: '| **Session depth** | Shallow | Shallow | Shallow to medium | Extended | Deep
+    |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| **会话深度** | 浅层 | 浅层 | 浅层到中层 | 扩展 | 深层 |'
+- en: '| **Values** | Simplicity | Discover-ability | Load performance | Dynamicism
+    | Immersiveness |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| **价值观** | 简约性 | 发现性 | 负载性能 | 动态性 | 沉浸感 |'
+- en: '| **Routing** | Server | Server, hybrid | Hybrid, transitional | Transitional,
+    client | Client |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| **路由** | 服务器 | 服务器，混合 | 混合，过渡 | 过渡，客户端 | 客户端 |'
+- en: '| **Rendering** | Static | Static, SSR | Static, SSR | SSR | CSR |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| **渲染** | 静态 | 静态，SSR | 静态，SSR | SSR | CSR |'
+- en: '| **Hydration** | None | Progressive, partial | Partial, resumable | Any |
+    None (CSR) |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| **水合** | 无 | 逐步、部分 | 部分、可继续 | 任意 | 无 (CSR) |'
+- en: '| **Example framework** | 11ty | Astro, Elder | Marko, Qwik, Hydrogen | Next,
+    Remix | Create React App |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| **示例框架** | 11ty | Astro, Elder | Marko, Qwik, Hydrogen | Next, Remix | 创建
+    React 应用 |'
+- en: We have now discussed some interesting React patterns for components, state
+    management, rendering, and others. Libraries like React do not enforce a specific
+    application structure, but there are recommended best practices for organizing
+    your React projects. Let’s explore this in the next chapter.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在已经讨论了一些有趣的 React 模式，包括组件、状态管理、渲染等。像 React 这样的库并不强制执行特定的应用程序结构，但是有推荐的最佳实践来组织你的
+    React 项目。让我们在下一章节探讨这个问题。

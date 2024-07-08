@@ -1,0 +1,456 @@
+- en: Chapter 6\. CRUD Operations
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第6章 CRUD操作
+- en: The first time I heard the term “CRUD application,” I wrongfully assumed that
+    it referred to an application that did something dirty or tricky. Admittedly,
+    “CRUD” sounds as if it refers to something that would be scraped off the bottom
+    of a shoe. In fact, the acronym was first popularized in the early 1980s by British
+    technology author James Martin in reference to applications that create, read,
+    update, and delete data. Though the term has been around for well over a quarter
+    of a century, it still applies to many applications developed today. Consider
+    the applications that you interact with daily—to-do lists, spreadsheets, content
+    management systems, text editors, social media websites, and several others—and
+    chances are that many of them fall into the CRUD application format. A user creates
+    some data, accesses or reads data, and may update or delete that data.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我第一次听到“CRUD 应用程序”这个术语时，错误地认为它指的是一个做一些肮脏或诡计的应用程序。诚然，“CRUD”听起来好像指的是可以从鞋底上刮掉的东西。事实上，这个首字母缩略词最早在20世纪80年代初由英国技术作家詹姆斯·马丁（James
+    Martin）流行起来，用于描述创建、读取、更新和删除数据的应用程序。尽管这个术语已经存在了超过四分之一个世纪，但今天仍然适用于许多开发的应用程序。想想你每天使用的应用程序
+    - 待办事项列表、电子表格、内容管理系统、文本编辑器、社交媒体网站等等 - 很有可能其中许多都属于CRUD应用程序的格式。用户创建一些数据，访问或读取数据，可能会更新或删除该数据。
+- en: Our Notedly application will follow the CRUD pattern. Users will be able to
+    create, read, update, and delete their own notes. In this chapter, we’ll implement
+    the essential CRUD functionality of our API by connecting our resolvers and database.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的Notedly应用程序将遵循CRUD模式。用户将能够创建、读取、更新和删除他们自己的笔记。在本章中，我们将通过连接我们的解析器和数据库来实现API的基本CRUD功能。
+- en: Separating Our GraphQL Schema and Resolvers
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 分离我们的GraphQL模式和解析器
+- en: Currently our *src/index.js* file is home to our Express/Apollo server code
+    as well as our API’s schema and resolvers. As you can imagine, this could get
+    a bit unwieldy as our codebase grows. Before this happens, let’s take some time
+    to do a minor refactor that separates our schema, resolvers, and server code.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前我们的*src/index.js*文件包含了我们的Express/Apollo服务器代码以及我们API的模式和解析器。可以想象，随着代码库的增长，这可能会变得有些笨重。在发生这种情况之前，让我们花点时间进行一些小的重构，将我们的模式、解析器和服务器代码分离开来。
+- en: 'To begin, let’s move our GraphQL schema to its own file. First, we’ll make
+    a new file called *src/schema.js* in the *src* folder and then move our schema
+    content, found in our `typeDefs` variable, to that file. To do so, we’ll also
+    need to import the `gql` schema language that comes with the `apollo-server-express`
+    package and export our schema as a module, using Node’s `module.exports` method.
+    While we’re at it, we can also remove the `hello` query, which we won’t need in
+    our final application:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们将我们的GraphQL模式移到单独的文件中。首先，在*src*文件夹中创建一个名为*src/schema.js*的新文件，然后将我们的模式内容移动到该文件中，该内容在我们的`typeDefs`变量中找到。为此，我们还需要导入`apollo-server-express`包中提供的`gql`模式语言，并将我们的模式作为模块导出，使用Node的`module.exports`方法。顺便说一句，我们还可以删除`hello`查询，因为在我们的最终应用程序中不需要它：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'We can now update our *src/index.js* file to use this external schema file
+    by importing it and removing the `gql` import from `apollo-server-express` like
+    so:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以更新我们的*src/index.js*文件，使用这个外部模式文件来导入它，并删除`apollo-server-express`中的`gql`导入，如下所示：
+- en: '[PRE1]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Now that we have isolated our GraphQL schema to its own file, let’s do something
+    similar for our GraphQL resolver code. Our resolver code will encompass the vast
+    majority of our API’s logic, so first we’ll create a folder to house this code,
+    called *resolvers*. Within the *src/resolvers* directory we’ll begin with three
+    files: *src/resolvers/index.js*, *src/resolvers/query.js*, and *src/resolvers/mutation.js*.
+    Similar to the pattern we followed in our database models, the *src/resolvers/index.js*
+    file will be used to import our resolver code into a single exported module. Go
+    ahead and set up this file like so:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经将我们的GraphQL模式隔离到自己的文件中，让我们为我们的GraphQL解析器代码做类似的事情。我们的解析器代码将涵盖大多数API的逻辑，所以我们首先将创建一个名为*resolvers*的文件夹来存放这些代码，在*src/resolvers*目录中，我们将从三个文件开始：*src/resolvers/index.js*、*src/resolvers/query.js*和*src/resolvers/mutation.js*。与我们在数据库模型中遵循的模式类似，*src/resolvers/index.js*文件将用于将我们的解析器代码导入单个导出模块中。请按照以下方式设置此文件：
+- en: '[PRE2]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Now you can set up the *src/resolvers/query.js* for the API query code:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以为API查询代码设置*src/resolvers/query.js*：
+- en: '[PRE3]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Then move the mutation code to the *src/resolvers/mutation.js* file:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后将变异代码移动到*src/resolvers/mutation.js*文件中：
+- en: '[PRE4]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Next, the server to import the resolver code by adding the following line to
+    the *src/index.js* file:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，服务器通过在*src/index.js*文件中添加以下行来导入解析器代码：
+- en: '[PRE5]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The final step in refactoring our resolvers is to connect them to our database
+    models. As you may have noticed, our resolver modules reference these models,
+    but have no way of accessing them. To fix this problem, we’ll use a concept that
+    Apollo Server calls *context*, which allows us to pass specific information along
+    from our server code to an individual resolver with each request. For now, this
+    may feel excessive, but it will be useful for incorporating user authentication
+    into our application. To do this, we’ll update our Apollo Server setup code in
+    *src/index.js* with a `context` function that will return our database models:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重构解析器的最后一步是将它们连接到我们的数据库模型。正如您可能已经注意到的，我们的解析器模块引用这些模型，但无法访问它们。为了解决这个问题，我们将使用
+    Apollo Server 称为*上下文*的概念，它允许我们从服务器代码传递特定信息到每个请求的单个解析器。暂时来看，这可能有些多余，但在将用户身份验证整合到我们的应用程序中时会非常有用。为此，我们将在*src/index.js*中更新我们的
+    Apollo Server 设置代码，添加一个`context`函数，该函数将返回我们的数据库模型：
+- en: '[PRE6]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Now we’ll update each of our resolvers to make use of this context by adding
+    `{` `models` `}` as the third parameter in each function.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将更新每个解析器，以便利用这个上下文，通过在每个函数的第三个参数中添加`{` `models` `}`。
+- en: 'Do the following in *src/resolvers/query.js*:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/resolvers/query.js*中执行以下操作：
+- en: '[PRE7]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Move the mutation code to the *src/resolvers/mutation.js* file:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将变更代码移至*src/resolvers/mutation.js*文件：
+- en: '[PRE8]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Our *src/index.js* file will now be simplified as follows:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们的*src/index.js*文件将简化如下：
+- en: '[PRE9]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Writing Our GraphQL CRUD Schema
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 编写我们的 GraphQL CRUD 架构
+- en: Now that we’ve refactored our code for flexibility, let’s begin implementing
+    our CRUD operations. We are already able to Create and Read notes, which leaves
+    us with implementing our Update and Delete functionality. First, we’ll want to
+    update our schema.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经为灵活性重构了我们的代码，让我们开始实施我们的 CRUD 操作。我们已经能够创建和读取笔记，现在剩下的是实现我们的更新和删除功能。首先，我们将更新我们的架构。
+- en: Since update and delete operations will make changes to our data, they will
+    be mutations. Our update note will require an ID argument to locate the note as
+    well as the new note content. The update query will then return the newly updated
+    note. For our delete operation, our API will return a Boolean value of `true`
+    to inform us that the note deletion was successful.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于更新和删除操作将更改我们的数据，它们将成为变更操作。我们的更新笔记将需要一个 ID 参数来定位笔记以及新的笔记内容。更新查询然后将返回新更新的笔记。对于我们的删除操作，我们的
+    API 将返回一个布尔值`true`，以通知我们笔记删除成功。
+- en: 'Update the `Mutation` schema in *src/schema.js* as follows:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新*src/schema.js*中的`Mutation`架构如下：
+- en: '[PRE10]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: With these additions, our schema is now ready to perform CRUD operations.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些添加，我们的架构现在可以执行 CRUD 操作。
+- en: CRUD Resolvers
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: CRUD 解析器
+- en: With our schema in place, we can now update our resolvers to either remove or
+    update a note. Let’s begin with our `deleteNote` mutation. To delete a note, we
+    will use Mongoose’s `findOneAndRemove` method and pass it the `id` of the item
+    that we want to delete. If our item is found and deleted, we’ll return `true`
+    to the client, but if our item fails to delete, we’ll return `false`.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了我们的架构，我们现在可以更新我们的解析器来删除或更新笔记。让我们从我们的`deleteNote`变更操作开始。要删除一个笔记，我们将使用 Mongoose
+    的`findOneAndRemove`方法，并传递我们想要删除的项目的`id`。如果找到并删除了我们的项目，我们将向客户端返回`true`，但如果删除失败，我们将返回`false`。
+- en: 'In *src/resolvers/mutation.js*, add the following, within the `module.exports`
+    object:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/resolvers/mutation.js*中，添加以下内容，位于`module.exports`对象内部：
+- en: '[PRE11]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Now we can run our mutation in the GraphQL Playground. In a new tab in the
+    Playground, write the following mutation, being sure to use an ID from one of
+    the notes in your database:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在 GraphQL Playground 中运行我们的变更操作。在 Playground 的新标签页中，编写以下变更操作，确保使用数据库中某个笔记的
+    ID：
+- en: '[PRE12]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'If the note was successfully deleted, you should receive a response of `true`:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果笔记成功删除，您应该会收到`true`的响应：
+- en: '[PRE13]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'If you pass a nonexistent ID, you’ll receive a response of `"deleteNote": false`.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果您传递一个不存在的 ID，您将收到一个`"deleteNote": false`的响应。'
+- en: 'With our delete functionality in place, let’s write our `updateNote` mutation.
+    To do this, we will use Mongoose’s `findOneAndUpdate` method. This method will
+    take an initial parameter of a query to find the correct note in the database,
+    followed by a second parameter where we’ll `$set` new note content. Lastly, we’ll
+    pass a third parameter of `new: true`, which instructs the database to return
+    the updated note content to us.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '有了我们的删除功能，让我们编写我们的 `updateNote` 变异。为此，我们将使用 Mongoose 的 `findOneAndUpdate` 方法。此方法将采用查询的初始参数，在数据库中查找正确的笔记，然后是第二个参数，其中我们将
+    `$set` 新的笔记内容。最后，我们将传递 `new: true` 的第三个参数，这指示数据库将更新后的笔记内容返回给我们。'
+- en: 'In *src/resolvers/mutation.js*, add the following within the `module.exports`
+    object:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/mutation.js* 中，在 `module.exports` 对象中添加以下内容：
+- en: '[PRE14]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'We can now visit the GraphQL Playground in our browser to try out our `updateNote`
+    mutation. In a new tab in the playground, write a mutation with the parameters
+    of an `id` and `content`:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以访问浏览器中的 GraphQL Playground 来尝试我们的 `updateNote` 变异。在播放器中的新标签页中，编写一个具有 `id`
+    和 `content` 参数的变异：
+- en: '[PRE15]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'If our mutation worked as intended, the GraphQL response should read as follows:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的变异按预期工作，GraphQL 响应应该如下所示：
+- en: '[PRE16]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: If we pass an incorrect ID, the response fails and we will receive an internal
+    server error with an `Error updating note` message.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们传递了错误的 ID，响应将失败，并且我们将收到一个带有 `Error updating note` 消息的内部服务器错误。
+- en: We are now able to create, read, update, and delete notes. With this we have
+    full CRUD functionality in our API.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们能够创建、读取、更新和删除笔记。通过这一步骤，我们在 API 中拥有了完整的 CRUD 功能。
+- en: Date and Time
+  id: totrans-50
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 日期和时间
+- en: When we created our database schema, we requested that Mongoose automatically
+    store timestamps to record when entries are created and updated in the database.
+    This information will be useful in our application, as it will allow us to show
+    the user when a note was created or last edited within our user interface. Let’s
+    add `createdAt` and `updatedAt` fields to our schema so we can return these values.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建数据库模式时，我们请求 Mongoose 自动存储时间戳，记录数据库中条目的创建和更新时间。这些信息在我们的应用程序中非常有用，因为它们允许我们在用户界面中显示笔记的创建或最后编辑时间。让我们将
+    `createdAt` 和 `updatedAt` 字段添加到我们的模式中，以便我们可以返回这些值。
+- en: You may recall that GraphQL allows for the default types of `String`, `Boolean`,
+    `Int`, `Float`, and `ID`. Unfortunately GraphQL does not come with a built-in
+    date scalar type. We *could* use the `String` type, but this would mean that we
+    wouldn’t be taking advantage of the type validation that GraphQL offers, ensuring
+    that our dates and times are actually dates and times. Instead, we’ll create a
+    custom scalar type. A custom type allows us to define a new type and validate
+    it against every query and mutation that requests data of that type.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能记得 GraphQL 允许默认类型为 `String`、`Boolean`、`Int`、`Float` 和 `ID`。不幸的是，GraphQL 不带有内置的日期标量类型。我们*可以*使用
+    `String` 类型，但这意味着我们无法利用 GraphQL 提供的类型验证，以确保我们的日期和时间确实是日期和时间。相反，我们将创建一个自定义标量类型。自定义类型允许我们定义一个新类型，并针对请求该类型数据的每个查询和变异进行验证。
+- en: 'Let’s update our GraphQL schema in *src/schema.js* by adding a custom scalar
+    at the top of our `GQL` string literal:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过在 *src/schema.js* 中的 GraphQL 字符串文字的顶部添加自定义标量来更新我们的 GraphQL 模式：
+- en: '[PRE17]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now, within the `Note` type, add the `createdAt` and `updatedAt` fields:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 `Note` 类型中添加 `createdAt` 和 `updatedAt` 字段：
+- en: '[PRE18]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: The last step is to validate this new type. While we can write our own validation,
+    for our use case we’ll use the [`graphql-iso-date` package](https://oreil.ly/CtmP6).
+    To do so we’ll add validation to any resolver function that requests a value with
+    a type of `DateTime`.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一步是验证这种新类型。虽然我们可以编写自己的验证，但对于我们的用例，我们将使用[`graphql-iso-date` 包](https://oreil.ly/CtmP6)。为此，我们将在任何请求具有
+    `DateTime` 类型的值的解析器函数中添加验证。
+- en: 'In the *src/resolvers/index.js* file, import the package and add a `DateTime`
+    value to the exported resolvers like so:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/index.js* 文件中，导入包并将 `DateTime` 值添加到导出的解析器中，如下所示：
+- en: '[PRE19]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Now if we visit the GraphQL Playground in our browser and refresh the page,
+    we can validate that our custom types work as intended. If we consult our schema,
+    we can see that the `createdAt` and `updatedAt` fields have a type of `DateTime`.
+    As [Figure 6-1](#crud_datetime) shows, the documentation of this type states that
+    it is a “date-time string at UTC.”
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们在浏览器中访问 GraphQL Playground 并刷新页面，我们可以验证我们的自定义类型是否按预期工作。如果查看我们的模式，我们可以看到
+    `createdAt` 和 `updatedAt` 字段的类型是 `DateTime`。如[图 6-1](#crud_datetime)所示，此类型的文档说明其为“UTC
+    时间的日期时间字符串”。
+- en: '![The DateTime type as shown in GraphQL Playground](assets/jsev_0601.png)'
+  id: totrans-61
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在GraphQL Playground中显示的DateTime类型](assets/jsev_0601.png)'
+- en: Figure 6-1\. Our schema now features DateTime types
+  id: totrans-62
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图6-1\. 我们的模式现在具有DateTime类型
+- en: 'To test this, let’s write a `newNote` mutation in the GraphQL Playground that
+    includes our date fields:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要测试这个功能，让我们在GraphQL Playground中编写一个`newNote`变异，其中包括我们的日期字段：
+- en: '[PRE20]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: This will return `createdAt` and `updatedAt` values as an ISO-formatted date.
+    If we then run an `updateNote` mutation against the same note, we’ll see an `updatedAt`
+    value that differs from the `createdAt` date.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将返回`createdAt`和`updatedAt`值作为ISO格式的日期。如果我们然后对同一条笔记运行`updateNote`变异，我们将看到一个`updatedAt`值，它与`createdAt`日期不同。
+- en: For more information on defining and validating custom scalar types, I recommend
+    Apollo Server’s [“Custom scalars and enums” documentation](https://oreil.ly/0rWAC).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关定义和验证自定义标量类型的更多信息，我建议查阅Apollo Server的[“自定义标量和枚举”文档](https://oreil.ly/0rWAC)。
+- en: Conclusion
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we added create, read, update, and delete (CRUD) functionality
+    to our API. CRUD applications are an incredibly common pattern used by many applications.
+    I encourage you to look at the applications that you interact with daily and think
+    about how their data may fit into this pattern. In the next chapter, we will add
+    functionality to our API to create and authenticate user accounts.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们为我们的API添加了创建、读取、更新和删除（CRUD）功能。CRUD 应用程序是许多应用程序使用的一种非常常见的模式。我鼓励你看看你每天与之交互的应用程序，并思考它们的数据如何适合这种模式。在下一章中，我们将为我们的API添加功能来创建和验证用户账户。

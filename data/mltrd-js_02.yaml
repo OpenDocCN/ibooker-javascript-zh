@@ -1,0 +1,1065 @@
+- en: Chapter 1\. Introduction
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第一章\. 引言
+- en: Computers used to be much simpler. That’s not to say they were easy to use or
+    write code for, but conceptually there was a lot less to work with. PCs in the
+    1980s typically had a single 8-bit CPU core and not a whole lot of memory. You
+    typically could only run a single program at one time. What we think of these
+    days as operating systems would not even be running at the same time as the program
+    the user was interacting with.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算机过去要简单得多。这并不是说它们易于使用或编写代码，但从概念上讲，可用的东西要少得多。20世纪80年代的个人电脑通常只有一个8位CPU核心，而且内存并不多。通常情况下，你只能一次运行一个程序。如今我们所认识的操作系统甚至不会与用户交互的程序同时运行。
+- en: Eventually, people wanted to run more than one program at once, and multitasking
+    was born. This allowed operating systems to run several programs at the same time
+    by switching execution between them. Programs could decide when it would be an
+    appropriate time to let another program run by yielding execution to the operating
+    system. This approach is called *cooperative multitasking*.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终，人们希望能够同时运行多个程序，于是多任务处理诞生了。这使得操作系统能够通过在程序之间切换执行来同时运行多个程序。程序可以通过让出执行权给操作系统来决定何时适当地让另一个程序运行。这种方法被称为*协作式多任务*。
+- en: In a cooperative multitasking environment, when a program fails to yield execution
+    for any reason, no other program can continue executing. This interruption of
+    other programs is not desirable, so eventually operating systems moved toward
+    *preemptive multitasking*. In this model, the operating system would determine
+    which program would run on the CPU at which time, using its own notion of scheduling,
+    rather than relying on the programs themselves to be the sole deciders of when
+    to switch execution. To this day, almost every operating system uses this approach,
+    even on multi-core systems, because we generally have more programs running than
+    we have CPU cores.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在协作式多任务环境中，如果程序由于任何原因未能让出执行权，则没有其他程序可以继续执行。这种打断其他程序的行为是不可取的，因此操作系统最终向*抢占式多任务*靠拢。在这种模型中，操作系统会确定在何时将哪个程序运行在CPU上，使用自己的调度概念，而不是依赖于程序自身决定何时切换执行。直到今天，几乎每个操作系统都使用这种方法，即使在多核系统上也是如此，因为通常我们运行的程序比CPU核心要多。
+- en: Running multiple tasks at once is extremely useful for both programmers and
+    users. Before threads, a single program (that is, a single *process*) could not
+    have multiple tasks running at the same time. Instead, programmers wishing to
+    perform tasks concurrently would either have to split up the task into smaller
+    chunks and schedule them inside the process or run separate tasks in separate
+    processes and have them communicate with each other.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同时运行多个任务对程序员和用户来说都非常有用。在引入线程之前，单个程序（即单个*进程*）无法同时运行多个任务。相反，希望并发执行任务的程序员要么将任务分割成较小的部分并在进程内部进行调度，要么在不同的进程中运行独立的任务并通过彼此通信。
+- en: Even today, in some high-level languages the appropriate way to run multiple
+    tasks at once is to run additional processes. In some languages, like Ruby and
+    Python, there’s a *global interpreter lock (GIL)*, meaning only one thread can
+    be executing at a given time. While this makes memory management far more practical,
+    it makes multithreaded programming not as attractive to programmers, and instead
+    multiple processes are employed.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使在今天，某些高级语言中运行多个任务的适当方式仍然是运行额外的进程。在一些语言中，如Ruby和Python，存在*全局解释器锁（GIL）*，意味着一次只能执行一个线程。虽然这使得内存管理更加实际，但使得多线程编程对程序员来说并不那么有吸引力，而是采用多进程的方式。
+- en: Until fairly recently, JavaScript was a language where the only multitasking
+    mechanisms available were splitting tasks up and scheduling their pieces for later
+    execution, and in the case of Node.js, running additional processes. We’d typically
+    break code up into asynchronous units using callbacks or promises. A typical chunk
+    of code written in this manner might look something like [Example 1-1](#ex_async_code),
+    breaking up the operations by callbacks or `await`.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直到不久前，JavaScript是一种仅支持将任务分割并安排其后续执行的语言，在Node.js的情况下则运行额外的进程。我们通常会使用回调函数或Promise将代码分割成异步单元。用这种方式编写的典型代码块可能看起来像是[示例 1-1](#ex_async_code)，通过回调或`await`来分割操作。
+- en: Example 1-1\. A typical chunk of asynchronous JavaScript code, using two different
+    patterns
+  id: totrans-7
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-1\. 使用两种不同模式编写的典型异步JavaScript代码块的示例
+- en: '[PRE0]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Today, in all major JavaScript environments, we have access to threads, and
+    unlike Ruby and Python, we don’t have a GIL making them effectively useless for
+    performing CPU-intensive tasks. Instead, other trade-offs are made, like not sharing
+    JavaScript objects across threads (at least not directly). Still, threads are
+    useful to JavaScript developers for cordoning off CPU-intensive tasks. In the
+    browser, there are also special-purpose threads that have feature sets available
+    to them that are different from the main thread. The details of how we can do
+    this are the topics of later chapters, but to give you an idea, spawning a new
+    thread and handling a message in a browser can be as simple as [Example 1-2](#ex_intro_spawn_thread).
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如今，在所有主要的JavaScript环境中，我们都可以访问线程，与Ruby和Python不同的是，我们没有全局解释器锁（GIL），使它们在执行CPU密集型任务时变得无效。相反，会做出其他权衡，比如不直接在线程之间共享JavaScript对象。尽管如此，线程对JavaScript开发人员来说仍然是有用的，用于隔离CPU密集型任务。在浏览器中，还有专用线程，它们具有与主线程不同的功能集。我们可以做到这一点的详细内容是后续章节的主题，但是为了给您一个概念，例如在浏览器中生成一个新线程并处理消息，可以像[示例 1-2](#ex_intro_spawn_thread)那样简单。
+- en: Example 1-2\. Spawning a browser thread
+  id: totrans-10
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-2\. 生成浏览器线程
+- en: '[PRE1]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The purpose of this book is to explore and explain JavaScript threads as a programming
+    concept and tool. You’ll learn how to use them and, more importantly, when to
+    use them. Not every problem needs to be solved with threads. Not even every CPU-intensive
+    problem needs to be solved with threads. It’s the job of software developers to
+    evaluate problems and tools to determine the most appropriate solutions. The aim
+    here is to give you another tool and enough knowledge around it to know when to
+    use it and how.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本书的目的是探索和解释JavaScript线程作为一种编程概念和工具。您将学习如何使用它们，更重要的是，何时使用它们。并非每个问题都需要用线程来解决。即使是每个CPU密集型问题也不需要用线程来解决。软件开发人员的工作是评估问题和工具，以确定最合适的解决方案。这里的目标是为您提供另一种工具，并提供足够的知识，使您知道何时以及如何使用它。
+- en: What Are Threads?
+  id: totrans-13
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 什么是线程？
+- en: In all modern operating systems, all units of execution outside the kernel are
+    organized into processes and threads. Developers can use processes and threads,
+    and communication between them, to add concurrency to a project. On systems with
+    multiple CPU cores, this also means adding parallelism.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在所有现代操作系统中，除了内核外，所有执行单元都被组织成进程和线程。开发人员可以使用进程和线程及它们之间的通信，为项目添加并发性。在具有多个CPU核心的系统上，这也意味着增加并行性。
+- en: When you execute a program, such as Node.js or a code editor, you’re initiating
+    a process. This means that code is loaded into a memory space unique to that process,
+    and no other memory space can be addressed by the program without asking the kernel
+    either for more memory or for a different memory space to be mapped in. Without
+    adding threads or additional processes, only one *instruction* is executed at
+    a time, in the appropriate order as prescribed by the program code. If you’re
+    unfamiliar, you can think of instructions as a single unit of code, like a line
+    of code. (In fact, an instruction generally corresponds to one line in your processor’s
+    assembly code!)
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您执行一个程序，例如Node.js或代码编辑器时，您正在启动一个进程。这意味着代码被加载到该进程独有的内存空间中，没有其他内存空间可以被程序直接访问，除非向内核请求更多内存或映射到不同的内存空间。如果不添加线程或额外的进程，只有一个*指令*会按程序代码规定的适当顺序依次执行。如果您不熟悉，您可以将指令看作是代码的单个单元，如一行代码。（事实上，指令通常对应于处理器汇编代码中的一行！）
+- en: A program may spawn additional processes, which have their own memory space.
+    These processes do not share memory (unless it’s mapped in via additional system
+    calls) and have their own instruction pointers, meaning each one can be executing
+    a different instruction at the same time. If the processes are being executed
+    on the same core, the processor may switch back and forth between processes, temporarily
+    stopping execution for that one process while another one executes.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 程序可能会生成额外的进程，这些进程有它们自己的内存空间。这些进程不共享内存（除非通过额外的系统调用映射），并且有它们自己的指令指针，这意味着每个进程可以同时执行不同的指令。如果这些进程在同一个核心上执行，处理器可能会在这些进程之间来回切换，暂时停止一个进程的执行，然后执行另一个进程。
+- en: A process may also spawn threads, rather than full-blown processes. A thread
+    is just like a process, except that it shares memory space with the process that
+    it belongs to. A process can have many threads, and each one has its own instruction
+    pointer. All the same properties about execution of processes apply to threads
+    as well. Because they share a memory space, it’s easy to share program code and
+    other values between threads. This makes them more valuable than processes for
+    adding concurrency to programs, but at the cost of some complexity in programming,
+    which we’ll cover later on in this book.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个进程也可以生成线程，而不是完整的进程。线程与它所属的进程共享内存空间，除了共享内存空间外，线程就像进程一样，每个线程都有自己的指令指针。关于进程执行的所有属性同样适用于线程。因为它们共享内存空间，所以在线程之间共享程序代码和其他值很容易。这使得它们比进程更有价值，用于向程序添加并发性，但也增加了编程的一些复杂性，我们将在本书后面讨论。
+- en: A typical way to take advantage of threads is to offload CPU-intensive work,
+    like mathematical operations, to an additional thread or pool of threads while
+    the main thread is free to interact externally with the user or other programs
+    by checking for new interactions inside an infinite loop. Many classic web server
+    programs, such as Apache, use a system like this to handle large loads of HTTP
+    requests. This might end up looking something like [Figure 1-1](#fig_http_worker_threads_sequence).
+    In this model, HTTP request data is passed to a worker thread for processing,
+    and when the response is ready, it’s handed back to the main thread to be returned
+    back to the user agent.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用线程的典型方法是将CPU密集型工作（如数学运算）转移到额外的线程或线程池，而主线程则可以通过检查内部的新交互来与用户或其他程序进行外部交互。许多经典的Web服务器程序，如Apache，使用这样的系统来处理大量的HTTP请求负载。这可能看起来类似于[图 1-1](#fig_http_worker_threads_sequence)。在这种模型中，HTTP请求数据传递给工作线程进行处理，当响应准备就绪时，将其返回给主线程，以返回给用户代理。
+- en: Figure 1-1\. Worker threads as they might be used in an HTTP server
+  id: totrans-19
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-1\. HTTP服务器中可能使用的工作线程
+- en: In order for threads to be useful, they need to be able to coordinate with each
+    other. This means they have to be able to do things like wait for things to happen
+    on other threads and get data from them. As discussed, we have a shared memory
+    space between threads, and with some other basic primitives, systems for passing
+    messages between threads can be constructed. In many cases, these sorts of constructs
+    are available at the language or platform level.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使线程有用，它们需要能够相互协调。这意味着它们必须能够做一些像等待其他线程上的事件发生和从它们那里获取数据的事情。正如讨论的那样，我们在线程之间有一个共享的内存空间，并且通过一些其他基本的原语，可以构建传递消息的系统。在许多情况下，这些构造在语言或平台级别是可用的。
+- en: Concurrency Versus Parallelism
+  id: totrans-21
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 并发与并行比较
+- en: It’s important to distinguish between concurrency and parallelism, since they’ll
+    come up fairly often when programming in a multithreaded manner. These are closely
+    related terms that can mean very similar things depending on the circumstances.
+    Let’s start with some definitions.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 区分并发和并行非常重要，因为在多线程编程中经常会遇到它们。这些术语密切相关，根据情况可能意味着非常相似的事物。让我们从一些定义开始。
+- en: Concurrency
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并发
+- en: Tasks are run in overlapping time.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任务在重叠的时间内运行。
+- en: Parallelism
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并行
+- en: Tasks are run at exactly the same time.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任务在完全相同的时间内运行。
+- en: While it may seem like these mean the same thing, consider that tasks may be
+    broken up into smaller parts and then interleaved. In this case, concurrency can
+    be achieved without parallelism because the time frames that the tasks run in
+    can be overlapped. For tasks to be running with parallelism, they must be running
+    at *exactly the same time*. Generally, this means they must be running on separate
+    CPU cores at exactly the same time.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然它们看起来可能意味着相同的事情，但请考虑任务可能会被分解成较小的部分，然后交错执行。在这种情况下，并发可以在没有并行的情况下实现，因为任务运行的时间框架可以重叠。要使任务并行运行，它们必须在*完全相同的时间*内运行。一般来说，这意味着它们必须在不同的CPU核心上完全同时运行。
+- en: Consider [Figure 1-2](#fig_concurrency_vs_parallelism). In it, we have two tasks
+    running in parallel and concurrently. In the concurrent case, only one task is
+    being executed at a given time, but throughout the entire period, execution switched
+    between the two tasks. This means they’re running in overlapping time, so it fits
+    the definition of concurrency. In the parallel case, both tasks are executing
+    simultaneously, so they’re running in parallel. Since they’re *also* running in
+    an overlapping time period, they’re also running concurrently. Parallelism is
+    a subset of concurrency.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑[图 1-2](#fig_concurrency_vs_parallelism)。在图中，我们有两个并行和并发运行的任务。在并发的情况下，任何时刻只有一个任务在执行，但在整个时间段内，执行会在这两个任务之间切换。这意味着它们在重叠的时间内运行，因此符合并发的定义。在并行的情况下，两个任务同时执行，因此它们是并行运行的。由于它们也在重叠的时间段内运行，它们也同时在并发运行。并行是并发的一个子集。
+- en: '![Visualizing the difference between parallelism.](Images/mtjs_0102.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![可视化并行性差异。](Images/mtjs_0102.png)'
+- en: Figure 1-2\. Concurrency versus parallelism
+  id: totrans-30
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-2\. 并发与并行比较
+- en: Threads do not automatically provide parallelism. The system hardware must allow
+    for this by having multiple CPU cores, and the operating system scheduler must
+    decide to run the threads on separate CPU cores. On single-core systems, or systems
+    with more threads running than CPU cores, multiple threads may be run on a single
+    CPU concurrently by switching between them at appropriate times. Also, in languages
+    with a GIL like Ruby and Python, threads are explicitly prevented from offering
+    parallelism because only one instruction can be executed at a time throughout
+    the entire runtime.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 线程不会自动提供并行性。系统硬件必须通过具有多个 CPU 核心来允许此操作，并且操作系统调度程序必须决定在单独的 CPU 核心上运行线程。在单核系统或运行线程多于
+    CPU 核心的系统中，多个线程可以通过在适当时刻之间切换在单个 CPU 上同时运行。此外，在具有像 Ruby 和 Python 中的 GIL 的语言中，线程明确地被阻止提供并行性，因为整个运行时只能同时执行一个指令。
+- en: It’s important to also think about this in terms of timing because threads are
+    typically added to a program to increase performance. If your system is only allowing
+    for concurrency due to only having a single CPU core available or being already
+    loaded with other tasks, then there may not be any perceived benefit to using
+    extra threads. In fact, the overhead of synchronization and context-switching
+    between the threads may end up making the program perform even worse. Always measure
+    the performance of your application under the conditions it’s expected to run
+    in. That way you can verify whether a multithreaded programming model will actually
+    be beneficial to you.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在时间上也要考虑这一点很重要，因为线程通常被添加到程序中以提高性能。如果您的系统只允许由于只有一个 CPU 核心可用或已经加载了其他任务而导致并发，则使用额外的线程可能没有任何感知上的好处。事实上，线程之间的同步和上下文切换的开销可能会导致程序表现更差。始终在预期运行的条件下测量应用程序的性能。这样，您可以验证多线程编程模型是否真正对您有益。
+- en: Single-Threaded JavaScript
+  id: totrans-33
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 单线程 JavaScript
+- en: Historically, the platforms that JavaScript ran on did not provide any thread
+    support, so the language was thought of as single-threaded. Whenever you hear
+    someone say that JavaScript is single-threaded, they’re referring to this historical
+    background and the programming style that it naturally lent itself to. It’s true
+    that, despite the title of this book, the language itself does not have any built-in
+    functionality to create threads. This shouldn’t be that much of a surprise because
+    it also doesn’t have any built-in functionality to interact with the network,
+    devices, or filesystem, or to make any system calls. Indeed, even such basics
+    as `setTimeout()` aren’t actually JavaScript features. Instead environments the
+    virtual machine (VM) is embedded in, such as Node.js or browsers, provide these
+    via environment-specific APIs.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 历史上，JavaScript 运行的平台不提供任何线程支持，因此这门语言被认为是单线程的。无论何时听到有人说 JavaScript 是单线程的，他们指的是这种历史背景以及它自然倾向的编程风格。事实上，尽管本书的标题如此，但语言本身没有任何内建功能来创建线程。这并不会让人太惊讶，因为它也没有任何内建功能来与网络、设备或文件系统交互，或者进行任何系统调用。确实，即使像
+    `setTimeout()` 这样的基础功能实际上也不是 JavaScript 的特性。相反，虚拟机（VM）嵌入的环境，如 Node.js 或浏览器，通过特定于环境的
+    API 提供这些功能。
+- en: Instead of threads as a concurrency primitive, most JavaScript code is written
+    in an event-oriented manner operating on a single execution thread. As various
+    events like user interactions or I/O happen, they trigger the execution of functions
+    previously set to run upon these events. These functions are typically called
+    *callbacks* and are at the core of how asynchronous programming is done in Node.js
+    and the browser. Even in promises or the `async`/`await` syntax, callbacks are
+    the underlying primitive. It’s important to recognize that callbacks are not running
+    in parallel, or alongside any other code. When code in a callback is running,
+    that’s the only code that’s currently running. Put another way, only one call
+    stack is active at any given time.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数JavaScript代码不使用线程作为并发原语，而是以事件驱动的方式在单个执行线程上操作。各种事件如用户交互或I/O发生时，它们会触发事先设置为在这些事件上运行的函数的执行。这些函数通常称为*回调函数*，是Node.js和浏览器中异步编程的核心。即使在承诺或`async`/`await`语法中，回调函数也是底层原语。重要的是要认识到回调函数不是并行运行或与任何其他代码并行运行。当回调函数中的代码正在运行时，这是当前唯一正在运行的代码。换句话说，任何给定时间只有一个调用堆栈是活动的。
+- en: It’s often easy to think of operations happening in parallel, when in fact they’re
+    happening concurrently. For example, imagine you want to open three files containing
+    numbers, named *1.txt*, *2.txt*, and *3.txt*, and then add up the results and
+    print them. In Node.js, you might do something like [Example 1-3](#ex_node_async_promise_all_concurrency).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常很容易认为操作是并行进行的，实际上它们是同时进行的。例如，想象一下你想要打开包含数字的三个文件，分别命名为*1.txt*、*2.txt*和*3.txt*，然后将结果相加并打印出来。在Node.js中，你可以像这样做[示例 1-3](#ex_node_async_promise_all_concurrency)。
+- en: Example 1-3\. Reading from files concurrently in Node.js
+  id: totrans-37
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例1-3\. 在Node.js中并发读取文件
+- en: '[PRE2]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: To run this code, save it in a file called *reader.js*. Make sure you have text
+    files named *1.txt*, *2.txt*, and *3.txt*, each containing integers, and then
+    run the program with `node reader.js`.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行此代码，请将其保存在名为*reader.js*的文件中。确保你有名为*1.txt*、*2.txt*和*3.txt*的文本文件，每个文件包含整数，然后使用`node
+    reader.js`运行程序。
+- en: Since we’re using `Promise.all()`, we’re waiting for all three files to be read
+    and parsed. If you squint a bit, it may even look similar to the `pthread_join()`
+    from the C example later in this chapter. However, just because the promises are
+    being created together and waited upon together doesn’t mean that the code resolving
+    them runs at the same time, it just means their time frames are overlapping. There’s
+    still only one instruction pointer, and only one instruction is being executed
+    at a time.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们正在使用`Promise.all()`，我们正在等待所有三个文件被读取和解析。如果你仔细看，这甚至可能看起来与本章后面的C示例中的`pthread_join()`类似。然而，仅仅因为承诺是一起创建和等待的，并不意味着解析它们的代码同时运行，只是它们的时间框架是重叠的。仍然只有一个指令指针，并且一次只执行一个指令。
+- en: In the absence of threads, there’s only one JavaScript environment to work with.
+    This means one instance of the VM, one instruction pointer, and one instance of
+    the garbage collector. By one instruction pointer, we mean that the JavaScript
+    interpreter is only executing one instruction at any given time. That doesn’t
+    mean we’re restricted to one global object though. In both the browser and Node.js,
+    we have [realms](https://oreil.ly/uy7E2) at our disposal.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在没有线程的情况下，只有一个JavaScript环境可供使用。这意味着一个VM实例，一个指令指针和一个垃圾收集器实例。所谓的一个指令指针，意味着JavaScript解释器在任何给定时间只执行一个指令。这并不意味着我们受限于一个全局对象。在浏览器和Node.js中，我们都可以使用[realms](https://oreil.ly/uy7E2)。
+- en: Realms can be thought of as instances of the JavaScript environment as provided
+    to JavaScript code. This means that each realm gets its own global object, and
+    all of the associated properties of the global object, such as built-in classes
+    like `Date` and other objects like `Math`. The global object is referred to as
+    `global` in Node.js and `window` in browsers, but in modern versions of both,
+    you can refer to the global object as `globalThis`.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以将realms视为JavaScript环境的实例，如提供给JavaScript代码的。这意味着每个realm都有自己的全局对象，以及全局对象的所有相关属性，例如内置类如`Date`和其他对象如`Math`。在Node.js中全局对象被称为`global`，在浏览器中被称为`window`，但在现代版本中，你可以使用`globalThis`来引用全局对象。
+- en: In browsers, each frame in a web page has a realm for all of the JavaScript
+    within it. Because each frame has its own copy of `Object` and other primitives
+    within it, you’ll notice that they have their own inheritance trees, and `instanceof`
+    might not work as you expect it to when operating on objects from different realms.
+    This is demonstrated in [Example 1-4](#ex_browser_iframe_object).
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器中，网页中的每个框架都有一个用于其中所有 JavaScript 的领域。因为每个框架都有自己的 `Object` 和其他原语的副本，您会注意到它们有自己的继承树，当在不同领域的对象上操作时，`instanceof`
+    可能不会按您期望的方式工作。这在 [示例 1-4](#ex_browser_iframe_object) 中有所展示。
+- en: Example 1-4\. Objects from a different frame in a browser
+  id: totrans-44
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-4\. 浏览器中来自不同框架的对象
+- en: '[PRE3]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: '[![1](Images/1.png)](#co_introduction_CO1-1)'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_introduction_CO1-1)'
+- en: The global object inside the `iframe` is accessible with the `contentWindow`
+    property.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`iframe` 内部的全局对象可通过 `contentWindow` 属性访问。'
+- en: '[![2](Images/2.png)](#co_introduction_CO1-2)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_introduction_CO1-2)'
+- en: This returns false, so the `Object` inside the frame is not the same as in the
+    main frame.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这将返回 `false`，因此帧内的 `Object` 与主帧中的不同。 '
+- en: '[![3](Images/3.png)](#co_introduction_CO1-3)'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_introduction_CO1-3)'
+- en: '`instanceof` evaluates to `false`, as expected since they’re not the same `Object`.'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`instanceof` 求值为 `false`，预料之中，因为它们不是同一个 `Object`。'
+- en: '[![4](Images/4.png)](#co_introduction_CO1-4)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_introduction_CO1-4)'
+- en: Despite all this, the constructors have the same `name` property.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，构造函数具有相同的 `name` 属性。
+- en: In Node.js, realms can be constructed with the `vm.createContext()` function,
+    as shown in [Example 1-5](#ex_node_context). In Node.js parlance, realms are called
+    Contexts. All the same rules and properties applying to browser frames also apply
+    to Contexts, but in Contexts, you don’t have access to any global properties or
+    anything else that might be in scope in your Node.js files. If you want to use
+    these features, they need to be manually passed in to the Context.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Node.js 中，可以使用 `vm.createContext()` 函数构建领域，如 [示例 1-5](#ex_node_context) 中所示。在
+    Node.js 的术语中，领域被称为上下文。适用于浏览器框架的所有相同规则和属性也适用于上下文，但在上下文中，您无法访问任何全局属性或在 Node.js 文件中可能在范围内的任何其他内容。如果要使用这些功能，必须手动传递到上下文中。
+- en: Example 1-5\. Objects from a new Context in Node.js
+  id: totrans-55
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-5\. Node.js 中来自新上下文的对象
+- en: '[PRE4]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: '[![1](Images/1.png)](#co_introduction_CO2-1)'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_introduction_CO2-1)'
+- en: We can get objects from a new context using `runInNewContext`.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `runInNewContext` 从新的上下文获取对象。
+- en: '[![2](Images/2.png)](#co_introduction_CO2-2)'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_introduction_CO2-2)'
+- en: This returns false, so as with browser iframes, `Object` inside the context
+    is not the same as in the main context.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将返回 `false`，因此与浏览器中的 iframe 一样，上下文中的 `Object` 与主上下文中的不同。
+- en: '[![3](Images/3.png)](#co_introduction_CO2-3)'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_introduction_CO2-3)'
+- en: Similarly, `instanceof` evaluates to `false`.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，`instanceof` 求值为 `false`。
+- en: '[![4](Images/4.png)](#co_introduction_CO2-4)'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_introduction_CO2-4)'
+- en: Once again, the constructors have the same `name` property.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构造函数再次具有相同的 `name` 属性。
+- en: In any of these realm cases, it’s important to note that we still only have
+    one instruction pointer, and code from only one realm is running at a time, because
+    we’re still only talking about single-threaded execution.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在任何这些领域情况下，重要的是注意，我们仍然只有一个指令指针，并且一次只有一个领域的代码在运行，因为我们仍然只谈论单线程执行。
+- en: Hidden Threads
+  id: totrans-66
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 隐藏线程
+- en: While your JavaScript code may run, at least by default, in a single-threaded
+    environment, that doesn’t mean the process running your code is single-threaded.
+    In fact, many threads might be used to have that code running smoothly and efficiently.
+    It’s a common misconception that Node.js is a single-threaded process.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管您的 JavaScript 代码可能默认情况下在单线程环境中运行，但这并不意味着运行代码的进程是单线程的。事实上，可能会使用许多线程来使代码平稳高效地运行。许多人错误地认为
+    Node.js 是单线程进程。
+- en: Modern JavaScript engines like V8 use separate threads to handle garbage collection
+    and other features that don’t need to happen in line with JavaScript execution.
+    In addition, the platform runtimes themselves may use additional threads to provide
+    other features.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代 JavaScript 引擎如 V8 使用单独的线程处理垃圾回收和其他不需要与 JavaScript 执行同步发生的功能。此外，平台运行时本身可能使用额外的线程提供其他功能。
+- en: In Node.js, `libuv` is used as an OS-independent asynchronous I/O interface,
+    and since not all system-provided I/O interfaces are asynchronous, it uses a pool
+    of worker threads to avoid blocking program code when using otherwise-blocking
+    APIs, such as filesystem APIs. By default, four of these threads are spawned,
+    though this number is configurable via the `UV_THREADPOOL_SIZE` environment variable,
+    and can be up to 1,024.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Node.js 中，`libuv` 被用作操作系统无关的异步 I/O 接口。由于并非所有系统提供的 I/O 接口都是异步的，它使用一个工作线程池来避免在使用阻塞
+    API（如文件系统 API）时阻塞程序代码。默认情况下，会生成四个这样的线程，但可以通过 `UV_THREADPOOL_SIZE` 环境变量进行配置，最多可达
+    1,024 个。
+- en: On Linux systems, you can see these extra threads by using `top -H` on a given
+    process. In [Example 1-6](#ex_threads_from_top), a simple Node.js web server was
+    started, and the PID was noted and passed to `top`. You can see the various V8
+    and `libuv` threads add up to seven threads, including the one that the JavaScript
+    code runs in. You can try this with your own Node.js programs, and even try changing
+    the `UV_THREADPOOL_SIZE` environment variable to see the number of threads change.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Linux 系统上，您可以使用 `top -H` 命令查看给定进程的额外线程。在 [示例 1-6](#ex_threads_from_top) 中，启动了一个简单的
+    Node.js Web 服务器，并记录了 PID，然后传递给 `top` 命令。您可以看到各种 V8 和 `libuv` 线程总共达到七个线程，包括 JavaScript
+    代码运行的线程。您可以尝试在自己的 Node.js 程序中进行这些操作，甚至尝试更改 `UV_THREADPOOL_SIZE` 环境变量以查看线程数的变化。
+- en: Example 1-6\. Output from `top`, showing the threads in a Node.js process
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-6\. `top` 命令的输出，显示 Node.js 进程中的线程
+- en: '[PRE5]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Browsers similarly perform many tasks, such as Document Object Model (DOM) rendering,
+    in threads other than the one used for JavaScript execution. An experiment with
+    `top -H` like we did for Node.js would result in a similar handful of threads.
+    Modern browsers take this even further by using multiple processes to add a layer
+    of security by isolation.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器同样会在执行文档对象模型（DOM）渲染等许多任务时使用与 JavaScript 执行线程不同的线程。像我们在 Node.js 中使用 `top -H`
+    进行的实验，现代浏览器也会产生类似的几个线程。现代浏览器通过使用多个进程甚至进一步加强了安全性，通过隔离层增加了安全性。
+- en: It’s important to think about these extra threads when going through a resource-planning
+    exercise for your application. You should never assume that just because JavaScript
+    is single-threaded that only one thread will be used by your JavaScript application.
+    For example, in production Node.js applications, measure the number of threads
+    used by the application and plan accordingly. Don’t forget that many of the native
+    addons in the Node.js ecosystem spawn threads of their own as well, so it’s important
+    to go through this exercise on an application-by-application basis.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在进行应用程序资源规划时，考虑这些额外的线程非常重要。您不应该假设仅因为 JavaScript 是单线程的，您的 JavaScript 应用程序只会使用一个线程。例如，在生产环境中的
+    Node.js 应用程序中，应该测量应用程序使用的线程数并据此进行规划。还要注意，Node.js 生态系统中许多本地附加组件也会生成自己的线程，因此在逐个应用程序基础上进行这些操作非常重要。
+- en: 'Threads in C: Get Rich with Happycoin'
+  id: totrans-75
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: C 语言中的线程：与 Happycoin 一起致富
+- en: Threads are obviously not unique to JavaScript. They’re a long-standing concept
+    at the operating system level, independent of languages. Let’s explore how a threaded
+    program might look in C. C is an obvious choice here because the C interface for
+    threads is what underlies most thread implementations in higher-level languages,
+    even if there may seem to be different semantics.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，线程不仅限于 JavaScript。它们是操作系统层面上长期存在的概念，独立于语言。让我们探讨一个使用 C 语言编写的多线程程序是如何看待的。在这里选择
+    C 语言是显而易见的，因为 C 语言的线程接口是大多数高级语言中线程实现的基础，即使可能有不同的语义。
+- en: 'Let’s start with an example. Imagine a proof-of-work algorithm for a simple
+    and impractical cryptocurrency called Happycoin, as follows:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从一个例子开始。想象一个用于一个简单而不切实际的加密货币 Happycoin 的工作证明算法，如下所示：
+- en: Generate a random unsigned 64-bit integer.
+  id: totrans-78
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 生成一个随机的无符号 64 位整数。
+- en: Determine whether or not the integer is happy.
+  id: totrans-79
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 判断整数是否是快乐数。
+- en: If it’s not happy, it’s not a Happycoin.
+  id: totrans-80
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如果它不快乐，那它就不是 Happycoin。
+- en: If it’s not divisible by 10,000, it’s not a Happycoin.
+  id: totrans-81
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如果不能被 10,000 整除，那就不是 Happycoin。
+- en: Otherwise, it’s a Happycoin.
+  id: totrans-82
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 否则，它就不是 Happycoin。
+- en: A number is happy if it eventually goes to 1 when replacing it with the sum
+    of the squares of its digits, and looping until either the 1 happens, or a previously
+    seen number arises. [Wikipedia defines it clearly](https://oreil.ly/vRr3P) and
+    also points out that if any previously seen numbers arise, then 4 will arise,
+    and vice versa. You may notice that our algorithm is needlessly too expensive
+    because we could check for divisibility before checking for happiness. This is
+    intentional because we’re trying to demonstrate a heavy workload.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个数字最终变成1，当将其替换为其数字平方的和并循环，或者之前看到的数字出现时，它是快乐的。[维基百科清晰地定义了它](https://oreil.ly/vRr3P)，并指出如果出现任何以前看到的数字，那么4将出现，反之亦然。您可能会注意到，我们的算法过于昂贵，因为在检查快乐之前我们可以检查可分性。这是有意为之，因为我们试图展示一个繁重的工作负载。
+- en: Let’s build a simple C program that runs the proof-of-work algorithm 10,000,000
+    times, printing any Happycoins found, and a count of them.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们构建一个简单的C程序，运行10,000,000次工作量证明算法，打印找到的任何Happycoin，以及它们的数量。
+- en: Note
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `cc` in the compilation steps here can be replaced with `gcc` or `clang`,
+    depending on which is available to you. On most systems, `cc` is an alias for
+    either `gcc` or `clang`, so that’s what we’ll use here.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里的编译步骤中的`cc`可以替换为`gcc`或`clang`，具体取决于您可用哪个。在大多数系统上，`cc`是`gcc`或`clang`的别名，因此我们将在这里使用它。
+- en: Windows users may have to do some extra work here to get this going in Visual
+    Studio, and the threads example won’t work out-of-the-box on Windows because it
+    uses Portable Operating System Interface (POSIX) threads rather than Windows threads,
+    which are different. To simplify trying this on Windows, the recommendation is
+    to use Windows Subsystem for Linux so that you have a POSIX-compatible environment
+    to work with.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Windows用户可能需要在Visual Studio中做一些额外的工作，因为线程示例默认情况下在Windows上无法正常工作，这是因为它使用了与Windows线程不同的可移植操作系统接口（POSIX）线程。为了简化在Windows上尝试此操作，建议使用Windows子系统来获取一个与POSIX兼容的环境。
+- en: With Only the Main Thread
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 仅使用主线程
+- en: Create a file called *happycoin.c*, in a directory called *ch1-c-threads/*.
+    We’ll build up this file over the course of this section. To start off, add the
+    code as shown in [Example 1-7](#ex_happycoin_c_1).
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为*happycoin.c*的文件，在名为*ch1-c-threads/*的目录中。我们将在本节中逐步构建这个文件。要开始，按照[示例 1-7](#ex_happycoin_c_1)中显示的代码添加。
+- en: Example 1-7\. *ch1-c-threads/happycoin.c*
+  id: totrans-90
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-7\. *ch1-c-threads/happycoin.c*
+- en: '[PRE6]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '[![1](Images/1.png)](#co_introduction_CO3-1)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_introduction_CO3-1)'
+- en: This line uses pointers, which may be unfamiliar to you if you’re coming from
+    a mostly JavaScript background. The short version of what’s going on here is that
+    `result8` is an array of eight 8-bit unsigned integers, backed by the same memory
+    as `result`, which is a single 64-bit unsigned integer.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您主要使用JavaScript，这一行可能会让您感到陌生，因为它使用了指针。简短地说，这里发生的事情是，`result8`是一个包含八个8位无符号整数的数组，支持与`result`相同的内存，后者是一个64位无符号整数。
+- en: We’ve added a bunch of `includes`, which give us handy things like types, I/O
+    functions, and the time and random number functions we’ll be needing. Since the
+    algorithm requires the generation of a random 64-bit unsigned integer (i.e., a
+    `uint64_t`), we need eight random bytes, which `random64()` gives us by calling
+    `rand_r()` until we have enough bytes. Since `rand_r()` also requires a reference
+    to a seed, we’ll pass that into `random64()` as well.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们添加了一堆`includes`，这些`includes`提供了方便的类型、I/O函数以及我们需要的时间和随机数函数。由于算法需要生成一个随机的64位无符号整数（即`uint64_t`），我们需要八个随机字节，`random64()`通过调用`rand_r()`来获取这些字节，直到我们有足够的字节。由于`rand_r()`还需要一个种子的引用，我们将它作为参数传递给`random64()`。
+- en: Now let’s add our happy number calculation as shown in [Example 1-8](#ex_happycoin_c_2).
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们按照[示例 1-8](#ex_happycoin_c_2)中显示的方式添加我们的快乐数字计算。
+- en: Example 1-8\. *ch1-c-threads/happycoin.c*
+  id: totrans-96
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-8\. *ch1-c-threads/happycoin.c*
+- en: '[PRE7]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: To get the sum of the squares of the digits in `sum_digits_squared`, we’re using
+    the mod operator, `%`, to get each digit from right to left, squaring it, then
+    adding it to our running total. We then use this function in `is_happy` in a loop,
+    stopping when the number is 1 or 4\. We stop at 1 because that indicates the number
+    is happy. We also stop at 4 because that’s indicative of an infinite loop where
+    we never end up at 1\. Finally, in `is_happycoin()`, we do the work of checking
+    whether a number is happy and also divisible by 10,000.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要获取`sum_digits_squared`中数字的平方和，我们使用模运算符`%`，从右到左获取每个数字，平方它，并将其添加到我们的运行总数中。然后我们在`is_happy`中使用这个函数，在数字为1或4时停止循环。我们停止在1，因为这表示数字是快乐的。我们还在4时停止，因为这表明一个无限循环，我们永远不会结束在1。最后，在`is_happycoin()`中，我们做的是检查一个数字是否快乐并且是否可被10000整除。
+- en: Let’s wrap this all up in our `main()` function as shown in [Example 1-9](#ex_happycoin_c_3).
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将所有这些内容都包含在我们的`main()`函数中，如[示例1-9](#ex_happycoin_c_3)所示。
+- en: Example 1-9\. *ch1-c-threads/happycoin.c*
+  id: totrans-100
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例1-9\. *ch1-c-threads/happycoin.c*
+- en: '[PRE8]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: First, we need a seed for the random number generator. The current time is as
+    suitable a seed as any, so we’ll use that via `time()`. Then, we’ll loop 10,000,000
+    times, first getting a random number from `random64()`, then checking if it’s
+    a Happycoin. If it is, we’ll increment the count and print the number out. The
+    weird `PRIu64` syntax in the `printf()` call is necessary for properly printing
+    out 64-bit unsigned integers. When the loop completes, we print out the count
+    and exit the program.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们需要一个随机数生成器的种子。当前时间是一个合适的种子，所以我们将通过`time()`来使用它。然后，我们将循环1000万次，首先从`random64()`获取一个随机数，然后检查它是否是一个Happycoin。如果是，我们将增加计数并打印出该数字。在`printf()`调用中奇怪的`PRIu64`语法是为了正确打印64位无符号整数。循环完成后，我们打印出计数并退出程序。
+- en: To compile and run this program, use the following commands in your *ch1-c-threads*
+    directory.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要编译和运行此程序，请在您的*ch1-c-threads*目录中使用以下命令。
+- en: '[PRE9]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'You’ll get a list of Happycoins found on one line and the count of them on
+    the next line. For a given run of the program, it might look something like this:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将在一行上得到一个找到的Happycoin列表，下一行上是它们的计数。对于程序的一次运行，它可能看起来像这样：
+- en: '[PRE10]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: It takes a nontrivial amount of time to run this program; about 2 seconds on
+    a run-of-the-mill computer. This is a case where threads can be useful to speed
+    things up because many iterations of the same largely mathematical operation are
+    being run.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行这个程序需要相当长的时间；在普通计算机上大约需要2秒。这是一个适合使用线程加速的情况，因为多次运行同样的大部分是数学运算的操作。
+- en: Let’s go ahead and convert this example to a multithreaded program.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们继续将这个示例转换为一个多线程程序。
+- en: With Four Worker Threads
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用四个工作线程
+- en: We’ll set up four threads that will each run a quarter of the iterations of
+    the loop that generates a random number and tests if it’s a Happycoin.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将设置四个线程，每个线程将运行一个四分之一的迭代循环，生成一个随机数并测试它是否是Happycoin。
+- en: In POSIX C, threads are managed with the `pthread_*` family of functions. The
+    `pthread_create()` function is use to create a thread. A function is passed in
+    that will be executed on that thread. Program flow continues on the main thread.
+    The program can wait for a thread’s completion by calling `pthread_join()` on
+    it. You can pass arguments to the function being run on the thread via `pthread_create()`
+    and get return values from `pthread_join()`.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在POSIX C中，线程通过`pthread_*`系列函数进行管理。`pthread_create()`函数用于创建一个线程。传入一个将在该线程上执行的函数。程序流在主线程上继续。程序可以通过在其上调用`pthread_join()`来等待线程的完成。您可以通过`pthread_create()`向在线程上运行的函数传递参数，并从`pthread_join()`获取返回值。
+- en: In our program, we’ll isolate the generation of Happycoins in a function called
+    `get_happycoins()` and that’s what will run in our threads. We’ll create the four
+    threads, and then immediately wait for the completion of them. Whenever we get
+    the results back from a thread, we’ll output them and store the count so we can
+    print the total at the end. To help in passing the results back, we’ll create
+    a simple `struct` called `happy_result`.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的程序中，我们将Happycoin的生成隔离在一个名为`get_happycoins()`的函数中，这将在我们的线程中运行。我们将创建四个线程，然后立即等待它们完成。每当我们从一个线程那里得到结果时，我们将输出它们并存储计数，以便在最后打印总数。为了帮助传递结果回来，我们将创建一个简单的名为`happy_result`的`struct`。
+- en: Make a copy of your existing *happycoin.c* and name it *happycoin-threads.c*.
+    Then in the new file, insert the code in [Example 1-10](#ex_happycoin_threads_c_1)
+    under the last `#include` in the file.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复制现有的*happycoin.c*并将其命名为*happycoin-threads.c*。然后在新文件中，在文件中的最后一个`#include`之后插入[示例 1-10](#ex_happycoin_threads_c_1)中的代码。
+- en: Example 1-10\. *ch1-c-threads/happycoin-threads.c*
+  id: totrans-114
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-10\. *ch1-c-threads/happycoin-threads.c*
+- en: '[PRE11]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The first line includes `pthread.h`, which gives us access to the various thread
+    functions we’ll need. Then `struct happy_result` is defined, which we’ll use as
+    the return value for our thread function `get_happycoins()` later on. It stores
+    an array of found happycoins, represented here by a pointer, and the count of
+    them.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一行包括`pthread.h`，它给了我们访问各种线程函数所需的权限。接着定义了`struct happy_result`，这将作为我们后面线程函数`get_happycoins()`的返回值。它存储了一个表示找到的happycoins的数组（这里用指针表示），以及它们的数量。
+- en: Now, go ahead and delete the whole `main()` function because we’re about to
+    replace it. First, let’s add our `get_happycoins()` function in [Example 1-11](#ex_happycoin_threads_c_2),
+    which is the code that will run on our worker threads.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，继续删除整个`main()`函数，因为我们将要替换它。首先，让我们在[示例 1-11](#ex_happycoin_threads_c_2)中添加我们的`get_happycoins()`函数，这是将在我们的工作线程上运行的代码。
+- en: Example 1-11\. *ch1-c-threads/happycoin-threads.c*
+  id: totrans-118
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-11\. *ch1-c-threads/happycoin-threads.c*
+- en: '[PRE12]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '[![1](Images/1.png)](#co_introduction_CO4-1)'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_introduction_CO4-1)'
+- en: This weird pointer casting thing basically says “treat this arbitrary pointer
+    as a pointer to an `int`, and then get me the value of that `int`.”
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个奇怪的指针强制转换实际上是说：“把这个任意指针视为`int`的指针，然后获取该`int`的值。”
+- en: You’ll notice that this function takes in a single `void *` and returns a single
+    `void *`. That’s the function signature expected by `pthread_create()`, so we
+    don’t have a choice here. This means we have to cast our arguments to what we
+    want them to be. We’ll be passing in the number of attempts, so we’ll cast the
+    argument to an `int`. Then, we’ll set the seed as we did in the previous example,
+    but this time it’s happening in our thread function, so we get a different seed
+    per thread.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会注意到，这个函数接受一个`void *`并返回一个`void *`。这是`pthread_create()`期望的函数签名，所以我们在这里没有选择。这意味着我们必须将我们的参数转换为我们想要的类型。我们将传入尝试的次数，所以我们将参数转换为`int`。然后，我们设置种子，就像在之前的示例中所做的那样，但这次是在我们的线程函数中进行的，所以我们为每个线程得到一个不同的种子。
+- en: After allocating enough space for our array and `struct happy_result`, we go
+    ahead into the same loop that we did in `main()` in the single-threaded example,
+    only this time we’re putting the results into the `struct` instead of printing
+    them. Once the loop is done, we return the `struct` as a pointer, which we cast
+    as `void *` to satisfy the function signature. This is how information is passed
+    back to the main thread, which will make sense of it.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分配足够的空间给我们的数组和`struct happy_result`后，我们继续进入与单线程示例中`main()`相同的循环，只是这次我们将结果放入`struct`而不是打印它们。一旦循环完成，我们将`struct`作为指针返回，然后将其强制转换为`void
+    *`以满足函数签名。这就是信息如何传递回主线程，并且这是有意义的。
+- en: This demonstrates one of the key properties of threads that we don’t get from
+    processes, which is the shared memory space. If, for example, we were using processes
+    instead of threads and some *interprocess communication (IPC)* mechanism to transfer
+    results back, we wouldn’t be able to simply pass a memory address back to the
+    main process because the main process wouldn’t have access to memory of the worker
+    process. Thanks to virtual memory, the memory address might refer to something
+    else entirely in the main process. Instead of passing a pointer, we’d have to
+    pass the entire value back over the IPC channel, which can introduce performance
+    overhead. Since we’re using threads instead of processes, we can just use the
+    pointer, so that the main thread can use it just the same.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这展示了线程的一个关键特性，这是我们从进程中无法获得的，即共享内存空间。例如，如果我们使用进程而不是线程，并且使用某种*进程间通信（IPC）*机制来传输结果回来，我们将无法简单地将内存地址返回给主进程，因为主进程无法访问工作进程的内存。由于虚拟内存的原因，内存地址可能在主进程中指代完全不同的东西。而不是传递指针，我们将不得不通过IPC通道传递整个值回来，这可能会引入性能开销。由于我们使用线程而不是进程，我们可以直接使用指针，这样主线程可以同样使用它。
+- en: Shared memory isn’t without its trade-offs, though. In our case, there’s no
+    need for the worker thread to make any use of the memory it has now passed to
+    the main thread. This isn’t always the case with threads. In a great multitude
+    of cases, it’s necessary to properly manage how threads access shared memory via
+    synchronization; otherwise, some unpredictable results may occur. We’ll go into
+    how this works in JavaScript in detail in Chapters [4](ch04.xhtml#ch_shared_mem)
+    and [5](ch05.xhtml#ch_adv_shared_mem).
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，共享内存并非没有其权衡之处。在我们的情况下，工作线程无需使用它现在传递给主线程的内存。但这并非所有情况下都如此。在许多情况下，必须通过同步正确管理线程访问共享内存；否则，可能会出现一些不可预测的结果。我们将在第四章[4](ch04.xhtml#ch_shared_mem)和第五章[5](ch05.xhtml#ch_adv_shared_mem)中详细介绍JavaScript中如何处理这些情况。
+- en: Now, let’s wrap this up with the `main()` function in [Example 1-12](#ex_happycoin_threads_c_3).
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们在[示例 1-12](#ex_happycoin_threads_c_3)中的`main()`函数中结束这一切。
+- en: Example 1-12\. *ch1-c-threads/happycoin-threads.c*
+  id: totrans-127
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例1-12。*ch1-c-threads/happycoin-threads.c*
+- en: '[PRE13]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: First, we’ll declare our four threads as an array on the stack. Then, we divide
+    our desired number of attempts (10,000,000) by the number of threads. This is
+    what will be passed to `get_happycoins()` as an argument, which we see inside
+    the first loop, which creates each of the threads with `pthread_create()`, passing
+    in the number of attempts per thread as an argument. In the next loop, we wait
+    for each of the threads to finish their execution with `pthread_join()`. Then
+    we can print the results and the total from all the threads, just like we would
+    in the single-threaded example.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将把四个线程声明为堆栈上的数组。然后，我们将我们想要的尝试次数（10,000,000）除以线程数。这将作为参数传递给`get_happycoins()`，我们在第一个循环内看到，在该循环内，使用`pthread_create()`创建每个线程，并将每个线程的尝试次数作为参数传递。在下一个循环中，我们使用`pthread_join()`等待每个线程完成执行。然后，我们可以打印结果以及所有线程的总和，就像在单线程示例中那样。
+- en: Note
+  id: totrans-130
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This program leaks memory. One hard part of multithreaded programming in C and
+    some other languages is that it can be very easy to lose track of where and when
+    memory is allocated and where and when it should be freed. See if you can modify
+    the code here to ensure the program exits with all heap-allocated memory freed.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本程序存在内存泄漏问题。在C语言和其他一些语言中，多线程编程的一个难点是很容易丢失内存分配和释放的位置和时间。请尝试修改此处的代码，以确保程序在退出时释放所有堆分配的内存。
+- en: With the changes complete, you can compile and run this program with the following
+    commands in your *ch1-c-threads* directory.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成更改后，您可以在您的*ch1-c-threads*目录下使用以下命令编译和运行此程序。
+- en: '[PRE14]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'The output should look something like this:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出应该看起来像这样：
+- en: '[PRE15]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You’ll notice output similar to the single-threaded example.^([1](ch01.xhtml#idm45995926720824))
+    You’ll also notice that it’s a bit faster. On a run-of-the-mill computer it finishes
+    in about 0.8 seconds. This isn’t *quite* four times as fast, since there’s some
+    initial overhead in the main thread, and also the cost of printing of results.
+    We could print the results as soon as they’re ready on the thread that’s doing
+    the work, but if we do that, the results may clobber each other in the output
+    because nothing stops two threads from printing to the output stream at the same
+    time. By sending the results to the main thread, we can coordinate the printing
+    of results there so that nothing gets clobbered.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将会注意到类似于单线程示例的输出。^([1](ch01.xhtml#idm45995926720824)) 您还会注意到它稍微快一些。在普通计算机上，它大约在0.8秒内完成。这并不完全是四倍速度快，因为主线程有一些初始开销，并且还有打印结果的成本。我们可以在执行工作的线程上尽快打印结果，但如果这样做，结果可能会互相覆盖，因为两个线程可以同时向输出流打印。通过将结果发送到主线程，我们可以协调在那里打印结果，以避免互相覆盖。
+- en: This illustrates the primary advantage and one drawback of threaded code. On
+    one hand, it’s useful for splitting up computationally expensive tasks so that
+    they can be run in parallel. On the other hand, we need to ensure that some events
+    are properly synchronized so that weird errors don’t occur. When adding threads
+    to your code in any language, it’s worth making sure that the use is appropriate.
+    Also, as with any exercise in attempting to make faster programs, always be measuring.
+    You don’t want to have the complexity of threaded code in your application if
+    it doesn’t turn out to give you any actual benefit.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这说明了线程代码的主要优势和一个缺点。一方面，它有助于将计算昂贵的任务分割开来，以便可以并行运行。另一方面，我们需要确保某些事件得到适当的同步，以防止出现奇怪的错误。在任何语言中为您的代码添加线程时，值得确保使用是合适的。此外，与尝试使程序更快的任何练习一样，始终要进行测量。如果没有给您带来实际好处，您就不希望在应用程序中使用线程代码的复杂性。
+- en: Any programming language supporting threads is going to provide some mechanisms
+    for creating and destroying threads, passing messages in between, and interacting
+    with data that’s shared between the threads. This may not look the same in every
+    language, because as languages and their paradigms are different, so are their
+    programmatic models of parallel programming. Now that we’ve explored what threaded
+    programs look like in a low-level language like C, let’s dive in to JavaScript.
+    Things will look a little different, but as you’ll see, the principles remain
+    the same.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何支持线程的编程语言都将提供一些机制来创建和销毁线程，在线程之间传递消息，并与线程间共享的数据进行交互。这在每种语言中可能看起来都不一样，因为语言及其编程模型在不同情况下是不同的。既然我们已经探索了在像C这样的低级语言中线程程序的外观，让我们深入了解JavaScript。事情看起来会有所不同，但正如你将看到的那样，原则仍然是相同的。
+- en: ^([1](ch01.xhtml#idm45995926720824-marker)) The fact that the total count from
+    the multithreaded example is different from the single-threaded example is irrelevant
+    because the count is dependent on how many random numbers happened to be Happycoins.
+    The result will be completely different between two different runs.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch01.xhtml#idm45995926720824-marker)) 多线程示例中的总计数与单线程示例不同的事实并不重要，因为计数取决于随机数中有多少是Happycoins。在两次不同运行中，结果将完全不同。

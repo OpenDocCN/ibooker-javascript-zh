@@ -1,0 +1,1279 @@
+- en: Chapter 5\. Working with any
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第五章\. 使用 `any` 类型
+- en: 'Type systems were traditionally binary affairs: either a language had a fully
+    static type system or a fully dynamic one. TypeScript blurs the line, because
+    its type system is *optional* and *gradual*. You can add types to parts of your
+    program but not others.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型系统传统上是二进制的：语言要么具有完全静态的类型系统，要么具有完全动态的类型系统。TypeScript 模糊了这条界线，因为它的类型系统是*可选的*和*逐步的*。您可以向程序的某些部分添加类型，而另一些部分则不添加。
+- en: This is essential for migrating existing JavaScript codebases to TypeScript
+    bit by bit ([Chapter 8](ch08.html#ch-migrate)). Key to this is the `any` type,
+    which effectively disables type checking for parts of your code. It is both powerful
+    and prone to abuse. Learning to use `any` wisely is essential for writing effective
+    TypeScript. This chapter walks you through how to limit the downsides of `any`
+    while still retaining its benefits.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于逐步将现有 JavaScript 代码库迁移到 TypeScript 非常重要（参见[第八章](ch08.html#ch-migrate)）。其中的关键在于
+    `any` 类型，它有效地禁用了代码的部分类型检查。这既强大又容易滥用。学会如何明智地使用 `any` 对于编写有效的 TypeScript 至关重要。本章将指导您如何在保留其优点的同时限制
+    `any` 的缺点。
+- en: 'Item 38: Use the Narrowest Possible Scope for any Types'
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '条款 38: 尽可能使用最狭隘的范围来处理 `any` 类型'
+- en: 'Consider this code:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑这段代码：
+- en: '[PRE0]'
+  id: totrans-5
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'If you somehow know from context that `x` is assignable to `Bar` in addition
+    to `Foo`, you can force TypeScript to accept this code in two ways:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您从上下文中某种方式知道 `x` 既可分配给 `Foo`，也可分配给 `Bar`，则可以通过两种方式强制 TypeScript 接受此代码：
+- en: '[PRE1]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Of these, the second form is vastly preferable. Why? Because the `any` type
+    is scoped to a single expression in a function argument. It has no effect outside
+    this argument or this line. If code after the `processBar` call references `x`,
+    its type will still be `Foo`, and it will still be able to trigger type errors,
+    whereas in the first example its type is `any` until it goes out of scope at the
+    end of the function.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，第二种形式更可取。为什么？因为 `any` 类型仅限于函数参数中的单个表达式。它不会影响到该参数或该行之外的代码。如果 `processBar`
+    调用后的代码引用 `x`，它的类型仍然是 `Foo`，仍然能触发类型错误，而在第一个示例中，其类型为 `any`，直到函数结束时才会超出范围。
+- en: 'The stakes become significantly higher if you *return* `x` from this function.
+    Look what happens:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果从该函数中*返回* `x`，风险会显著增加。看看会发生什么：
+- en: '[PRE2]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: An `any` return type is “contagious” in that it can spread throughout a codebase.
+    As a result of our changes to `f`, an `any` type has quietly appeared in `g`.
+    This would not have happened with the more narrowly scoped `any` in `f2`.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`any` 返回类型是“传染性”的，它可以在代码库中传播开来。由于我们对 `f` 的更改，`g` 中悄然出现了 `any` 类型。如果使用更狭隘范围的
+    `f2`，这种情况就不会发生。'
+- en: (This is a good reason to consider including explicit return type annotations,
+    even when the return type can be inferred. It prevents an `any` type from “escaping.”
+    See discussion in [Item 19](ch03.html#avoid-inferable).)
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （这是考虑包括显式返回类型注释的一个好理由，即使返回类型可以推断出来。它防止 `any` 类型“逃逸”。参见 [条款 19](ch03.html#avoid-inferable)
+    中的讨论。）
+- en: 'We used `any` here to silence an error that we believed to be incorrect. Another
+    way to do this is with `@ts-ignore`:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这里使用 `any` 来消除我们认为不正确的错误。另一种方法是使用 `@ts-ignore`：
+- en: '[PRE3]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'This silences an error on the next line, leaving the type of `x` unchanged.
+    Try not to lean too heavily on `@ts-ignore`: the type checker usually has a good
+    reason to complain. It also means that if the error on the next line changes to
+    something more problematic, you won’t know.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将消除下一行的错误，保持 `x` 的类型不变。尽量不要过多依赖 `@ts-ignore`：类型检查器通常有充分的理由抱怨。这也意味着，如果下一行的错误变得更加严重，您将无法得知。
+- en: 'You may also run into situations where you get a type error for just one property
+    in a larger object:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能还会遇到仅在较大对象的一个属性上出现类型错误的情况：
+- en: '[PRE4]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'You can silence errors like this by throwing an `as any` around the whole `config`
+    object:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过在整个 `config` 对象周围加上 `as any` 来消除此类错误：
+- en: '[PRE5]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'But this has the side effect of disabling type checking for the other properties
+    (`a` and `b`) as well. Using a more narrowly scoped `any` limits the damage:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这样做的副作用是禁用了其他属性（`a` 和 `b`）的类型检查。使用更狭隘范围的 `any` 可以限制损害：
+- en: '[PRE6]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Things to Remember
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Make your uses of `any` as narrowly scoped as possible to avoid undesired loss
+    of type safety elsewhere in your code.
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 尽可能将您对 `any` 的使用范围尽可能狭隘，以避免在代码的其他地方意外损失类型安全性。
+- en: Never return an `any` type from a function. This will silently lead to the loss
+    of type safety for any client calling the function.
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 永远不要从函数中返回 `any` 类型。这将悄悄导致任何调用该函数的客户端失去类型安全性。
+- en: Consider `@ts-ignore` as an alternative to `any` if you need to silence one
+    error.
+  id: totrans-25
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果需要消除一个错误，可以考虑`@ts-ignore`作为`any`的替代方案。
+- en: 'Item 39: Prefer More Precise Variants of any to Plain any'
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目39：更喜欢任意类型的更精确变体而不是纯粹的任意类型
+- en: The `any` type encompasses all values that can be expressed in JavaScript. This
+    is a vast set! It includes not just all numbers and strings, but all arrays, objects,
+    regular expressions, functions, classes, and DOM elements, not to mention `null`
+    and `undefined`. When you use an `any` type, ask whether you really had something
+    more specific in mind. Would it be OK to pass in a regular expression or a function?
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`any`类型包括JavaScript中可以表达的所有值。这是一个广泛的集合！它不仅包括所有数字和字符串，还包括所有数组、对象、正则表达式、函数、类和DOM元素，更不用说`null`和`undefined`了。当您使用`any`类型时，请问自己是否真的考虑了更具体的东西。是否可以传递正则表达式或函数？'
+- en: 'Often the answer is “no,” in which case you might be able to retain some type
+    safety by using a more specific type:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常答案是“不”，在这种情况下，您可能可以通过使用更具体的类型来保留一些类型安全性：
+- en: '[PRE7]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'The latter version, which uses `any[]` instead of `any`, is better in three
+    ways:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 较后一种版本，使用`any[]`而不是`any`，在三个方面都更好：
+- en: The reference to `array.length` in the function body is type checked.
+  id: totrans-31
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 函数体中对`array.length`的引用经过类型检查。
+- en: The function’s return type is inferred as `number` instead of `any`.
+  id: totrans-32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 函数的返回类型被推断为`number`而不是`any`。
+- en: 'Calls to `getLength` will be checked to ensure that the parameter is an array:'
+  id: totrans-33
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对`getLength`的调用将被检查以确保参数是一个数组：
+- en: '[PRE8]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'If you expect a parameter to be an array of arrays but don’t care about the
+    type, you can use `any[][]`. If you expect some sort of object but don’t know
+    what the values will be, you can use `{[key: string]: any}`:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果您期望参数是数组的数组，但不关心其类型，可以使用`any[][]`。如果您期望某种对象但不知道其值将是什么，可以使用`{[key: string]:
+    any}`：'
+- en: '[PRE9]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'You could also use the `object` type in this situation, which includes all
+    non-primitive types. This is slightly different in that, while you can still enumerate
+    keys, you can’t access the values of any of them:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，您还可以使用`object`类型，该类型包括所有非原始类型。这略有不同，因为虽然您仍然可以枚举键，但无法访问其中任何一个的值：
+- en: '[PRE10]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: If this sort of type fits your needs, you might also be interested in the `unknown`
+    type. See [Item 42](#never-unknown).
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这种类型符合您的需求，您可能还会对`unknown`类型感兴趣。请参见[项目42](#never-unknown)。
+- en: 'Avoid using `any` if you expect a function type. You have several options here
+    depending on how specific you want to get:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果期望一个函数类型，请避免使用`any`。在这里您有几个选项，具体取决于您希望有多精确：
+- en: '[PRE11]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'All of these are more precise than `any` and hence preferable to it. Note the
+    use of `any[]` as the type for the rest parameter in the last example. `any` would
+    also work here but would be less precise:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些比`any`更精确，因此更可取。请注意在最后一个示例中使用`any[]`作为剩余参数的类型。`any`也可以在这里工作，但不够精确：
+- en: '[PRE12]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This is perhaps the most common use of the `any[]` type.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能是`any[]`类型最常见的用法。
+- en: Things to Remember
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: When you use `any`, think about whether any JavaScript value is truly permissible.
+  id: totrans-46
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当您使用`any`时，请考虑任何JavaScript值是否真的是允许的。
+- en: 'Prefer more precise forms of `any` such as `any[]` or `{[id: string]: any}`
+    or `() => any` if they more accurately model your data.'
+  id: totrans-47
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '优先使用更精确的形式，如`any[]`或`{[id: string]: any}`或`() => any`，如果它们更准确地模拟您的数据。'
+- en: 'Item 40: Hide Unsafe Type Assertions in Well-Typed Functions'
+  id: totrans-48
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目40：在类型正确的函数中隐藏不安全类型断言
+- en: There are many functions whose type signatures are easy to write but whose implementations
+    are quite difficult to write in type-safe code. And while writing type-safe implementations
+    is a noble goal, it may not be worth the difficulty to deal with edge cases that
+    you know don’t come up in your code. If a reasonable attempt at a type-safe implementation
+    doesn’t work, use an unsafe type assertion hidden inside a function with the right
+    type signature. Unsafe assertions hidden inside well-typed functions are much
+    better than unsafe assertions scattered throughout your code.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多函数，其类型签名易于编写，但其类型安全的实现却相当困难。尽管编写类型安全的实现是一个高尚的目标，但处理你的代码中不会出现的边缘情况可能并不值得。如果尝试编写类型安全的实现不起作用，可以在具有正确类型签名的函数内部使用隐藏的不安全类型断言。隐藏在类型正确的函数内部的不安全断言比散布在代码中的不安全断言要好得多。
+- en: 'Suppose you want to make a function cache its last call. This is a common technique
+    for eliminating expensive function calls with frameworks like React.^([1](ch05.html#idm45331652259400))
+    It would be nice to write a general `cacheLast` wrapper that adds this behavior
+    to any function. Its declaration is easy to write:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你想让一个函数缓存其最后一次调用。这是一种用于消除使用像 React 这样的框架时昂贵函数调用的常见技术。[^1] 编写一个通用的`cacheLast`包装器为任何函数添加此行为将是一个好主意。其声明很容易写出来：
+- en: '[PRE13]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Here’s an attempt at an implementation:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个实现的尝试：
+- en: '[PRE14]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'The error makes sense: TypeScript has no reason to believe that this very loose
+    function has any relation to `T`. But you know that the type system will enforce
+    that it’s called with the right parameters and that its return value is given
+    the correct type. So you shouldn’t expect too many problems if you add a type
+    assertion here:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 错误是有道理的：TypeScript 没有理由相信这个非常宽松的函数与`T`有任何关系。但你知道类型系统将强制要求它以正确的参数调用，并且其返回值给予正确的类型。所以如果在这里添加类型断言，你不应该期望出现太多问题：
+- en: '[PRE15]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: And indeed this will work great for any simple function you pass it. There are
+    quite a few `any` types hidden in this implementation, but you’ve kept them out
+    of the type signature, so the code that calls `cacheLast` will be none the wiser.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这确实对于任何你传递给它的简单函数都非常有效。在这个实现中隐藏了相当多的`any`类型，但你已经把它们从类型签名中排除了，所以调用`cacheLast`的代码不会知道。
+- en: '(Is this actually safe? There are a few real problems with this implementation:
+    it doesn’t check that the values of `this` for successive calls are the same.
+    And if the original function had properties defined on it, then the wrapped function
+    would not have these, so it wouldn’t have the same type. But if you know that
+    these situations don’t come up in your code, this implementation is just fine.
+    This function *can* be written in a type-safe way, but it is a more complex exercise
+    that is left to the reader.)'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （这实际上安全吗？这个实现有一些真实的问题：它不检查连续调用的`this`值是否相同。如果原始函数有定义在其上的属性，那么包装函数将没有这些属性，因此它将不具有相同的类型。但如果你知道在你的代码中不会遇到这些情况，这个实现就可以接受。这个函数*可以*以类型安全的方式编写，但这是一个更复杂的练习，留给读者自行探索。）
+- en: 'The `shallowEqual` function from the previous example operated on two arrays
+    and is easy to type and implement. But the object variation is more interesting.
+    As with `cacheLast`, it’s easy to write its type signature:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前一个示例中的`shallowEqual`函数在两个数组上操作并且易于输入和实现。但对象变体更有趣。与`cacheLast`一样，编写其类型签名很容易：
+- en: '[PRE16]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'The implementation requires some care since there’s no guarantee that `a` and
+    `b` have the same keys (see [Item 54](ch07.html#iterate-objects)):'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实现需要小心，因为没有保证`a`和`b`具有相同的键（参见[条款 54](ch07.html#iterate-objects)）：
+- en: '[PRE17]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'It’s a bit surprising that TypeScript complains about the `b[k]` access despite
+    your having just checked that `k in b` is true. But it does, so you have no choice
+    but to cast:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 抱怨访问`b[k]`尽管你刚刚检查过`k in b`为真有点令人惊讶。但它确实如此，所以你别无选择，只能进行类型转换：
+- en: '[PRE18]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: This type assertion is harmless (since you’ve checked `k in b`), and you’re
+    left with a correct function with a clear type signature. This is much preferable
+    to scattering iteration and assertions to check for object equality throughout
+    your code!
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种类型断言是无害的（因为你已经检查过`k in b`），你得到了一个带有清晰类型签名的正确函数。这比在代码中分散迭代和断言以检查对象相等性要好得多！
+- en: Things to Remember
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情：
+- en: Sometimes unsafe type assertions are necessary or expedient. When you need to
+    use one, hide it inside a function with a correct signature.
+  id: totrans-66
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 有时不安全的类型断言是必要或方便的。当你需要使用时，将其隐藏在一个具有正确签名的函数内部。
+- en: 'Item 41: Understand Evolving any'
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条款 41：理解不断演化的`any`
+- en: In TypeScript a variable’s type is generally determined when it is declared.
+    After this, it can be *refined* (by checking if it is `null`, for instance), but
+    it cannot expand to include new values. There is one notable exception to this,
+    however, involving `any` types.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 TypeScript 中，变量的类型通常在声明时确定。之后，它可以通过*精化*（例如检查是否为`null`）来细化，但不能扩展以包含新值。然而，有一个显著的例外涉及`any`类型。
+- en: 'In JavaScript, you might write a function to generate a range of numbers like
+    this:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，你可以像这样编写一个生成数字范围的函数：
+- en: '[PRE19]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'When you convert this to TypeScript, it works exactly as you’d expect:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你将这个转换成 TypeScript 时，它将按你预期的方式工作：
+- en: '[PRE20]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Upon closer inspection, however, it’s surprising that this works! How does TypeScript
+    know that the type of `out` is `number[]` when it’s initialized as `[]`, which
+    could be an array of any type?
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而仔细检查时，令人惊讶的是它竟然工作正常！TypeScript 如何知道 `out` 的类型是 `number[]`，当它被初始化为 `[]` 时，这可能是任何类型的数组？
+- en: 'Inspecting each of the three occurrences of `out` to reveal its inferred type
+    starts to tell the story:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检查 `out` 的三个出现来揭示其推断类型开始讲述这个故事：
+- en: '[PRE21]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: The type of `out` starts as `any[]`, an undifferentiated array. But as we push
+    `number` values onto it, its type “evolves” to become `number[]`.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`out` 的类型开始是 `any[]`，一个未区分的数组。但随着我们推送 `number` 值进去，它的类型“演变”成为 `number[]`。'
+- en: 'This is distinct from narrowing ([Item 22](ch03.html#narrowing)). An array’s
+    type can expand by pushing different elements onto it:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与缩小范围（[条目 22](ch03.html#narrowing)）是不同的。数组的类型可以通过推送不同的元素而扩展：
+- en: '[PRE22]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'With conditionals, the type can even vary across branches. Here we show the
+    same behavior with a simple value, rather than an array:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在条件语句中，类型甚至可以在不同分支间变化。这里我们展示了与简单值相同的行为，而不是数组：
+- en: '[PRE23]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'A final case that triggers this “evolving any” behavior is if a variable is
+    initially `null`. This often comes up when you set a value in a `try`/`catch`
+    block:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个触发这种“演变 any”行为的情况是，如果变量最初是 `null`。在 `try`/`catch` 块中设置值时经常遇到这种情况：
+- en: '[PRE24]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Interestingly, this behavior only happens when a variable’s type is implicitly
+    `any` with `noImplicitAny` set! Adding an *explicit* `any` keeps the type constant:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是，这种行为只在变量的类型隐式为 `any` 并且设置了 `noImplicitAny` 时才会发生！增加 *显式* 的 `any` 可以保持类型恒定：
+- en: '[PRE25]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Note
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This behavior can be confusing to follow in your editor since the type is only
+    “evolved” *after* you assign or push an element. Inspecting the type on the line
+    with the assignment will still show `any` or `any[]`.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种行为可能在编辑器中跟踪起来会令人困惑，因为类型只在你分配或推送元素之后“演变”。检查赋值行上的类型仍将显示 `any` 或 `any[]`。
+- en: 'If you use a value before any assignment to it, you’ll get an implicit any
+    error:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在赋值之前使用一个值，你将会遇到隐式的 any 错误：
+- en: '[PRE26]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Put another way, “evolving” `any` types are only `any` when you *write* to them.
+    If you try to *read* from them while they’re still `any`, you’ll get an error.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，“演变”的 `any` 类型只有在你 *写* 到它们时才是 `any`。如果你试图在它们仍然是 `any` 的情况下 *读* 取它们，你会得到一个错误。
+- en: 'Implicit `any` types do not evolve through function calls. The arrow function
+    here trips up inference:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 隐式的 `any` 类型不会通过函数调用而演变。箭头函数在这里会导致推断出错：
+- en: '[PRE27]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: In cases like this, you may want to consider using an array’s `map` and `filter`
+    methods to build arrays in a single statement and avoid iteration and evolving
+    `any` entirely. See Items [23](ch03.html#all-at-once) and [27](ch03.html#well-typed-libs).
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，你可能希望考虑使用数组的 `map` 和 `filter` 方法来在单个语句中构建数组，避免迭代和完全避免演变的 `any`。参见条目 [23](ch03.html#all-at-once)
+    和 [27](ch03.html#well-typed-libs)。
+- en: Evolving `any` comes with all the usual caveats about type inference. Is the
+    correct type for your array really `(string|number)[]`? Or should it be `number[]`
+    and you incorrectly pushed a `string`? You may still want to provide an explicit
+    type annotation to get better error checking instead of using evolving `any`.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`any` 的演变带来了关于类型推断的所有常规警告。你的数组的正确类型真的应该是 `(string|number)[]` 吗？或者它应该是 `number[]`，而你错误地推送了一个
+    `string`？你可能仍然希望提供显式类型注解以获得更好的错误检查，而不是使用演变的 `any`。'
+- en: Things to Remember
+  id: totrans-94
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住的事情
+- en: While TypeScript types typically only *refine*, implicit `any` and `any[]` types
+    are allowed to *evolve*. You should be able to recognize and understand this construct
+    where it occurs.
+  id: totrans-95
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 虽然 TypeScript 类型通常只是 *细化*，但隐式的 `any` 和 `any[]` 类型是允许 *演变* 的。当出现这种情况时，你应该能够识别和理解这种结构。
+- en: For better error checking, consider providing an explicit type annotation instead
+    of using evolving `any`.
+  id: totrans-96
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为了更好的错误检查，考虑提供显式的类型注解，而不是使用演变的 `any`。
+- en: 'Item 42: Use unknown Instead of any for Values with an Unknown Type'
+  id: totrans-97
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目 42：对于未知类型的值，使用 `unknown` 而不是 `any`
+- en: 'Suppose you want to write a YAML parser (YAML can represent the same set of
+    values as JSON but allows a superset of JSON’s syntax). What should the return
+    type of your `parseYAML` method be? It’s tempting to make it `any` (like `JSON.parse`):'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你想写一个 YAML 解析器（YAML 可以表示与 JSON 相同的值集，但允许 JSON 语法的超集）。你的 `parseYAML` 方法的返回类型应该是什么？像
+    `JSON.parse` 一样使用 `any` 是很诱人的：
+- en: '[PRE28]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: But this flies in the face of [Item 38](#narrowest-any)’s advice to avoid “contagious”
+    `any` types, specifically by not returning them from functions.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这与 [条目 38](#narrowest-any) 避免“传染性” `any` 类型的建议相矛盾，特别是不要从函数中返回它们。
+- en: 'Ideally you’d like your users to immediately assign the result to another type:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理想情况下，你希望用户立即将结果分配给另一种类型：
+- en: '[PRE29]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Without the type declarations, though, the `book` variable would quietly get
+    an `any` type, thwarting type checking wherever it’s used:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然没有类型声明，`book`变量将默认成为`any`类型，在使用它时会绕过类型检查：
+- en: '[PRE30]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'A safer alternative would be to have `parseYAML` return an `unknown` type:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更安全的选择是让`parseYAML`返回一个`unknown`类型：
+- en: '[PRE31]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'To understand the `unknown` type, it helps to think about `any` in terms of
+    assignability. The power and danger of `any` come from two properties:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解`unknown`类型，有助于从可分配性的角度思考`any`。`any`的力量和危险来自两个属性：
+- en: Any type is assignable to the `any` type.
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 任何类型都可以赋给`any`类型。
+- en: The `any` type is assignable to any other type.^([2](ch05.html#idm45331650850072))
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`any`类型可以赋给任何其他类型。^([2](ch05.html#idm45331650850072))'
+- en: In the context of “thinking of types as sets of values” ([Item 7](ch02_split_000.html#types-as-sets)),
+    `any` clearly doesn’t fit into the type system, since a set can’t simultaneously
+    be both a subset and a superset of all other sets. This is the source of `any`’s
+    power but also the reason it’s problematic. Since the type checker is set-based,
+    the use of `any` effectively disables it.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在“将类型视为值集合”([Item 7](ch02_split_000.html#types-as-sets))的背景下，`any`显然不适合于类型系统，因为一个集合不能同时是所有其他集合的子集和超集。这是`any`强大之处，但也是其问题所在。由于类型检查器是基于集合的，使用`any`实际上会使其失效。
+- en: 'The `unknown` type is an alternative to `any` that *does* fit into the type
+    system. It has the first property (any type is assignable to `unknown`) but not
+    the second (`unknown` is only assignable to `unknown` and, of course, `any`).
+    The `never` type is the opposite: it has the second property (can be assigned
+    to any other type) but not the first (nothing can be assigned to `never`).'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`unknown`类型是`any`的替代品，*可以*适应类型系统。它具有第一个属性（任何类型都可以赋给`unknown`），但不具备第二个属性（`unknown`只能赋给`unknown`和当然`any`）。相反的是`never`类型：它具有第二个属性（可以赋给任何其他类型），但不具备第一个属性（没有类型可以赋给`never`）。'
+- en: 'Attempting to access a property on a value with the `unknown` type is an error.
+    So is attempting to call it or do arithmetic with it. You can’t do much with `unknown`,
+    which is exactly the point. The errors about an `unknown` type will encourage
+    you to add an appropriate type:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 试图访问具有`unknown`类型值的属性是错误的。尝试调用它或进行算术运算也是错误的。你不能对`unknown`做太多事情，这正是关键所在。关于`unknown`类型的错误将促使你添加适当的类型：
+- en: '[PRE32]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'These errors are more sensible. Since `unknown` is not assignable to other
+    types, a type assertion is required. But it is also appropriate: we really do
+    know more about the type of the resulting object than TypeScript does.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些错误更合理。因为`unknown`不能赋值给其他类型，所以需要类型断言。但这也是合适的：我们确实比TypeScript更了解结果对象的类型。
+- en: '`unknown` is appropriate whenever you know that there will be a value but you
+    don’t know its type. The result of `parseYAML` is one example, but there are others.
+    In the GeoJSON spec, for example, the `properties` property of a Feature is a
+    grab-bag of anything JSON serializable. So `unknown` makes sense:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你知道会有一个值但不知道其类型时，适合使用`unknown`。`parseYAML`的结果就是一个例子，但还有其他情况。例如，在GeoJSON规范中，Feature的`properties`属性是任何可JSON序列化的东西的集合。因此`unknown`是有意义的：
+- en: '[PRE33]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'A type assertion isn’t the only way to recover a type from an `unknown` object.
+    An `instanceof` check will do:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言并不是从`unknown`对象中恢复类型的唯一方法。`instanceof`检查也可以：
+- en: '[PRE34]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'You can also use a user-defined type guard:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以使用用户定义的类型保护：
+- en: '[PRE35]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'TypeScript requires quite a bit of proof to narrow an `unknown` type: in order
+    to avoid errors on the `in` checks, you first have to demonstrate that `val` is
+    an object type and that it is non-`null` (since `typeof null === ''object''`).'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript需要相当多的证据来缩小`unknown`类型：为了避免在`in`检查中出现错误，首先必须证明`val`是对象类型并且非`null`（因为`typeof
+    null === 'object'`）。
+- en: 'You’ll sometimes see a generic parameter used instead of `unknown`. You could
+    have declared the `safeParseYAML` function this way:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时你会看到使用泛型参数而不是`unknown`。你可以这样声明`safeParseYAML`函数：
+- en: '[PRE36]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: This is generally considered bad style in TypeScript, however. It looks different
+    than a type assertion, but is functionally the same. Better to just return `unknown`
+    and force your users to use an assertion or narrow to the type they want.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这在TypeScript中通常被认为是不好的风格。它看起来与类型断言不同，但实际上功能上是相同的。最好只返回`unknown`并强制用户使用断言或缩小到他们想要的类型。
+- en: '`unknown` can also be used instead of `any` in “double assertions”:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`unknown`在“双重断言”中也可以替代`any`使用：'
+- en: '[PRE37]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: These are functionally equivalent, but the `unknown` form has less risk if you
+    do a refactor and break up the two assertions. In that case the `any` could escape
+    and spread. If the `unknown` type escapes, it will probably just produce an error.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种方法在功能上是等效的，但是 `unknown` 形式在进行重构并拆分两个断言时风险较小。在这种情况下，`any` 可能会逃逸和扩散。如果 `unknown`
+    类型逃逸，它可能只会产生一个错误。
+- en: 'As a final note, you may see code that uses `object` or `{}` in a similar way
+    to how `unknown` has been described in this item. They are also broad types but
+    are slightly narrower than `unknown`:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一点，你可能会看到使用 `object` 或 `{}` 的代码，类似于本条目中描述 `unknown` 的方式。它们也是广义类型，但比 `unknown`
+    稍微窄一些：
+- en: The `{}` type consists of all values except `null` and `undefined`.
+  id: totrans-129
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`{}` 类型包含除了 `null` 和 `undefined` 之外的所有值。'
+- en: The `object` type consists of all non-primitive types. This doesn’t include
+    `true` or `12` or `"foo"` but does include objects and arrays.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`object` 类型包括所有非原始类型。这不包括 `true` 或 `12` 或 `"foo"`，但包括对象和数组。'
+- en: 'The use of `{}` was more common before the `unknown` type was introduced. Uses
+    today are somewhat rare: only use `{}` instead of `unknown` if you really do know
+    that `null` and `undefined` aren’t possibilities.'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在引入 `unknown` 类型之前，使用 `{}` 更为常见。今天的使用情况有些罕见：只有在你确实知道 `null` 和 `undefined` 不可能存在时，才使用
+    `{}` 而不是 `unknown`。
+- en: Things to Remember
+  id: totrans-132
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情
+- en: The `unknown` type is a type-safe alternative to `any`. Use it when you know
+    you have a value but do not know what its type is.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`unknown` 类型是 `any` 的类型安全替代方案。当你知道有一个值但不知道其类型时，请使用它。'
+- en: Use `unknown` to force your users to use a type assertion or do type checking.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 `unknown` 强制用户进行类型断言或进行类型检查。
+- en: Understand the difference between `{}`, `object`, and `unknown`.
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 理解 `{}`、`object` 和 `unknown` 之间的区别。
+- en: 'Item 43: Prefer Type-Safe Approaches to Monkey Patching'
+  id: totrans-136
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目43：更喜欢类型安全的方法来进行 Monkey Patching
+- en: 'One of the most famous features of JavaScript is that its objects and classes
+    are “open” in the sense that you can add arbitrary properties to them. This is
+    occasionally used to create global variables on web pages by assigning to `window`
+    or `document`:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 最著名的特性之一是其对象和类是“开放的”，这意味着你可以向它们添加任意属性。有时会使用这种方式在网页上创建全局变量，通过分配给 `window`
+    或 `document`：
+- en: '[PRE38]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'or to attach data to DOM elements:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或将数据附加到 DOM 元素：
+- en: '[PRE39]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: This style is particularly common with code that uses jQuery.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种风格在使用 jQuery 的代码中特别常见。
+- en: 'You can even attach properties to the prototypes of built-ins, with sometimes
+    surprising results:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你甚至可以向内置原型附加属性，有时会产生令人惊讶的结果：
+- en: '[PRE40]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: These approaches are generally not good designs. When you attach data to `window`
+    or a DOM node, you are essentially turning it into a global variable. This makes
+    it easy to inadvertently introduce dependencies between far-flung parts of your
+    program and means that you have to think about side effects whenever you call
+    a function.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些方法通常不是良好的设计。当你将数据附加到 `window` 或 DOM 节点时，你实际上是将其变成全局变量。这样做容易无意中在程序的各个部分之间引入依赖，并意味着每次调用函数时都需要考虑副作用。
+- en: 'Adding TypeScript introduces another problem: while the type checker knows
+    about built-in properties of `Document` and `HTMLElement`, it certainly doesn’t
+    know about the ones you’ve added:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加 TypeScript 会引入另一个问题：虽然类型检查器知道 `Document` 和 `HTMLElement` 的内置属性，但它肯定不知道你添加的属性：
+- en: '[PRE41]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'The most straightforward way to fix this error is with an `any` assertion:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复这个错误的最直接方式是使用 `any` 断言：
+- en: '[PRE42]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'This satisfies the type checker, but, as should be no surprise by now, it has
+    some downsides. As with any use of `any`, you lose type safety and language services:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会满足类型检查器，但是，也应该不会让你感到惊讶，它也有一些缺点。与任何使用 `any` 的情况一样，你将失去类型安全和语言服务：
+- en: '[PRE43]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: The best solution is to move your data out of `document` or the DOM. But if
+    you can’t (perhaps you’re using a library that requires it or are in the process
+    of migrating a JavaScript application), then you have a few next-best options
+    available.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最佳解决方案是将数据移出 `document` 或 DOM。但如果不能这样做（可能你正在使用需要它的库或正在迁移 JavaScript 应用程序），那么还有一些次优的选择可用。
+- en: 'One is to use an augmentation, one of the special abilities of `interface`
+    ([Item 13](ch02_split_001.html#type-vs-interface)):'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是使用增强功能，这是 `interface` 的特殊能力之一（[第13项](ch02_split_001.html#type-vs-interface)）：
+- en: '[PRE44]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'This is an improvement over using `any` in a few ways:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这比在几个方面使用 `any` 要好：
+- en: You get type safety. The type checker will flag misspellings or assignments
+    of the wrong type.
+  id: totrans-155
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你可以获得类型安全。类型检查器将标记拼写错误或错误类型的赋值。
+- en: You can attach documentation to the property ([Item 48](ch06.html#use-tsdoc)).
+  id: totrans-156
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你可以将文档附加到属性 ([Item 48](ch06.html#use-tsdoc))。
+- en: You get autocomplete on the property.
+  id: totrans-157
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您可以在属性上获得自动完成。
+- en: There is a record of precisely what the monkey patch is.
+  id: totrans-158
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 此增强的确切记录是有的。
+- en: 'In a module context (i.e., a TypeScript file that uses `import` / `export`),
+    you’ll need to add a `declare global` to make this work:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在模块上下文中（即使用 `import` / `export` 的 TypeScript 文件），您需要添加 `declare global` 才能使其工作：
+- en: '[PRE45]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: The main issues with using an augmentation have to do with scope. First, the
+    augmentation applies globally. You can’t hide it from other parts of your code
+    or from libraries. And second, if you assign the property while your application
+    is running, there’s no way to introduce the augmentation only after this has happened.
+    This is particularly problematic when you patch HTML Elements, where some elements
+    on the page will have the property and some will not. For this reason, you might
+    want to declare the property to be `string|undefined`. This is more accurate,
+    but will make the type less convenient to work with.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用增强的主要问题与作用域有关。首先，增强是全局应用的。您无法将其隐藏在代码的其他部分或库中。其次，如果在应用程序运行时分配属性，则无法在此之后仅引入增强。当您补丁
+    HTML 元素时，这尤为问题，因为页面上的某些元素将具有属性，而其他元素则不会。因此，您可能希望声明该属性为 `string|undefined`。这更加准确，但使得类型使用起来不那么方便。
+- en: 'Another approach is to use a more precise type assertion:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种方法是使用更精确的类型断言：
+- en: '[PRE46]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'TypeScript is OK with the type assertion because `Document` and `MonkeyDocument`
+    share properties ([Item 9](ch02_split_000.html#prefer-declarations-to-assertions)).
+    And you get type safety in the assignment. The scope issues are also more manageable:
+    there’s no global modification of the `Document` type, just the introduction of
+    a new type (which is only in scope if you import it). You have to write an assertion
+    (or introduce a new variable) whenever you reference the monkey-patched property.
+    But you can take that as encouragement to refactor into something more structured.
+    Monkey patching shouldn’t be *too* easy!'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 对类型断言可以接受，因为 `Document` 和 `MonkeyDocument` 共享属性 ([Item 9](ch02_split_000.html#prefer-declarations-to-assertions))。并且在赋值时会获得类型安全。作用域问题也更容易管理：没有全局修改
+    `Document` 类型，只是引入了一个新类型（只有在引入时才在作用域内）。每次引用 Monkey patched 属性时，必须编写断言（或引入新变量）。但你可以把这视作重构为更结构化代码的鼓励。Monkey
+    patching 不应该*太*容易！
+- en: Things to Remember
+  id: totrans-165
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情
+- en: Prefer structured code to storing data in globals or on the DOM.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更倾向于结构化代码，而不是在全局变量或 DOM 上存储数据。
+- en: If you must store data on built-in types, use one of the type-safe approaches
+    (augmentation or asserting a custom interface).
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果必须在内置类型上存储数据，请使用其中一种类型安全的方法（增强或断言自定义接口）。
+- en: Understand the scoping issues of augmentations.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 理解增强的作用域问题。
+- en: 'Item 44: Track Your Type Coverage to Prevent Regressions in Type Safety'
+  id: totrans-169
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Item 44: 跟踪类型覆盖以防止类型安全性回归'
+- en: 'Are you safe from the problems associated with any types once you’ve added
+    type annotations for values with implicit `any` types and enabled `noImplicitAny`?
+    The answer is “no”; `any` types can still enter your program in two main ways:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦为隐式 `any` 类型的值添加类型注释并启用 `noImplicitAny`，你是否免受与任何类型相关问题的影响？答案是否定的；`any` 类型仍然可以通过两种主要方式进入您的程序：
+- en: '*Explicit* `any` types'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*显式* `any` 类型'
+- en: 'Even if you follow the advice of Items [38](#narrowest-any) and [39](#specific-any),
+    making your `any` types both narrow and specific, they remain `any` types. In
+    particular, types like `any[]` and `{[key: string]: any}` become plain `any`s
+    once you index into them, and the resulting `any` types can flow through your
+    code.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '即使您遵循 [38](#narrowest-any) 和 [39](#specific-any) 的建议，使您的 `any` 类型变得更窄和更具体，它们仍然是
+    `any` 类型。特别是像 `any[]` 和 `{[key: string]: any}` 这样的类型一旦索引进入，结果的 `any` 类型就可以流经您的代码。'
+- en: From third-party type declarations
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 来自第三方类型声明
+- en: 'This is particularly insidious since `any` types from an `@types` declaration
+    file enter silently: even though you have `noImplicitAny` enabled and you never
+    typed `any`, you still have `any` types flowing through your code.'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别是从 `@types` 声明文件中，`any` 类型会悄无声息地进入：即使您已启用了 `noImplicitAny` 并且从未输入过 `any`，`any`
+    类型仍然会在代码中流动。
+- en: 'Because of the negative effects `any` types can have on type safety and developer
+    experience ([Item 5](ch01.html#any)), it’s a good idea to keep track of the number
+    of them in your codebase. There are many ways to do this, including the `type-coverage`
+    package on npm:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 `any` 类型对类型安全性和开发者体验的负面影响（[条目 5](ch01.html#any)），在代码库中跟踪它们的数量是个好主意。有许多方法可以做到这一点，包括
+    npm 上的 `type-coverage` 包：
+- en: '[PRE47]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: This means that, of the 10,117 symbols in this project, 9,985 (98.69%) had a
+    type other than `any` or an alias to `any`. If a change inadvertently introduces
+    an `any` type and it flows through your code, you’ll see a corresponding drop
+    in this percentage.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着，在这个项目中的 10,117 个符号中，有 9,985 个（98.69%）具有 `any` 之外的类型或 `any` 的别名。如果一个变更无意中引入了
+    `any` 类型并且它在你的代码中传播，你会看到这个百分比相应下降。
+- en: In some ways this percentage is a way of keeping score on how well you’ve followed
+    the advice of the other items in this chapter. Using narrowly scoped `any` will
+    reduce the number of symbols with `any` types, and so will using more specific
+    forms like `any[]`. Tracking this numerically helps you make sure things only
+    get better over time.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某种程度上，这个百分比是用来评估你在本章中遵循其他条目建议的程度。使用范围狭窄的 `any` 将减少具有 `any` 类型的符号数量，使用诸如 `any[]`
+    这样更具体的形式也是如此。通过数字跟踪这一点有助于确保随着时间的推移事情只会变得更好。
+- en: 'Even collecting type coverage information once can be informative. Running
+    `type-coverage` with the `--detail` flag will print where every `any` type occurs
+    in your code:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使只收集一次类型覆盖信息也是有益的。使用 `--detail` 标志运行 `type-coverage` 将打印出你的代码中每个 `any` 类型出现的位置：
+- en: '[PRE48]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: These are worth investigating because they’re likely to turn up sources of `any`s
+    that you hadn’t considered. Let’s look at a few examples.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些值得调查，因为它们很可能会揭示你没有考虑到的 `any` 的来源。让我们看几个例子。
+- en: Explicit `any` types are often the result of choices you made for expediency
+    earlier on. Perhaps you were getting a type error that you didn’t want to take
+    the time to sort out. Or maybe the type was one that you hadn’t written out yet.
+    Or you might have just been in a rush.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 明确的 `any` 类型通常是你之前为了便利而做出的选择的结果。也许你得到了一个你不想花时间解决的类型错误。或者也许这个类型是你还没有写出来的。或者你可能只是匆忙之间。
+- en: 'Type assertions with `any` can prevent types from flowing where they otherwise
+    would. Perhaps you’ve built an application that works with tabular data and needed
+    a single-parameter function that built up some kind of column description:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `any` 的类型断言可能会阻止类型流向其本应流向的地方。也许你构建了一个处理表格数据的应用程序，并且需要一个单参数函数来构建某种列描述：
+- en: '[PRE49]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'The `utils.buildColumnInfo` function returned `any` at some point. As a reminder,
+    you added a comment and an explicit “: any” annotation to the function.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`utils.buildColumnInfo` 函数在某个时候返回了 `any`。作为提醒，你在函数中添加了一个注释和一个显式的“: any”注解。'
+- en: However, in the intervening months you’ve also added a type for `ColumnInfo`,
+    and `utils.buildColumnInfo` no longer returns `any`. The `any` annotation is now
+    throwing away valuable type information. Get rid of it!
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在过去的几个月里，你还为 `ColumnInfo` 添加了一个类型，`utils.buildColumnInfo` 不再返回 `any`。现在的
+    `any` 注解正在丢弃宝贵的类型信息。去掉它！
+- en: 'Third-party `any` types can come in a few forms, but the most extreme is when
+    you give an entire module an `any` type:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三方 `any` 类型可以有几种形式，但最极端的是当你给整个模块一个 `any` 类型时：
+- en: '[PRE50]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Now you can import anything from `my-module` without error. These symbols all
+    have `any` types and will lead to more `any` types if you pass values through
+    them:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以从 `my-module` 导入任何东西而不会出错。这些符号都具有 `any` 类型，如果通过它们传递值，将导致更多的 `any` 类型：
+- en: '[PRE51]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Since the usage looks identical to a well-typed module, it’s easy to forget
+    that you stubbed out the module. Or maybe a coworker did it and you never knew
+    in the first place. It’s worth revisiting these from time to time. Maybe there
+    are official type declarations for the module. Or perhaps you’ve gained enough
+    understanding of the module to write types yourself and contribute them back to
+    the community.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于使用看起来与类型良好的模块相同，很容易忘记你替换了模块。或者可能是一个同事这样做了，而你一开始根本不知道。值得不时重新审视这些。也许这个模块有官方的类型声明。或者也许你已经对模块有足够的了解，可以自己编写类型并将其贡献回社区。
+- en: Another common source of `any`s with third-party declarations is when there’s
+    a bug in the types. Maybe the declarations didn’t follow the advice of [Item 29](ch04.html#loose-accept-strict-produce)
+    and declared a function to return a union type when in fact it returns something
+    much more specific. When you first used the function this didn’t seem worth fixing
+    so you used an `any` assertion. But maybe the declarations have been fixed since
+    then. Or maybe it’s time to fix them yourself!
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三方声明中另一个常见的 `any` 来源是类型存在错误时。也许声明没有遵循 [Item 29](ch04.html#loose-accept-strict-produce)
+    的建议，并且声明一个函数返回一个联合类型，而实际上它返回了更具体的东西。当你首次使用函数时，修复这个问题似乎不值得，所以你使用了 `any` 断言。但也许声明现在已经修复了。或者也许是时候自己修复它们了！
+- en: The considerations that led you to use an `any` type might not apply any more.
+    Maybe there’s a type you can plug in now where previously you used `any`. Maybe
+    an unsafe type assertion is no longer necessary. Maybe the bug in the type declarations
+    you were working around has been fixed. Tracking your type coverage highlights
+    these choices and encourages you to keep revisiting them.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导致你使用 `any` 类型的考虑可能不再适用。也许现在你可以插入一个类型，而之前你使用了 `any`。也许不再需要一个不安全的类型断言。也许你曾经绕过的类型声明中的错误已经被修复。跟踪你的类型覆盖可以突出显示这些选择，并鼓励你不断重新审视它们。
+- en: Things to Remember
+  id: totrans-194
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Even with `noImplicitAny` set, `any` types can make their way into your code
+    either through explicit `any`s or third-party type declarations (`@types`).
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 即使设置了 `noImplicitAny`，`any` 类型可能仍会通过显式的 `any` 或第三方类型声明 (`@types`) 进入你的代码。
+- en: Consider tracking how well-typed your program is. This will encourage you to
+    revisit decisions about using `any` and increase type safety over time.
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 考虑跟踪你的程序有多少是类型良好的。这将鼓励你重新考虑是否使用 `any` 并随着时间增加类型安全性。
+- en: ^([1](ch05.html#idm45331652259400-marker)) If you are using React, you should
+    use the built-in `useMemo` hook, rather than rolling your own.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch05.html#idm45331652259400-marker)) 如果你正在使用 React，你应该使用内置的 `useMemo`
+    钩子，而不是自己编写。
+- en: ^([2](ch05.html#idm45331650850072-marker)) With the exception of `never`.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch05.html#idm45331650850072-marker)) 除了 `never`。

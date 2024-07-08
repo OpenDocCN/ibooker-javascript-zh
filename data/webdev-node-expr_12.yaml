@@ -1,0 +1,783 @@
+- en: Chapter 12\. Production Concerns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第12章 生产关注点
+- en: While it may feel premature to start discussing production concerns at this
+    point, you can save yourself a lot of time and suffering down the line if you
+    start thinking about production early on. Launch day will be here before you know
+    it.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管现在开始讨论生产关注点可能感觉为时过早，但如果您从早期就开始思考生产，您将节省大量时间和痛苦。发布日将在您意识到之前就来临。
+- en: In this chapter, you’ll learn about Express’s support for different execution
+    environments, methods to scale your website, and how to monitor your website’s
+    health. You’ll see how you can simulate a production environment for testing and
+    development and also how to perform stress testing so you can identify production
+    problems before they happen.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您将了解 Express 对不同执行环境的支持，网站扩展的方法，以及如何监控网站的健康状况。您将看到如何模拟生产环境进行测试和开发，以及如何进行压力测试，以便在问题发生之前识别生产问题。
+- en: Execution Environments
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 执行环境
+- en: 'Express supports the concept of *execution environments*: a way to run your
+    application in production, development, or test mode. You could actually have
+    as many different environments as you want. For example, you could have a staging
+    environment, or a training environment. However, keep in mind that development,
+    production, and test are “standard” environments, and both Express and third-party
+    middleware often make decisions based on those environments. In other words, if
+    you have a “staging” environment, there’s no way to make it automatically inherit
+    the properties of a production environment. For this reason, I recommend you stick
+    with the standards of production, development, and test.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Express 支持*执行环境*的概念：在生产、开发或测试模式下运行应用程序的一种方法。实际上，您可以拥有尽可能多的不同环境。例如，您可以有一个分段环境或培训环境。但请记住，开发、生产和测试是“标准”环境，Express
+    和第三方中间件通常根据这些环境做出决策。换句话说，如果您有一个“分段”环境，没有办法让它自动继承生产环境的属性。因此，我建议您坚持使用生产、开发和测试的标准。
+- en: While it is possible to specify the execution environment by calling `app.set('env',
+    \'production')`, it is inadvisable to do so; it means your app will always run
+    in that environment, no matter what the situation. Worse, it may start running
+    in one environment and then switch to another.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然可以通过调用`app.set('env', \'production')`来指定执行环境，但这样做是不明智的；这意味着您的应用程序将始终在该环境中运行，无论情况如何。更糟糕的是，它可能会在一个环境中开始运行，然后切换到另一个环境。
+- en: 'It’s preferable to specify the execution environment by using the environment
+    variable `NODE_ENV`. Let’s modify our app to report on the mode it’s running in
+    by calling `app.get(''env’)`:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最好通过环境变量`NODE_ENV`来指定执行环境。让我们修改我们的应用程序，通过调用`app.get('env’)`报告它正在运行的模式：
+- en: '[PRE0]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'If you start your server now, you’ll see you’re running in development mode;
+    it’s the default if you don’t specify otherwise. Let’s try putting it in production
+    mode:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您现在启动服务器，您将看到它正在开发模式下运行；如果您不指定其他模式，这是默认值。让我们尝试将其置于生产模式下：
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'If you’re using Unix/BSD, there’s a handy syntax that allows you to modify
+    the environment only for the duration of that command:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用 Unix/BSD，有一种便捷的语法可以仅在该命令的执行期间修改环境：
+- en: '[PRE2]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This will run the server in production mode, but once the server terminates,
+    the `NODE_ENV` environment variable won’t be modified. I’m particularly fond of
+    this shortcut, and it reduces the chance that I accidentally leave environment
+    variables set to values that I don’t necessarily want for everything.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将以生产模式运行服务器，但一旦服务器终止，`NODE_ENV`环境变量将不会被修改。我特别喜欢这个快捷方式，它减少了我意外留下环境变量设置为我不一定想要的值的机会。
+- en: Note
+  id: totrans-13
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you start Express in production mode, you may notice warnings about components
+    that are not suitable for use in production mode. If you’ve been following along
+    with the examples in this book, you’ll see that `connect.session` is using a memory
+    store, which is not suitable for a production environment. Once we switch to a
+    database store in [Chapter 13](ch13.xhtml#ch_persistence), this warning will disappear.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您以生产模式启动 Express，则可能会注意到有关不适合在生产模式下使用的组件的警告。如果您一直在本书的示例中跟进，您会看到`connect.session`正在使用内存存储，这在生产环境中是不合适的。一旦我们在[第13章](ch13.xhtml#ch_persistence)中切换到数据库存储，这个警告将消失。
+- en: Environment-Specific Configuration
+  id: totrans-15
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 环境特定配置
+- en: Just changing the execution environment won’t do much, though Express will log
+    more warnings to the console in production mode (for example, informing you of
+    modules that are deprecated and will be removed in the future). Also, in production
+    mode, view caching is enabled by default (see [Chapter 7](ch07.xhtml#ch_templating)).
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管Express在生产模式下会在控制台上记录更多警告（例如，通知您即将删除并将来会移除的模块），但仅仅改变执行环境并不能做太多事情。此外，在生产模式下，默认情况下启用了视图缓存（参见[第7章](ch07.xhtml#ch_templating)）。
+- en: Mainly, the execution environment is a tool for you to leverage, allowing you
+    to easily make decisions about how your application should behave in the different
+    environments. As a word of caution, you should try to minimize the differences
+    between your development, test, and production environments. That is, you should
+    use this feature sparingly. If your development or test environments differ wildly
+    from production, you are increasing your chances of different behavior in production,
+    which is a recipe for more defects (or harder-to-find ones). Some differences
+    are inevitable; for example, if your app is highly database driven, you probably
+    don’t want to be messing with the production database during development, and
+    that would be a good candidate for environment-specific configuration. Another
+    low-impact area is more verbose logging. There are a lot of things you might want
+    to log in development that are unnecessary to record in production.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主要的执行环境是一个工具，让你能够轻松地决定你的应用在不同环境下的行为。作为一种注意，你应该尽量减少开发、测试和生产环境之间的差异。也就是说，你应该谨慎使用这个功能。如果你的开发或测试环境与生产环境差异很大，那么在生产中就可能会出现不同的行为，这会导致更多的缺陷（或更难找到的缺陷）。一些差异是不可避免的；例如，如果您的应用程序高度依赖于数据库驱动，您可能不希望在开发过程中操作生产数据库，这将是适合特定环境配置的好选择。另一个低影响领域是更详细的日志记录。在开发中可能想要记录的许多事情在生产中是不必要记录的。
+- en: 'Let’s add some logging to our server. The twist is that we want different behavior
+    for production and development. For development, we can leave the defaults, but
+    for production, we want to log to a file. We’ll use `morgan` (don’t forget `npm
+    install morgan`), which is the most common logging middleware (*ch12/00-logging.js*
+    in the companion repo):'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们给我们的服务器添加一些日志记录。关键在于我们希望在生产和开发环境下有不同的行为。对于开发环境，我们可以保留默认设置，但是对于生产环境，我们希望将日志记录到文件中。我们将使用`morgan`（别忘了`npm
+    install morgan`），这是最常见的日志中间件（伴随库中的*ch12/00-logging.js*）：
+- en: '[PRE3]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: If you start the server as you normally would (`node meadowlark.js`) and visit
+    the site, you’ll see the activity logged to the console. To see how the application
+    behaves in production mode, run it with `NODE_ENV=production` instead. Now if
+    you visit the application, you won’t see any activity on the terminal (probably
+    what we want for a production server), but all of the activity is logged in [Apache’s
+    Combined Log Format](http://bit.ly/2NGC592), which is a staple for many server
+    tools.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你像平常一样启动服务器（`node meadowlark.js`）并访问站点，你会看到活动被记录到控制台。要查看应用在生产模式下的行为，请使用`NODE_ENV=production`运行它。现在，如果你访问应用程序，你将不会在终端上看到任何活动（这可能是我们希望在生产服务器上的情况），但所有活动都记录在[Apache的组合日志格式](http://bit.ly/2NGC592)中，这是许多服务器工具的基本组成部分。
+- en: 'We accomplished this by creating an appendable (`{ flags: *a* }`) write stream
+    and passing it to the morgan configuration. Morgan has many options; to see them
+    all, check out the [morgan documentation](http://bit.ly/32H5wMr).'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们通过创建一个可追加的写入流（`{ flags: *a* }`）并将其传递给morgan配置来实现这一点。Morgan有许多选项；要查看所有选项，请查阅[morgan文档](http://bit.ly/32H5wMr)。'
+- en: Note
+  id: totrans-22
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In the previous example, we’re using `__dirname` to store the request log in
+    a subdirectory of the project itself. If you take this approach, you will want
+    to add `log` to your *.gitignore* file. Alternatively, you could take a more Unix-like
+    approach and save the logs in a subdirectory of */var/log*, as Apache does by
+    default.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一个例子中，我们使用`__dirname`来将请求日志存储在项目本身的子目录中。如果你采用这种方法，你会希望将`log`添加到你的*.gitignore*文件中。或者，你可以采用更类似Unix的方法，将日志保存在*/var/log*的子目录中，就像Apache默认的做法一样。
+- en: I will stress again that you should use your best judgment when making environment-specific
+    configuration choices. Always keep in mind that when your site is live, your production
+    instances will be running in `production` mode (or they should be). Whenever you’re
+    tempted to make a development-specific modification, you should always think first
+    about how that might have QA consequences in production. We’ll see a more robust
+    example of environment-specific configuration in [Chapter 13](ch13.xhtml#ch_persistence).
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我再次强调，当您做出特定于环境的配置选择时，应该用最佳判断力。请记住，当您的网站上线时，您的生产实例将在`生产`模式下运行（或应该如此）。每当您想要进行开发特定修改时，您应首先考虑这可能对生产中的质量保证造成的影响。我们将在[第13章](ch13.xhtml#ch_persistence)看到一个更强大的环境特定配置的示例。
+- en: Running Your Node Process
+  id: totrans-25
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 运行您的 Node 进程
+- en: So far, we’ve been running our application by invoking it directly with `node`
+    (for example, `node meadowlark.js`). This is fine for development and testing,
+    but it has disadvantages for production. Notably, there are no protections if
+    your app crashes or gets terminated. A robust *process manager* can address this
+    problem.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们一直在直接调用 `node` 运行我们的应用程序（例如，`node meadowlark.js`）。这对开发和测试来说是可以的，但在生产中有其缺点。特别是，如果您的应用程序崩溃或被终止，将没有任何保护措施。一个强大的*进程管理器*可以解决这个问题。
+- en: Depending on your hosting solution, you may not need a process manager if one
+    is provided by the hosting solution itself. That is, the hosting provider will
+    give you a configuration option to point to your application file, and it will
+    handle the process management.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据您的托管解决方案，如果提供了进程管理器，则可能不需要额外的进程管理器。也就是说，托管提供商将为您提供一个配置选项来指向您的应用程序文件，并将处理进程管理。
+- en: 'But if you need to manage the process yourself, there are two popular options
+    for process managers:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果您需要自己管理进程，则有两种流行的选项可供选择的进程管理器：
+- en: '[Forever](https://github.com/foreversd/forever)'
+  id: totrans-29
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[永不停止](https://github.com/foreversd/forever)'
+- en: '[PM2](https://github.com/Unitech/pm2)'
+  id: totrans-30
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[PM2](https://github.com/Unitech/pm2)'
+- en: Since production environments can vary widely, we won’t go into the specifics
+    of setting up and configuring a process manager. Both Forever and PM2 have excellent
+    documentation, and you can install and use them on your development machine to
+    learn how to configure them.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于生产环境可能存在差异，我们不会详细讨论设置和配置进程管理器的具体事项。永不停止和 PM2 都有出色的文档，您可以在开发机器上安装和使用它们来学习如何配置。
+- en: I have used them both, and I don’t have a strong preference. Forever is a little
+    more straightforward and easy to get started, and PM2 offers more features.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我都用过，没有特别偏好。永不停止更为直接且易于入门，而 PM2 则提供了更多功能。
+- en: 'If you want to experiment with a process manager without investing a lot of
+    time, I recommend giving Forever a try. You can try it in two steps. First, install
+    Forever:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想尝试一个进程管理器而又不想投入大量时间，我建议尝试使用永不停止。您可以分两步尝试它。首先，安装永不停止：
+- en: '[PRE4]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Then, start your application with Forever (run this from your application root):'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，使用永不停止启动您的应用程序（从应用程序根目录运行此命令）：
+- en: '[PRE5]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Your application is now running…and it will stay running even if you close your
+    terminal window! You can restart the process with `forever restart meadowlark.js`
+    and stop it with `forever stop meadowlark.js`.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的应用现在正在运行……即使您关闭终端窗口，它也会继续运行！您可以使用 `forever restart meadowlark.js` 重新启动进程，并使用
+    `forever stop meadowlark.js` 停止它。
+- en: Getting started with PM2 is a little more involved but is worth looking into
+    if you need to use your own process manager for production.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 PM2 起步会比较复杂，但如果您需要在生产环境中使用自己的进程管理器，它是值得一试的。
+- en: Scaling Your Website
+  id: totrans-39
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 扩展您的网站
+- en: 'These days, scaling usually means one of two things: scaling up or scaling
+    out. *Scaling up* refers to making servers more powerful: faster CPUs, better
+    architecture, more cores, more memory, etc. *Scaling out*, on the other hand,
+    simply means more servers. With the increased popularity of cloud computing and
+    the ubiquity of virtualization, server computational power is becoming less relevant,
+    and scaling out is usually the most cost-effective method for scaling websites
+    according to your needs.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当前，扩展通常意味着两种情况之一：扩展上升或扩展外扩。*扩展上升* 指的是使服务器更强大：更快的 CPU、更好的架构、更多核心、更多内存等等。*扩展外扩*
+    则意味着更多的服务器。随着云计算的普及和虚拟化的普及，服务器计算能力变得不那么重要，根据您的需求，扩展外扩通常是最具成本效益的网站扩展方法。
+- en: When developing websites for Node, you should always consider the possibility
+    of scaling out. Even if your application is tiny (maybe it’s even an intranet
+    application that will always have a limited audience) and will never conceivably
+    need to be scaled out, it’s a good habit to get into. After all, maybe your next
+    Node project will be the next Twitter, and scaling out will be essential. Fortunately,
+    Node’s support for scaling out is very good, and writing your application with
+    this in mind is painless.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发Node网站时，你应该始终考虑扩展的可能性。即使你的应用程序很小（也许它甚至是一个总是有限观众的内部网络应用程序），永远不会需要扩展，养成这种习惯也是个好主意。毕竟，也许你的下一个Node项目将成为下一个Twitter，扩展将是必不可少的。幸运的是，Node对扩展的支持非常好，考虑到这一点编写你的应用程序是毫不费力的。
+- en: The most important thing to remember when building a website designed to be
+    scaled out is persistence. If you’re used to relying on file-based storage for
+    persistence, *stop right there*. That way lies madness.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建旨在扩展的网站时最重要的事情是持久性。如果你习惯于依赖基于文件的存储来保持持久性，*停下来*。这条路只会导致疯狂。
+- en: My first experience with this problem was nearly disastrous. One of our clients
+    was running a web-based contest, and the web application was designed to inform
+    the first 50 winners that they would receive a prize. With that particular client,
+    we were unable to easily use a database because of some corporate IT restrictions,
+    so most persistence was achieved by writing flat files. I proceeded just as I
+    always had, saving each entry to a file. Once the file had recorded 50 winners,
+    no more people would be notified that they had won. The problem is that the server
+    was load-balanced, so half the requests were served by one server, and the other
+    half by another. One server notified 50 people that they had won…and so did the
+    other server. Fortunately, the prizes were small (fleece blankets) and not something
+    expensive like iPads, and the client took their lumps and handed out 100 prizes
+    instead of 50 (I offered to pay for the extra 50 blankets out of pocket for my
+    mistake, but they generously refused to take me up on my offer).
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我第一次面对这个问题的经历几乎是灾难性的。我们的一个客户正在进行基于Web的比赛，该Web应用程序旨在通知前50名获奖者他们将获得奖品。由于某些企业IT限制，我们无法轻松使用数据库，因此大部分持久性通过编写平面文件来实现。我按照往常的做法继续进行，将每个条目保存到一个文件中。一旦文件记录了50名获奖者，就不再通知更多人他们中奖了。问题在于服务器是负载平衡的，因此一半的请求由一个服务器处理，另一半由另一个服务器处理。一台服务器通知了50名获奖者……另一台服务器也通知了。幸运的是，奖品不是很贵重（抱毯），而不是像iPad之类的昂贵物品，客户承担了损失，分发了100个奖品而不是50个（我提出自掏腰包支付额外的50条毯子，但他们慷慨地拒绝了我的提议）。
+- en: The moral of this story is that unless you have a filesystem that’s accessible
+    to *all* of your servers, you should not rely on the local filesystem for persistence.
+    The exceptions are read-only data, like logging, and backups. For example, I have
+    commonly backed up form submission data to a local flat file in case the database
+    connection failed. In the case of a database outage, it is a hassle to go to each
+    server and collect the files, but at least no damage has been done.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个故事的寓意是，除非你有一个对*所有*服务器都可访问的文件系统，否则不应该依赖本地文件系统来保持持久性。有些例外是只读数据，如日志和备份。例如，我通常会将表单提交数据备份到本地平面文件中，以防数据库连接失败。在数据库故障的情况下，去每台服务器收集文件是一件麻烦事，但至少没有造成损失。
+- en: Scaling Out with App Clusters
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 扩展应用集群
+- en: 'Node itself supports *app clusters*, a simple, single-server form of scaling
+    out. With app clusters, you can create an independent server for each core (CPU)
+    on the system (having more servers than the number of cores will not improve the
+    performance of your app). App clusters are good for two reasons: first, they can
+    help maximize the performance of a given server (the hardware or virtual machine),
+    and second, it’s a low-overhead way to test your app under parallel conditions.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node本身支持*应用集群*，这是一种简单的单服务器扩展形式。通过应用集群，你可以为系统上的每个核心（CPU）创建一个独立的服务器（如果服务器数量超过核心数，不会提高应用程序的性能）。应用集群有两个好处：首先，它们可以帮助最大化给定服务器（硬件或虚拟机）的性能，其次，这是一种低开销的方式，在并行条件下测试你的应用程序。
+- en: 'Let’s go ahead and add cluster support to our website. While it’s quite common
+    to do all of this work in your main application file, we are going to create a
+    second application file that will run the app in a cluster, using the nonclustered
+    application file we’ve been using all along. To enable that, we have to make a
+    slight modification to *meadowlark.js* first (see *ch12/01-server.js* in the companion
+    repo for a simplified example):'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们继续为我们的网站添加集群支持。虽然在主应用程序文件中完成所有这些工作非常常见，但我们将创建一个第二个应用程序文件，在集群中运行应用程序，使用我们一直在使用的非集群应用程序文件。为了启用这一点，我们首先必须对*meadowlark.js*进行轻微修改（参见伴侣库中的*ch12/01-server.js*的简化示例）：
+- en: '[PRE6]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: If you recall from [Chapter 5](ch05.xhtml#ch_qa), if `require.main === module`,
+    it means the script has been run directly; otherwise, it has been called with
+    `require` from another script.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你还记得来自[第5章](ch05.xhtml#ch_qa)，如果`require.main === module`，这意味着脚本直接运行；否则，它已经被另一个脚本通过`require`调用。
+- en: 'Then, we create a new script, *meadowlark-cluster.js* (see *ch12/01-cluster*
+    in the companion repo for a simplified example):'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们创建一个新的脚本，*meadowlark-cluster.js*（请参见伴侣库中的*ch12/01-cluster*的简化示例）：
+- en: '[PRE7]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: When this JavaScript is executed, it will be either in the context of master
+    (when it is run directly, with `node meadowlark-cluster.js`) or in the context
+    of a worker, when Node’s cluster system executes it. The properties `cluster.isMaster`
+    and `cluster.isWorker` determine which context you’re running in. When we run
+    this script, it’s executing in master mode, and we start a worker using `cluster.fork`
+    for each CPU in the system. Also, we respawn any dead workers by listening for
+    `exit` events from workers.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当执行此JavaScript时，它将处于主（直接使用`node meadowlark-cluster.js`运行时）或工作进程的上下文中，当Node的集群系统执行它时。属性`cluster.isMaster`和`cluster.isWorker`确定你正在运行的上下文。当我们运行此脚本时，它正在主模式下执行，并使用`cluster.fork`为系统中的每个CPU启动一个工作进程。此外，我们通过监听来自工作进程的`exit`事件来重新启动任何死掉的工作进程。
+- en: Finally, in the `else` clause, we handle the worker case. Since we configured
+    *meadowlark.js* to be used as a module, we simply import it and immediately invoke
+    it (remember, we exported it as a function that starts the server).
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，在`else`子句中，我们处理工作进程。由于我们将*meadowlark.js*配置为作为一个模块使用，我们只需导入它并立即调用它（请记住，我们将其导出为一个启动服务器的函数）。
+- en: 'Now start up your new clustered server:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在启动你的新集群服务器：
+- en: '[PRE8]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Note
+  id: totrans-56
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you are using virtualization (like Oracle’s VirtualBox), you may have to
+    configure your VM to have multiple CPUs. By default, virtual machines often have
+    a single CPU.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用虚拟化（如Oracle的VirtualBox），你可能需要配置你的虚拟机以具有多个CPU。默认情况下，虚拟机通常只有一个CPU。
+- en: 'Assuming you’re on a multicore system, you should see some number of workers
+    started. If you want to see evidence of different workers handling different requests,
+    add the following middleware before your routes:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你正在使用多核系统，你应该看到一些工作进程启动。如果你想看到不同的工作进程处理不同的请求证据，请在你的路由之前添加以下中间件：
+- en: '[PRE9]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Now you can connect to your application with a browser. Reload a few times and
+    see how you can get a different worker out of the pool on each request. (You may
+    not be able to; Node is designed to handle large numbers of connections, and you
+    may not be able to stress it sufficiently simply by reloading your browser; later
+    we’ll explore stress testing, and you’ll be able to better see the cluster in
+    action.)
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以用浏览器连接到你的应用程序。多次重新加载并查看如何在每个请求中从池中获取不同的工作进程（你可能无法；Node被设计来处理大量连接，简单通过重新加载浏览器可能无法充分压力测试它；稍后我们将探讨压力测试，你将能更好地看到集群的运行情况）。
+- en: Handling Uncaught Exceptions
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 处理未捕获的异常
+- en: 'In the asynchronous world of Node, uncaught exceptions are of particular concern.
+    Let’s start with a simple example that doesn’t cause too much trouble (I encourage
+    you to follow along with these examples):'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Node的异步世界中，未捕获的异常是特别关注的问题。让我们从一个不会造成太多麻烦的简单例子开始（我鼓励你跟着这些例子一起学习）：
+- en: '[PRE10]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'When Express executes route handlers, it wraps them in a try/catch block, so
+    this isn’t actually an uncaught exception. This won’t cause too much of a problem:
+    Express will log the exception on the server side, and the visitor will get an
+    ugly stack dump. However, your server is stable, and other requests will continue
+    to be served correctly. If we want to provide a “nice” error page, create a file
+    *views/500.handlebars* and add an error handler after all of your routes:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 Express 执行路由处理程序时，它将它们包装在 try/catch 块中，因此这实际上不是一个未捕获的异常。这不会造成太大问题：Express
+    会在服务器端记录异常，并且访问者会得到一个难看的堆栈转储。然而，您的服务器是稳定的，并且其他请求将继续正常提供服务。如果我们想要提供一个“友好”的错误页面，创建一个文件
+    *views/500.handlebars* 并在所有路由之后添加一个错误处理程序：
+- en: '[PRE11]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'It’s always a good practice to provide a custom error page; it not only looks
+    more professional to your users when errors do occur, but also allows you to take
+    action when errors occur. For example, this error handler would be a good place
+    to notify your dev team that an error occurred. Unfortunately, this helps only
+    for exceptions that Express can catch. Let’s try something worse:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供自定义错误页面始终是一个好习惯；当错误发生时，它不仅会使您的用户感到更专业，还允许您在错误发生时采取行动。例如，此错误处理程序将是通知开发团队发生错误的好地方。不幸的是，这仅对
+    Express 能够捕获的异常有效。让我们试试更糟糕的情况：
+- en: '[PRE12]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Go ahead and try it. The result is considerably more catastrophic: it brings
+    your whole server down! In addition to not displaying a friendly error message
+    to your user, now your server is down, and *no* requests are being served. This
+    is because `setTimeout` is executing *asynchronously*; execution of the function
+    with the exception is being deferred until Node is idle. The problem is, when
+    Node is idle and gets around to executing the function, it no longer has context
+    about the request it was being served from, so it has no recourse but to unceremoniously
+    shut down the whole server, because now it’s in an undefined state. (Node can’t
+    know the purpose of the function or its caller, so it can no longer assume that
+    any further functions will work correctly.)'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请尝试一下。结果将会非常灾难性：它会使整个服务器都崩溃！除了不向用户显示友好的错误消息之外，现在您的服务器已经宕机，*没有*请求正在得到服务。这是因为
+    `setTimeout` 是*异步*执行的；带有异常的函数的执行被推迟直到 Node 空闲。问题是，当 Node 空闲并且准备执行函数时，它不再具有关于正在服务的请求的上下文，因此除了不体面地关闭整个服务器外，别无选择，因为现在它处于未定义状态。（Node
+    无法知道函数或其调用者的目的，因此它不再假定任何进一步的函数将正常工作。）
+- en: Note
+  id: totrans-69
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`process.nextTick` is similar to calling `setTimeout` with an argument of 0,
+    but it’s more efficient. We’re using it here for demonstration purposes; it’s
+    not something you would generally use in server-side code. However, in coming
+    chapters, we will be dealing with many things that execute asynchronously, such
+    as database access, filesystem access, and network access, to name a few, and
+    they are all subject to this problem.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`process.nextTick` 类似于调用 `setTimeout` 参数为 0，但效率更高。我们在这里使用它进行演示目的；通常情况下，您不会在服务器端代码中使用它。然而，在接下来的章节中，我们将处理许多异步执行的事情，例如数据库访问、文件系统访问和网络访问等，它们都会遇到这个问题。'
+- en: There is action that we can take to handle uncaught exceptions, but *if Node
+    can’t determine the stability of your application, neither can you*. In other
+    words, if there is an uncaught exception, the only recourse is to shut down the
+    server. The best we can do in this circumstance is to shut down as gracefully
+    as possible and have a failover mechanism. The easiest failover mechanism is to
+    use a cluster. If your application is operating in clustered mode and one worker
+    dies, the master will spawn another worker to take its place. (You don’t even
+    need multiple workers; a cluster with one worker will suffice, though the failover
+    may be slightly slower.)
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以采取措施来处理未捕获的异常，但*如果 Node 无法确定您的应用程序的稳定性，那么您也无法确定*。换句话说，如果发生未捕获的异常，唯一的解决方法就是关闭服务器。在这种情况下，我们能做的最好的事情就是尽可能优雅地关闭并具备故障转移机制。最简单的故障转移机制是使用集群。如果您的应用程序在集群模式下运行并且一个工作进程死掉，主进程将会生成另一个工作进程来替代它。（甚至您不需要多个工作进程；一个带有一个工作进程的集群就足够了，尽管故障转移可能会稍慢一些。）
+- en: So with that in mind, how can we shut down as gracefully as possible when confronted
+    with an unhandled exception? Node’s mechanism for dealing with this is the `uncaughtException`
+    event. (Node also has a mechanism called *domains*, but this module has been deprecated,
+    and its use is no longer recommended.)
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在这种情况下，当我们面对未处理的异常时，如何以最优雅的方式关闭？Node处理这种情况的机制是`uncaughtException`事件。（Node还有一种称为*domains*的机制，但该模块已被弃用，不再推荐使用。）
+- en: '[PRE13]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'It’s unrealistic to expect that your application will never experience uncaught
+    exceptions, but you should have a mechanism in place to record the exception and
+    notify you when it happens, and you should take it seriously. Try to determine
+    why it happened so you can fix it. Services like [Sentry](https://sentry.io),
+    [Rollbar](https://rollbar.com), [Airbrake](https://airbrake.io/), and [New Relic](https://newrelic.com)
+    are a great way to record these kinds of errors for analysis. For example, to
+    use Sentry, first you have to register for a free account, at which point you
+    will receive a data source name (DSN), and then you can modify your exception
+    handler:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不能期望您的应用程序永远不会遇到未捕获的异常，但您应该有一个机制来记录异常并在发生时通知您，并且您应该认真对待它。尝试确定发生异常的原因，以便进行修复。像[Sentry](https://sentry.io)、[Rollbar](https://rollbar.com)、[Airbrake](https://airbrake.io/)和[New
+    Relic](https://newrelic.com)这样的服务是记录这类错误以进行分析的好方法。例如，要使用Sentry，首先您必须注册一个免费账户，然后您将收到一个数据源名称（DSN），然后您可以修改您的异常处理程序：
+- en: '[PRE14]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Scaling Out with Multiple Servers
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用多台服务器进行扩展
+- en: Although scaling out using clustering can maximize the performance of an individual
+    server, what happens when you need more than one server? That’s where things get
+    a little more complicated. To achieve this kind of parallelism, you need a *proxy*
+    server. (It’s often called a *reverse proxy* or *forward-facing proxy* to distinguish
+    it from proxies commonly used to access external networks, but I find this language
+    to be confusing and unnecessary, so I will simply refer to it as a proxy.)
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然使用集群可以最大化单个服务器的性能，但当您需要多台服务器时会发生什么呢？这时情况会变得有些复杂。要实现这种并行性，您需要一个*代理*服务器。（通常称为*反向代理*或*前置代理*以区分常用于访问外部网络的代理，但我发现这种语言令人困惑且不必要，因此我将简称其为代理。）
+- en: Two very popular options are [NGINX](https://www.nginx.com) (pronounced “engine
+    X”) and [HAProxy](http://www.haproxy.org). NGINX servers in particular are springing
+    up like weeds. I recently did a competitive analysis for my company and found
+    upward of 80% of our competitors were using NGINX. NGINX and HAProxy are both
+    robust, high-performance proxy servers and are capable of the most demanding applications.
+    (If you need proof, consider that Netflix, which accounts for as much as 15% of
+    *all internet traffic*, uses NGINX.)
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个非常流行的选项是[NGINX](https://www.nginx.com)（发音为“engine X”）和[HAProxy](http://www.haproxy.org)。尤其是NGINX服务器如雨后春笋般普及。我最近为我的公司进行了竞争分析，发现我们的竞争对手中多达80%正在使用NGINX。NGINX和HAProxy都是强大且高性能的代理服务器，能够应对最苛刻的应用场景。（如果你需要证据，考虑到Netflix占据了多达15%的*全球互联网流量*，它使用的是NGINX。）
+- en: There are also some smaller Node-based proxy servers, such as [node-http-proxy](http://bit.ly/34RWyNN).
+    This is a great option if your needs are modest, or for development. For production,
+    I recommend using NGINX or HAProxy (both are free, though they offer support for
+    a fee).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一些基于Node的较小的代理服务器，例如[node-http-proxy](http://bit.ly/34RWyNN)。如果您的需求较为简单或用于开发，这是一个不错的选择。对于生产环境，我建议使用NGINX或HAProxy（它们都是免费的，但提供付费支持）。
+- en: Installing and configuring a proxy is beyond the scope of this book, but it
+    is not as hard as you might think (especially if you use node-http-proxy or another
+    lightweight proxy). For now, using clusters gives us some assurance that our website
+    is ready for scaling out.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装和配置代理服务器超出了本书的范围，但实际并不像你想象的那么难（特别是如果你使用node-http-proxy或其他轻量级代理）。目前，使用集群可以确保我们的网站已经准备好进行扩展。
+- en: 'If you do configure a proxy server, make sure you tell Express that you are
+    using a proxy and that it should be trusted:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您配置了代理服务器，请确保告知Express您正在使用代理，并且应该信任该代理：
+- en: '[PRE15]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Doing this will ensure that `req.ip`, `req.protocol`, and `req.secure` will
+    reflect the details about the connection between the *client and the proxy*, not
+    between the client and your app. Also, `req.ips` will be an array that indicates
+    the original client IP and the names or IP addresses of any intermediate proxies.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做将确保`req.ip`，`req.protocol`和`req.secure`将反映客户端和代理之间的连接详细信息，而不是客户端和您的应用程序之间的连接。此外，`req.ips`将是一个数组，指示原始客户端IP和任何中间代理的名称或IP地址。
+- en: Monitoring Your Website
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 监控您的网站
+- en: Monitoring your website is one of the most important—and most often overlooked—QA
+    measures you can take. The only thing worse than being up at 3 a.m. fixing a broken
+    website is being woken up at 3 a.m. by your boss because the website is down (or,
+    worse still, arriving in the morning to realize that your client just lost $10,000
+    in sales because the website had been down all night and no one noticed).
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 监控您的网站是您可以采取的最重要的，也是最经常被忽视的质量保证措施之一。在凌晨3点修复破损的网站是一件糟糕的事情，被你的老板在凌晨3点吵醒因为网站挂了更糟糕（或者更糟糕的是，在早上到达时意识到您的客户因为网站整晚都挂了而损失了1万美元并且没有人注意到）。
+- en: 'There’s nothing you can do about failures: they are as inevitable as death
+    and taxes. However, if there is one thing you can do to convince your boss and
+    your clients that you are great at your job, it’s to *always* know about failures
+    before they do.'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 失败是无法避免的：它们和死亡以及税收一样，是不可避免的。但是，如果有一件事情可以让你的老板和客户相信你很擅长你的工作，那就是*始终*在他们之前知道故障。
+- en: Third-Party Uptime Monitors
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 第三方正常运行时间监控程序
+- en: Having an uptime monitor running on your website’s server is as effective as
+    having a smoke alarm in a house that nobody lives in. It might be able to catch
+    errors if a certain page goes down, but if the whole *server* goes down, it may
+    go down without even sending out an SOS. That’s why your first line of defense
+    should be third-party uptime monitors. [UptimeRobot](http://uptimerobot.com) is
+    free for up to 50 monitors and is simple to configure. Alerts can go to email,
+    SMS (text message), Twitter, or Slack (among others). You can monitor for the
+    return code from a single page (anything other than a 200 is considered an error)
+    or to check for the presence or absence of a keyword on the page. Keep in mind
+    that if you use a keyword monitor, it may affect your analytics (you can exclude
+    traffic from uptime monitors in most analytics services).
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您网站的服务器上运行一个正常运行时间监控程序，就像在没有人居住的房子里安装烟雾报警器一样有效。它可能能够在某个页面挂掉时捕捉错误，但是如果整个*服务器*挂掉，可能会在不发出SOS的情况下就挂掉。这就是为什么您的第一道防线应该是第三方的正常运行时间监控程序。[UptimeRobot](http://uptimerobot.com)免费提供50个监视器，并且配置简单。警报可以发送到电子邮件，短信（短信），Twitter或Slack（等等）。您可以监控单个页面返回的代码（除了200之外的任何内容都被视为错误）或者检查页面上的关键字的存在或缺失。请记住，如果您使用关键字监视器，可能会影响您的分析（您可以在大多数分析服务中排除正常运行时间监控的流量）。
+- en: If your needs are more sophisticated, there are other, more expensive services
+    out there such as [Pingdom](http://pingdom.com) and [Site24x7](http://www.site24x7.com).
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的需求更复杂，还有其他更昂贵的服务，比如[Pingdom](http://pingdom.com)和[Site24x7](http://www.site24x7.com)。
+- en: Stress Testing
+  id: totrans-90
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 压力测试
+- en: '*Stress testing* (or *load testing*) is designed to give you some confidence
+    that your server will function under the load of hundreds or thousands of simultaneous
+    requests. This is another deep area that could be the subject for a whole book:
+    stress testing can be arbitrarily sophisticated, and how complicated you want
+    to get depends largely on the nature of your project. If you have reason to believe
+    that your site could be massively popular, you might want to invest more time
+    in stress testing.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*压力测试*（或*负载测试*）旨在让您有信心，您的服务器能够承受同一时间的数百或数千个请求。这是另一个深奥的领域，可以成为专门一本书的主题：压力测试可以任意复杂，您想要多复杂取决于您项目的性质。如果您有理由相信您的网站可能会非常受欢迎，您可能需要在压力测试上投入更多时间。'
+- en: 'Let’s add a simple stress test using [Artillery](https://artillery.io/). First,
+    install Artillery by running `npm install -g artillery`; then edit your *package.json*
+    file and add the following to the `scripts` section:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使用[Artillery](https://artillery.io/)添加一个简单的压力测试。首先，通过运行`npm install -g artillery`来安装Artillery；然后编辑您的*package.json*文件，并在`scripts`部分添加以下内容：
+- en: '[PRE16]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: This will simulate 10 “virtual users” (`--count 10`), each of whom will send
+    20 requests (`-n 20`) to your server.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将模拟10个“虚拟用户”(`--count 10`)，每个用户将向您的服务器发送20个请求(`-n 20`)。
+- en: 'Make sure your application is running (in a separate terminal window, for example)
+    and then run `npm run stress`. You’ll see statistics like this:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保你的应用正在运行（例如在单独的终端窗口中），然后运行`npm run stress`。你会看到像这样的统计数据：
+- en: '[PRE17]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: This test was run on my development laptop. You can see Express didn’t take
+    more than 10.3 milliseconds to serve any requests, and 99% of them were served
+    in under 5.4 milliseconds. I can’t offer concrete guidance about what kind of
+    numbers you should be looking for, but to ensure a snappy application, you should
+    be looking for total connection times under 50 milliseconds. (Don’t forget that
+    this is just the time it takes the server to deliver the data to the client; the
+    client still has to render it, which takes time, so the less time you spend transmitting
+    the data, the better.)
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个测试是在我的开发笔记本上运行的。你可以看到 Express 在任何请求中的响应时间都不超过 10.3 毫秒，其中 99% 的请求在 5.4 毫秒以下完成。我无法提供具体的指导，告诉你应该寻找什么样的数字，但为了确保应用程序响应迅速，你应该寻找总连接时间在
+    50 毫秒以下的情况。（别忘了这仅仅是服务器传输数据给客户端所需的时间；客户端仍然需要渲染数据，这也需要时间，所以你在传输数据时花费的时间越少，越好。）
+- en: If you stress test your application regularly and benchmark it, you’ll be able
+    to recognize problems. If you just finished a feature and you find that your connection
+    times have tripled, you might want to do some performance tuning on your new feature!
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你定期对你的应用进行压力测试并进行基准测试，你就能够识别问题。如果你刚刚完成了一个功能，并发现你的连接时间增加了三倍，那么你可能需要对你的新功能进行一些性能调优！
+- en: Conclusion
+  id: totrans-99
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: I hope this chapter has given you some insight into the things you’ll want to
+    think about as you approach the launch of your application. There is a lot of
+    detail that goes into a production application, and while you can’t anticipate
+    everything that might happen when you launch, the more you can anticipate, the
+    better off you’ll be. To paraphrase Louis Pasteur, fortune favors the prepared.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 希望本章内容能够让你在接近应用程序发布时考虑到一些事项。生产应用程序涉及很多细节，虽然你无法预测到启动时可能发生的一切，但你越能预见，你就越能处于有利地位。借路易斯·巴斯德的话说，准备充足者多得利。

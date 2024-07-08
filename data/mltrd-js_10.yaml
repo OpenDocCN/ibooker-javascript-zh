@@ -1,0 +1,184 @@
+- en: Appendix. Structured Clone Algorithm
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 附录。结构化克隆算法
+- en: The *structured clone algorithm* is a mechanism that JavaScript engines use
+    when copying objects using certain APIs. Most notably, it’s used when passing
+    data between workers, though other APIs use it as well. With this mechanism, data
+    is serialized and then later deserialized as an object inside another JavaScript
+    realm.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*结构化克隆算法*是 JavaScript 引擎在使用特定 API 复制对象时采用的一种机制。尤其是在传递数据给工作线程时，它被广泛应用，尽管其他 API
+    也在使用。通过这种机制，数据被序列化，然后在另一个 JavaScript 领域内作为对象进行反序列化。'
+- en: When objects are cloned in this manner, such as from the main thread to a worker
+    thread or from one worker to another, modifying an object on one side will not
+    affect the object on the other side. There are essentially two copies of the data
+    now. The purpose of the structured clone algorithm is to provide a friendlier
+    mechanism for developers than what `JSON.stringify` does, while imposing reasonable
+    limitations.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当以这种方式克隆对象（例如从主线程到工作线程或从一个工作线程到另一个）时，在一侧修改对象不会影响另一侧的对象。现在数据实际上有两个副本。结构化克隆算法的目的是为开发人员提供比
+    `JSON.stringify` 更友好的机制，同时施加合理的限制。
+- en: Browsers use the structured clone algorithm when copying data between web workers.
+    Node.js, similarly, uses it when copying data between worker threads. Basically,
+    when you see a `.postMessage()` call, data being passed in is cloned in this way.
+    Browsers and Node.js follow the same rules, but they each support additional object
+    instances that can be copied.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器和 Node.js 之间复制数据时，会使用结构化克隆算法。类似地，Node.js 在工作线程之间复制数据时也会使用它。基本上，当您看到 `.postMessage()`
+    调用时，传递的数据是以这种方式克隆的。浏览器和 Node.js 遵循相同的规则，但它们都支持可以复制的额外对象实例。
+- en: As a quick rule of thumb, any data that can be cleanly represented as JSON can
+    be safely cloned in this manner. Sticking to data represented in this manner will
+    certainly lead to very few surprises. That said, the structured clone algorithm
+    supports several other types of data as well.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为一个快速的经验法则，任何可以干净地表示为 JSON 的数据都可以安全地通过这种方式进行克隆。遵循以这种方式表示的数据将确保几乎没有令人惊讶的情况。即便如此，结构化克隆算法还支持其他几种类型的数据。
+- en: First off, all of the primitive data types available in JavaScript, with the
+    exception of the `Symbol` type, can be represented. This includes the `Boolean`,
+    `null`, `undefined`, `Number`, `BigInt`, and `String` types.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，除了 `Symbol` 类型之外，JavaScript 中所有的原始数据类型都可以表示。这包括 `Boolean`、`null`、`undefined`、`Number`、`BigInt`
+    和 `String` 类型。
+- en: Instances of `Array`, `Map`, and `Set`, which are each used for storing collections
+    of data, can also be cloned in this manner. Even `ArrayBuffer`, `ArrayBufferView`,
+    and `Blob` instances, which store binary data, can be passed along.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Array`、`Map` 和 `Set` 的实例，它们分别用于存储数据集合，也可以以这种方式进行克隆。甚至存储二进制数据的 `ArrayBuffer`、`ArrayBufferView`
+    和 `Blob` 实例也可以传递。'
+- en: Instances of some more complex objects, as long as they are quite universal
+    and well understood, can also be passed through. This includes objects created
+    using the `Boolean` and `String` constructor, `Date`, and even `RegExp` instances.^([1](app01.xhtml#idm45995908897064))
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些更复杂的对象实例，只要它们是相当通用和被广泛理解的，也可以通过。这包括使用 `Boolean` 和 `String` 构造函数创建的对象，`Date`，甚至
+    `RegExp` 实例。^([1](app01.xhtml#idm45995908897064))
+- en: On the browser side, more complex and lesser-known object instances like those
+    for `File`, `FileList`, `ImageBitmap`, and `ImageData` can be cloned.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器端，像 `File`、`FileList`、`ImageBitmap` 和 `ImageData` 这样更复杂且不太为人知的对象实例也可以被克隆。
+- en: On the Node.js side, special object instances that can be copied over include
+    `WebAssembly.Module`, `CryptoKey`, `FileHandle`, `Histogram`, `KeyObject`, `MessagePort`,
+    `net.BlockList`, `net.SocketAddress`, and `X509Certificate`. Even instances of
+    `R⁠e⁠a⁠da⁠b⁠l⁠e⁠S⁠t⁠r⁠e⁠a⁠m`, `WritableStream`, and `TransformStream` can be copied.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Node.js 方面，可以复制的特殊对象实例包括 `WebAssembly.Module`、`CryptoKey`、`FileHandle`、`Histogram`、`KeyObject`、`MessagePort`、`net.BlockList`、`net.SocketAddress`
+    和 `X509Certificate`。甚至可以复制 `R⁠e⁠a⁠da⁠b⁠l⁠e⁠S⁠t⁠r⁠e⁠a⁠m`、`WritableStream` 和 `TransformStream`
+    的实例。
+- en: Another notable difference that works with the structured clone algorithm, but
+    doesn’t work with JSON objects, is that recursive objects (those with nested properties
+    that reference another property) can also be cloned. The algorithm is smart enough
+    to stop serializing an object once it encounters a duplicate, nested object.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个与结构化克隆算法兼容但与 JSON 对象不兼容的显著差异是，递归对象（具有引用另一个属性的嵌套属性的对象）也可以被克隆。一旦遇到重复的嵌套对象，算法就足够智能地停止对对象的序列化。
+- en: There are several shortcomings that may affect your implementations. First,
+    a function cannot be cloned in this manner. Functions can be pretty complex things.
+    For example, they have a scope available and can access variables declared outside
+    of them. Passing something like that between realms wouldn’t make a whole lot
+    of sense.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一些限制可能会影响您的实现。首先，不能以这种方式克隆函数。函数可能是非常复杂的东西。例如，它们有一个可用的作用域并且可以访问在它们外部声明的变量。在不同领域之间传递这样的内容并没有太多意义。
+- en: Another missing feature, which will likely affect your implementations, is that
+    DOM elements in the browser cannot be passed along. Does this mean that the work
+    that a web worker performs can’t be displayed to the user in the DOM? Absolutely
+    not. Instead, you’ll need to have a web worker return a value that the main JavaScript
+    realm is then able to transform and display to the user. For example, if you were
+    to calculate 1,000 iterations of `fibonacci` in a web worker, the numeric value
+    could be returned, and the calling JavaScript code could then take that value
+    and place it in the DOM.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个缺失的特性可能会影响您的实现，即浏览器中的 DOM 元素不能传递。这是否意味着 Web Worker 执行的工作不能显示给用户在 DOM 中？绝对不是。相反，您需要让
+    Web Worker 返回一个值，然后主 JavaScript Realm 能够转换并显示给用户。例如，如果在 Web Worker 中计算`fibonacci`的1,000次迭代，则可以返回数值，并且调用
+    JavaScript 代码可以取得该值并将其放置在 DOM 中。
+- en: Objects in JavaScript are fairly complex. Sometimes they can be created using
+    the object literal syntax. Other times they can be created by instantiating a
+    base class. And still other times they can be modified by setting property descriptors
+    and setters and getters. When it comes to the structured clone algorithm, only
+    the basic values of objects are retained.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 中的对象相当复杂。有时可以使用对象字面语法创建它们。其他时候可以通过实例化基类来创建它们。还有时可以通过设置属性描述符和设置器/获取器来修改它们。在结构化克隆算法中，只保留对象的基本值。
+- en: Most notably, this means that, when you define a class of your own and pass
+    an instance to be cloned, only the own properties of that instance will be cloned,
+    and the resulting object will be an instance of `Object`. Properties defined in
+    the prototype will not be cloned either. Even if you define `class Foo {}` both
+    on the calling side and inside the web worker, the value will still be an instance
+    of `Object`. This is because there’s no real way to guarantee that both sides
+    of the clone are dealing with the exact same `Foo` class.^([2](app01.xhtml#idm45995908881016))
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数显著的是，这意味着，当您定义自己的类并传递一个实例进行克隆时，只会克隆该实例的自有属性，结果对象将是`Object`的一个实例。原型中定义的属性也不会被克隆。即使您在调用端和
+    Web Worker 内部都定义了`class Foo {}`，值仍然是`Object`的一个实例。这是因为没有真正的方法来保证克隆的双方处理的是完全相同的`Foo`类。^([2](app01.xhtml#idm45995908881016))
+- en: 'Certain objects will entirely refuse to be cloned. For example, if you try
+    to pass `window` from the main thread to a worker thread, or if you try to return
+    `self` in the opposite direction, you may receive one of the following errors,
+    depending on the browser:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 某些对象将完全拒绝被克隆。例如，如果尝试将`window`从主线程传递到工作线程，或者反向尝试返回`self`，您可能会收到以下错误之一，具体取决于浏览器：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: There are some inconsistencies across JavaScript engines, so it’s best to test
+    your code in multiple browsers. For example, Chrome and Node.js support cloning
+    `Error` instances, but Firefox currently does not.^([3](app01.xhtml#idm45995908875256))
+    The general rule of thumb is that JSON-compatible objects should never be a problem,
+    but more complex data might be. For that reason, passing around simpler data is
+    usually best.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在不同的 JavaScript 引擎之间存在一些不一致，因此最好在多个浏览器中测试您的代码。例如，Chrome 和 Node.js 支持克隆`Error`实例，但当前
+    Firefox 不支持。^([3](app01.xhtml#idm45995908875256)) 一般的经验法则是 JSON 兼容的对象通常不会有问题，但更复杂的数据可能会有。因此，传递更简单的数据通常是最好的选择。
+- en: ^([1](app01.xhtml#idm45995908897064-marker)) There is a small caveat with `RegExp`
+    instances. They contain a `.lastIndex` property, which is used when running a
+    regular expression multiple times over the same string to know where the expression
+    last ended. This property is not passed along.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](app01.xhtml#idm45995908897064-marker)) 对于`RegExp`实例存在一个小的特例。它们包含一个`.lastIndex`属性，该属性在多次运行正则表达式时用于知道表达式最后结束的位置。此属性不会被传递。
+- en: ^([2](app01.xhtml#idm45995908881016-marker)) There are proposals to allow serializing
+    and deserializing class instances, such as [“User-defined structured clone for
+    JavaScript objects”](https://oreil.ly/HZUyz), so this restriction might not be
+    permanent.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](app01.xhtml#idm45995908881016-marker)) 已有提案允许序列化和反序列化类实例，比如[“JavaScript
+    对象的用户定义结构化克隆”](https://oreil.ly/HZUyz)，因此这一限制可能不是永久性的。
+- en: ^([3](app01.xhtml#idm45995908875256-marker)) Firefox is planning on supporting
+    this eventually. See [“Allow structured cloning of native error types”](https://oreil.ly/wT4NG).
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](app01.xhtml#idm45995908875256-marker)) Firefox 最终计划支持这一功能。参见[“允许结构化克隆原生错误类型”](https://oreil.ly/wT4NG)。

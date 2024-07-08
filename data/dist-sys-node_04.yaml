@@ -1,0 +1,2825 @@
+- en: Chapter 3\. Scaling
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第三章\. 扩展
+- en: Running redundant copies of a service is important for at least two reasons.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行服务的冗余副本至少有两个重要原因。
+- en: The first reason is to achieve *high availability*. Consider that processes,
+    and entire machines, occasionally crash. If only a single instance of a producer
+    is running and that instance crashes, then consumers are unable to function until
+    the crashed producer has been relaunched. With two or more running producer instances,
+    a single downed instance won’t necessarily prevent a consumer from functioning.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个原因是实现 *高可用性*。考虑到进程和整个机器偶尔会崩溃。如果只有一个生产者实例在运行，而该实例崩溃，则消费者无法正常工作，直到崩溃的生产者重新启动。如果有两个或更多运行中的生产者实例，则单个宕机实例不一定会阻止消费者正常工作。
+- en: Another reason is that there’s only so much throughput that a given Node.js
+    instance can handle. For example, depending on the hardware, the most basic Node.js
+    “Hello World” service might have a throughput of around 40,000 requests per second
+    (r/s). Once an application begins serializing and deserializing payloads or doing
+    other CPU-intensive work, that throughput is going to drop by orders of magnitude.
+    Offloading work to additional processes helps prevent a single process from getting
+    overwhelmed.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个原因是，特定的 Node.js 实例可以处理的吞吐量是有限的。例如，根据硬件不同，最基本的 Node.js “Hello World” 服务可能的吞吐量大约为每秒
+    40,000 个请求（r/s）。一旦应用程序开始串行化和反串行化负载或进行其他 CPU 密集型工作，吞吐量将急剧下降。将工作卸载到额外的进程有助于防止单个进程过载。
+- en: There are a few tools available for splitting up work. [“The Cluster Module”](#ch_scaling_sec_clustering)
+    looks at a built-in module that makes it easy to run redundant copies of application
+    code on the same server. [“Reverse Proxies with HAProxy”](#ch_scaling_sec_rp)
+    runs multiple redundant copies of a service using an external tool—allowing them
+    to run on different machines. Finally, [“SLA and Load Testing”](#ch_scaling_sec_bm)
+    looks at how to understand the load that a service can handle by examining benchmarks,
+    which can be used to determine the number of instances it should scale to.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有几种工具可用于分解工作。[“集群模块”](#ch_scaling_sec_clustering) 着眼于一个内置模块，使得在同一台服务器上运行应用程序代码的冗余副本变得简单。[“使用
+    HAProxy 的反向代理”](#ch_scaling_sec_rp) 使用外部工具运行服务的多个冗余副本，允许它们在不同的机器上运行。最后，[“SLA 和负载测试”](#ch_scaling_sec_bm)
+    讨论如何通过检查基准测试来理解服务可以处理的负载，这可以用来确定它应该扩展到的实例数量。
+- en: The Cluster Module
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 集群模块
+- en: Node.js provides the `cluster` module to allow running multiple copies of a
+    Node.js application on the same machine, dispatching incoming network messages
+    to the copies. This module is similar to the `child_process` module, which provides
+    a `fork()` method^([1](ch03.html#idm46291192440536)) for spawning Node.js sub
+    processes; the main difference is the added mechanism for routing incoming requests.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 提供了 `cluster` 模块，允许在同一台机器上运行多个 Node.js 应用程序副本，并将传入的网络消息分派给这些副本。该模块类似于
+    `child_process` 模块，它提供了一个 `fork()` 方法^([1](ch03.html#idm46291192440536)) 用于生成
+    Node.js 子进程；主要区别在于增加了路由传入请求的机制。
+- en: The `cluster` module provides a simple API and is immediately accessible to
+    any Node.js program. Because of this it’s often the knee-jerk solution when an
+    application needs to scale to multiple instances. It’s become somewhat ubiquitous,
+    with many open source Node.js application depending on it. Unfortunately, it’s
+    also a bit of an antipattern, and is almost never the best tool to scale a process.
+    Due to this ubiquity it’s necessary to understand how it works, even though you
+    should avoid it more often than not.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster` 模块提供了一个简单的 API，并且对任何 Node.js 程序都是立即可用的。因此，当应用程序需要扩展到多个实例时，它通常是第一反应的解决方案。它已经变得非常普遍，许多开源的
+    Node.js 应用程序依赖于它。不幸的是，它也有点反模式，并且几乎从不是扩展进程的最佳工具。由于它的普及性，理解它的工作方式是必要的，尽管你应该尽量避免使用它。'
+- en: The [documentation for `cluster`](https://nodejs.org/api/cluster.html) includes
+    a single Node.js file that loads the `http` and `cluster` modules and has an `if`
+    statement to see if the script is being run as the master, forking off some worker
+    processes if true. Otherwise, if it’s not the master, it creates an HTTP service
+    and begins listening. This example code is both a little dangerous and a little
+    misleading.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[集群文档](https://nodejs.org/api/cluster.html) 包含一个单独的 Node.js 文件，加载了 `http` 和
+    `cluster` 模块，并包含一个 `if` 语句，用于检查脚本是否作为主进程运行，如果是，则分叉出一些工作进程。否则，如果不是主进程，则创建一个 HTTP
+    服务并开始监听。这个示例代码有些危险，同时也有些误导性。'
+- en: A Simple Example
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 一个简单的例子
+- en: The reason the documentation code sample is dangerous is that it promotes loading
+    a lot of potentially heavy and complicated modules within the parent process.
+    The reason it’s misleading is that the example doesn’t make it obvious that multiple
+    separate instances of the application are running and that things like global
+    variables cannot be shared. For these reasons you’ll consider the modified example
+    shown in [Example 3-1](#ex_cluster_master).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文档代码示例之所以危险，是因为它促使在父进程内加载许多潜在复杂和沉重的模块。它误导的原因在于，示例并未明确表明应用程序的多个独立实例正在运行，而且像全局变量之类的东西是不能共享的。因此，您将考虑使用
+    [示例 3-1](#ex_cluster_master) 中显示的修改后示例。
+- en: Example 3-1\. *recipe-api/producer-http-basic-master.js*
+  id: totrans-11
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-1\. *recipe-api/producer-http-basic-master.js*
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: '[![1](assets/1.png)](#co_scaling_CO1-1)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO1-1)'
+- en: The `cluster` module is needed in the parent process.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 父进程需要`cluster`模块。
+- en: '[![2](assets/2.png)](#co_scaling_CO1-2)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO1-2)'
+- en: Override the default application entry point of `__filename`.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 覆盖 `__filename` 的默认应用程序入口点。
+- en: '[![3](assets/3.png)](#co_scaling_CO1-3)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_scaling_CO1-3)'
+- en: '`cluster.fork()` is called once for each time a worker needs to be created.
+    This code produces two workers.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次需要创建工作进程时都会调用 `cluster.fork()`。这段代码生成了两个工作进程。
+- en: '[![4](assets/4.png)](#co_scaling_CO1-4)'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_scaling_CO1-4)'
+- en: Several events that `cluster` emits are listened to and logged.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster` 发出的多个事件被监听并记录。'
+- en: '[![5](assets/5.png)](#co_scaling_CO1-5)'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_scaling_CO1-5)'
+- en: Uncomment this to make workers difficult to kill.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 取消注释此行以使工作进程难以终止。
+- en: The way `cluster` works is that the master process spawns worker processes in
+    a special mode where a few things can happen. In this mode, when a worker attempts
+    to listen on a port, it sends a message to the master. It’s actually the master
+    that listens on the port. Incoming requests are then routed to the different worker
+    processes. If any workers attempt to listen on the special port `0` (used for
+    picking a random port), the master will listen once and each individual worker
+    will receive requests from that same random port. A visualization of this master
+    and worker relationship is provided in [Figure 3-1](#fig_cluster).
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster`的工作方式是，主进程以特殊模式生成工作进程，在此模式下可以发生一些事情。在此模式下，当工作进程尝试监听一个端口时，它会向主进程发送一条消息。实际上是主进程监听端口。然后将传入请求路由到不同的工作进程。如果任何工作进程尝试监听特殊端口
+    `0`（用于选择随机端口），主进程将监听一次，并且每个单独的工作进程将从相同的随机端口接收请求。这种主从关系的可视化示例在 [图 3-1](#fig_cluster)
+    中提供。'
+- en: '![A Master Node.js process and two Worker Node.js processes](assets/dsnj_0301.png)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个主 Node.js 进程和两个工作 Node.js 进程](assets/dsnj_0301.png)'
+- en: Figure 3-1\. Master-worker relationships with `cluster`
+  id: totrans-25
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-1\. 使用`cluster`的主从关系
+- en: 'No changes need to be made to basic stateless applications that serve as the
+    worker—the *recipe-api/producer-http-basic.js* code will work just fine.^([2](ch03.html#idm46291192181256))
+    Now it’s time to make a few requests to the server. This time, execute the *recipe-api/producer-http-basic-master.js*
+    file instead of the *recipe-api/producer-http-basic.js* file. In the output you
+    should see some messages resembling the following:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于作为工作进程的基本无状态应用程序，无需进行任何更改——*recipe-api/producer-http-basic.js* 代码将正常工作。^([2](ch03.html#idm46291192181256))
+    现在是时候向服务器发出一些请求了。这次，执行 *recipe-api/producer-http-basic-master.js* 文件，而不是 *recipe-api/producer-http-basic.js*
+    文件。在输出中，你应该看到类似以下的一些消息：
+- en: '[PRE1]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Now there are three running processes. This can be confirmed by running the
+    following command, where `<PID>` is replaced with the process ID of the master
+    process, in my case *7649*:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在有三个运行中的进程。可以通过运行以下命令来确认，其中 `<PID>` 替换为主进程的进程 ID，在我的情况下是 *7649*：
+- en: '[PRE2]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'A truncated version of the output from this command when run on my Linux machine
+    looks like this:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的 Linux 机器上运行此命令的输出的截断版本如下所示：
+- en: '[PRE3]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: This provides a visualization of the parent process, displayed as `./master.js`,
+    as well as the two child processes, displayed as `server.js`. It also displays
+    some other interesting information if run on a Linux machine. Note that each of
+    the three processes shows six additional child entries below them, each labelled
+    as `{node}`, as well as their unique process IDs. These entries suggest multithreading
+    in the underlying libuv layer. Note that if you run this on macOS, you will only
+    see the three Node.js processes listed.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这提供了父进程的可视化显示，显示为 `./master.js`，以及两个子进程，显示为 `server.js`。如果在 Linux 机器上运行，还会显示一些其他有趣的信息。请注意，每个三个进程下面都显示六个额外的子条目，每个标记为
+    `{node}`，以及它们独特的进程 ID。这些条目表明底层 libuv 层中的多线程。请注意，如果在 macOS 上运行此命令，你只会看到列出的三个 Node.js
+    进程。
+- en: Request Dispatching
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 请求分派
+- en: 'On macOS and Linux machines, the requests will be dispatched round-robin to
+    the workers by default. On Windows, requests will be dispatched depending on which
+    worker is perceived to be the least busy. You can make three successive requests
+    directly to the *recipe-api* service and see this happening for yourself. With
+    this example, requests are made directly to the *recipe-api*, since these changes
+    won’t affect the *web-api* service. Run the following command three times in another
+    terminal window:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 macOS 和 Linux 机器上，默认情况下，请求会循环地分派给工作进程。在 Windows 上，请求将根据被视为最不忙的工作进程来分派。你可以直接向
+    *recipe-api* 服务发起三个连续的请求，看看这种情况自己发生。通过这个例子，请求直接发送到 *recipe-api*，因为这些更改不会影响 *web-api*
+    服务。在另一个终端窗口中运行以下命令三次：
+- en: '[PRE4]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'In the output you should see that the requests have been cycled between the
+    two running worker instances:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在输出中，你应该看到请求在两个运行的工作进程之间循环：
+- en: '[PRE5]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'As you may recall from [Example 3-1](#ex_cluster_master), some event listeners
+    were created in the *recipe-api/master.js* file. So far the `listening` event
+    has been triggered. This next step triggers the other two events. When you made
+    the three HTTP requests, the PID values of the worker processes were displayed
+    in the console. Go ahead and kill one of the processes to see what happens. Choose
+    one of the PIDs and run the following command:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你可能从 [Example 3-1](#ex_cluster_master) 中回忆的那样，在 *recipe-api/master.js* 文件中创建了一些事件监听器。到目前为止，`listening`
+    事件已被触发。接下来的步骤将触发另外两个事件。当你进行了三次 HTTP 请求时，工作进程的 PID 值将在控制台中显示。继续杀死其中一个进程，看看会发生什么。选择一个
+    PID，并运行以下命令：
+- en: '[PRE6]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'In my case I ran `kill 7656`. The master process then has both the `disconnect`
+    and the `exit` events fire, in that order. You should see output similar to the
+    following:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我运行了 `kill 7656`。然后，主进程会依次触发 `disconnect` 和 `exit` 事件。你应该会看到类似以下的输出：
+- en: '[PRE7]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Now go ahead and repeat the same three HTTP requests:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，请继续执行相同的三个 HTTP 请求：
+- en: '[PRE8]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: This time, each of the responses is coming from the same remaining worker process.
+    If you then run the `kill` command with the remaining worker process, you’ll see
+    that the `disconnect` and `exit` events are called and that the master process
+    then quits.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一次，每个响应都来自同一个剩余的工作进程。然后，如果你使用剩余的工作进程运行 `kill` 命令，你会看到 `disconnect` 和 `exit`
+    事件被调用，然后主进程退出。
+- en: Notice that there’s a commented call to `cluster.fork()` inside of the `exit`
+    event handler. Uncomment that line, start the master process again, and make some
+    requests to get the PID values of the workers. Then, run the `kill` command to
+    stop one of the workers. Notice that the worker process is then immediately started
+    again by the master. In this case, the only way to permanently kill the children
+    is to kill the master.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在 `exit` 事件处理程序内有一个被注释的 `cluster.fork()` 调用。取消注释该行，重新启动主进程，并发出一些请求以获取工作进程的
+    PID 值。然后，运行 `kill` 命令来停止其中一个工作进程。注意，工作进程将立即由主进程重新启动。在这种情况下，永久终止子进程的唯一方法是杀死主进程。
+- en: Cluster Shortcomings
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 集群的缺点
+- en: The `cluster` module isn’t a magic bullet. In fact, it is often more of an antipattern.
+    More often than not, another tool should be used to manage multiple copies of
+    a Node.js process. Doing so usually helps with visibility into process crashes
+    and allows you to easily scale instances. Sure, you could build in application
+    support for scaling the number of workers up and down, but that’s better left
+    to an outside tool. [Chapter 7](ch07.html#ch_kubernetes) looks into doing just
+    that.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster` 模块并不是万能解决方案。事实上，它往往更像是一种反模式。更多时候，应该使用另一个工具来管理多个 Node.js 进程的副本。这样做通常有助于查看进程崩溃的情况，并允许轻松地扩展实例。当然，您可以构建应用程序支持增加和减少工作进程的功能，但最好留给外部工具来完成。[第七章](ch07.html#ch_kubernetes)
+    将深入探讨如何实现这一点。'
+- en: This module is mostly useful in situations where an application is bound by
+    the CPU, not by I/O. This is in part due to JavaScript being single threaded,
+    and also because libuv is so efficient at handling asynchronous events. It’s also
+    fairly fast due to the way it passes incoming requests to a child process. In
+    theory, this is faster than using a reverse proxy.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在应用程序受 CPU 而非 I/O 限制的情况下，该模块通常非常有用。这部分是因为 JavaScript 是单线程的，以及 libuv 在处理异步事件时非常高效。由于它将传入请求传递给子进程的方式，它也相当快速。理论上，这比使用反向代理更快。
+- en: Tip
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Node.js applications can get complex. Processes often end up with dozens, if
+    not hundreds, of modules that make outside connections, consume memory, or read
+    configuration. Each one of these operations can expose another weakness in an
+    application that can cause it to crash.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 应用程序可能会变得复杂。进程经常使用数十甚至数百个模块进行外部连接、消耗内存或读取配置。每一个操作都可能在应用程序中暴露另一个弱点，导致其崩溃。
+- en: For this reason it’s better to keep the master process as simple as possible.
+    [Example 3-1](#ex_cluster_master) proves that there’s no reason for a master to
+    load an HTTP framework or consume another database connection. Logic *could* be
+    built into the master to restart failed workers, but the master itself can’t be
+    restarted as easily.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，最好保持主进程尽可能简单。[示例 3-1](#ex_cluster_master) 表明，主进程没有必要加载 HTTP 框架或者再消耗其他数据库连接。逻辑*可能*可以内置到主进程中以重新启动失败的工作进程，但是主进程本身并不容易重新启动。
+- en: Another caveat of the `cluster` module is that it essentially operates at Layer
+    4, at the TCP/UDP level, and isn’t necessarily aware of Layer 7 protocols. Why
+    might this matter? Well, with an incoming HTTP request being sent to a master
+    and two workers, assuming the TCP connection closes after the request finishes,
+    each subsequent request then gets dispatched to a different backend service. However,
+    with gRPC over HTTP/2, those connections are intentionally left open for much
+    longer. In these situations, future gRPC calls will not get dispatched to separate
+    worker processes—they’ll be stuck with just one. When this happens, you’ll often
+    see that one worker is doing most of the work and the whole purpose of clustering
+    has been defeated.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster` 模块的另一个注意事项是，它基本上是在第四层运行，即 TCP/UDP 层，并且不一定意识到第七层协议。为什么这很重要呢？嗯，在一个传入的
+    HTTP 请求被发送到一个主节点和两个工作节点后，假设 TCP 连接在请求完成后关闭，那么每个后续的请求将被分发到不同的后端服务。然而，对于基于 HTTP/2
+    的 gRPC，这些连接被故意保持更长时间。在这些情况下，未来的 gRPC 调用不会被分派到不同的工作进程，它们将仅限于一个进程。当这种情况发生时，通常会看到一个工作节点在大部分工作中承担责任，而集群的整个目的也就失去了意义。'
+- en: This issue with sticky connections can be proved by adapting it to the code
+    written previously in [“RPC with gRPC”](ch02.html#ch_protocols_sec_grpc). By leaving
+    the producer and consumer code exactly the same, and by introducing the generic
+    cluster master from [Example 3-1](#ex_cluster_master), the issue surfaces. Run
+    the producer master and the consumer, and make several HTTP requests to the consumer,
+    and the returned `producer_data.pid` value will always be the same. Then, stop
+    and restart the consumer. This will cause the HTTP/2 connection to stop and start
+    again. The round-robin routing of `cluster` will then route the consumer to the
+    other worker. Make several HTTP requests to the consumer again, and the `producer_data.pid`
+    values will now all point to the second worker.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个与粘性连接有关的问题可以通过将其适应之前编写的代码 [“使用 gRPC 进行 RPC”](ch02.html#ch_protocols_sec_grpc)
+    来证明。通过保持生产者和消费者代码完全相同，并引入来自 [示例 3-1](#ex_cluster_master) 的通用集群主节点，问题就会浮出水面。运行生产者主节点和消费者，并向消费者发出几个
+    HTTP 请求，返回的`producer_data.pid`值将始终相同。然后，停止并重新启动消费者。这将导致 HTTP/2 连接停止并重新启动。`cluster`的轮询路由将消费者路由到另一个工作进程。再次向消费者发出几个
+    HTTP 请求，`producer_data.pid`值现在都指向第二个工作进程。
+- en: Another reason you shouldn’t always reach for the `cluster` module is that it
+    won’t always make an application faster. In some situations it can simply consume
+    more resources and have either no effect or a negative effect on the performance
+    of the application. Consider, for example, an environment where a process is limited
+    to a single CPU core. This can happen if you’re running on a VPS (Virtual Private
+    Server, a fancy name for a dedicated virtual machine) such as a `t3.small` machine
+    offered on AWS EC2\. It can also happen if a process is running inside of a container
+    with CPU constraints, which can be configured when running an application within
+    Docker.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个不应总是使用`cluster`模块的原因是，它并不总是会使应用程序更快。在某些情况下，它可能只会消耗更多资源，对应用程序的性能要么没有影响，要么产生负面影响。例如，考虑一个进程被限制在单个
+    CPU 核心的环境。这可能发生在你运行在像 AWS EC2 上提供的`t3.small`机器这样的 VPS（虚拟专用服务器，一个专用虚拟机的花哨名称）上。这也可能发生在进程在具有
+    CPU 限制的容器内运行的情况下，这可以在 Docker 中运行应用程序时进行配置。
+- en: 'The reason for a slowdown is this: when running a cluster with two workers,
+    there are three single-threaded instances of JavaScript running. However, there
+    is a single CPU core available to run each instance one at a time. This means
+    the operating system has to do more work deciding which of the three processes
+    runs at any given time. True, the master instance is mostly asleep, but the two
+    workers will fight with each other for CPU cycles.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 减速的原因是：当使用两个工作进程运行集群时，有三个单线程的 JavaScript 实例在运行。然而，每次只有一个 CPU 核心可用于依次运行每个实例。这意味着操作系统必须做更多的工作来决定在任何给定时间内哪个进程运行。确实，主实例大部分时间都在休眠，但两个工作进程将争夺
+    CPU 周期。
+- en: Time to switch from theory to practice. First, create a new file for simulating
+    a service that performs CPU-intensive work, making it a candidate to use with
+    `cluster`. This service will simply calculate Fibonacci values based on an input
+    number. [Example 3-2](#ex_fibonacci) is an illustration of such a service.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是时候从理论转向实践了。首先，创建一个用于模拟执行 CPU 密集型工作的服务的新文件，使其成为使用`cluster`的候选项。这个服务将根据输入的数字简单地计算斐波那契值。[示例
+    3-2](#ex_fibonacci)是这样一个服务的示例。
+- en: Example 3-2\. *cluster-fibonacci.js*
+  id: totrans-57
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-2\. *cluster-fibonacci.js*
+- en: '[PRE9]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '[![1](assets/1.png)](#co_scaling_CO2-1)'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO2-1)'
+- en: The service has a single route, `/<limit>`, where `limit` is the number of iterations
+    to count.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该服务有一个单一路由，`/<limit>`，其中 `limit` 是要计数的迭代次数。
+- en: '[![2](assets/2.png)](#co_scaling_CO2-2)'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO2-2)'
+- en: The `fibonacci()` method does a lot of CPU-intensive math and blocks the event
+    loop.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`fibonacci()`方法执行大量 CPU 密集型数学运算并阻塞事件循环。'
+- en: The same [Example 3-1](#ex_cluster_master) code can be used for acting as the
+    cluster master. Re-create the content from the cluster master example and place
+    it in a *master-fibonacci.js* file next to *cluster-fibonacci.js*. Then, update
+    it so that it’s loading *cluster-fibonacci.js*, instead of *producer-http-basic.js*.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样的 [示例 3-1](#ex_cluster_master) 代码可以用于充当集群主节点。重新创建集群主示例中的内容，并将其放在 *master-fibonacci.js*
+    文件旁边，而不是 *cluster-fibonacci.js*。然后，更新它，使其加载 *cluster-fibonacci.js*，而不是 *producer-http-basic.js*。
+- en: 'The first thing you’ll do is run a benchmark against a cluster of Fibonacci
+    services. Execute the *master-fibonacci.js* file and then run a benchmarking command:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将要做的第一件事是对一组斐波那契服务运行基准测试。执行 *master-fibonacci.js* 文件，然后运行一个基准测试命令：
+- en: '[PRE10]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: This will run the *Autocannon* benchmarking tool (covered in more detail in
+    [“Introduction to Autocannon”](#ch_scaling_sec_bm_subsec_autocannon)) against
+    the application. It will run over two connections, as fast as it can, for 10 seconds.
+    Once the operation is complete you’ll get a table of statistics in response. For
+    now you’ll only consider two values, and the values I received have been re-created
+    in [Table 3-1](#table_fibonacci_cluster).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将运行 *Autocannon* 基准测试工具（在 [“Autocannon 简介”](#ch_scaling_sec_bm_subsec_autocannon)
+    中有更详细的介绍）来对应用程序进行测试。它将通过两个连接尽可能快地运行 10 秒钟。操作完成后，您将收到一张统计数据表。现在，您只需考虑两个值，而我收到的值已在
+    [表 3-1](#table_fibonacci_cluster) 中重新创建。
+- en: Table 3-1\. Fibonacci cluster with multiple cores
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-1\. 多核 Fibonacci 集群
+- en: '| Statistic | Result |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| 统计 | 结果 |'
+- en: '| --- | --- |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Avg latency | 147.05ms |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均延迟 | 147.05ms |'
+- en: '| Avg req/sec | 13.46 r/s |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均请求数 | 13.46 r/s |'
+- en: Next, kill the *master-fibonacci.js* cluster master, then run just the *cluster-fibonacci.js*
+    file directly. Then, run the exact same `autocannon` command that you ran before.
+    Again, you’ll get some more results, and mine happen to look like [Table 3-2](#table_fibonacci_single).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，结束 *master-fibonacci.js* 集群主进程，然后直接运行 *cluster-fibonacci.js* 文件。然后，运行与之前完全相同的
+    `autocannon` 命令。再次，您将获得一些更多的结果，我的结果看起来像 [表 3-2](#table_fibonacci_single)。
+- en: Table 3-2\. Fibonacci single process
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-2\. 单进程 Fibonacci
+- en: '| Statistic | Result |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| 统计 | 结果 |'
+- en: '| --- | --- |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Avg latency | 239.61ms |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均延迟 | 239.61ms |'
+- en: '| Avg req/sec | 8.2 r/s |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均请求数 | 8.2 r/s |'
+- en: In this situation, on my machine with multiple CPU cores, I can see that by
+    running two instances of the CPU-intensive Fibonacci service, I’m able to increase
+    throughput by about 40%. You should see something similar.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的多 CPU 核心机器上，通过运行两个 CPU 密集型 Fibonacci 服务实例，我能够将吞吐量提高约 40%。您应该会看到类似的结果。
+- en: Next, assuming you have access to a Linux machine, you’ll simulate an environment
+    that only has a single CPU instance available. This is done by using the `taskset`
+    command to force processes to use a specific CPU core. This command doesn’t exist
+    on macOS, but you can get the gist of it by reading along.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，假设您可以访问一台只有单个 CPU 实例的 Linux 机器。通过使用 `taskset` 命令强制进程使用特定的 CPU 核心来模拟这种环境。这个命令在
+    macOS 上不存在，但您可以通过阅读来理解其要义。
+- en: 'Run the *master-fibonacci.js* cluster master file again. Note that the output
+    of the service includes the PID value of the master, as well as the two workers.
+    Take note of these PID values, and in another terminal, run the following command:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次运行 *master-fibonacci.js* 集群主文件。注意，服务输出包括主进程的 PID 值以及两个工作进程的 PID 值。记下这些 PID
+    值，在另一个终端中运行以下命令：
+- en: '[PRE11]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Finally, run the same `autocannon` command used throughout this section. Once
+    it completes, more information will be provided to you. In my case, I received
+    the results shown in [Table 3-3](#table_fibonacci_cluster_restricted).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，运行本节中一直使用的相同 `autocannon` 命令。操作完成后，将提供更多信息给您。在我的情况下，我得到的结果看起来像 [表 3-3](#table_fibonacci_cluster_restricted)。
+- en: Table 3-3\. Fibonacci cluster with single core
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-3\. 单核 Fibonacci 集群
+- en: '| Statistic | Result |'
+  id: totrans-84
+  prefs: []
+  type: TYPE_TB
+  zh: '| 统计 | 结果 |'
+- en: '| --- | --- |'
+  id: totrans-85
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| Avg latency | 252.09ms |'
+  id: totrans-86
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均延迟 | 252.09ms |'
+- en: '| Avg req/sec | 7.8 r/s |'
+  id: totrans-87
+  prefs: []
+  type: TYPE_TB
+  zh: '| 平均请求数 | 7.8 r/s |'
+- en: In this case, I can see that using the `cluster` module, while having more worker
+    threads than I have CPU cores, results in an application that runs slower than
+    if I had only run a single instance of the process on my machine.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，我可以看到使用 `cluster` 模块，尽管有比 CPU 核心更多的工作线程，结果是应用程序运行比在机器上仅运行单个进程时更慢。
+- en: The greatest shortcoming of `cluster` is that it only dispatches incoming requests
+    to processes running on the same machine. The next section looks at a tool that
+    works when application code runs on multiple machines.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cluster` 最大的缺点是它只将传入请求分发给在同一台机器上运行的进程。下一节将介绍一个在应用程序代码运行在多台机器上时能够工作的工具。'
+- en: Reverse Proxies with HAProxy
+  id: totrans-90
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 HAProxy 的反向代理
+- en: A reverse proxy is a tool that accepts a request from a client, forwards it
+    to a server, takes the response from the server, and sends it back to the client.
+    At first glance it may sound like such a tool merely adds an unnecessary network
+    hop and increases network latency, but as you’ll see, it actually provides many
+    useful features to a service stack. Reverse proxies often operate at either Layer
+    4, such as TCP, or Layer 7, via HTTP.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反向代理是一种工具，它接受来自客户端的请求，转发到服务器，接收服务器的响应，并将其发送回客户端。乍一看，它可能看起来只是增加了不必要的网络跳跃并增加了网络延迟，但正如你将看到的那样，它实际上为服务堆栈提供了许多有用的功能。反向代理通常在第四层（如TCP）或第七层（通过HTTP）操作。
+- en: One of the features it provides is that of load balancing. A reverse proxy can
+    accept an incoming request and forward it to one of several servers before replying
+    with the response to the client. Again, this may sound like an additional hop
+    for no reason, as a client could maintain a list of upstream servers and directly
+    communicate with a specific server. However, consider the situation where an organization
+    may have several different API servers running. An organization wouldn’t want
+    to put the onus of choosing which API instance to use on a third-party consumer,
+    like by exposing `api1.example.org` through `api9.example.org`. Instead, consumers
+    should be able to use `api.example.org` and their requests should automatically
+    get routed to an appropriate service. A diagram of this concept is shown in [Figure 3-2](#fig_reverse_proxy).
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它提供的一个功能是负载均衡。反向代理可以接受传入请求，并将其转发到多个服务器之一，然后将响应回复给客户端。同样，这可能看起来是无端增加的跳跃，因为客户端可以维护一组上游服务器并直接与特定服务器通信。但是，请考虑组织可能运行多个不同API服务器的情况。组织不希望将选择使用哪个API实例的责任放在第三方消费者身上，比如通过将`api1.example.org`公开为`api9.example.org`来暴露。相反，消费者应该能够使用`api.example.org`，并且他们的请求应自动路由到适当的服务。这个概念的图示在[图 3-2](#fig_reverse_proxy)中显示。
+- en: '![A request comes from the internet, passes through a reverse proxy, and gets
+    sent to a Node.js application](assets/dsnj_0302.png)'
+  id: totrans-93
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个请求来自互联网，经过反向代理，发送到一个Node.js应用程序](assets/dsnj_0302.png)'
+- en: Figure 3-2\. Reverse proxies intercept incoming network traffic
+  id: totrans-94
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-2\. 反向代理拦截传入的网络流量
+- en: There are several different approaches a reverse proxy can take when choosing
+    which backend service to route an incoming request to. Just like with the `cluster`
+    module, the round-robin is usually the default behavior. Requests can also be
+    dispatched based on which backend service is currently servicing the fewest requests.
+    They can be dispatched randomly, or they can even be dispatched based on content
+    of the initial request, such as a session ID stored in an HTTP URL or cookie (also
+    known as a sticky session). And, perhaps most importantly, a reverse proxy can
+    poll backend services to see which ones are healthy, refusing to dispatch requests
+    to services that aren’t healthy.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反向代理在选择将传入请求路由到哪个后端服务时可以采取几种不同的方法。就像使用`cluster`模块一样，轮询通常是默认行为。请求也可以根据当前正在服务的请求最少的后端服务进行分发。它们可以随机分发，或者甚至可以根据初始请求的内容进行分发，比如存储在HTTP
+    URL或Cookie中的会话ID（也称为粘性会话）。也许更重要的是，反向代理可以轮询后端服务，以查看哪些服务是健康的，并拒绝向不健康的服务分发请求。
+- en: Other beneficial features include cleaning up or rejecting malformed HTTP requests
+    (which can prevent bugs in the Node.js HTTP parser from being exploited), logging
+    requests so that application code doesn’t have to, adding request timeouts, and
+    performing gzip compression and TLS encryption. The benefits of a reverse proxy
+    usually far outweigh the losses for all but the most performance-critical applications.
+    Because of this you should almost always use some form of reverse proxy between
+    your Node.js applications and the internet.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他有益的功能包括清理或拒绝格式错误的HTTP请求（可以防止Node.js HTTP解析器中的错误被利用）、记录请求（以便应用代码不必这样做）、添加请求超时，并执行gzip压缩和TLS加密。对于除了最注重性能的应用之外，反向代理的好处通常远远超过损失。因此，几乎总是应该在你的Node.js应用程序和互联网之间使用某种形式的反向代理。
+- en: Introduction to HAProxy
+  id: totrans-97
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: HAProxy简介
+- en: HAProxy is a very performant open source reverse proxy that works with both
+    Layer 4 and Layer 7 protocols. It’s written in C and is designed to be stable
+    and use minimal resources, offloading as much processing as possible to the kernel.
+    Like JavaScript, HAProxy is event driven and single threaded.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HAProxy 是一个非常高性能的开源反向代理，支持 Layer 4 和 Layer 7 协议。它使用 C 语言编写，旨在稳定运行并尽量减少资源消耗，尽可能将大部分处理任务交给内核。与
+    JavaScript 类似，HAProxy 是事件驱动且单线程的。
+- en: HAProxy is quite simple to setup. It can be deployed by shipping a single binary
+    executable weighing in at about a dozen megabytes. Configuration can be done entirely
+    using a single text file.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HAProxy 的设置非常简单。它可以通过一个约为十几兆字节的单个可执行二进制文件部署。配置可以完全使用一个文本文件完成。
+- en: Before you start running HAProxy, you’ll first need to have it installed. A
+    few suggestions for doing so are provided in [Appendix A](app01.html#appendix_install_haproxy).
+    Otherwise, feel free to use your preferred software installation method to get
+    a copy of HAProxy (at least v2) installed on your development machine.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开始运行 HAProxy 之前，您首先需要安装它。有关如何进行安装的建议，请参阅[附录 A](app01.html#appendix_install_haproxy)。否则，可以使用您喜欢的软件安装方法在开发机器上安装至少
+    v2 版本的 HAProxy。
+- en: HAProxy provides an optional web dashboard that displays statistics for a running
+    HAProxy instance. Create an HAProxy configuration file, one that doesn’t yet perform
+    any actual reverse proxying but instead just exposes the dashboard. Create a file
+    named *haproxy/stats.cfg* in your project folder and add the content shown in
+    [Example 3-3](#ex_haproxy_stats).
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HAProxy 提供一个可选的 web 仪表板，用于显示运行中 HAProxy 实例的统计信息。创建一个 HAProxy 配置文件，该文件目前不执行任何实际的反向代理，只是暴露仪表板。在您的项目文件夹中创建名为*haproxy/stats.cfg*的文件，并添加如下内容，如[示例 3-3](#ex_haproxy_stats)所示。
+- en: Example 3-3\. *haproxy/stats.cfg*
+  id: totrans-102
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-3\. *haproxy/stats.cfg*
+- en: '[PRE12]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '[![1](assets/1.png)](#co_scaling_CO3-1)'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO3-1)'
+- en: Create a `frontend` called `inbound`.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建名为`inbound`的`frontend`。
+- en: '[![2](assets/2.png)](#co_scaling_CO3-2)'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO3-2)'
+- en: Listen for HTTP traffic on port `:8000`.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在端口`:8000`上监听 HTTP 流量。
+- en: '[![3](assets/3.png)](#co_scaling_CO3-3)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_scaling_CO3-3)'
+- en: Enable the stats interface.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启用统计界面。
+- en: 'With that file created, you’re now ready to execute HAProxy. Run the following
+    command in a terminal window:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建好该文件后，您现在可以准备执行 HAProxy 了。在终端窗口中运行以下命令：
+- en: '[PRE13]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'You’ll get a few warnings printed in the console since the config file is a
+    little too simple. These warnings will be fixed soon, but HAProxy will otherwise
+    run just fine. Next, in a web browser, open the following URL:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于配置文件过于简单，控制台会输出一些警告信息。这些警告很快会被修复，但 HAProxy 将正常运行。接下来，在网页浏览器中打开以下 URL：
+- en: '[PRE14]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: At this point you’ll be able to see some stats about the HAProxy instance. Of
+    course, there isn’t anything interesting in there just yet. The only statistics
+    displayed are for the single frontend. At this point you can refresh the page,
+    and the bytes transferred count will increase because the dashboard also measures
+    requests to itself.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，您可以查看有关 HAProxy 实例的一些统计信息。当然，目前还没有什么有趣的内容。当前仅显示单个前端的统计信息。此时可以刷新页面，传输的字节数会增加，因为仪表板还会测量对自身的请求。
+- en: HAProxy works by creating both *frontends*—ports that it listens on for incoming
+    requests—and *backends*—upstream backend services identified by hosts and ports
+    that it will forward requests to. The next section actually creates a backend
+    to route incoming requests to.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HAProxy 的工作原理是创建*前端*和*后端*。前端是它监听的传入请求的端口，后端是通过主机和端口标识的上游后端服务，它将请求转发到这些服务。接下来的部分实际上创建了一个后端来路由传入的请求。
+- en: Load Balancing and Health Checks
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 负载均衡和健康检查
+- en: This section enables the load balancing features of HAProxy and also gets rid
+    of those warnings in the [Example 3-3](#ex_haproxy_stats) configuration. Earlier
+    you looked at the reasons why an organization should use a reverse proxy to intercept
+    incoming traffic. In this section, you’ll configure HAProxy to do just that; it
+    will act as a load balancer between external traffic and the *web-api* service,
+    exposing a single host/port combination but ultimately serving up traffic from
+    two service instances. [Figure 3-3](#fig_haproxy_loadbalance) provides a visual
+    representation of this.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节启用了 HAProxy 的负载均衡功能，并消除了[示例 3-3](#ex_haproxy_stats)配置中的那些警告。前面您已经了解了组织使用反向代理拦截传入流量的原因。在本节中，您将配置
+    HAProxy 来执行此操作；它将作为负载均衡器在外部流量和*web-api*服务之间进行平衡，暴露单个主机/端口组合，但最终提供两个服务实例的流量。[图 3-3](#fig_haproxy_loadbalance)提供了这一过程的可视化表示。
+- en: Technically, no application changes need to be made to allow for load balancing
+    with HAProxy. However, to better show off the capabilities of HAProxy, a feature
+    called a *health check* will be added. A simple endpoint that responds with a
+    200 status code will suffice for now. To do this, duplicate the *web-api/consumer-http-basic.js*
+    file and add a new endpoint, as shown in [Example 3-4](#ex_health_endpoint). [“Health
+    Checks”](ch04.html#ch_monitoring_sec_health) will look at building out a more
+    accurate health check endpoint.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从技术上讲，不需要对应用程序进行任何更改即可实现与 HAProxy 的负载均衡。但是，为了更好地展示 HAProxy 的功能，将添加一个称为 *health
+    check* 的特性。现在只需要一个简单的端点，返回 200 状态码即可。为此，请复制 *web-api/consumer-http-basic.js* 文件，并添加一个新的端点，如
+    [示例 3-4](#ex_health_endpoint) 所示。[“健康检查”](ch04.html#ch_monitoring_sec_health)
+    将会展示一个更精确的健康检查端点。
+- en: '![HAProxy load balancing requests to two web-api instances](assets/dsnj_0303.png)'
+  id: totrans-119
+  prefs: []
+  type: TYPE_IMG
+  zh: '![HAProxy 将请求负载均衡到两个 web-api 实例](assets/dsnj_0303.png)'
+- en: Figure 3-3\. Load balancing with HAProxy
+  id: totrans-120
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-3\. 使用 HAProxy 进行负载均衡
+- en: Example 3-4\. *web-api/consumer-http-healthendpoint.js* (truncated)
+  id: totrans-121
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-4\. *web-api/consumer-http-healthendpoint.js* (已截断)
+- en: '[PRE15]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You’ll also need a new configuration file for HAProxy. Create a file named *haproxy/load-balance.cfg*
+    and add the content from [Example 3-5](#ex_haproxy_loadbalance) to it.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要为 HAProxy 创建一个新的配置文件。创建一个名为 *haproxy/load-balance.cfg* 的文件，并将内容从 [示例 3-5](#ex_haproxy_loadbalance)
+    添加到其中。
+- en: Example 3-5\. *haproxy/load-balance.cfg*
+  id: totrans-124
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-5\. *haproxy/load-balance.cfg*
+- en: '[PRE16]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[![1](assets/1.png)](#co_scaling_CO4-1)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO4-1)'
+- en: The `defaults` section configures multiple frontends.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`defaults` 部分配置了多个前端。'
+- en: '[![2](assets/2.png)](#co_scaling_CO4-2)'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO4-2)'
+- en: Timeout values have been added, eliminating the HAProxy warnings.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加了超时数值，消除了 HAProxy 的警告。
+- en: '[![3](assets/3.png)](#co_scaling_CO4-3)'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_scaling_CO4-3)'
+- en: A frontend can route to multiple backends. In this case, only the *web-api*
+    backend should be routed to.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个前端可以路由到多个后端。在这种情况下，只有 *web-api* 后端应该被路由到。
+- en: '[![4](assets/4.png)](#co_scaling_CO4-4)'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_scaling_CO4-4)'
+- en: The first backend, *web-api*, has been configured.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个后端 *web-api* 已配置完成。
+- en: '[![5](assets/5.png)](#co_scaling_CO4-5)'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_scaling_CO4-5)'
+- en: Health checks for this backend make a `GET /health` HTTP request.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此后端的健康检查将发出 `GET /health` 的 HTTP 请求。
+- en: '[![6](assets/6.png)](#co_scaling_CO4-6)'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![6](assets/6.png)](#co_scaling_CO4-6)'
+- en: The *web-api* routes requests to two backends, and the `check` parameter enables
+    health checking.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*web-api* 将请求路由到两个后端，`check` 参数启用了健康检查。'
+- en: This configuration file instructs HAProxy to look for two *web-api* instances
+    running on the current machine. To avoid a port collision, the application instances
+    have been instructed to listen on ports `:3001` and `:3002`. The *inbound* frontend
+    is configured to listen on port `:3000`, essentially allowing HAProxy to be a
+    swap-in replacement for a regular running *web-api* instance.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此配置文件指示 HAProxy 查找当前机器上运行的两个 *web-api* 实例。为避免端口冲突，应用程序实例已被指示监听端口 `:3001` 和 `:3002`。*inbound*
+    前端配置为监听端口 `:3000`，基本上允许 HAProxy 成为常规运行的 *web-api* 实例的替换。
+- en: Much like with the `cluster` module in [“The Cluster Module”](#ch_scaling_sec_clustering),
+    requests are routed round-robin^([3](ch03.html#idm46291191422376)) between two
+    separate Node.js processes. But now there is one fewer running Node.js process
+    to maintain. As implied by the `host:port` combination, these processes don’t
+    need to run on localhost for HAProxy to forward the requests.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像在 [“集群模块”](#ch_scaling_sec_clustering) 中使用 `cluster` 模块一样，请求在两个独立的 Node.js
+    进程之间进行循环轮询^([3](ch03.html#idm46291191422376))。但是现在只有一个少于运行中的 Node.js 进程需要维护。如
+    `host:port` 组合所示，这些进程不需要在本地主机上运行，以便 HAProxy 转发请求。
+- en: 'Now that you’ve created the config file and have a new endpoint, it’s time
+    to run some processes. For this example, you’ll need to open five different terminal
+    windows. Run the following four commands in four different terminal window, and
+    run the fifth command several times in a fifth window:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经创建了配置文件并有了一个新的端点，是时候运行一些进程了。例如，你需要打开五个不同的终端窗口。在四个不同的终端窗口中分别运行以下四个命令，并在第五个窗口中多次运行第五个命令：
+- en: '[PRE17]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Notice that in the output for the `curl` command, `consumer_pid` cycles between
+    two values as HAProxy routes requests round-robin between the two *web-api* instances.
+    Also, notice that the `producer_pid` value stays the same since only a single
+    *recipe-api* instance is running.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在 `curl` 命令的输出中，`consumer_pid` 在两个值之间循环，因为 HAProxy 在两个 *web-api* 实例之间进行循环轮询请求。同时请注意，由于只运行了单个
+    *recipe-api* 实例，`producer_pid` 值保持不变。
+- en: 'This command order runs the dependent programs first. In this case the *recipe-api*
+    instance is run first, then two *web-api* instances, followed by HAProxy. Once
+    the HAProxy instance is running, you should notice something interesting in the
+    *web-api* terminals: the *health check* message is being printed over and over,
+    once every two seconds. This is because HAProxy has started performing health
+    checks.'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个命令顺序首先运行依赖程序。在这种情况下，首先运行 *recipe-api* 实例，然后是两个 *web-api* 实例，最后是 HAProxy。一旦
+    HAProxy 实例运行起来，你应该注意到 *web-api* 终端中有一个有趣的现象：每两秒钟会打印一次 *health check* 消息。这是因为 HAProxy
+    开始执行健康检查了。
+- en: 'Open up the HAProxy statistics page again^([4](ch03.html#idm46291191395832))
+    by visiting [*http://localhost:3000/admin?stats*](http://localhost:3000/admin?stats).
+    You should now see two sections in the output: one for the *inbound* frontend
+    and one for the new *web-api* backend. In the *web-api* section, you should see
+    the two different server instances listed. Both of them should have green backgrounds,
+    signaling that their health checks are passing. A truncated version of the results
+    I get is shown in [Table 3-4](#table_haproxy_stats).'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次打开 HAProxy 统计页面^([4](ch03.html#idm46291191395832))，访问 [*http://localhost:3000/admin?stats*](http://localhost:3000/admin?stats)。现在你应该在输出中看到两个部分：一个是
+    *inbound* 前端，另一个是新的 *web-api* 后端。在 *web-api* 部分，你应该看到列出的两个不同的服务器实例。它们两个都应该有绿色背景，表示它们的健康检查通过。我得到的结果截断版如
+    [Table 3-4](#table_haproxy_stats) 所示。
+- en: Table 3-4\. Truncated HAProxy stats
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-4\. 截断的 HAProxy 统计信息
+- en: '|  | Sessions total | Bytes out | LastChk |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 总会话数 | 发送字节数 | LastChk |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| web-api-1 | 6 | 2,262 | L7OK/200 in 1ms |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| web-api-1 | 6 | 2,262 | L7OK/200 in 1ms |'
+- en: '| web-api-2 | 5 | 1,885 | L7OK/200 in 0ms |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| web-api-2 | 5 | 1,885 | L7OK/200 in 0ms |'
+- en: '| Backend | 11 | 4,147 |  |'
+  id: totrans-150
+  prefs: []
+  type: TYPE_TB
+  zh: '| Backend | 11 | 4,147 |  |'
+- en: The final line, *Backend*, represents the totals for the columns above it. In
+    this output, you can see that the requests are distributed essentially equally
+    between the two instances. You can also see that the health checks are passing
+    by examining the *LastChk* column. In this case both servers are passing the L7
+    health check (HTTP) by returning a 200 status within 1ms.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一行 *Backend* 表示了它上面列出的各列的总计。在这个输出中，你可以看到请求基本均匀地分布在两个实例之间。你还可以通过检查 *LastChk*
+    列来确认健康检查是否通过。在这种情况下，两个服务器都通过 L7 健康检查（HTTP），在 1 毫秒内返回 200 状态。
+- en: Now it’s time to have a little fun with this setup. First, switch to one of
+    the terminals running a copy of *web-api*. Stop the process by pressing Ctrl +
+    C. Then, switch back to the statistics webpage and refresh a few times. Depending
+    on how quick you are, you should see one of the lines in the *web-api* section
+    change from green to yellow to red. This is because HAProxy has determined the
+    service is down since it’s no longer responding to health checks.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候对这个设置稍微玩一下了。首先，切换到运行 *web-api* 副本的其中一个终端。按 Ctrl + C 停止进程。然后，切换回统计网页并刷新几次。根据你的速度，你应该能看到
+    *web-api* 部分的一行从绿色变为黄色再到红色。这是因为 HAProxy 已经确定该服务宕机，因为它不再响应健康检查。
+- en: Now that HAProxy has determined the service to be down, switch back to the fifth
+    terminal screen and run a few more `curl` commands. Notice that you continuously
+    get responses, albeit from the same *web-api* PID. Since HAProxy knows one of
+    the services is down, it’s only going to route requests to the healthy instance.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在 HAProxy 已经确定服务已经宕机，切换回第五个终端屏幕并运行几次 `curl` 命令。注意到你会持续收到响应，尽管来自同一个 *web-api*
+    PID。由于 HAProxy 知道其中一个服务已经宕机，它只会把请求路由到健康的实例上。
+- en: Switch back to the terminal where you killed the *web-api* instance, start it
+    again, and switch back to the stats page. Refresh a few times and notice how the
+    status turns from red to yellow to green. Switch back to the `curl` terminal,
+    run the command a few more times, and notice that HAProxy is now dispatching commands
+    between both instances again.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 切换回你杀掉 *web-api* 实例的终端，重新启动它，然后切换回统计页面。刷新几次，注意状态从红色变为黄色再到绿色的变化。切换回 `curl` 终端，再运行几次命令，注意
+    HAProxy 现在又开始在两个实例之间分发命令了。
+- en: At first glance, this setup seems to work pretty smoothly. You killed a service,
+    and it stopped receiving traffic. Then, you brought it back, and the traffic resumed.
+    But can you guess what the problem is?
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 乍一看，这个设置似乎运行得相当顺利。你杀死了一个服务，它停止接收流量。然后，你把它恢复了，流量也恢复了。但你能猜到问题是什么吗？
+- en: 'Earlier, in the console output from the running *web-api* instances, the health
+    checks could be seen firing every two seconds. This means that there is a length
+    of time for which a server can be down, but HAProxy isn’t aware of it yet. This
+    means that there are periods of time that requests can still fail. To illustrate
+    this, first restart the dead *web-api* instance, then pick one of the `consumer_pid`
+    values from the output and replace the `CONSUMER_PID` in the following command:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 早些时候，在运行的*web-api*实例的控制台输出中，可以看到健康检查每两秒触发一次。这意味着服务器可以下线一段时间，但HAProxy尚不知情。这意味着仍然存在请求可能失败的时间段。为了说明这一点，首先重新启动已停止的*web-api*实例，然后从输出中选择一个`consumer_pid`值，并在以下命令中替换`CONSUMER_PID`：
+- en: '[PRE18]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: What this command does is kill a *web-api* process and then make two HTTP requests,
+    all so quickly that HAProxy shouldn’t have enough time to know that something
+    bad has happened. In the output, you should see that one of the commands has failed
+    and that the other has succeeded.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令的作用是终止一个*web-api*进程，然后进行两个HTTP请求，操作非常迅速，以至于HAProxy不应有足够时间知道出现了问题。在输出中，您应该看到一个命令失败，另一个成功。
+- en: 'The health checks can be configured a little more than what’s been shown so
+    far. Additional `flag value` pairs can be specified after the `check` flag present
+    at the end of the `server` lines. For example, such a configuration might look
+    like this: `server ... check inter 10s fall 4`. [Table 3-5](#table_haproxy_health)
+    describes these flags and how they may be configured.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 健康检查可以配置比目前显示的更多内容。在`server`行末尾的`check`标志之后可以指定额外的`flag value`对。例如，这样的配置可能如下所示：`server
+    ... check inter 10s fall 4`。[表 3-5](#table_haproxy_health)描述了这些标志及其配置方式。
+- en: Table 3-5\. HAProxy health check flags
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3-5。HAProxy健康检查标志
+- en: '| Flag | Type | Default | Description |'
+  id: totrans-161
+  prefs: []
+  type: TYPE_TB
+  zh: '| Flag | Type | Default | 描述 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-162
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| `inter` | interval | 2s | Interval between checks |'
+  id: totrans-163
+  prefs: []
+  type: TYPE_TB
+  zh: '| `inter` | interval | 2s | 检查之间的间隔 |'
+- en: '| `fastinter` | interval | `inter` | Interval when transitioning states |'
+  id: totrans-164
+  prefs: []
+  type: TYPE_TB
+  zh: '| `fastinter` | interval | `inter` | 状态转换间隔 |'
+- en: '| `downinter` | interval | `inter` | Interval between checks when down |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| `downinter` | interval | `inter` | 下线时检查之间的间隔 |'
+- en: '| `fall` | int | 3 | Consecutive healthy checks before being UP |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| `fall` | int | 3 | 连续健康检查之前UP'
+- en: '| `rise` | int | 2 | Consecutive unhealthy checks before being DOWN |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| `rise` | int | 2 | 连续不健康检查之前DOWN |'
+- en: Even though the health checks can be configured to run very aggressively, there
+    still isn’t a perfect solution to the problem of detecting when a service is down;
+    with this approach there is always a risk that requests will be sent to an unhealthy
+    service. [“Idempotency and Messaging Resilience”](ch08.html#ch_resilience_sec_messaging)
+    looks at a solution to this problem where clients are configured to retry failed
+    requests.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管健康检查可以配置为非常激进地运行，但仍然没有完美的解决方案来检测服务何时下线；采用这种方法总是存在请求可能发送到不健康的服务的风险。[“幂等性和消息可靠性”](ch08.html#ch_resilience_sec_messaging)探讨了解决此问题的解决方案，客户端被配置为重试失败的请求。
+- en: Compression
+  id: totrans-169
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 压缩
+- en: Compression can be configured easily with HAProxy by setting additional configuration
+    flags on the particular backend containing content that HAProxy should compress.
+    See [Example 3-6](#ex_haproxy_compression) for a demonstration of how to do this.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '可以通过在包含应由HAProxy压缩的内容的特定后端上设置附加配置标志来轻松配置HAProxy压缩。查看[示例 3-6](#ex_haproxy_compression)演示如何执行此操作。 '
+- en: Example 3-6\. *haproxy/compression.cfg*
+  id: totrans-171
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例3-6。*haproxy/compression.cfg*
+- en: '[PRE19]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '[![1](assets/1.png)](#co_scaling_CO5-1)'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO5-1)'
+- en: Prevent HAProxy from forwarding the `Accept-Encoding` header to the backend
+    service.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 防止HAProxy将`Accept-Encoding`头转发到后端服务。
+- en: '[![2](assets/2.png)](#co_scaling_CO5-2)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO5-2)'
+- en: This enables gzip compression; other algorithms are also available.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使gzip压缩生效；还有其他算法可用。
+- en: '[![3](assets/3.png)](#co_scaling_CO5-3)'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_scaling_CO5-3)'
+- en: Compression is enabled depending on the `Content-Type` header.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据`Content-Type`标头启用压缩。
+- en: This example specifically states that compression should only be enabled on
+    responses that have a `Content-Type` header value of `application/json`, which
+    is what the two services have been using, or `text/plain`, which can sometimes
+    sneak through if an endpoint hasn’t been properly configured.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例明确指出，只应在具有`application/json`头值的响应上启用压缩，这是两个服务一直在使用的内容，或者`text/plain`，如果端点尚未正确配置，有时会被偷偷传递。
+- en: 'Much like in [Example 2-4](ch02.html#ex_node_gzip), where gzip compression
+    was performed entirely in Node.js, HAProxy is also going to perform compression
+    only when it knows the client supports it by checking the `Accept-Encoding` header.
+    To confirm that HAProxy is compressing the responses, run the following commands
+    in separate terminal windows (in this case you only need a single *web-api* running):'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '就像在 [示例 2-4](ch02.html#ex_node_gzip) 中完全在 Node.js 中执行 gzip 压缩一样，HAProxy 也会在知道客户端支持时才执行压缩，通过检查
+    `Accept-Encoding` 头来确认 HAProxy 是否正在压缩响应，在单独的终端窗口中运行以下命令（在这种情况下，您只需要运行一个 *web-api*）:'
+- en: '[PRE20]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Performing gzip compression using HAProxy will be more performant than doing
+    it within the Node.js process. [“HTTP compression”](#ch_scaling_sec_bm_subsec_gzip)
+    will test the performance of this.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 HAProxy 进行 gzip 压缩比在 Node.js 进程内部进行更高效。[“HTTP 压缩”](#ch_scaling_sec_bm_subsec_gzip)
+    将测试此操作的性能。
+- en: TLS Termination
+  id: totrans-183
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: TLS 终止
+- en: Performing TLS termination in a centralized location is convenient for many
+    reasons. A big reason is that additional logic doesn’t need to be added to applications
+    for updating certificates. Hunting down which instances have outdated certificates
+    can also be avoided. A single team within an organization can handle all of the
+    certificate generation. Applications also don’t have to incur additional CPU overhead.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一个集中的位置进行 TLS 终止对许多原因都很方便。一个重要的原因是，应用程序不需要额外的逻辑来更新证书。也可以避免寻找哪些实例有过期证书的麻烦。组织内的一个团队可以处理所有的证书生成工作。应用程序也不必承担额外的
+    CPU 开销。
+- en: That said, HAProxy will direct traffic to a single service in this example.
+    The architecture for this looks like [Figure 3-4](#fig_haproxy_tls).
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，HAProxy 在这个示例中将流量定向到一个单一的服务。这个架构看起来像 [图 3-4](#fig_haproxy_tls)。
+- en: '![HAProxy performs TLS Termination, sending unencrypted HTTP traffic to backend
+    services](assets/dsnj_0304.png)'
+  id: totrans-186
+  prefs: []
+  type: TYPE_IMG
+  zh: '![HAProxy 执行 TLS 终止，将未加密的 HTTP 流量发送到后端服务](assets/dsnj_0304.png)'
+- en: Figure 3-4\. HAProxy TLS termination
+  id: totrans-187
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-4\. HAProxy TLS 终止
+- en: TLS termination is rather straight-forward with HAProxy, and many of the same
+    rules covered in [“HTTPS / TLS”](ch02.html#ch_protocols_sec_http_subsec_tls) still
+    apply. For example, all the certificate generation and chain of trust concepts
+    still apply, and these cert files adhere to well-understood standards. One difference
+    is that in this section a *.pem* file is used, which is a file containing both
+    the content of the *.cert* file and the *.key* files. [Example 3-7](#ex_generate_pem)
+    is a modified version of a previous command. It generates the individual files
+    and concatenates them together.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 HAProxy 进行 TLS 终止相对直观，并且许多在 [“HTTPS / TLS”](ch02.html#ch_protocols_sec_http_subsec_tls)
+    中涵盖的规则仍然适用。例如，所有的证书生成和信任链概念仍然适用，并且这些证书文件遵循了众所周知的标准。唯一的区别是，在本节中使用了一个 *.pem* 文件，这是一个包含
+    *.cert* 文件和 *.key* 文件内容的文件。[示例 3-7](#ex_generate_pem) 是先前命令的修改版本。它生成各个文件并将它们串联在一起。
+- en: Example 3-7\. Generating a *.pem* file
+  id: totrans-189
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-7\. 生成 *.pem* 文件
+- en: '[PRE21]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Another HAProxy configuration script is now needed. [Example 3-8](#ex_haproxy_tls)
+    modifies the *inbound* frontend to listen via HTTPS and to load the *combined.pem*
+    file.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在需要另一个 HAProxy 配置脚本。[示例 3-8](#ex_haproxy_tls) 修改了 *inbound* 前端以通过 HTTPS 监听，并加载
+    *combined.pem* 文件。
+- en: Example 3-8\. *haproxy/tls.cfg*
+  id: totrans-192
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-8\. *haproxy/tls.cfg*
+- en: '[PRE22]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '[![1](assets/1.png)](#co_scaling_CO6-1)'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO6-1)'
+- en: The `global` section configures global HAProxy settings.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`global` 部分配置全局 HAProxy 设置。'
+- en: '[![2](assets/2.png)](#co_scaling_CO6-2)'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO6-2)'
+- en: The `ssl` flag specifies that the frontend uses TLS, and the `crt` flag points
+    to the *.pem* file.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ssl` 标志指定前端使用 TLS，并且 `crt` 标志指向 *.pem* 文件。'
+- en: The `global` section allows for global HAProxy configuration. In this case it
+    sets the Diffie-Hellman key size parameter used by clients and prevents an HAProxy
+    warning.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`global` 部分允许配置全局 HAProxy 设置。在这种情况下，它设置了客户端使用的 Diffie-Hellman 密钥大小参数，并防止 HAProxy
+    发出警告。'
+- en: 'Now that you’ve configured HAProxy, go ahead and run it with this new configuration
+    file and then send it some requests. Run the following commands in four separate
+    terminal windows:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 配置好 HAProxy 后，使用这个新的配置文件运行它，然后发送一些请求。在四个单独的终端窗口中运行以下命令：
+- en: '[PRE23]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Since HAProxy is using a self-signed certificate, the `curl` command requires
+    the `--insecure` flag again. With a real-world example, since the HTTPS traffic
+    is public facing, you’d want to use a real certificate authority like *Let’s Encrypt*
+    to generate certificates for you. Let’s Encrypt comes with a tool called *certbot*,
+    which can be configured to automatically renew certificates before they expire,
+    as well as reconfigure HAProxy on the fly to make use of the updated certificates.
+    Configuring certbot is beyond the scope of this book, and there exists literature
+    on how to do this.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 HAProxy 使用自签名证书，`curl` 命令再次需要 `--insecure` 标志。举个真实的例子，由于 HTTPS 流量是公开的，你会想要使用真实的证书颁发机构如
+    *Let’s Encrypt* 为你生成证书。Let’s Encrypt 附带一个名为 *certbot* 的工具，可以配置为在证书过期前自动更新证书，并动态重新配置
+    HAProxy 来使用更新后的证书。配置 certbot 超出了本书的范围，但已有文献介绍如何操作。
+- en: There are many other options that can be configured regarding TLS in HAProxy.
+    It allows for specifying which cipher suites to use, TLS session cache sizes,
+    and SNI (Server Name Indication). A single frontend can specify a port for both
+    standard HTTP and HTTPS. HAProxy can redirect a user agent making an HTTP request
+    to the equivalent HTTPS path.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于 HAProxy 还有许多其他可以配置的选项，包括指定使用哪些加密套件、TLS 会话缓存大小和 SNI（服务器名称指示）。单个前端可以指定一个端口同时处理标准
+    HTTP 和 HTTPS。HAProxy 可以将发出 HTTP 请求的用户代理重定向到相应的 HTTPS 路径。
+- en: Performing TLS termination using HAProxy may be more performant than doing it
+    within the Node.js process. [“TLS termination”](#ch_scaling_sec_bm_subsec_tls)
+    will test this claim.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 HAProxy 进行 TLS 终止可能比在 Node.js 进程内部执行更高效。[“TLS 终止”](#ch_scaling_sec_bm_subsec_tls)
+    将测试这个说法。
+- en: Rate Limiting and Back Pressure
+  id: totrans-204
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 速率限制和反向压力
+- en: '[“SLA and Load Testing”](#ch_scaling_sec_bm) looks at ways to determine how
+    much load a Node.js service can handle. This section looks at ways of enforcing
+    such a limit.'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“SLA 和负载测试”](#ch_scaling_sec_bm) 着眼于确定一个 Node.js 服务能够处理多大负载。本节介绍了如何强制执行这样的限制。'
+- en: A Node.js process, by default, will “handle” as many requests as it receives.
+    For example, when creating a basic HTTP server with a callback when a request
+    is received, those callbacks will keep getting scheduled by the event loop and
+    called whenever possible. Sometimes, though, this can overwhelm a process. If
+    the callback is doing a lot of blocking work, having too many of them scheduled
+    will result in the process locking up. A bigger issue is memory consumption; every
+    single queued callback comes with a new function context containing variables
+    and references to the incoming request. Sometimes the best solution is to reduce
+    the amount of concurrent connections being handled by a Node.js process at a given
+    time.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，一个 Node.js 进程会处理它接收到的尽可能多的请求。例如，当创建一个基本的 HTTP 服务器并在接收到请求时使用回调函数时，这些回调函数将通过事件循环不断被调度和调用。然而，有时这可能会导致进程不堪重负。如果回调函数执行了大量阻塞工作，过多的回调被调度可能会导致进程锁死。更大的问题是内存消耗；每个排队的回调都会带有一个包含变量和对传入请求的引用的新函数上下文。有时，减少
+    Node.js 进程在给定时间内处理的并发连接数量是最佳解决方案。
+- en: One way to do this is to set the `maxConnections` property of an `http.Server`
+    instance. By setting this value, the Node.js process will automatically drop any
+    incoming connections that would increase the connection count to be greater than
+    this limit.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是设置`http.Server`实例的`maxConnections`属性。通过设置这个值，Node.js进程将自动丢弃任何会导致连接数超过此限制的传入连接。
+- en: Every popular Node.js HTTP framework on npm will either expose the `http.Server`
+    instance it uses or provide a method for overriding the value. However, in this
+    example, a basic HTTP server using the built-in `http` module is constructed.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: npm 上的每个流行的 Node.js HTTP 框架都将暴露它所使用的 `http.Server` 实例，或提供一种覆盖该值的方法。然而，在这个例子中，使用内置的
+    `http` 模块构建了一个基本的 HTTP 服务器。
+- en: Create a new file and add the contents of [Example 3-9](#ex_node_maxconn) to
+    it.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个新文件，并将[示例 3-9](#ex_node_maxconn)的内容添加到其中。
+- en: Example 3-9\. *low-connections.js*
+  id: totrans-210
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-9\. *low-connections.js*
+- en: '[PRE24]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: '[![1](assets/1.png)](#co_scaling_CO7-1)'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO7-1)'
+- en: This `setTimeout()` simulates slow asynchronous activity, like a database operation.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 `setTimeout()` 模拟了慢速的异步活动，如数据库操作。
+- en: '[![2](assets/2.png)](#co_scaling_CO7-2)'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO7-2)'
+- en: The maximum number of incoming connections is set to 2.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最大传入连接数设置为 2。
+- en: This server simulates a slow application. Each incoming request takes 10 seconds
+    to run before the response is received. This won’t simulate a process with heavy
+    CPU usage, but it does simulate a request that is slow enough to possibly overwhelm
+    Node.js.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此服务器模拟一个缓慢的应用程序。每个传入请求需要10秒才能完成响应。这不会模拟具有高CPU使用率的过程，但确实模拟了可能会使Node.js不堪重负的慢请求。
+- en: 'Next, open four terminal windows. In the first one, run the *low-connections.js*
+    service. In the other three, make the same HTTP request by using the `curl` command.
+    You’ll need to run the `curl` commands within 10 seconds, so you might want to
+    first paste the command three times and then execute them:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，打开四个终端窗口。在第一个窗口中，运行*low-connections.js*服务。在其余三个窗口中，使用`curl`命令进行相同的HTTP请求。您需要在10秒内运行`curl`命令，因此您可能希望首先粘贴命令三次，然后再执行它们：
+- en: '[PRE25]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Assuming you ran the commands quick enough, the first two `curl` calls should
+    run, albeit slowly, pausing for 10 seconds before finally writing the message
+    `OK` to the terminal window. The third time it ran, however, the command should
+    have written an error and would have closed immediately. On my machine, the `curl`
+    command prints `curl: (56) Recv failure: Connection reset by peer`. Likewise,
+    the server terminal window should *not* have written a message about the current
+    number of connections.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '假设您足够快地运行了命令，前两个`curl`调用应该会运行，尽管速度较慢，在最终将消息`OK`写入终端窗口之前会暂停10秒。然而，第三次运行时，命令应该已写入错误并立即关闭。在我的机器上，`curl`命令打印`curl:
+    (56) 连接被对等方重置`。同样地，服务器终端窗口不应该显示关于当前连接数量的消息。'
+- en: The `server.maxConnections` value sets a hard limit to the number of requests
+    for this particular server instance, and Node.js will drop any connections above
+    that limit.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`server.maxConnections`值设置了此特定服务器实例请求的硬限制，Node.js将丢弃超过该限制的任何连接。'
+- en: This might sound a bit harsh! As a client consuming a service, a more ideal
+    situation might instead be to have the server queue up the request. Luckily, HAProxy
+    can be configured to do this on behalf of the application. Create a new HAProxy
+    configuration file with the content from [Example 3-10](#ex_haproxy_maxconn).
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这听起来可能有点严格！作为消费服务的客户端，更理想的情况可能是让服务器排队请求。幸运的是，HAProxy可以配置为代表应用程序执行此操作。使用来自[示例
+    3-10](#ex_haproxy_maxconn)的内容创建一个新的HAProxy配置文件。
+- en: Example 3-10\. *haproxy/backpressure.cfg*
+  id: totrans-222
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-10\. *haproxy/backpressure.cfg*
+- en: '[PRE26]'
+  id: totrans-223
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '[![1](assets/1.png)](#co_scaling_CO8-1)'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_scaling_CO8-1)'
+- en: Max connections can be configured globally. This includes incoming frontend
+    and outgoing backend connections.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以在全局范围内配置最大连接数。这包括传入前端和传出后端的连接。
+- en: '[![2](assets/2.png)](#co_scaling_CO8-2)'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_scaling_CO8-2)'
+- en: Force HAProxy to close HTTP connections to the backend.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强制HAProxy关闭到后端的HTTP连接。
+- en: '[![3](assets/3.png)](#co_scaling_CO8-3)'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_scaling_CO8-3)'
+- en: Max connections can be specified per backend-service instance.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个后端服务实例可以指定最大连接数。
+- en: This example sets a global flag of `maxconn 8`. This means that between all
+    frontends and backends combined, only eight connections can be running at the
+    same time, including any calls to the admin interface. Usually you’ll want to
+    set this to a conservative value, if you use it at all. More interestingly, however,
+    is the `maxconn 2` flag attached to the specific backend instance. This will be
+    the real limiting factor with this configuration file.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例设置了全局标志`maxconn 8`。这意味着在所有前端和后端组合中，包括对管理接口的任何调用，在同一时间只能运行八个连接。通常情况下，您可能希望将其设置为保守值，如果您真的需要的话。然而，更有趣的是附加到特定后端实例的`maxconn
+    2`标志。这将是此配置文件的真正限制因素。
+- en: Also, note that `option httpclose` is set on the backend. This is to cause HAProxy
+    to immediately close connections to the service. Having these connections remain
+    open won’t necessarily slow down the service, but it’s required since the `server.maxConnections`
+    value is still set to 2 in the application; with the connections left open, the
+    server will drop new connections, even though the callbacks have finished firing
+    with previous requests.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，请注意`option httpclose`已设置在后端。这是为了让HAProxy立即关闭与服务的连接。保持这些连接打开不一定会减慢服务速度，但由于应用程序中`server.maxConnections`值仍设置为2，因此这是必需的；如果连接保持打开，服务器将拒绝新连接，即使回调已完成先前请求的触发。
+- en: 'Now, with the new configuration file, go ahead and run the same Node.js service,
+    an instance of HAProxy using the configuration, and again, run multiple copies
+    of the `curl` requests in parallel:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，使用新的配置文件，继续运行相同的 Node.js 服务，一个使用该配置的 HAProxy 实例，并且再次并行运行多个`curl`请求：
+- en: '[PRE27]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Again, you should see the first two `curl` commands successfully kicking off
+    a log message on the server. However, this time the third `curl` command doesn’t
+    immediately close. Instead, it’ll wait until one of the previous commands finishes
+    and the connection closes. Once that happens, HAProxy becomes aware that it’s
+    now free to send an additional request along, and the third request is sent through,
+    causing the server to log another message about having two concurrent requests:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，您应该看到前两个`curl`命令成功在服务器上触发了日志消息。然而，这次第三个`curl`命令不会立即关闭。相反，它会等到前面的命令之一完成并关闭连接。一旦这种情况发生，HAProxy将意识到可以发送一个额外的请求，第三个请求也将通过，导致服务器记录另一条关于同时进行两个请求的消息：
+- en: '[PRE28]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: '*Back pressure* results when a consuming service has its requests queued up,
+    like what is now happening here. If the consumer fires requests serially, back
+    pressure created on the producer’s side will cause the consumer to slow down.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*反压力*是指消费服务的请求排队等待，就像现在发生的情况一样。如果消费者按顺序发送请求，生产者一侧的反压力将导致消费者减速。'
+- en: Usually it’s fine to only enforce limits within the reverse proxy without having
+    to also enforce limits in the application itself. However, depending on how your
+    architecture is implemented, it could be that sources other than a single HAProxy
+    instance are able to send requests to your services. In those cases it might make
+    sense to set a higher limit within the Node.js process and then set a more conservative
+    limit within the reverse proxy. For example, if you know your service will come
+    to a standstill with 100 concurrent requests, perhaps set `server.maxConnections`
+    to 90 and set `maxconn` to 80, adjusting margins depending on how dangerous you’re
+    feeling.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，在反向代理中强制限制而不必在应用程序本身中进行限制是可以接受的。然而，根据您的架构实现方式不同，可能会有其他来源的请求能够发送到您的服务。在这些情况下，也许将`server.maxConnections`设置为90，并将`maxconn`设置为80，根据您的感觉调整边界，知道您的服务将在100个并发请求时陷入停顿。
+- en: Now that you know how to configure the maximum number of connections, it’s time
+    to look at methods for determining how many connections a service can actually
+    handle.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经知道如何配置最大连接数，是时候看看确定服务实际可以处理多少连接的方法了。
+- en: SLA and Load Testing
+  id: totrans-239
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: SLA 和负载测试
+- en: Software as a service (SaaS) companies provide an online service to their users.
+    The expectation of the modern user is that such services are available 24/7\.
+    Just imagine how weird it would be if Facebook weren’t available on Fridays from
+    2 P.M. to 3 P.M. Business-to-business (B2B) companies typically have even stricter
+    requirements, often paired with contractual obligation. When an organization sells
+    access to an API, there are often contractual provisions stating that the organization
+    won’t make backwards-breaking changes without ample notice to upgrade, that a
+    service will be available around the clock, and that requests will be served within
+    a specified timespan.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件即服务 (SaaS) 公司为其用户提供在线服务。现代用户的期望是这些服务可以全天候提供。想象一下，如果 Facebook 每周五下午 2 点到 3
+    点不能访问，那会有多奇怪。企业对企业 (B2B) 公司通常有更严格的要求，通常与合同义务配套。当一个组织销售 API 访问权限时，通常有合同条款规定，组织不会在没有充分通知的情况下进行颠覆性更改，服务将全天候提供，并且请求将在指定的时间内提供服务。
+- en: Such contractual requirements are called a *Service Level Agreement (SLA)*.
+    Sometimes companies make them available online, such as the [Amazon Compute Service
+    Level Agreement](https://oreil.ly/ZYoE5) page. Sometimes they’re negotiated on
+    a per-client basis. Sadly, often they do not exist at all, performance isn’t prioritized,
+    and engineers don’t get to tackle such concerns until a customer complaint ticket
+    arrives.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些合同要求通常被称为*服务级别协议 (SLA)*。有时公司会在网上公布它们，比如[亚马逊计算服务级别协议](https://oreil.ly/ZYoE5)页面。有时它们会根据每个客户的需求进行协商。遗憾的是，通常它们根本不存在，性能并不是优先考虑的事项，工程师们直到客户投诉时才会处理这些问题。
+- en: An SLA may contain more than one *Service Level Objective (SLO)*. These are
+    individual promises in the SLA that an organization makes to a customer. They
+    can include things like uptime requirements, API request latency, and failure
+    rates. When it comes to measuring the real values that a service is achieving,
+    those are called *Service Level Indicators (SLI)*. I like to think of the SLO
+    as a numerator and the SLI as a denominator. An SLO might be that an API should
+    respond in 100ms, and an SLI might be that the API does respond in 83ms.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个 SLA 可能包含多个*服务级别目标（SLO）*。这些是组织向客户承诺的个别条款。它们可以包括像是正常运行时间要求、API 请求延迟和故障率等内容。当涉及到测量服务实际达到的值时，这些被称为*服务级别指标（SLI）*。我喜欢把
+    SLO 想象成分子，SLI 想象成分母。一个 SLO 可能是 API 应在 100 毫秒内响应，而一个 SLI 可能是该 API 实际上在 83 毫秒内响应。
+- en: This section looks at the importance of determining SLOs, not only for an organization
+    but for individual services as well. It looks at ways to define an SLO and ways
+    to measure a service’s performance by running one-off load tests (sometimes called
+    a benchmark). Later, [“Metrics with Graphite, StatsD, and Grafana”](ch04.html#ch_monitoring_sec_metrics)
+    looks at how to constantly monitor performance.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节将讨论确定 SLO（服务级别目标）的重要性，不仅适用于组织，也适用于个别服务。它探讨了定义 SLO 和通过运行一次性负载测试（有时称为基准测试）来衡量服务性能的方法。稍后，《“使用
+    Graphite、StatsD 和 Grafana 进行度量”》将介绍如何持续监控性能。
+- en: Before defining what an SLA should look like, you’ll first look at some performance
+    characteristics and how they can be measured. To do this, you’ll load test some
+    of the services you built previously. This should get you familiar with load testing
+    tools and with what sort of throughput to expect in situations without business
+    logic. Once you have that familiarity, measuring your own applications should
+    be easier.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在定义 SLA（服务级别协议）的外观之前，您将首先查看一些性能特征及其测量方法。为此，您将对之前构建的一些服务进行负载测试。这将使您熟悉负载测试工具，并了解在没有业务逻辑的情况下可以预期的吞吐量。一旦您熟悉了这些，测量自己的应用程序就会更容易。
+- en: Introduction to Autocannon
+  id: totrans-245
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Autocannon 简介
+- en: These load tests use *Autocannon*. There are plenty of alternatives, but this
+    one is both easy to install (it’s a one-line npm command) and displays detailed
+    statistics.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些负载测试使用*Autocannon*。有很多替代品，但这个工具既容易安装（只需一个 npm 命令行），又显示详细的统计数据。
+- en: Warning
+  id: totrans-247
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Feel free to use whatever load-testing tool you’re most comfortable with. However,
+    never compare the results of one tool with the results from another, as the results
+    for the same service can vary greatly. Try to standardize on the same tool throughout
+    your organization so that teams can consistently communicate about performance.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请随意使用您最熟悉的负载测试工具。但是，请不要将一个工具的结果与另一个工具的结果进行比较，因为同一服务的结果可能会有很大的差异。尽量在整个组织中统一使用相同的工具，以便团队可以一致地交流有关性能的信息。
+- en: 'Autocannon is available as an npm package and it happens to provide a histogram
+    of request statistics, which is a very important tool when measuring performance.
+    Install it by running the following command (note that you might need to prefix
+    it with `sudo` if you get permission errors):'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Autocannon 可作为 npm 包使用，并提供请求统计的直方图，这在性能测量中非常重要。通过运行以下命令安装它（如果出现权限错误，可能需要在命令前加上`sudo`）：
+- en: '[PRE29]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Running a Baseline Load Test
+  id: totrans-251
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 运行基准负载测试
+- en: These load tests will mostly run the applications that you’ve already created
+    in the *examples/* folder. But first, you’ll get familiar with the Autocannon
+    command and establish a baseline by load testing some very simple services. The
+    first will be a vanilla Node.js HTTP server, and the next will be using a framework.
+    In both, a simple string will be used as the reply.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些负载测试将主要运行您已经在*examples/*文件夹中创建的应用程序。但首先，您将熟悉 Autocannon 命令，并通过对一些非常简单的服务进行负载测试来建立一个基准。第一个将是一个简单的
+    Node.js HTTP 服务器，下一个将使用一个框架。在这两种情况下，简单的字符串将用作回复。
+- en: Warning
+  id: totrans-253
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Be sure to disable any `console.log()` statements that run *within* a request
+    handler. Although these statements provide an insignificant amount of delay in
+    a production application doing real work, they significantly slow down many of
+    the load tests in this section.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请务必禁用任何在请求处理程序*内部*运行的`console.log()`语句。虽然这些语句在实际工作中的生产应用中提供了微不足道的延迟，但它们会显著减慢本节中的许多负载测试。
+- en: For this first example, create a new directory called *benchmark/* and create
+    a file within it with the contents from [Example 3-11](#ex_bm_vanilla). This vanilla
+    HTTP server will function as the most basic of load tests.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个第一个示例，创建一个名为*benchmark/*的新目录，并在其中创建一个文件，内容是从[示例 3-11](#ex_bm_vanilla)复制而来。这个基础的HTTP服务器将作为最基本的负载测试。
+- en: Example 3-11\. *benchmark/native-http.js*
+  id: totrans-256
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-11\. *benchmark/native-http.js*
+- en: '[PRE30]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Ideally, all of these tests would be run on an unused server with the same capabilities
+    as a production server, but for the sake of learning, running it on your local
+    development laptop is fine. Do keep in mind that the numbers you get locally will
+    not reflect the numbers you would get in production!
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理想情况下，所有这些测试应该在一个未使用的服务器上运行，具有与生产服务器相同的能力，但出于学习目的，在本地开发笔记本电脑上运行也可以。请记住，您在本地获得的数字将不反映在生产环境中获得的数字！
+- en: 'Run the service and, in another terminal window, run Autocannon to start the
+    load test:'
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行服务，在另一个终端窗口中运行Autocannon来开始负载测试：
+- en: '[PRE31]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: This command uses three different flags. The `-d` flag stands for *duration*,
+    and in this case it’s configured to run for 60 seconds. The `-c` flag represents
+    the number of concurrent *connections*, and here it’s configured to use 10 connections.
+    The `-l` flag tells Autocannon to display a detailed *latency* histogram. The
+    URL to be tested is the final argument to the command. In this case Autocannon
+    simply sends `GET` requests, but it can be configured to make `POST` requests
+    and provide request bodies.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令使用三个不同的标志。`-d` 标志代表*持续时间*，在这种情况下配置为运行60秒。`-c` 标志表示并发*连接数*，这里配置为使用10个连接。`-l`
+    标志告诉 Autocannon 显示详细的*延迟*直方图。要测试的URL是命令的最后一个参数。在这种情况下，Autocannon只是发送`GET`请求，但可以配置为发送`POST`请求并提供请求体。
+- en: Tables [3-6](#table_bm_latency) through [3-8](#table_bm_latency_detailed) contain
+    my results.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格[3-6](#table_bm_latency)到[3-8](#table_bm_latency_detailed)包含我的结果。
+- en: Table 3-6\. Autocannon request latency
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3-6\. Autocannon请求延迟
+- en: '| Stat | 2.5% | 50% | 97.5% | 99% | Avg | Stdev | Max |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| Stat | 2.5% | 50% | 97.5% | 99% | Avg | Stdev | Max |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Latency | 0ms | 0ms | 0ms | 0ms | 0.01ms | 0.08ms | 9.45ms |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '| Latency | 0ms | 0ms | 0ms | 0ms | 0.01ms | 0.08ms | 9.45ms |'
+- en: The first table contains information about the latency, or how much time it
+    takes to receive a response after a request has been sent. As you can see, Autocannon
+    groups latency into four buckets. The *2.5%* bucket represents rather speedy requests,
+    *50%* is the median, *97.5%* are the slower results, and *99%* are some of the
+    slowest, with the *Max* column representing the slowest request. In this table,
+    lower results are faster. The numbers so far are all so small that a decision
+    can’t yet be made.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一张表包含有关延迟的信息，即发送请求后接收响应所需的时间。正如您所见，Autocannon将延迟分组为四个桶。*2.5%* 桶代表相当快速的请求，*50%*
+    是中位数，*97.5%* 是较慢的结果，*99%* 是一些最慢的请求，*Max* 列表示最慢的请求。在这张表中，较低的结果表示更快。到目前为止，所有的数字都很小，还不能做出决定。
+- en: Table 3-7\. Autocannon request volume
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表3-7\. Autocannon请求量
+- en: '| Stat | 1% | 2.5% | 50% | 97.5% | Avg | Stdev | Min |'
+  id: totrans-269
+  prefs: []
+  type: TYPE_TB
+  zh: '| Stat | 1% | 2.5% | 50% | 97.5% | Avg | Stdev | Min |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-270
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Req/Sec | 29,487 | 36,703 | 39,039 | 42,751 | 38,884.14 | 1,748.17 | 29,477
+    |'
+  id: totrans-271
+  prefs: []
+  type: TYPE_TB
+  zh: '| Req/Sec | 29,487 | 36,703 | 39,039 | 42,751 | 38,884.14 | 1,748.17 | 29,477
+    |'
+- en: '| Bytes/Sec | 3.66 MB | 4.55 MB | 4.84 MB | 5.3 MB | 4.82 MB | 217 kB | 3.66
+    MB |'
+  id: totrans-272
+  prefs: []
+  type: TYPE_TB
+  zh: '| Bytes/Sec | 3.66 MB | 4.55 MB | 4.84 MB | 5.3 MB | 4.82 MB | 217 kB | 3.66
+    MB |'
+- en: The second table provides some different information, namely the requests per
+    second that were sent to the server. In this table, higher numbers are better.
+    The headings in this table correlate to their opposites in the previous table;
+    the *1%* column correlates to the *99%* column, for example.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二张表提供了一些不同的信息，即发送到服务器的每秒请求量。在这张表中，数字越高越好。此表中的标题与前一张表中的相对应；例如，*1%* 列与前一张表中的*99%*
+    列对应。
+- en: The numbers in this table are much more interesting. What they describe is that,
+    on average, the server is able to handle 38,884 requests per second. But the average
+    isn’t too useful, and is it not a number that engineers should rely on.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这张表中的数字更加有趣。它们描述的是服务器平均能处理每秒38,884个请求。但平均数并不太有用，工程师不应依赖它。
+- en: Consider that it’s often the case that one request from a user can result in
+    several requests being sent to a given service. For example, if a user opens a
+    web page that lists which ingredients they should stock up on based on their top
+    10 recipes, that one request might then generate 10 requests to the recipe service.
+    The slowness of the overall user request is then compounded by the slowness of
+    the backend service requests. For this reason, it’s important to pick a higher
+    percentile, like 95% or 99%, when reporting service speed. This is referred to
+    as being the *top percentile* and is abbreviated as *TP95* or *TP99* when communicating
+    throughput.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要考虑的是，通常情况下，用户的一个请求可能会导致向给定服务发送多个请求。例如，如果用户打开一个网页，列出他们根据自己的前10个食谱应该储备的食材，那么这一个请求可能会生成10个发送到食谱服务的请求。整体用户请求的缓慢由后端服务请求的缓慢叠加而成。因此，在报告服务速度时，选择更高的百分位数，如95%或99%，是很重要的。这被称为*顶级百分位数*，在传达吞吐量时缩写为*TP95*或*TP99*。
+- en: In the case of these results, one can say the TP99 has a latency of 0ms, or
+    a throughput of 29,487 requests per second.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这些结果，可以说TP99的延迟为0毫秒，或者吞吐量为每秒29,487个请求。
+- en: The third table is the result of providing the `-l` flag, and contains more
+    granular latency information.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三个表格是使用`-l`标志提供的结果，包含更详细的延迟信息。
+- en: Table 3-8\. Autocannon detailed latency results
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-8\. Autocannon详细延迟结果
+- en: '| Percentile | Latency | Percentile | Latency | Percentile | Latency |'
+  id: totrans-279
+  prefs: []
+  type: TYPE_TB
+  zh: '| 百分位数 | 延迟 | 百分位数 | 延迟 | 百分位数 | 延迟 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-280
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| 0.001% | 0ms | 10% | 0ms | 97.5% | 0ms |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.001% | 0毫秒 | 10% | 0毫秒 | 97.5% | 0毫秒 |'
+- en: '| 0.01% | 0ms | 25% | 0ms | 99% | 0ms |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.01% | 0毫秒 | 25% | 0毫秒 | 99% | 0毫秒 |'
+- en: '| 0.1% | 0ms | 50% | 0ms | 99.9% | 1ms |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0.1% | 0毫秒 | 50% | 0毫秒 | 99.9% | 1毫秒 |'
+- en: '| 1% | 0ms | 75% | 0ms | 99.99% | 2ms |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1% | 0毫秒 | 75% | 0毫秒 | 99.99% | 2毫秒 |'
+- en: '| 2.5% | 0ms | 90% | 0ms | 99.999% | 3ms |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2.5% | 0毫秒 | 90% | 0毫秒 | 99.999% | 3毫秒 |'
+- en: The second-to-last row explains that 99.99% of requests (four nines) will get
+    a response within at least 2ms. The final row explains that 99.999% of requests
+    will get a response within 3ms.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 倒数第二行解释了99.99%的请求（四个九）将在至少2毫秒内得到响应。最后一行解释了99.999%的请求将在3毫秒内得到响应。
+- en: This information can then be graphed to better convey what’s going on, as shown
+    in [Figure 3-5](#fig_bm_latency_graph).
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些信息可以绘制成图表，以更好地表达发生的情况，如[图 3-5](#fig_bm_latency_graph)所示。
+- en: '![Autocannon Latency Results Graph](assets/dsnj_0305.png)'
+  id: totrans-288
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Autocannon延迟结果图](assets/dsnj_0305.png)'
+- en: Figure 3-5\. Autocannon latency results graph
+  id: totrans-289
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-5\. Autocannon延迟结果图
+- en: Again, with these low numbers, the results aren’t that interesting yet.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次说明，使用这些低数字，结果还不是那么有趣。
+- en: Based on my results, I can determine that, assuming TP99, the absolute best
+    throughput I can get from a Node.js service using this specific version of Node.js
+    and this specific hardware is roughly 25,000 r/s (after some conservative rounding).
+    It would then be silly to attempt to achieve anything higher than that value.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我的结果，假设TP99，使用这个特定版本的Node.js和这个特定的硬件，我可以获得的绝对最佳吞吐量大约是25,000个请求每秒（在一些保守的四舍五入后）。因此，试图实现比该值更高的值是愚蠢的。
+- en: As it turns, out 25,000 r/s is actually pretty high, and you’ll very likely
+    never end up in a situation where achieving such a throughput from a single application
+    instance is a requirement. If your use-case does demand higher throughput, you’ll
+    likely need to consider other languages like Rust or C++.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果表明，25,000个请求每秒实际上是相当高的，您很可能永远不会出现需要从单个应用程序实例实现这样的吞吐量的情况。如果您的使用情况确实需要更高的吞吐量，您可能需要考虑其他语言，如Rust或C++。
+- en: Reverse Proxy Concerns
+  id: totrans-293
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 反向代理的问题
+- en: Previously I claimed that performing certain actions, specifically gzip compression
+    and TLS termination, within a reverse proxy is usually faster than performing
+    them within a running Node.js process. Load tests can be used to see if these
+    claims are true.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前我声称，在反向代理中执行特定操作，特别是gzip压缩和TLS终止，通常比在运行中的Node.js进程中执行这些操作更快。可以使用负载测试来验证这些说法是否属实。
+- en: These tests run the client and the server on the same machine. To accurately
+    load test your production application, you’ll need to test in a production setting.
+    The intention here is to measure CPU impact, as the network traffic generated
+    by Node.js and HAProxy should be equivalent.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些测试在同一台机器上运行客户端和服务器。要准确地对生产应用进行负载测试，您需要在生产环境中进行测试。这里的目的是测量CPU影响，因为Node.js和HAProxy生成的网络流量应该是等效的。
+- en: Establishing a baseline
+  id: totrans-296
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 建立基准线
+- en: 'But first, another baseline needs to be established, and an inevitable truth
+    must be faced: introducing a reverse proxy must increase latency by at least a
+    little bit. To prove this, use the same *benchmark/native-http.js* file from before.
+    However, this time you’ll put minimally configured HAProxy in front of it. Create
+    a configuration file with the content from [Example 3-12](#ex_haproxy_benchmark).'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但首先，需要建立另一个基线，并面对一个不可避免的事实：引入反向代理必须至少稍微增加延迟。为了证明这一点，使用之前相同的 *benchmark/native-http.js*
+    文件。然而，这次在其前面放置最小配置的 HAProxy。创建一个包含来自 [示例 3-12](#ex_haproxy_benchmark) 的内容的配置文件。
+- en: Example 3-12\. *haproxy/benchmark-basic.cfg*
+  id: totrans-298
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-12\. *haproxy/benchmark-basic.cfg*
+- en: '[PRE32]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Run the service in one terminal window and HAProxy in a second terminal window,
+    and then run the same Autocannon load test in a third terminal window:'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一个终端窗口中运行服务，在第二个终端窗口中运行 HAProxy，然后在第三个终端窗口中运行相同的 Autocannon 负载测试：
+- en: '[PRE33]'
+  id: totrans-301
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: The results I get look like those in [Figure 3-6](#fig_bm_latency_haproxy_basic).
+    The TP99 throughput is 19,967 r/s, a decrease of 32%, and the max request took
+    28.6ms.
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我得到的结果看起来像 [图 3-6](#fig_bm_latency_haproxy_basic) 中的结果。TP99 吞吐量为 19,967 r/s，减少了
+    32%，最大请求耗时 28.6ms。
+- en: These results may seem high when compared to the previous results, but again,
+    remember that the application isn’t doing much work. The TP99 latency for a request,
+    both before and after adding HAProxy, is still less than 1ms. If a real service
+    takes 100ms to respond, the addition of HAProxy has increased the response time
+    by less than 1%.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与之前的结果相比，这些结果可能看起来较高，但请记住应用程序并未执行大量工作。请求的 TP99 延迟，在添加 HAProxy 前后都仍然少于 1ms。如果一个真实服务需要
+    100ms 响应，增加 HAProxy 会使响应时间增加不到 1%。
+- en: '![HAProxy Latency](assets/dsnj_0306.png)'
+  id: totrans-304
+  prefs: []
+  type: TYPE_IMG
+  zh: '![HAProxy 延迟](assets/dsnj_0306.png)'
+- en: Figure 3-6\. HAProxy latency
+  id: totrans-305
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-6\. HAProxy 延迟
+- en: HTTP compression
+  id: totrans-306
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: HTTP 压缩
+- en: A simple pass-through configuration file is required for the next two tests.
+    This configuration will have HAProxy simply forward requests from the client to
+    the server. The config file has a `mode tcp` line, which means HAProxy will essentially
+    act as an L4 proxy and not inspect the HTTP requests.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来两个测试需要一个简单的透传配置文件。此配置将使 HAProxy 简单地将来自客户端的请求转发到服务器。配置文件有一行 `mode tcp`，这意味着
+    HAProxy 本质上是一个 L4 代理，不会检查 HTTP 请求。
+- en: Having HAProxy ensures the benchmarks will test the effects of offloading processing
+    from Node.js to HAProxy, not the effects of an additional network hop. Create
+    an *haproxy/passthru.cfg* file with the contents from [Example 3-13](#ex_haproxy_passthru).
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 HAProxy 可确保基准测试将检验将处理从 Node.js 转移到 HAProxy 的效果，而不是额外网络跳跃的影响。创建一个 *haproxy/passthru.cfg*
+    文件，内容来自 [示例 3-13](#ex_haproxy_passthru)。
+- en: Example 3-13\. *haproxy/passthru.cfg*
+  id: totrans-309
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-13\. *haproxy/passthru.cfg*
+- en: '[PRE34]'
+  id: totrans-310
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Now you can measure the cost of performing gzip compression. Compression versus
+    no compression won’t be compared here. (If that were the goal, the tests would
+    absolutely need to be on separate machines, since the gain is in reduced bandwidth.)
+    Instead, the performance of performing compression in HAProxy versus Node.js is
+    compared.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在可以测量执行 gzip 压缩的成本。这里不会比较压缩与不压缩的情况。（如果那是目标，测试绝对需要在不同的机器上进行，因为节省的是带宽。）而是比较在
+    HAProxy 与 Node.js 中执行压缩的性能。
+- en: 'Use the same *server-gzip.js* file that was created in [Example 2-4](ch02.html#ex_node_gzip),
+    though you’ll want to comment out the `console.log` calls. The same *haproxy/compression.cfg*
+    file created in [Example 3-6](#ex_haproxy_compression) will also be used, as well
+    as the *haproxy/passthru.cfg* file you just created from [Example 3-13](#ex_haproxy_passthru).
+    For this test, you’ll need to stop HAProxy and restart it with a different configuration
+    file:'
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用与 [示例 2-4](ch02.html#ex_node_gzip) 中创建的相同的 *server-gzip.js* 文件，但您需要注释掉 `console.log`
+    调用。还将使用 [示例 3-6](#ex_haproxy_compression) 中创建的 *haproxy/compression.cfg* 文件，以及刚刚从
+    [示例 3-13](#ex_haproxy_passthru) 创建的 *haproxy/passthru.cfg* 文件。对于这个测试，您需要停止 HAProxy，并使用不同的配置文件重新启动它：
+- en: '[PRE35]'
+  id: totrans-313
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Here are the results when I ran the tests on my machine. [Figure 3-7](#fig_bm_latency_gzip_node)
+    shows the results of running gzip with Node.js, and [Figure 3-8](#fig_bm_latency_gzip_haproxy)
+    contains the results for HAProxy.
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是我在本机上运行测试时得到的结果。[图 3-7](#fig_bm_latency_gzip_node) 显示了使用 Node.js 运行 gzip
+    的结果，[图 3-8](#fig_bm_latency_gzip_haproxy) 包含了 HAProxy 的结果。
+- en: '![Node.js gzip Compression Latency](assets/dsnj_0307.png)'
+  id: totrans-315
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Node.js gzip 压缩延迟](assets/dsnj_0307.png)'
+- en: Figure 3-7\. Node.js gzip compression latency
+  id: totrans-316
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-7\. Node.js gzip 压缩延迟
+- en: This test shows that requests are served a bit faster using HAProxy for performing
+    gzip compression than when using Node.js.
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此测试显示，使用 HAProxy 进行 gzip 压缩比使用 Node.js 更快地提供请求。
+- en: '![HAProxy gzip Compression Latency](assets/dsnj_0308.png)'
+  id: totrans-318
+  prefs: []
+  type: TYPE_IMG
+  zh: '![HAProxy gzip 压缩延迟](assets/dsnj_0308.png)'
+- en: Figure 3-8\. HAProxy gzip compression latency
+  id: totrans-319
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-8\. HAProxy gzip 压缩延迟
+- en: TLS termination
+  id: totrans-320
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: TLS 终止
+- en: TLS absolutely has a negative impact on application performance^([5](ch03.html#idm46291190530232))
+    (in an HTTP versus HTTPS sense). These tests just compare the performance impact
+    of performing TLS termination within HAProxy instead of Node.js, not HTTP compared
+    to HTTPS. The throughput numbers have been reproduced in the following since the
+    tests run so fast that the latency listing graphs mostly contains zeros.
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TLS 绝对对应用程序性能有负面影响^([5](ch03.html#idm46291190530232))（在 HTTP 与 HTTPS 意义上）。这些测试仅比较在
+    HAProxy 而非 Node.js 内执行 TLS 终止对性能的影响，而不是 HTTP 与 HTTPS 的比较。由于测试运行速度非常快，吞吐量数字已在以下进行了复制，因此延迟列表图大部分包含零。
+- en: 'First, performing TLS termination within the Node.js process is tested. For
+    this test use the same *recipe-api/producer-https-basic.js* file that you created
+    in [Example 2-7](ch02.html#ex_node_server_https), commenting out any `console.log`
+    statements from the request handler:'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，测试在 Node.js 进程内执行 TLS 终止。对于此测试，请使用相同的 *recipe-api/producer-https-basic.js*
+    文件，该文件在 [示例 2-7](ch02.html#ex_node_server_https) 中创建，同时注释掉请求处理程序中的任何 `console.log`
+    语句：
+- en: '[PRE36]'
+  id: totrans-323
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: '[Table 3-9](#table_bm_tls_node) contains the results of running this load test
+    on my machine.'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 3-9](#table_bm_tls_node) 包含了在我的机器上运行此负载测试的结果。'
+- en: Table 3-9\. Native Node.js TLS termination throughput
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-9\. 原生 Node.js TLS 终止吞吐量
+- en: '| Stat | 1% | 2.5% | 50% | 97.5% | Avg | Stdev | Min |'
+  id: totrans-326
+  prefs: []
+  type: TYPE_TB
+  zh: '| 统计 | 1% | 2.5% | 50% | 97.5% | 平均 | 标准差 | 最小 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-327
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Req/Sec | 7,263 | 11,991 | 13,231 | 18,655 | 13,580.7 | 1,833.58 | 7,263
+    |'
+  id: totrans-328
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每秒请求 | 7,263 | 11,991 | 13,231 | 18,655 | 13,580.7 | 1,833.58 | 7,263 |'
+- en: '| Bytes/Sec | 2.75 MB | 4.53 MB | 5 MB | 7.05 MB | 5.13 MB | 693 kB | 2.75
+    MB |'
+  id: totrans-329
+  prefs: []
+  type: TYPE_TB
+  zh: '| 字节/秒 | 2.75 MB | 4.53 MB | 5 MB | 7.05 MB | 5.13 MB | 693 kB | 2.75 MB |'
+- en: 'Next, to test HAProxy, make use of the *recipe-api/producer-http-basic.js*
+    file created back in [Example 1-6](ch01.html#ex_producer) (again, comment out
+    the `console.log` calls), as well as the *haproxy/tls.cfg* file from [Example 3-8](#ex_haproxy_tls):'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，为了测试 HAProxy，使用在 [示例 1-6](ch01.html#ex_producer) 中创建的 *recipe-api/producer-http-basic.js*
+    文件（再次注释掉 `console.log` 调用），以及来自 [示例 3-8](#ex_haproxy_tls) 的 *haproxy/tls.cfg*
+    文件：
+- en: '[PRE37]'
+  id: totrans-331
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: '[Table 3-10](#table_bm_tls_haproxy) contains the results of running this load
+    test on my machine.'
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 3-10](#table_bm_tls_haproxy) 包含了在我的机器上运行此负载测试的结果。'
+- en: Table 3-10\. HAProxy TLS termination throughput
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-10\. HAProxy TLS 终止吞吐量
+- en: '| Stat | 1% | 2.5% | 50% | 97.5% | Avg | Stdev | Min |'
+  id: totrans-334
+  prefs: []
+  type: TYPE_TB
+  zh: '| 统计 | 1% | 2.5% | 50% | 97.5% | 平均 | 标准差 | 最小 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-335
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Req/Sec | 960 | 1,108 | 1,207 | 1,269 | 1,202.32 | 41.29 | 960 |'
+  id: totrans-336
+  prefs: []
+  type: TYPE_TB
+  zh: '| 每秒请求 | 960 | 1,108 | 1,207 | 1,269 | 1,202.32 | 41.29 | 960 |'
+- en: '| Bytes/Sec | 216 kB | 249 kB | 272 kB | 286 kB | 271 kB | 9.29 kB | 216 kB
+    |'
+  id: totrans-337
+  prefs: []
+  type: TYPE_TB
+  zh: '| 字节/秒 | 216 kB | 249 kB | 272 kB | 286 kB | 271 kB | 9.29 kB | 216 kB |'
+- en: In this case, a massive penalty happens when having HAProxy perform the TLS
+    termination instead of Node.js! However, take this with a grain of salt. The JSON
+    payload being used so far is about 200 bytes long. With a larger payload, like
+    those in excess of 20kb, HAProxy usually outperforms Node.js when doing TLS termination.
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，当使用 HAProxy 而不是 Node.js 执行 TLS 终止时，会出现巨大的性能惩罚！不过，要以谨慎的态度看待这一点。到目前为止使用的
+    JSON 有效负载约为200字节长。使用大于20kb的较大有效负载时，通常在执行 TLS 终止时，HAProxy 的表现优于 Node.js。
+- en: As with all benchmarks, it’s important to test your application in your environment.
+    The services used in this book are quite simple; a “real” application, doing CPU-intensive
+    work like template rendering, and sending documents with varying payload sizes
+    will behave completely differently.
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 象所有基准测试一样，测试您的应用程序在您的环境中的情况非常重要。本书中使用的服务非常简单；一个“真实”的应用程序，像模板渲染那样进行CPU密集型工作，并发送带有不同有效负载大小的文档，将完全不同。
+- en: Protocol Concerns
+  id: totrans-340
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 协议问题
+- en: Now you’ll load test some of the previously covered protocols, namely JSON over
+    HTTP, GraphQL, and gRPC. Since these approaches do change the payload contents,
+    measuring their transmission over a network will be more important than in [“Reverse
+    Proxy Concerns”](#ch_scaling_sec_bm_subsec_rp). Also, recall that protocols like
+    gRPC are more likely to be used for cross-service traffic than for external traffic.
+    For that reason, I’ll run these load tests on two different machines within the
+    same cloud provider data center.
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您将对先前涵盖的一些协议进行负载测试，即JSON over HTTP、GraphQL和gRPC。由于这些方法会改变有效载荷内容，因此测量它们在网络上传输的性能将比在[“反向代理关注点”](#ch_scaling_sec_bm_subsec_rp)中更为重要。此外，请记住，像gRPC这样的协议更有可能用于跨服务流量而不是外部流量。因此，我将在同一云提供商数据中心的两台不同机器上运行这些负载测试。
+- en: For these tests, your approach is going to be to cheat a little bit. Ideally,
+    you’d build a client from scratch, one that would natively speak the protocol
+    being tested and would measure the throughput. But since you already built the
+    *web-api* clients that accept HTTP requests, you’ll simply point Autocannon at
+    those so that you don’t need to build three new applications. This is visualized
+    in [Figure 3-9](#fig_benchmark_cloud).
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这些测试，您的方法将稍作弊。理想情况下，您会从头开始构建一个客户端，该客户端能够本地使用被测试的协议，并且能够测量吞吐量。但是由于您已经构建了接受HTTP请求的*web-api*客户端，您将简单地将Autocannon指向这些客户端，这样您就不需要构建三个新的应用程序。这在[图 3-9](#fig_benchmark_cloud)中有可视化展示。
+- en: Since there’s an additional network hop, this approach can’t accurately measure
+    performance, like X is Y% faster than Z, but it can rank their performance—as
+    implemented in Node.js using these particular libraries—from fastest to slowest.
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于存在额外的网络跳跃，这种方法无法准确地测量性能，例如X比Z快Y%。但可以按照实现Node.js中使用这些特定库的顺序排列它们的性能，从最快到最慢。
+- en: '![Autocannon and web-api run on one VPS, while recipe-api runs on the other](assets/dsnj_0309.png)'
+  id: totrans-344
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Autocannon和web-api在一个VPS上运行，而recipe-api在另一个VPS上运行](assets/dsnj_0309.png)'
+- en: Figure 3-9\. Benchmarking in the cloud
+  id: totrans-345
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-9\. 在云中进行基准测试
+- en: If you have access to a cloud provider and a few dollars to spare, feel free
+    to spin up two new VPS instances and copy the *examples/* directory that you have
+    so far to them. You should use machines with at least two CPU cores. This is particularly
+    important on the client where Autocannon and *web-api* might compete for CPU access
+    with a single core. Otherwise, you can also run the examples on your development
+    machine, at which point you can omit the `TARGET` environment variable.
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您有云服务提供商的访问权限，并且有一些闲钱，可以随时启动两个新的VPS实例，并将到目前为止已有的*examples/*目录复制到它们上。您应该使用至少两个CPU核心的机器。这在客户端尤为重要，因为Autocannon和*web-api*可能会与单个核心竞争CPU访问权。否则，您也可以在开发机器上运行示例，此时可以省略`TARGET`环境变量。
+- en: Be sure to replace `<RECIPE_API_IP>` with the IP address or hostname of the
+    *recipe-api* service in each of the following examples.
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请确保在以下每个示例中，用*recipe-api*服务的IP地址或主机名替换`<RECIPE_API_IP>`。
+- en: JSON over HTTP benchmarks
+  id: totrans-348
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: JSON over HTTP基准测试
+- en: 'This first load test will benchmark the *recipe-api/producer-http-basic.js*
+    service created in [Example 1-6](ch01.html#ex_producer) by sending requests through
+    the *web-api/consumer-http-basic.js* service created in [Example 1-7](ch01.html#ex_consumer):'
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次的负载测试将使用[示例 1-6](ch01.html#ex_producer)中创建的*recipe-api/producer-http-basic.js*服务，通过[示例 1-7](ch01.html#ex_consumer)中创建的*web-api/consumer-http-basic.js*服务发送请求：
+- en: '[PRE38]'
+  id: totrans-350
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: My results for this benchmark appear in [Figure 3-10](#fig_benchmark_jsonhttp).
+  id: totrans-351
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我在[图 3-10](#fig_benchmark_jsonhttp)中的基准测试结果。
+- en: '![Histogram of JSON over HTTP Results](assets/dsnj_0310.png)'
+  id: totrans-352
+  prefs: []
+  type: TYPE_IMG
+  zh: '![JSON over HTTP结果的直方图](assets/dsnj_0310.png)'
+- en: Figure 3-10\. Benchmarking JSON over HTTP
+  id: totrans-353
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-10\. JSON over HTTP基准测试
+- en: GraphQL benchmarks
+  id: totrans-354
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: GraphQL基准测试
+- en: 'This next load test will use the *recipe-api/producer-graphql.js* service created
+    in [Example 2-11](ch02.html#ex_graphql_producer) by sending requests through the
+    *web-api/consumer-graphql.js* service created in [Example 2-12](ch02.html#ex_graphql_consumer):'
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次的负载测试将使用[示例 2-11](ch02.html#ex_graphql_producer)中创建的*recipe-api/producer-graphql.js*服务，通过[示例 2-12](ch02.html#ex_graphql_consumer)中创建的*web-api/consumer-graphql.js*服务发送请求：
+- en: '[PRE39]'
+  id: totrans-356
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: My results for this load test appear in [Figure 3-11](#fig_benchmark_graphql).
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我在[图 3-11](#fig_benchmark_graphql)中的负载测试结果。
+- en: '![Histogram of GraphQL Results](assets/dsnj_0311.png)'
+  id: totrans-358
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL结果的直方图](assets/dsnj_0311.png)'
+- en: Figure 3-11\. Benchmarking GraphQL
+  id: totrans-359
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-11\. GraphQL基准测试
+- en: gRPC benchmarks
+  id: totrans-360
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: gRPC基准测试
+- en: 'This final load test will test the *recipe-api/producer-grpc.js* service created
+    in [Example 2-14](ch02.html#ex_grpc_producer) by sending requests through the
+    *web-api/consumer-grpc.js* service created in [Example 2-15](ch02.html#ex_grpc_consumer):'
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后的负载测试将通过 *web-api/consumer-grpc.js* 服务（[示例 2-15](ch02.html#ex_grpc_consumer)
+    创建）向 *recipe-api/producer-grpc.js* 服务（[示例 2-14](ch02.html#ex_grpc_producer) 创建）发送请求：
+- en: '[PRE40]'
+  id: totrans-362
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: My results for this load test appear in [Figure 3-12](#fig_benchmark_grpc).
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我在这个负载测试中的结果出现在 [图 3-12](#fig_benchmark_grpc)。
+- en: '![Histogram of gRPC Results](assets/dsnj_0312.png)'
+  id: totrans-364
+  prefs: []
+  type: TYPE_IMG
+  zh: '![gRPC 结果的直方图](assets/dsnj_0312.png)'
+- en: Figure 3-12\. Benchmarking gRPC
+  id: totrans-365
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 第 3-12 图。gRPC 基准测试
+- en: Conclusion
+  id: totrans-366
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 结论
+- en: According to these results, JSON over HTTP is typically the fastest, with GraphQL
+    being the second fastest and gRPC being the third fastest. Again, these results
+    will change for real-world applications, especially when dealing with more complex
+    payloads or when servers are farther apart.
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据这些结果，通过 HTTP 的 JSON 通常是最快的，GraphQL 是第二快的，gRPC 是第三快的。同样，这些结果将在真实的应用程序中发生变化，特别是在处理更复杂的有效负载或服务器彼此距离较远时。
+- en: The reason for this is that `JSON.stringify()` is extremely optimized in V8,
+    so any other serializer is going to have a hard time keeping up. GraphQL has its
+    own parser for parsing query strings, which will add some additional latency versus
+    a query represented purely using JSON. gRPC needs to do a bunch of `Buffer` work
+    to serialize and deserialize objects into binary. This means gRPC should be faster
+    in more static, compiled languages like C++ than in JavaScript.
+  id: totrans-368
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是因为 `JSON.stringify()` 在 V8 中被极大地优化，所以任何其他的序列化器在效率上都会遇到困难。GraphQL 有自己的解析器用于解析查询字符串，这会增加一些额外的延迟，与仅使用
+    JSON 表示的查询相比。gRPC 需要进行大量的 `Buffer` 工作来将对象序列化和反序列化为二进制。这意味着 gRPC 在像 C++ 这样的静态、编译语言中应该比在
+    JavaScript 中更快。
+- en: Coming Up with SLOs
+  id: totrans-369
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 制定 SLO
+- en: An SLO can cover many different aspects of a service. Some of these are business-related
+    requirements, like the service will never double charge a customer for a single
+    purchase. Other more generic SLOs are the topic of this section, like the service
+    will have a TP99 latency of 200ms and will have an uptime of 99.9%.
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SLO 可以涵盖服务的许多不同方面。其中一些是业务相关的需求，比如服务永远不会为单次购买向客户多次收费。其他更通用的 SLO 是本节的主题，比如服务的
+    TP99 延迟为 200ms，并且可用性为 99.9%。
+- en: Coming up with an SLO for latency can be tricky. For one thing, the time it
+    will take for your application to serve a response might depend on the time it
+    takes an upstream service to return its response. If you’re adopting the concept
+    of an SLO for the first time, you’ll need upstream services to *also* come up
+    with SLOs of their own. Otherwise, when their service latency jumps from 20ms
+    to 40ms, who’s to know if they’re actually doing something wrong?
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 制定延迟的 SLO 可能会有些棘手。首先，您的应用程序提供响应的时间可能取决于上游服务返回其响应的时间。如果您首次采用 SLO 的概念，您将需要上游服务也制定自己的
+    SLO。否则，当其服务延迟从 20ms 增加到 40ms 时，谁知道他们是否真的做错了什么？
+- en: Another thing to keep in mind is that your service will very likely receive
+    more traffic during certain times of the day and certain days of the week, especially
+    if traffic is governed by the interactions of people. For example, a backend service
+    used by an online retailer will get more traffic on Mondays, in the evenings,
+    and near holidays, whereas a service receiving periodic sensor data will always
+    handle data at the same rate. Whatever SLOs you do decide on will need to hold
+    true during times of peak traffic.
+  id: totrans-372
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还要记住的一件事是，您的服务很可能在一天中的某些时间和一周的某些天收到更多的流量，特别是如果流量受人们互动的影响。例如，在线零售商使用的后端服务将在星期一、晚上和接近假期时收到更多的流量，而定期接收传感器数据的服务将始终以相同的速率处理数据。无论您决定采取什么样的
+    SLO，它们都需要在高峰流量期间保持真实。
+- en: Something that can make measuring performance difficult is the concept of the
+    *noisy neighbor*. This is a problem that occurs when a service is running on a
+    machine with other services and those other services end up consuming too many
+    resources, such as CPU or bandwidth. This can cause your service to take more
+    time to respond.
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使性能测量变得困难的另一件事是“嘈杂的邻居”的概念。这是一个问题，当服务运行在带有其他服务的机器上时，其他服务消耗了太多资源，如 CPU 或带宽。这可能导致您的服务响应时间更长。
+- en: When first starting with an SLO, it’s useful to perform a load test on your
+    service as a starting point. For example, [Figure 3-13](#fig_benchmark_radar)
+    is the result of benchmarking a production application that I built. With this
+    service, the TP99 has a latency of 57ms. To get it any faster would require performance
+    work.
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 刚开始使用 SLO 时，对您的服务进行负载测试是一个有用的起点。例如，[图 3-13](#fig_benchmark_radar) 是我建立的一个生产应用的基准测试结果。通过这项服务，TP99
+    的延迟为57ms。要使其更快，需要进行性能优化工作。
+- en: Be sure to completely mimic production situations when load testing your service.
+    For example, if a real consumer makes a request through a reverse proxy, then
+    make sure your load tests also go through the same reverse proxy, instead of connecting
+    directly to the service.
+  id: totrans-375
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在对服务进行负载测试时，确保完全模拟生产环境情况非常重要。例如，如果真实的消费者通过反向代理发出请求，则确保您的负载测试也通过同样的反向代理进行，而不是直接连接到服务。
+- en: '![Benchmark of a Production Application](assets/dsnj_0313.png)'
+  id: totrans-376
+  prefs: []
+  type: TYPE_IMG
+  zh: '![生产应用基准测试](assets/dsnj_0313.png)'
+- en: Figure 3-13\. Benchmarking a production application
+  id: totrans-377
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-13\. 生产应用基准测试
+- en: Another thing to consider is what the consumers of your service are expecting.
+    For example, if your service provides suggestions for an autocomplete form when
+    a user types a query, having a response time of less than 100ms is vital. On the
+    other hand, if your service triggers the creation of a bank loan, having a response
+    time of 60s might also be acceptable.
+  id: totrans-378
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还需要考虑的另一件事是您服务的消费者期望什么。例如，如果您的服务在用户输入查询时为自动完成表单提供建议，则响应时间低于100ms至关重要。另一方面，如果您的服务触发银行贷款的创建，则60秒的响应时间可能也是可以接受的。
+- en: If a downstream service has a hard response time requirement and you’re not
+    currently satisfying it, you’ll have to find a way to make your service more performant.
+    You can try throwing more servers at the problem, but often you’ll need to get
+    into the code and make things faster. Consider adding a performance test when
+    code is being considered for merging. [“Automated Testing”](ch06.html#ch_deployments_sec_testing)
+    discusses automated tests in further detail.
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果下游服务有严格的响应时间要求，而当前无法满足，您需要找到一种方法使您的服务更具性能。您可以尝试增加更多服务器来解决问题，但通常需要深入代码，提升性能。在考虑合并代码时，考虑添加性能测试。["自动化测试"](ch06.html#ch_deployments_sec_testing)详细讨论了自动化测试。
+- en: When you do determine a latency SLO, you’ll want to determine how many service
+    instances to run. For example, you might have an SLO where the TP99 response time
+    is 100ms. Perhaps a single server is able to perform at this level when handling
+    500 requests per minute. However, when the traffic increases to 1,000 requests
+    per minute, the TP99 drops to 150ms. In this situation, you’ll need to add a second
+    service. Experiment with adding more services, and testing load at different rates,
+    to understand how many services it takes to increase your traffic by two, three,
+    or even ten times the amount.
+  id: totrans-380
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当确定延迟 SLO 时，您将希望确定运行多少服务实例。例如，您可能有一个 TP99 响应时间为100ms 的 SLO。也许单个服务器在处理每分钟500个请求时能够达到这个水平。然而，当流量增加到每分钟1,000个请求时，TP99
+    降至150ms。在这种情况下，您需要添加第二个服务。尝试添加更多服务，并在不同速率下测试负载，以了解需要多少服务来增加您的流量两倍、三倍甚至十倍。
+- en: Autocannon has the `-R` flag for specifying an exact number of requests per
+    second. Use this to throw an exact rate of requests at your service. Once you
+    do that, you can measure your application at different request rates and find
+    out where it stops performing at the intended latency. Once that happens, add
+    another service instance and test again. Using this method, you’ll know how many
+    service instances are needed in order to satisfy the TP99 SLO based on different
+    overall throughputs.
+  id: totrans-381
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Autocannon 使用 `-R` 标志来指定每秒确切的请求数。使用此功能向您的服务发送确切速率的请求。一旦这样做，您可以在不同的请求速率下测量您的应用，并找出它在预期延迟下停止执行的位置。一旦发生这种情况，请添加另一个服务实例并再次测试。使用此方法，您将知道需要多少服务实例才能满足基于不同总体吞吐量的
+    TP99 SLO。
+- en: Using the *cluster-fibonacci.js* application created in [Example 3-2](#ex_fibonacci)
+    as a guide, you’ll now attempt to measure just this. This application, with a
+    Fibonacci limit of 10,000, is an attempt to simulate a real service. The TP99
+    value you’ll want to maintain is 20ms. Create another HAProxy configuration file
+    *haproxy/fibonacci.cfg* based on the content in [Example 3-14](#ex_haproxy_fibonacci).
+    You’ll iterate on this file as you add new service instances.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用[示例 3-2](#ex_fibonacci)中创建的*cluster-fibonacci.js*应用程序作为指南，您现在将尝试仅测量这一点。这个应用程序，限制斐波那契数为10,000，是模拟一个真实服务的尝试。您希望保持的TP99值为20ms。基于[示例 3-14](#ex_haproxy_fibonacci)中的内容创建另一个HAProxy配置文件*haproxy/fibonacci.cfg*。随着添加新的服务实例，您将迭代该文件。
+- en: Example 3-14\. *haproxy/fibonacci.cfg*
+  id: totrans-383
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-14\. *haproxy/fibonacci.cfg*
+- en: '[PRE41]'
+  id: totrans-384
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'This application is a little too CPU heavy. Add a sleep statement to simulate
+    a slow database connection, which should keep the event loop a little busier.
+    Introduce a `sleep()` function like this one, causing requests to take at least
+    10ms longer:'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个应用程序稍微CPU密集。添加一个sleep语句来模拟慢数据库连接，这样可以使事件循环更加繁忙。引入一个类似这样的`sleep()`函数，使请求至少要花费额外的10ms：
+- en: '[PRE42]'
+  id: totrans-386
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Next, run a single instance of *cluster-fibonacci.js*, as well as HAProxy,
+    using the following commands:'
+  id: totrans-387
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，运行一个*cluster-fibonacci.js*实例，以及HAProxy，使用以下命令：
+- en: '[PRE43]'
+  id: totrans-388
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: My TP99 value is 18ms, which is below the 20ms SLO, so I know that one instance
+    can handle traffic of at least 10 r/s. So, now double that value! Run the Autocannon
+    command again by setting the `-R` flag to 20\. On my machine the value is now
+    24ms, which is too high. Of course, your results will be different. Keep tweaking
+    the requests per second value until you reach the 20ms TP99 SLO threshold. At
+    this point you’ve discovered how many requests per second a single instance of
+    your service can handle! Write that number down.
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我的TP99值为18ms，低于20ms的SLO，因此我知道一个实例至少可以处理10个r/s的流量。那么，现在将该值加倍！通过将`-R`标志设置为20再次运行Autocannon命令。在我的机器上，该值现在是24ms，太高了。当然，你的结果可能会有所不同。继续调整每秒请求数值，直到达到20ms的TP99
+    SLO阈值。此时，您已经发现了服务单实例每秒请求的数量！记下这个数字。
+- en: Next, uncomment the second-to-last line of the *haproxy/fibonacci.cfg* file.
+    Also, run another instance of *cluster-fibonacci.js*, setting the `PORT` value
+    to `5002`. Restart HAProxy to reload the modified config file. Then, run the Autocannon
+    command again with increased traffic. Increase the requests per second until you
+    reach the threshold again, and write down the value. Do it a third and final time.
+    [Table 3-11](#table_fibonacci_sla) contains my results.
+  id: totrans-390
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，取消注释*haproxy/fibonacci.cfg*文件中倒数第二行。同时，运行另一个*cluster-fibonacci.js*实例，将`PORT`值设为`5002`。重新启动HAProxy以重新加载修改后的配置文件。然后，再次运行Autocannon命令，并增加流量。增加每秒请求数，直到再次达到阈值，并记下该值。第三次也要执行相同操作。[表 3-11](#table_fibonacci_sla)包含了我的结果。
+- en: Table 3-11\. Fibonacci SLO
+  id: totrans-391
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-11\. 斐波那契SLO
+- en: '| Instance count | 1 | 2 | 3 |'
+  id: totrans-392
+  prefs: []
+  type: TYPE_TB
+  zh: '| 实例数量 | 1 | 2 | 3 |'
+- en: '| Max r/s | 12 | 23 | 32 |'
+  id: totrans-393
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最大 r/s | 12 | 23 | 32 |'
+- en: With this information I can deduce that if my service needs to run with 10 requests
+    per second, then a single instance will allow me to honor my 20ms SLO for my consumers.
+    If, however, the holiday season is coming and I know consumers are going to want
+    to calculate the 5,000th Fibonacci sequence at a rate of 25 requests per second,
+    then I’m going to need to run three instances.
+  id: totrans-394
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些信息，我可以推断，如果我的服务需要以10个请求每秒的速度运行，那么单个实例将使我能够满足消费者的20ms SLO。然而，如果即将到来的假期季节，我知道消费者将以25个请求每秒的速度计算第5000个斐波那契数列，那么我需要运行三个实例。
+- en: If you work in an organization that doesn’t currently make any performance promises,
+    I encourage you to measure your service’s performance and come up with an SLO
+    using current performance as a starting point. Add that SLO to your project’s
+    *README* and strive to improve it each quarter.
+  id: totrans-395
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在一个目前没有任何性能承诺的组织中工作，我鼓励您测量您服务的性能，并使用当前性能作为起点制定一个SLO。将该SLO添加到您项目的*README*中，并努力在每个季度改进它。
+- en: Benchmark results are useful for coming up with initial SLO values. To know
+    whether or not your application actually achieves an SLO in production requires
+    observing real production SLIs. The next chapter covers application observability,
+    which can be used to measure SLIs.
+  id: totrans-396
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基准测试结果对于确定初始SLO值很有帮助。要知道您的应用程序在生产环境中是否实际达到了SLO，需要观察真实的生产SLI。下一章涵盖了应用程序可观察性，可以用来测量SLI。
+- en: ^([1](ch03.html#idm46291192440536-marker)) The `fork()` method name is inspired
+    by the fork system call, though the two are technically unrelated.
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch03.html#idm46291192440536-marker)) `fork()`方法的名称灵感来自fork系统调用，尽管这两者在技术上无关。
+- en: ^([2](ch03.html#idm46291192181256-marker)) More advanced applications might
+    have some race-conditions unearthed when running multiple copies.
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch03.html#idm46291192181256-marker)) 在运行多个副本时，更高级的应用程序可能会发现一些竞态条件。
+- en: ^([3](ch03.html#idm46291191422376-marker)) This backend has a `balance <algorithm>`
+    directive implicitely set to `roundrobin`. It can be set to `leastconn` to route
+    requests to the instance with the fewest connections, `source` to consistently
+    route a client by IP to an instance, and several other algorithm options are also
+    available.
+  id: totrans-399
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch03.html#idm46291191422376-marker)) 这个后端具有隐式设置为`roundrobin`的`balance
+    <algorithm>`指令。它可以设置为`leastconn`以将请求路由到连接最少的实例，`source`以将客户端按IP一致路由到一个实例，并且还提供了几种其他算法选项。
+- en: ^([4](ch03.html#idm46291191395832-marker)) You’ll need to manually refresh it
+    any time you want to see updated statistics; the page only displays a static snapshot.
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch03.html#idm46291191395832-marker)) 每当您想要查看更新的统计信息时，您需要手动刷新页面；该页面仅显示静态快照。
+- en: ^([5](ch03.html#idm46291190530232-marker)) Regardless of performance, it’s necessary
+    that services exposed to the internet are encrypted.
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch03.html#idm46291190530232-marker)) 无论性能如何，暴露在互联网上的服务都必须加密。

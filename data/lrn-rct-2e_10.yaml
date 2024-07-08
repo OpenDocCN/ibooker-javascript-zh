@@ -1,0 +1,2129 @@
+- en: Chapter 10\. React Testing
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第十章 React 测试
+- en: In order to keep up with our competitors, we must move quickly while ensuring
+    quality. One vital tool that allows us to do this is *unit testing*. Unit testing
+    makes it possible to verify that every piece, or unit, of our application functions
+    as intended.^([1](ch10.html#idm45901621151704))
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了跟上我们的竞争对手，我们必须在确保质量的同时快速前进。一个至关重要的工具是*单元测试*。单元测试使我们能够验证我们应用程序的每个部分或单元是否按预期功能。^([1](ch10.html#idm45901621151704))
+- en: One benefit of practicing functional techniques is that they lend themselves
+    to writing testable code. Pure functions are naturally testable. Immutability
+    is easily testable. Composing applications out of small functions designed for
+    specific tasks produces testable functions or units of code.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实践函数式技术的一个好处是它们适合编写可测试的代码。纯函数天然适合测试。不可变性易于测试。将应用程序组合成设计用于特定任务的小函数可以生成可测试的函数或代码单元。
+- en: In this section, we’ll demonstrate techniques that can be used to unit test
+    React applications. This chapter will not only cover testing, but also tools that
+    can be used to help evaluate and improve your code and your tests.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一节中，我们将演示可以用来单元测试 React 应用程序的技术。这一章不仅涵盖了测试，还包括可以用来帮助评估和改进代码及测试的工具。
+- en: ESLint
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: ESLint
+- en: In most programming languages, code needs to be compiled before you can run
+    anything. Programming languages have pretty strict rules about coding style and
+    will not compile until the code is formatted appropriately. JavaScript does not
+    have those rules and does not come with a compiler. We write code, cross our fingers,
+    and run it in the browser to see if it works or not. The good news is that there
+    are tools we can use to analyze our code and make us stick to specific formatting
+    guidelines.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数编程语言中，在运行任何东西之前，代码需要编译。编程语言对编码风格有严格的规则，并且在代码格式化合适之前不会编译。JavaScript 没有这些规则，也没有编译器。我们编写代码，跨越手指，然后在浏览器中运行它，看它是否工作。好消息是，有工具可以用来分析我们的代码，并使我们坚持特定的格式指南。
+- en: The process of analyzing JavaScript code is called *hinting* or *linting*. JSHint
+    and JSLint are the original tools used to analyze JavaScript and provide feedback
+    about formatting. [ESLint](http://eslint.org) is the latest code linter that supports
+    emerging JavaScript syntax. Additionally, ESLint is pluggable. This means we can
+    create and share plug-ins that can be added to ESLint configurations to extend
+    its capabilities.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分析 JavaScript 代码的过程称为*hinting*或*linting*。JSHint 和 JSLint 是最初用于分析 JavaScript
+    并提供关于格式的反馈的工具。[ESLint](http://eslint.org) 是支持新兴 JavaScript 语法的最新代码检查工具。此外，ESLint
+    是可插拔的。这意味着我们可以创建并分享可以添加到 ESLint 配置中以扩展其功能的插件。
+- en: ESLint is supported out of the box with Create React App, and we’ve already
+    seen lint warnings and errors appear in the console.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Create React App 中，ESLint 受到原生支持，我们已经看到 lint 警告和错误出现在控制台中。
+- en: We’ll be working with a plug-in called [`eslint-plugin-react`](https://oreil.ly/3yeXO).
+    This plug-in will analyze our JSX and React syntax in addition to our JavaScript.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用一个名为 [`eslint-plugin-react`](https://oreil.ly/3yeXO) 的插件。此插件将分析我们的 JSX
+    和 React 语法，以及我们的 JavaScript。
+- en: 'Let’s install `eslint` as a dev dependency. We can install `eslint` with npm:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将 `eslint` 安装为开发依赖项。我们可以通过 npm 安装 `eslint`：
+- en: '[PRE0]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Before we use ESLint, we’ll need to define some configuration rules that we
+    can agree to follow. We’ll define these in a configuration file that’s located
+    in our project root. This file can be formatted as JSON or YAML. [YAML](http://yaml.org)
+    is a data serialization formation like JSON but with less syntax, making it a
+    little easier for humans to read.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用 ESLint 之前，我们需要定义一些配置规则，以便我们同意遵循这些规则。我们将这些规则定义在项目根目录下的配置文件中。这个文件可以格式化为 JSON
+    或 YAML。[YAML](http://yaml.org) 是一种数据序列化格式，类似于 JSON，但语法更简单，对人类更友好。
+- en: ESLint comes with a tool that helps us set up configuration. There are several
+    companies that have created ESLint config files that we can use as a starting
+    point, or we can create our own.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ESLint 包含一个工具，帮助我们设置配置。有几家公司已经创建了 ESLint 配置文件，我们可以用作起点，或者我们可以创建自己的配置文件。
+- en: 'We can create an ESLint configuration by running `eslint --init` and answering
+    some questions about our coding style:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过运行 `eslint --init` 并回答关于我们编码风格的一些问题来创建一个 ESLint 配置：
+- en: '[PRE1]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'After `npx eslint --init` runs, three things happen:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行 `npx eslint --init` 后，会发生三件事情：
+- en: '`eslint-plugin-react` is installed locally to the *./node_modules* folder.'
+  id: totrans-16
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`eslint-plugin-react` 被安装在本地的 *./node_modules* 文件夹中。'
+- en: These dependencies are automatically added to the *package.json* file.
+  id: totrans-17
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 这些依赖项会自动添加到 *package.json* 文件中。
+- en: A configuration file, *.eslintrc.json*, is created and added to the root of
+    our project.
+  id: totrans-18
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 一个配置文件 *.eslintrc.json* 被创建并添加到我们项目的根目录中。
+- en: 'If we open *.eslintrc.json*, we’ll see an object of settings:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们打开 *.eslintrc.json*，我们会看到一个设置对象：
+- en: '[PRE2]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Importantly, if we look at the `extends` key, we’ll see that our `--init` command
+    initalized defaults for `eslint` and `react`. This means that we don’t have to
+    manually configure all of the rules. Instead, those rules are provided to us.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重要的是，如果查看 `extends` 键，我们会看到我们的 `--init` 命令初始化了 `eslint` 和 `react` 的默认配置。这意味着我们不必手动配置所有规则，而是提供给我们这些规则。
+- en: 'Let’s test our ESLint configuration and these rules by creating a *sample.js*
+    file:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过创建一个 *sample.js* 文件来测试我们的 ESLint 配置和这些规则：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'This file has some issues, but nothing that would cause errors in the browser.
+    Technically, this code works just fine. Let’s run ESLint on this file and see
+    what feedback we get based on our customized rules:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件有一些问题，但不会导致浏览器出错。从技术上讲，这段代码完全可以运行。让我们在这个文件上运行 ESLint，看看基于我们自定义规则得到的反馈：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: ESLint has performed a static analysis of our code and is reporting some issues
+    based on our configuration choices. There are errors about property validation,
+    and ESLint also complains about `__filename` and `__dirname` because it does not
+    automatically include Node.js globals. And finally, ESLint’s default React warnings
+    let us know that React must be in scope when using JSX.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ESLint 已经对我们的代码进行了静态分析，并根据我们的配置选择报告了一些问题。关于属性验证有错误，ESLint 还抱怨 `__filename` 和
+    `__dirname`，因为它不会自动包含 Node.js 全局对象。最后，ESLint 的默认 React 警告告诉我们，在使用 JSX 时，必须在作用域中包含
+    React。
+- en: 'The command `eslint .` will lint our entire directory. To do this, we’ll most
+    likely require that ESLint ignore some JavaScript files. The *.eslintignore* file
+    is where we can add files or directories for ESLint to ignore:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命令 `eslint .` 将会检查我们整个目录。为此，我们很可能需要让 ESLint 忽略一些 JavaScript 文件。*.eslintignore*
+    文件就是我们可以添加文件或目录让 ESLint 忽略的地方：
+- en: '[PRE5]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: This *.eslintignore* file tells ESLint to ignore our new *sample.js* file as
+    well as anything in the *dist/assets* folder. If we don’t ignore the *assets*
+    folder, ESLint will analyze the client *bundle.js* file, and it will probably
+    find a lot to complain about in that file.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 *.eslintignore* 文件告诉 ESLint 忽略我们的新 *sample.js* 文件，以及 *dist/assets* 文件夹中的任何内容。如果不忽略
+    *assets* 文件夹，ESLint 将分析客户端 *bundle.js* 文件，并且很可能在该文件中找到许多问题。
+- en: 'Let’s add a script to our *package.json* file for running ESLint:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在 *package.json* 文件中为运行 ESLint 添加一个脚本：
+- en: '[PRE6]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Now ESLint can be run any time we want with `npm run lint`, and it will analyze
+    all of the files in our project except the ones we’ve ignored.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以随时使用 `npm run lint` 运行 ESLint，并且它将分析我们项目中除了被忽略的文件之外的所有文件。
+- en: ESLint Plug-Ins
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: ESLint 插件
+- en: There are a multitude of plug-ins that can be added to your ESLint configuration
+    to help you as you’re writing code. For a React project, you’ll definitely want
+    to install [`eslint-plugin-react-hooks`](https://reactjs.org/docs/hooks-rules.html),
+    a plug-in to enforce the rules of React Hooks. This package was released by the
+    React team to help fix bugs related to Hooks usage.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有很多插件可以添加到你的 ESLint 配置中，以帮助你编写代码。对于 React 项目，你肯定会想要安装 [`eslint-plugin-react-hooks`](https://reactjs.org/docs/hooks-rules.html)，这是一个用于强制执行
+    React Hooks 规则的插件。这个包是由 React 团队发布的，旨在帮助修复与 Hooks 使用相关的 bug。
+- en: 'Start by installing it:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先要安装它：
+- en: '[PRE7]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Then, open the *.eslintrc.json* file and add the following:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，打开 *.eslintrc.json* 文件，并添加以下内容：
+- en: '[PRE8]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: This plug-in will check to ensure that functions that start with the word “use”
+    (assumed to be a hook) are following the rules of Hooks.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个插件将检查以“use”开头的函数（假设是一个 hook）是否遵循了 Hooks 的规则。
+- en: 'Once this has been added, we’ll write some sample code to test the plug-in.
+    Adjust the code in *sample.js*. Even though this code won’t run, we’re testing
+    to see if the plug-in is working appropriately:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦添加了这些内容，我们将编写一些示例代码来测试这个插件。调整 *sample.js* 中的代码。即使这段代码无法运行，我们也在测试插件是否正常工作：
+- en: '[PRE9]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Several errors will pop up from this code, but most importantly, there’s the
+    error that lets us know we’re trying to call `useState` in a function that isn’t
+    a component or a hook:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这段代码中将会弹出几个错误，但最重要的是，有一个错误告诉我们，在不是组件或者 hook 的函数中尝试调用 `useState`：
+- en: '[PRE10]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: These shoutouts will help us along the way as we learn the ins and outs of working
+    with Hooks.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们学习如何使用 Hooks 的过程中，这些示例将帮助我们。
+- en: Another useful ESLint plug-in to incorporate into your projects is `eslint-plugin-jsx-a11y`.
+    A11y is a numeronym, which means that there are 11 letters between the “a” and
+    the “y” in accessibility. When we consider accessibility, we build tools, websites,
+    and technologies that can be used by people with disabilities.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个有用的 ESLint 插件是 `eslint-plugin-jsx-a11y`。A11y 是一个数字符号，意味着在“a”和“y”之间有 11 个字母，用于表示可访问性。当我们考虑无障碍性时，我们构建工具、网站和技术，可以被残障人士使用。
+- en: This plug-in will analyze your code and ensure that it’s not breaking any accessibility
+    rules. Accessibility should be an area of focus for all of us, and working with
+    this plug-in will promote good practices when writing accessible React applications.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此插件将分析你的代码，并确保它不违反任何无障碍规则。无障碍应该是我们所有人关注的一个领域，使用这个插件将促进编写无障碍 React 应用程序的良好实践。
+- en: 'To install, we’ll use npm or yarn again:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要安装，我们将再次使用 npm 或 yarn：
+- en: '[PRE11]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Then we’ll add to our config, *.eslintrc.json*:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来我们将在我们的配置文件中添加 *.eslintrc.json*：
+- en: '[PRE12]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Now let’s test it. We’ll adjust our *sample.js* file to include an image tag
+    that has no alt property. In order for an image to pass a lint check, it must
+    have an alt prop or an empty string if the image doesn’t affect the user’s understanding
+    of the content:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们来测试一下。我们将调整我们的 *sample.js* 文件，添加一个没有 alt 属性的图像标签。为了使图像通过 lint 检查，它必须具有
+    alt 属性，或者如果图像不影响用户对内容的理解，则为空字符串：
+- en: '[PRE13]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'If we run lint again with `npm run lint`, we’ll see that there’s a new error
+    that’s called by the `jsx/a11y` plug-in:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们再次运行 `npm run lint` 进行 lint，我们会看到一个由 `jsx/a11y` 插件引发的新错误：
+- en: '[PRE14]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: There are many other ESLint plug-ins you can use to statically analyze your
+    code, and you could spend weeks tuning your ESLint config to perfection. If you’re
+    looking to take yours to the next level, there are many useful resources in the
+    [Awesome ESLint repository](https://github.com/dustinspecker/awesome-eslint).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有许多其他 ESLint 插件可以用来静态分析你的代码，你可以花费几周的时间调整你的 ESLint 配置，使其达到完美。如果你想把你的配置提升到下一个水平，可以在
+    [Awesome ESLint 仓库](https://github.com/dustinspecker/awesome-eslint) 中找到许多有用的资源。
+- en: Prettier
+  id: totrans-56
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Prettier
+- en: Prettier is an opinionated code formatter you can use on a range of projects.
+    The effect Prettier has had on the day-to-day work of web developers since its
+    release has been pretty incredible. Based on historical records, arguing over
+    syntax filled 87% of an average JavaScript developer’s day, but now Prettier handles
+    code formatting and defining the rules around what code syntax should be used
+    per project. The time savings are significant. Also, if you’ve ever unleashed
+    Prettier on a Markdown table, the quick, crisp formatting that occurs is a pretty
+    incredible sight to behold.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Prettier 是一款具有意见的代码格式化工具，适用于各种项目。自发布以来，Prettier 对 Web 开发人员日常工作的影响非常显著。根据历史记录，争论语法占据了平均
+    JavaScript 开发人员日常工作时间的 87%，但现在 Prettier 负责代码格式化，并定义了每个项目应使用的代码语法规则。节省的时间是显著的。此外，如果你曾经在
+    Markdown 表格上使用过 Prettier，你会看到它快速、清晰的格式化效果，真的是一种难以置信的景象。
+- en: ESLint used to be in charge of code formatting for many projects, but now there’s
+    a clear delineation of responsibilities. ESLint handles code-quality concerns.
+    Prettier handles code formatting.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ESLint 曾负责许多项目的代码格式化，但现在责任已经明确划分。ESLint 处理代码质量问题，而 Prettier 负责代码格式化。
+- en: 'To make Prettier work with ESLint, we’ll tinker with the configuration of our
+    project a bit more. You can install Prettier globally to get started:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使 Prettier 与 ESLint 协作，我们需要稍微调整项目的配置。你可以全局安装 Prettier 来开始使用：
+- en: '[PRE15]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Now you can use Prettier anywhere on any project.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以在任何项目中使用 Prettier。
+- en: Configuring Prettier by Project
+  id: totrans-62
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 按项目配置 Prettier
+- en: 'To add a Prettier configuration file to your project, you can create a *.prettierrc*
+    file. This file will describe the project defaults:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要向项目添加 Prettier 配置文件，你可以创建一个 *.prettierrc* 文件。该文件将描述项目的默认设置：
+- en: '[PRE16]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: These are our preferred defaults, but of course, choose what makes most sense
+    to you. For more Prettier formatting options, check out [Prettier’s documentation](https://prettier.io/docs/en/options.html).
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些是我们首选的默认设置，但当然，选择最合理的选项。有关更多 Prettier 格式化选项，请查看 [Prettier 文档](https://prettier.io/docs/en/options.html)。
+- en: 'Let’s replace what currently lives in our *sample.js* file with some code to
+    format:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们用一些代码来替换当前 *sample.js* 文件中的内容，以便进行格式化：
+- en: '[PRE17]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now let’s try running the Prettier CLI from the Terminal or Command Prompt:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们尝试从终端或命令提示符中运行 Prettier CLI：
+- en: '[PRE18]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Prettier runs the test and shows us the following message: `Code style issues
+    found in the above file(s). Forgot to run Prettier?` To run it from the CLI, we
+    can pass the `write` flag:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Prettier 运行测试并显示以下消息：`在上述文件中找到了代码样式问题。忘记运行 Prettier？` 要从 CLI 运行它，我们可以传递 `write`
+    标志：
+- en: '[PRE19]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Once we do this, we’ll see an output of a certain number of milliseconds that
+    it took Prettier to format the file. If we open the file, we’ll see that the content
+    has changed based on the defaults supplied in the *.prettierrc* file. If you’re
+    thinking that this process seems laborious and could be sped up, you’re right.
+    Let’s start automating!
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们这样做了，我们会看到一个输出，显示 Prettier 格式化文件所花费的某些毫秒数。如果我们打开文件，我们会看到根据 *.prettierrc*
+    文件中提供的默认值内容已经改变了。如果你觉得这个过程看起来很费力且可以加快速度，那么你是对的。让我们开始自动化吧！
+- en: 'First, we’ll integrate ESLint and Prettier by installing a config tool and
+    a plug-in:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将通过安装配置工具和插件集成 ESLint 和 Prettier：
+- en: '[PRE20]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The config (`eslint-config-prettier`) turns off any ESLint rules that could
+    conflict with Prettier. The plug-in (`eslint-plugin-prettier`) integrates Prettier
+    rules into ESLint rules. In other words, when we run our `lint` script, Prettier
+    will run, too.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 配置 (`eslint-config-prettier`) 关闭任何可能与 Prettier 冲突的 ESLint 规则。插件 (`eslint-plugin-prettier`)
+    将 Prettier 规则整合到 ESLint 规则中。换句话说，当我们运行我们的 `lint` 脚本时，Prettier 也会运行。
+- en: 'We’ll incorporate these tools into *.eslintrc.json*:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将这些工具整合到 *.eslintrc.json* 中：
+- en: '[PRE21]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Make sure to break some formatting rules in your code to ensure that Prettier
+    is working. For example, in *sample.js*:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保在你的代码中打破一些格式规则，以确保 Prettier 正常工作。例如，在 *sample.js* 中：
+- en: '[PRE22]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Running the lint command `npm run lint` will yield the following output:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行 lint 命令 `npm run lint` 将产生以下输出：
+- en: '[PRE23]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'All of the errors were found. Now you can run the Prettier write command and
+    sweep the formatting for one file:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有的错误都被找到了。现在你可以运行 Prettier 写命令，并为一个文件进行格式化：
+- en: '[PRE24]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Or for all of the JavaScript files in certain folders:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者在特定文件夹中的所有 JavaScript 文件中：
+- en: '[PRE25]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Prettier in VSCode
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: VSCode 中的 Prettier
+- en: If you’re using VSCode, it’s highly recommended that you set up Prettier in
+    your editor. Configuration is fairly quick and will save you a lot of time as
+    you’re writing code.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在使用 VSCode，强烈建议在你的编辑器中设置 Prettier。配置非常快速，并且在编写代码时将为你节省大量时间。
+- en: You’ll first want to install the VSCode extension for Prettier. Just follow
+    [this link](https://oreil.ly/-7Zgz) and click Install. Once installed, you can
+    run Prettier with Control + Command + P on a Mac or Ctrl + Shift + P on a PC to
+    manually format a file or highlighted bit of code. For even better results, you
+    can format your code on Save. This involves adding some settings to VSCode.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你首先需要安装 VSCode 的 Prettier 扩展。只需按照 [此链接](https://oreil.ly/-7Zgz) 并点击安装。安装完成后，你可以使用
+    Mac 上的 Control + Command + P 或 PC 上的 Ctrl + Shift + P 手动格式化文件或突出显示的代码片段。为了获得更好的结果，你可以在保存时格式化你的代码。这需要在
+    VSCode 中添加一些设置。
+- en: 'To access these settings, select the Code menu, then Preferences, then Settings.
+    (Or Command + comma on a Mac or Ctrl + comma on a PC, if you’re in a hurry.) Then
+    you can click on the small paper icon in the upper right-hand corner to open the
+    VSCode settings as JSON. You’ll want to add a few helpful keys here:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要访问这些设置，请选择 Code 菜单，然后选择 Preferences，然后选择 Settings。（如果你着急的话，可以在 Mac 上使用 Command
+    + 逗号或在 PC 上使用 Ctrl + 逗号。）然后你可以点击右上角的小纸片图标打开 VSCode 的 JSON 设置。在这里，你需要添加一些有用的键：
+- en: '[PRE26]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Now when you save any file, Prettier will format it based on the `.prettierrc`
+    defaults! Pretty killer. You can also search Settings for Prettier options to
+    set up defaults in your editor if you want to enforce formatting, even if your
+    project doesn’t contain a *.prettierrc* config file.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当你保存任何文件时，Prettier 将根据 *.prettierrc* 的默认设置格式化它！相当不错。如果你希望强制执行格式化，即使你的项目中没有
+    *.prettierrc* 配置文件，你也可以在设置中搜索 Prettier 选项来设置默认值。
+- en: If you’re using a different editor, Prettier likely supports that, too. For
+    instructions specific to other code editors, check out the [Editor Integration
+    section of the docs](https://prettier.io/docs/en/editors.html).
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用不同的编辑器，Prettier 也可能支持它。有关其他代码编辑器的具体说明，请查看[文档中的编辑器集成部分](https://prettier.io/docs/en/editors.html)。
+- en: Typechecking for React Applications
+  id: totrans-93
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React 应用程序的类型检查
+- en: 'When you’re working with a larger application, you may want to incorporate
+    typechecking to help pinpoint certain types of bugs. There are three main solutions
+    for typechecking in React apps: the `prop-types` library, Flow, and TypeScript.
+    In the next section, we’ll take a closer look at how you might set up these tools
+    to increase code quality.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您处理较大的应用程序时，可能希望包含类型检查以帮助精确定位某些类型的错误。在React应用程序中，有三种主要的类型检查解决方案：`prop-types`库、Flow和TypeScript。在下一节中，我们将更详细地看看如何设置这些工具以提高代码质量。
+- en: PropTypes
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: PropTypes
+- en: In the first edition of this book, PropTypes were part of the core React library
+    and were the recommended way to add typechecking to your application. Today, due
+    to the emergence of other solutions like Flow and TypeScript, the functionality
+    has been moved to its own library to make React’s bundle size smaller. Still,
+    PropTypes are a widely used solution.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书的第一版中，PropTypes是核心React库的一部分，并且是向应用程序添加类型检查的推荐方式。如今，由于Flow和TypeScript等其他解决方案的出现，该功能已移至自己的库中，以减小React的捆绑包大小。尽管如此，PropTypes仍然是广泛使用的解决方案。
+- en: 'To add PropTypes to your app, install the `prop-types` library:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要将PropTypes添加到您的应用程序中，请安装`prop-types`库：
+- en: '[PRE27]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'We’ll test this by creating a minimal `App` component that renders the name
+    of a library:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将通过创建一个最小的`App`组件来测试这一点，该组件将渲染一个库的名称：
+- en: '[PRE28]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'Then we’ll import the `prop-types` library and use `App.propTypes` to define
+    which type each property should be:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将导入`prop-types`库，并使用`App.propTypes`来定义每个属性的类型：
+- en: '[PRE29]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'The `App` component has one property `name` and should always be a string.
+    If an incorrect type value is passed as the name, an error will be thrown. For
+    example, if we used a boolean:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`App`组件有一个名为`name`的属性，应始终是一个字符串。如果将不正确类型的值作为名称传递，则会抛出错误。例如，如果我们使用布尔值：'
+- en: '[PRE30]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Our console would report a problem back to us:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的控制台会向我们报告一个问题：
+- en: '[PRE31]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: When a value of an incorrect type is provided for a property, the warning only
+    appears in development mode. The warnings and broken renders won’t appear in production.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当为属性提供不正确类型的值时，警告只会在开发模式下出现。在生产环境中，警告和错误渲染不会出现。
+- en: 'Other types are available, of course, when validating properties. We could
+    add a boolean for whether or not a technology was used at a company:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当验证属性时，当然还有其他类型可用。例如，我们可以为公司是否使用技术添加一个布尔值：
+- en: '[PRE32]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'The longer list of type checks includes:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 较长的类型检查列表包括：
+- en: '`PropTypes.array`'
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.array`'
+- en: '`PropTypes.object`'
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.object`'
+- en: '`PropTypes.bool`'
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.bool`'
+- en: '`PropTypes.func`'
+  id: totrans-114
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.func`'
+- en: '`PropTypes.number`'
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.number`'
+- en: '`PropTypes.string`'
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.string`'
+- en: '`PropTypes.symbol`'
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`PropTypes.symbol`'
+- en: 'Additionally, if you want to ensure that a value was provided, you can chain
+    `.isRequired` onto the end of any of these options. For example, if a string must
+    be supplied, you’d use:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，如果要确保提供了值，可以将`.isRequired`链接到任何这些选项的末尾。例如，如果必须提供字符串，则会使用：
+- en: '[PRE33]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Then, if you fail to provide a value for this field, the following warning
+    will appear in the console:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，如果未为此字段提供值，将在控制台中显示以下警告：
+- en: '[PRE34]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'There also may be situations where you don’t care what the value is, as long
+    as a value is provided. In that case, you can use `any`. For example:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也许还有一些情况，您不在乎值是什么，只要提供了一个值就行。在这种情况下，您可以使用`any`。例如：
+- en: '[PRE35]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: This means that a boolean, string, number––anything––could be supplied. As long
+    as `name` is not `undefined`, the typecheck will succeed.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着可以提供布尔值、字符串、数字——任何东西。只要`name`不是`undefined`，类型检查就会成功。
+- en: 'In addition to the basic typechecks, there are a few other utilities that are
+    useful for many real-world situations. Consider a component where there are two
+    `status` options: `Open` and `Closed`:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了基本的类型检查外，还有一些其他实用程序在许多实际情况下都非常有用。考虑一个组件，其中有两个`status`选项：`Open`和`Closed`：
+- en: '[PRE36]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'Status is a string, so we might be inclined to use the string check:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态是一个字符串，所以我们可能倾向于使用字符串检查：
+- en: '[PRE37]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'That works well, but if other string values besides `Open` and `Closed` are
+    passed in, the property will be validated. The type of check we actually want
+    to enforce is an enum check. An enumeration type is a restricted list of options
+    for a particular field or property. We’ll adjust the `propTypes` object like so:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做效果很好，但如果传入的字符串值除了`Open`和`Closed`之外还有其他值，则将验证该属性。我们实际希望执行的类型检查是枚举检查。枚举类型是特定字段或属性的受限选项列表。我们将调整`propTypes`对象如下所示：
+- en: '[PRE38]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: Now if anything other than the values from the array that’s passed to `PropTypes.oneOf`
+    is supplied, a warning will appear.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果传递给`PropTypes.oneOf`的数组之外的任何值，都会出现警告。
+- en: For all the options you can configure for PropTypes in your React app, check
+    out [the documentation](https://oreil.ly/pO2Js).
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于在 React 应用程序中配置 PropTypes 的所有选项，请查看[文档](https://oreil.ly/pO2Js)。
+- en: Flow
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Flow
+- en: Flow is a typechecking library that’s used and maintained by Facebook Open Source.
+    It’s a tool that checks for errors via static type annotations. In other words,
+    if you create a variable that’s a particular type, Flow will check to be sure
+    that that value used is the correct type.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flow 是一个由 Facebook 开源项目使用和维护的类型检查库。它是一个通过静态类型注解来检查错误的工具。换句话说，如果您创建了一个特定类型的变量，Flow
+    将检查确保使用的值是正确的类型。
+- en: 'Let’s fire up a Create React App project:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们启动一个 Create React App 项目：
+- en: '[PRE39]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'Then we’ll add Flow to the project. Create React App doesn’t assume you want
+    to use Flow, so it doesn’t ship with the library, but it’s smooth to incorporate:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将 Flow 添加到项目中。Create React App 不假设您想使用 Flow，因此不会随库一起发布，但是将其整合非常顺利：
+- en: '[PRE40]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'Once installed, we’ll add an npm script to run Flow when we type `npm run flow`.
+    In *package.json*, just add this to the `scripts` key:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完成后，我们将添加一个 npm 脚本，在输入 `npm run flow` 时运行 Flow。在 *package.json* 中，只需将以下内容添加到
+    `scripts` 键：
+- en: '[PRE41]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Now running the `flow` command will run typechecking on our files. Before we
+    can use it, though, we need to create a *.flowconfig* file. To do so, we run:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在运行 `flow` 命令将对我们的文件进行类型检查。但在使用之前，我们需要创建一个 *.flowconfig* 文件。为此，我们运行：
+- en: '[PRE42]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'This creates a skeleton of a configuration file that looks like this:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将创建一个如下所示的配置文件的框架：
+- en: '[PRE43]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: In most cases, you’ll leave this blank to use Flow’s defaults. If you want to
+    configure Flow beyond the basics, you can explore more options in [the documentation](https://flow.org/en/docs/config/).
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数情况下，您会将此留空以使用 Flow 的默认设置。如果您想要超出基础设置的 Flow 配置，请在[文档](https://flow.org/en/docs/config/)中探索更多选项。
+- en: One of the coolest features of Flow is that you can adopt Flow incrementally.
+    It can feel overwhelming to have to add typechecking to an entire project. With
+    Flow, this isn’t a requirement. All you need to do is add the line `//@flow` to
+    the top of any files you want to typecheck, then Flow will automatically only
+    check those files.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flow 最酷的功能之一是您可以逐步采用 Flow。必须将整个项目添加类型检查可能会让人感到不知所措。但是使用 Flow，这不是必需的。您只需在要进行类型检查的文件顶部添加一行
+    `//@flow`，然后 Flow 将自动仅检查这些文件。
+- en: Another option is to add the VSCode extension for Flow to help with code completion
+    and parameter hints. If you have Prettier or a linting tool set up, this will
+    help your editor handle the unexpected syntax of Flow. You can find that [in the
+    marketplace](https://oreil.ly/zdaPv).
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种选项是添加 VSCode 扩展程序来帮助处理代码补全和参数提示中的 Flow 语法。如果已设置了 Prettier 或 linting 工具，则这将帮助您的编辑器处理
+    Flow 的意外语法。您可以在[市场中找到它](https://oreil.ly/zdaPv)。
+- en: 'Let’s open the *index.js* file and, for the sake of simplicity, keep everything
+    in the same file. Make sure to add `//@flow` to the top of the file:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们打开 *index.js* 文件，为了简单起见，将所有内容保留在同一个文件中。确保在文件顶部添加 `//@flow`：
+- en: '[PRE44]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'Now we’ll define the types for the properties:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将为属性定义类型：
+- en: '[PRE45]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'Then run Flow `npm run flow`. In certain versions of Flow, you may see this
+    warning:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后运行 Flow `npm run flow`。在某些版本的 Flow 中，您可能会看到以下警告：
+- en: '[PRE46]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This warning exists because if `document.getElementById("root")` returns `null`,
+    the app will crash. To safeguard against this (and to clear the error), we can
+    do one of two things. The first approach is to use an `if` statement to check
+    to see that `root` is not `null`:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个警告的存在是因为如果 `document.getElementById("root")` 返回 `null`，应用程序将崩溃。为了防范此类情况（并清除错误），我们可以采取以下两种方法之一。第一种方法是使用
+    `if` 语句检查 `root` 是否不为 `null`：
+- en: '[PRE47]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Another option is to add a typecheck to the root constant using Flow syntax:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种选项是使用 Flow 语法为根常量添加类型检查：
+- en: '[PRE48]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: In either case, you’ll clear the error and see that your code is free of errors!
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论哪种情况，您都将清除错误并看到您的代码没有错误！
+- en: '*No errors!*'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*无错误！*'
+- en: 'We could trust this fully, but trying to break it feels like a good idea. Let’s
+    pass a different property type to the app:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以完全信任这个，但尝试打破它感觉是个好主意。让我们向应用程序传递一个不同的属性类型：
+- en: '[PRE49]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Cool, we broke it! Now we get an error that reads:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了，我们搞砸了！现在我们得到一个读取如下的错误：
+- en: '[PRE50]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Let’s switch it back and add another property for a number. We’ll also adjust
+    the component and property definitions:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们切换回去并为数字添加另一个属性。我们还将调整组件和属性定义：
+- en: '[PRE51]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Running this works, but what if we removed the cost value?
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行这个工作，但如果我们移除了 cost 值会怎么样？
+- en: '[PRE52]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'We’ll immediately get an error:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们会立即收到一个错误：
+- en: '[PRE53]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'If `cost` is truly not a required value, we can make it optional in the property
+    definitions using the question mark after the property name, `cost?`:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`cost`确实不是一个必需的值，我们可以在属性定义中使用问号在属性名称后面，`cost?`来将其定义为可选的：
+- en: '[PRE54]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: If we run it again, we don’t see the error.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们再次运行它，我们就不会看到错误。
+- en: That’s the tip of the iceberg with all of the different features that Flow has
+    to offer. To learn more and to stay on top of the changes in the library, head
+    over to the [documentation site](https://flow.org/en/docs/getting-started/).
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是Flow提供的所有不同功能的冰山一角。要了解更多信息并了解库中的更改，请访问[文档站点](https://flow.org/en/docs/getting-started/)。
+- en: TypeScript
+  id: totrans-174
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: TypeScript
+- en: TypeScript is another popular tool for typechecking in React applications. It’s
+    an open source superset of JavaScript, which means that it adds additional features
+    to the language. Created at Microsoft, TypeScript is designed to be used for large
+    apps to help developers find bugs and iterate more quickly on projects.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript是React应用程序中的另一个流行的类型检查工具。它是JavaScript的开源超集，这意味着它为语言添加了额外的功能。由Microsoft创建，TypeScript旨在用于大型应用程序，帮助开发人员发现错误并更快地迭代项目。
+- en: TypeScript has a growing allegiance of supporters, so the tooling in the ecosystem
+    continues to improve. One tool that we’re already familiar with is Create React
+    App, which has a TypeScript template we can use. Let’s set up some basic typechecking,
+    similar to what we did with PropTypes and Flow, to get a sense of how we can start
+    using it in our own apps.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript有越来越多的支持者，因此生态系统中的工具不断改进。我们已经熟悉的一个工具是Create React App，它有一个我们可以使用的TypeScript模板。让我们设置一些基本的类型检查，类似于我们之前使用PropTypes和Flow做的，以了解如何在我们自己的应用程序中开始使用它。
+- en: 'We’ll start by generating yet another Create React App, this time with some
+    different flags:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从生成另一个Create React App开始，这次使用一些不同的标志：
+- en: '[PRE55]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: Now let’s tour the features of our scaffolded project. Notice in the `src` directory
+    that the file extensions are *.ts* or *.tsx* now. We’ll also find a *.tsconfig.json*
+    file, which contains all of our TypeScript settings. More on that in a bit.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们浏览我们的脚手架项目的功能。请注意，在`src`目录中，现在文件扩展名是*.ts*或*.tsx*。我们还会找到一个*.tsconfig.json*文件，其中包含所有我们的TypeScript设置。稍后再详细介绍。
+- en: Also, if you take a look at the *package.json* file, there are new dependencies
+    listed and installed related to TypeScript, like the library itself and type definitions
+    for Jest, React, ReactDOM, and more. Any dependency that starts with `@types/`
+    describes the type definitions for a library. That means that the functions and
+    methods in the library are typed so that we don’t have to describe all of the
+    library’s types.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，如果您查看*package.json*文件，会发现列出并安装了与TypeScript相关的新依赖项，如库本身和用于Jest、React、ReactDOM等的类型定义。任何以`@types/`开头的依赖项描述了库的类型定义。这意味着库中的函数和方法都有类型，因此我们不必描述库的所有类型。
+- en: Note
+  id: totrans-181
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If your project doesn’t include the TypeScript features, you might be using
+    an old version of Create React App. To get rid of this, you can run `npm uninstall
+    -g create-react-app`.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的项目不包括TypeScript功能，可能是使用旧版本的Create React App。要摆脱这个问题，您可以运行`npm uninstall
+    -g create-react-app`。
+- en: 'Let’s try dropping our component from the Flow lesson into our project. Just
+    add the following to the *index.ts* file:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们尝试将我们的组件从流程课程中放入我们的项目中。只需将以下内容添加到*index.ts*文件中：
+- en: '[PRE56]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'If we run the project with `npm start`, we should see our first TypeScript
+    error. This is to be expected at this point:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们用`npm start`运行项目，我们应该会看到我们的第一个TypeScript错误。这在目前阶段是预期的：
+- en: '[PRE57]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'This means we need to add type rules for this `App` component. We’ll start
+    by defining types just as we did earlier for the Flow component. The `item` is
+    a string, so we’ll add that to the `AppProps` type:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们需要为这个`App`组件添加类型规则。我们将从为流程组件定义类型时一样开始为`AppProps`类型添加字符串`item`：
+- en: '[PRE58]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'Then we’ll reference `AppProps` in the component:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将在组件中引用`AppProps`：
+- en: '[PRE59]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'Now the component will render with no TypeScript issues. It’s also possible
+    to destructure `props` if we’d like to:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在组件将无错误地渲染，如果需要，我们也可以解构`props`：
+- en: '[PRE60]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'We can break this by passing a value of a different type as the `item` property:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过将不同类型的值作为`item`属性的值传递来打破它：
+- en: '[PRE61]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'This immediately triggers an error:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会立即触发一个错误：
+- en: '[PRE62]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: The error also tells us the exact line where there’s a problem. This is extremely
+    useful as we’re debugging.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 错误还告诉了我们出问题的确切行数。这在调试过程中非常有用。
+- en: TypeScript helps with more than just property validation, though. We can use
+    TypeScript’s *type inference* to help us do typechecking on hook values.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript不仅有助于属性验证，还可以使用TypeScript的*类型推断*来帮助我们对钩子值进行类型检查。
+- en: 'Consider a state value for a `fabricColor` with an initial state of `purple`.
+    The component might look like this:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个`fabricColor`的状态值，初始状态为`purple`。组件可能看起来像这样：
+- en: '[PRE63]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'Notice that we haven’t added anything to the type definitions object. Instead,
+    TypeScript is inferring that the type for the `fabricColor` should match the type
+    of its initial state. If we try setting the `fabricColor` with a number instead
+    of another string color `blue`, an error will be thrown:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们还没有向类型定义对象添加任何内容。相反，TypeScript推断`fabricColor`的类型应与其初始状态的类型匹配。如果我们尝试用数字而不是另一个字符串颜色`blue`设置`fabricColor`，将会抛出错误：
+- en: '[PRE64]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'The error looks like this:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 错误看起来像这样：
+- en: '[PRE65]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: TypeScript is hooking us up with some pretty low-effort typechecking for this
+    value. Of course, you can customize this further, but this should give you a start
+    toward adding typechecking to your applications.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript为我们提供了一种相当低成本的类型检查方式。当然，你可以进一步定制，但这应该能让你开始为应用程序添加类型检查。
+- en: For more on TypeScript, check out the [official docs](https://oreil.ly/97_Px)
+    and the amazing [React+TypeScript Cheatsheets on GitHub](https://oreil.ly/vmran).
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 了解更多关于TypeScript，请查看[官方文档](https://oreil.ly/97_Px)和GitHub上惊艳的[React+TypeScript
+    Cheatsheets](https://oreil.ly/vmran)。
+- en: Test-Driven Development
+  id: totrans-207
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试驱动开发
+- en: 'Test-driven development, or TDD, is a practice—not a technology. It does not
+    mean that you simply have tests for your application. Rather, it’s the practice
+    of letting the tests drive the development process. In order to practice TDD,
+    you should follow these steps:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试驱动开发（TDD）是一种实践，而不是一种技术。这并不意味着你简单地为你的应用程序编写测试。相反，它是让测试驱动开发过程的实践。为了实践TDD，您应遵循以下步骤：
+- en: Write the tests first
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先编写测试
+- en: This is the most critical step. You declare what you’re building and how it
+    should work first in a test. The steps you’ll use to test are red, green, and
+    gold.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是最关键的一步。你首先在测试中声明你要构建的内容及其应该如何工作。测试的步骤包括红、绿和金。
+- en: Run the tests and watch them fail (red)
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行测试并观察它们失败（红色）
+- en: Run the tests and watch them fail before you write the code.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写代码之前运行测试并观察它们失败。
+- en: Write the minimal amount of code required to make the tests pass (green)
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写使测试通过所需的最小代码（绿色）
+- en: Focus specifically on making each test pass; do not add any functionality beyond
+    the scope of the test.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特别专注于使每个测试通过；不要添加超出测试范围之外的任何功能。
+- en: Refactor both the code and the tests (gold)
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重构代码和测试（金色）
+- en: Once the tests pass, it’s time to take a closer look at your code and your tests.
+    Try to express your code as simply and as beautifully as possible.^([2](ch10.html#idm45901618932040))
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦测试通过，现在是时候仔细查看您的代码和测试了。尽量以尽可能简单和美观的方式表达您的代码。^([2](ch10.html#idm45901618932040))
+- en: TDD gives us an excellent way to approach a React application, particularly
+    when testing Hooks. It’s typically easier to think about how a Hook should work
+    before actually writing it. Practicing TDD will allow you to build and certify
+    the entire data structure for a feature or application independent of the UI.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TDD为我们提供了一种优秀的方式来处理React应用程序，特别是在测试Hooks时。在实际编写之前，想象一个Hook应该如何工作通常更容易。实践TDD将使您能够独立于UI构建和验证功能或应用程序的整个数据结构。
+- en: TDD and Learning
+  id: totrans-218
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: TDD与学习
+- en: 'If you’re new to TDD, or new to the language you’re testing, you may find it
+    challenging to write a test before writing code. This is to be expected, and it’s
+    OK to write the code before the test until you get the hang of it. Try to work
+    in small batches: a little bit of code, a few tests, and so on. Once you get used
+    to writing tests, it will be easier to write the tests first.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您是TDD的新手，或者是您正在测试的语言的新手，可能会发现在编写代码之前编写测试有些挑战。这是可以预期的，可以在您熟悉之前先编写代码而不是测试。尝试分批处理：少量代码，少量测试，依此类推。一旦习惯编写测试，编写测试就会更容易。
+- en: For the remainder of this chapter, we’ll be writing tests for code that already
+    exists. Technically, we’re not practicing TDD. However, in the next section, we’ll
+    pretend that our code does not already exist so we can get a feel for the TDD
+    workflow.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章的其余部分中，我们将编写已存在代码的测试。严格来说，我们并未实践TDD。但在下一节中，我们将假装我们的代码不存在，以便体验TDD工作流程的感觉。
+- en: Incorporating Jest
+  id: totrans-221
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 整合Jest
+- en: Before we can get started writing tests, we’ll need to select a testing framework.
+    You can write tests for React with any JavaScript testing framework, but the official
+    React docs recommend testing with Jest, a JavaScript test runner that lets you
+    access the DOM via JSDOM. Accessing the DOM is important because you want to be
+    able to check what is rendered with React to ensure your application is working
+    correctly.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们开始编写测试之前，我们需要选择一个测试框架。你可以使用任何 JavaScript 测试框架为 React 编写测试，但是官方的 React 文档建议使用
+    Jest，这是一个 JavaScript 测试运行器，让你可以通过 JSDOM 访问 DOM。访问 DOM 是很重要的，因为你想要检查 React 渲染的内容，以确保你的应用程序正常工作。
+- en: Create React App and Testing
+  id: totrans-223
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 创建 React 应用和测试
+- en: 'Projects that have been initialized with Create React App already come with
+    the `jest` package installed. We can create another Create React App project to
+    get started, or use an existing one:'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 Create React App 初始化的项目已经安装了 `jest` 包。我们可以创建另一个 Create React App 项目来开始，或者使用现有项目：
+- en: '[PRE66]'
+  id: totrans-225
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'Now we can start thinking about testing with a small example. We’ll create
+    two new files in the *src* folder: *functions.js* and *functions.test.js*. Remember,
+    Jest is already configured and installed in Create React App, so all you need
+    to do is start writing tests. In *functions.test.js*, we’ll stub the tests. In
+    other words, we’ll write what we think the function should do.'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以开始考虑使用一个小例子进行测试。我们将在 *src* 文件夹中创建两个新文件：*functions.js* 和 *functions.test.js*。请记住，Jest
+    已经配置并安装在 Create React App 中，所以你只需开始编写测试即可。在 *functions.test.js* 中，我们将存根化测试。换句话说，我们将写下我们认为函数应该做的事情。
+- en: 'We want our function to take in a value, multiply it by two, and return it.
+    So we’ll model that in the test. The `test` function is the function that Jest
+    provides to test a single piece of functionality:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望我们的函数接受一个值，将其乘以二，并返回它。所以我们将在测试中模拟这个过程。`test` 函数是 Jest 提供的用于测试单个功能的函数：
+- en: '*functions.test.js*'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*functions.test.js*'
+- en: '[PRE67]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: The first argument, `Multiplies by two`, is the test name. The second argument
+    is the function that contains what should be tested and the third (optional) argument
+    specifies a timeout. The default timeout is five seconds.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个参数 `Multiplies by two` 是测试名称。第二个参数是包含应该测试的内容的函数，第三个（可选）参数指定超时。默认超时是五秒。
+- en: 'The next thing we’ll do is stub the function that will multiply numbers by
+    two. This function will be referred to as our *system under test* (*SUT*). In
+    *functions.js*, create the function:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来我们要做的是存根化将数字乘以二的函数。这个函数将被称为我们的“系统正在测试的对象”（*SUT*）。在 *functions.js* 中创建函数：
+- en: '[PRE68]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'We’ll export it so that we can use the SUT in the test. In the test file, we
+    want to import the function, and we’ll use `expect` to write an assertion. In
+    the assertion, we’ll say that if we pass 4 to the `timesTwo` function, we expect
+    that it should return 8:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将它导出，以便我们可以在测试中使用 SUT。在测试文件中，我们希望导入函数，并使用 `expect` 来编写断言。在断言中，我们会说，如果我们将 4
+    传递给 `timesTwo` 函数，我们期望它应该返回 8：
+- en: '[PRE69]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: Jest “matchers” are returned by the `expect` function and used to verify results.
+    To test the function, we’ll use the `.toBe` matcher. This verifies that the resulting
+    object matches the argument sent to `.toBe`.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest 的“匹配器”由 `expect` 函数返回，并用于验证结果。为了测试函数，我们将使用 `.toBe` 匹配器。这会验证结果对象是否与发送给 `.toBe`
+    的参数匹配。
+- en: 'Let’s run the tests and watch them fail using `npm test` or `npm run test`.
+    Jest will provide specific details on each failure, including a stack trace:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们运行测试并使用 `npm test` 或 `npm run test` 观察它们失败。Jest 将提供每个失败的具体细节，包括堆栈跟踪：
+- en: '[PRE70]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: Taking the time to write the tests and run them to watch them fail shows us
+    that our tests are working as intended. This failure feedback represents our to-do
+    list. It’s our job to write the minimal code required to make our tests pass.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 花时间编写测试并运行它们以查看它们失败，这显示了我们的测试按预期工作。这种失败反馈代表了我们的待办事项列表。我们的任务是编写最小量的代码，使我们的测试通过。
+- en: 'Now if we add the proper functionality to the *functions.js* file, we can make
+    the tests pass:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们在 *functions.js* 文件中添加适当的功能，我们就可以让测试通过：
+- en: '[PRE71]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: The `.toBe` matcher has helped us test for equality with a single value. If
+    we want to test an object or array, we could use `.toEqual`. Let’s go through
+    another cycle with our tests. In the test file, we’ll test for equality of an
+    array of objects.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`.toBe` 匹配器帮助我们测试单个值的相等性。如果我们想测试对象或数组，我们可以使用 `.toEqual`。让我们通过测试再进行一次循环。在测试文件中，我们将测试对象数组的相等性。'
+- en: 'We have a list of menu items from the Guy Fieri restaurant in Las Vegas. It’s
+    important that we build an object of their ordered items so the customer can get
+    what they want and know what they’re supposed to pay. We’ll stub the test first:'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们有一个来自 Guy Fieri 在拉斯维加斯餐厅的菜单项目列表。重要的是我们建立一个他们点菜单项的对象，以便顾客可以得到他们想要的并知道他们应该支付多少。我们将首先存根化测试：
+- en: '[PRE72]'
+  id: totrans-243
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: 'Then we’ll stub our function:'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们会存根化我们的函数：
+- en: '[PRE73]'
+  id: totrans-245
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: 'Now we’ll use the order function in the test file. We’ll also assume that we
+    have a starter list of data for an order that we need to transform:'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将在测试文件中使用订单函数。我们还假设我们有一个订单的初始数据列表，我们需要进行转换：
+- en: '[PRE74]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'Remember that we’ll use `toEqual` because we’re checking the value of an object
+    instead of an array. What do we want the result to equal? Well, we want to create
+    an object that looks like this:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住，我们将使用 `toEqual`，因为我们正在检查对象的值而不是数组。我们希望结果等于什么？嗯，我们想要创建一个看起来像这样的对象：
+- en: '[PRE75]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'So we just add that to the test and use it in the assertion:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以我们只需将其添加到测试中并在断言中使用它：
+- en: '[PRE76]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'Now we’ll complete the function in the *functions.js* file:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将完成 *functions.js* 文件中的函数：
+- en: '[PRE77]'
+  id: totrans-253
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: And when we check out the terminal, we’ll find that are tests are now passing!
+    Now this might feel like a trivial example, but if you were fetching data, it’s
+    likely that you’d test for shape matches of arrays and objects.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们检查终端时，我们会发现我们的测试现在通过了！现在这可能看起来像一个微不足道的例子，但如果你正在获取数据，很可能你会测试数组和对象的形状匹配。
+- en: 'Another commonly used function with Jest is `describe()`. If you’ve used other
+    testing libraries, you might have seen a similar function before. This function
+    is typically used to wrap several related tests. For example, if we had a few
+    tests for similar functions, we could wrap them in a `describe` statement:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest 中另一个常用的函数是 `describe()`。如果你使用过其他测试库，你可能以前见过类似的函数。这个函数通常用于包装几个相关的测试。例如，如果我们对一些类似功能进行了几个测试，我们可以将它们包装在一个
+    `describe` 语句中：
+- en: '[PRE78]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: 'When you wrap tests in the `describe` statement, the test runner creates a
+    block of tests, which makes the testing output in the terminal look more organized
+    and easier to read:'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你用 `describe` 语句包装测试时，测试运行器会创建一个测试块，这样在终端中的测试输出看起来更加有组织和易读：
+- en: '[PRE79]'
+  id: totrans-258
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: As you write more tests, grouping them in `describe` blocks might be a useful
+    enhancement.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着你写更多的测试，将它们分组在 `describe` 块中可能是一个有用的增强。
+- en: This process represents a typical TDD cycle. We wrote the tests first, then
+    wrote code to make the tests pass. Once the tests pass, we can take a closer look
+    at the code to see if there’s anything that’s worth refactoring for clarity or
+    performance. This approach is very effective when working with JavaScript (or
+    really any other language).
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个过程代表了典型的 TDD 循环。我们先写测试，然后写代码使测试通过。一旦测试通过，我们可以仔细查看代码，看看是否有任何值得重构以提高清晰度或性能的地方。在处理
+    JavaScript（或者其他任何语言）时，这种方法非常有效。
+- en: Testing React Components
+  id: totrans-261
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试 React 组件
+- en: Now that we have a basic understanding of the process behind writing tests,
+    we can start to apply these techniques to component testing in React.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们对编写测试背后的过程有了基本的理解，我们可以开始将这些技术应用于 React 组件测试。
+- en: React components provide instructions for React to follow when creating and
+    managing updates to the DOM. We can test these components by rendering them and
+    checking the resulting DOM.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 组件提供了创建和管理 DOM 更新时，React 需要遵循的指令。我们可以通过渲染它们并检查结果的 DOM 来测试这些组件。
+- en: We’re not running our tests in a browser; we’re running them in the terminal
+    with Node.js. Node.js does not have the DOM API that comes standard with each
+    browser. Jest incorporates an npm package called `jsdom` that’s used to simulate
+    a browser environment in Node.js, which is essential for testing React components.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不是在浏览器中运行我们的测试；我们是在使用 Node.js 在终端中运行它们。Node.js 没有标准浏览器自带的 DOM API。Jest 包含了一个名为
+    `jsdom` 的 npm 包，用于在 Node.js 中模拟浏览器环境，这对于测试 React 组件是至关重要的。
+- en: 'For each component test, it’s likely that we’ll need to render our React component
+    tree to a DOM element. To demonstrate this workflow, let’s revisit our `Star`
+    component in *Star.js*:'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个组件测试，我们可能需要将我们的 React 组件树渲染到一个 DOM 元素中。为了演示这个工作流程，让我们重新审视我们的 *Star* 组件在
+    *Star.js* 中：
+- en: '[PRE80]'
+  id: totrans-266
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: 'Then in *index.js*, we’ll import and render the star:'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在 *index.js* 中，我们将导入并渲染这个 star：
+- en: '[PRE81]'
+  id: totrans-268
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: 'Now let’s write our test. We already wrote the code for the star, so we won’t
+    be partaking in TDD here. If you had to incorporate tests into your existing apps,
+    this is how you’d do it. In a new file called *Star.test.js*, start by importing
+    React, ReactDOM, and the `Star`:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们来编写我们的测试。我们已经编写了星星的代码，所以这里我们不会参与 TDD。如果你必须将测试整合到现有的应用程序中，这是你会这样做的方式。在一个名为
+    *Star.test.js* 的新文件中，首先导入 React、ReactDOM 和 `Star`：
+- en: '[PRE82]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE82]'
+- en: 'We’ll also want to write the tests. Remember, the first argument we supply
+    to `test` is the name of the test. Then we’re going to perform some setup by creating
+    a div that we can render the star to with `ReactDOM.render`. Once the element
+    is created, we can write the assertion:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还要编写测试。记住，我们供给 `test` 的第一个参数是测试的名称。然后我们将通过创建一个我们可以将星星渲染到其中的 div 来执行一些设置，使用
+    `ReactDOM.render`。创建元素后，我们可以编写断言：
+- en: '[PRE83]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE83]'
+- en: 'We’ll expect that if we try to select an `svg` element inside of the created
+    `div`, the result will be truthy. When we run the test, we should see that the
+    test passes. Just to verify that we aren’t getting a valid assertion when we shouldn’t
+    be, we can change the selector to find something fake and watch the test fail:'
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们期望，如果我们试图选择创建的 `div` 内部的 `svg` 元素，结果将是真的。当我们运行测试时，我们应该看到测试通过了。为了验证我们在不应该得到有效断言时是否不会得到有效断言，我们可以将选择器更改为找到假的东西，观察测试失败：
+- en: '[PRE84]'
+  id: totrans-274
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE84]'
+- en: '[The documentation](https://oreil.ly/ah7ZU) provides more detail about all
+    of the custom matchers that are available so that you can test exactly what you
+    want to test.'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[文档](https://oreil.ly/ah7ZU)提供了关于所有可用自定义匹配器的更多详细信息，以便你可以精确测试你想要测试的内容。'
+- en: When you generated your React project, you may have noticed that a few packages
+    from `@testing-library` were installed in addition to the basics like React and
+    ReactDOM. React Testing Library is a project that was started by Kent C. Dodds
+    as a way to enforce good testing practices and to expand the testing utilities
+    that were part of the React ecosystem. Testing Library is an umbrella over many
+    testing packages for libraries like Vue, Svelte, Reason, Angular, and more—it’s
+    not just for React.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你生成你的 React 项目时，你可能已经注意到除了像 React 和 ReactDOM 这样的基础包之外，还安装了一些来自 `@testing-library`
+    的包。React Testing Library 是由 Kent C. Dodds 发起的项目，旨在推广良好的测试实践，并扩展了 React 生态系统中的测试工具。Testing
+    Library 是一个涵盖了许多库的测试包的大伞——不仅仅是针对 React。
+- en: 'One potential reason you might choose React Testing Library is to get better
+    error messages when a test fails. The current error we see when we test the assertion:'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择 React Testing Library 的一个潜在原因是在测试失败时获得更好的错误消息。当我们测试断言时看到的当前错误：
+- en: '[PRE85]'
+  id: totrans-278
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE85]'
+- en: 'is:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是：
+- en: '[PRE86]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE86]'
+- en: 'Let’s punch this up by adding React Testing Library. It’s already installed
+    in our Create React App project. To begin, we’ll import the `toHaveAttribute`
+    function from `@testing-library/jest-dom`:'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[添加 React Testing Library](https://oreil.ly/ah7ZU)可以让我们的 Create React App 项目更加强大。我们已经安装好了。首先，我们需要从
+    `@testing-library/jest-dom` 中导入 `toHaveAttribute` 函数：'
+- en: '[PRE87]'
+  id: totrans-282
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE87]'
+- en: 'From there, we want to extend the functionality of `expect` to include this
+    function:'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们要扩展 `expect` 的功能，以包含这个函数：
+- en: '[PRE88]'
+  id: totrans-284
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE88]'
+- en: 'Now instead of using `toBeTruthy`, which gives us hard-to-read messages, we
+    can use `toHaveAttribute`:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们不再使用 `toBeTruthy`，这将给我们提供难以阅读的消息，我们可以使用 `toHaveAttribute`：
+- en: '[PRE89]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE89]'
+- en: 'Now when we run the tests, we see an error telling us exactly what’s what:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当我们运行测试时，我们会看到一个错误告诉我们具体是什么问题：
+- en: '[PRE90]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE90]'
+- en: 'It should be pretty straightforward to fix this now:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在应该很容易修复这个问题了：
+- en: '[PRE91]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE91]'
+- en: 'Using more than one of the custom matchers just means that you need to import,
+    extend, and use:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用多个自定义匹配器意味着你需要导入、扩展和使用：
+- en: '[PRE92]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE92]'
+- en: 'There’s an even faster way to do this, though. If you find yourself importing
+    too many of these matchers to list or keep track of, you can import the `extend-expect`
+    library:'
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过，还有一种更快的方法。如果你发现自己导入了太多这些匹配器以至于无法列出或跟踪它们，你可以导入 `extend-expect` 库：
+- en: '[PRE93]'
+  id: totrans-294
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE93]'
+- en: 'The assertions will continue to run as expected (pun intended). Another fun
+    fact about Create React App is that, in a file called *setupTests.js* that ships
+    with CRA, there’s a line that has already included the `extend-expect` helpers.
+    If you look at the *src* folder, you’ll see that *setupTests.js* contains:'
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言将继续按预期运行（有点双关意味）。关于 Create React App 的另一个有趣事实是，在随 CRA 一起提供的 *setupTests.js*
+    文件中，已经包含了 `extend-expect` 辅助函数的一行。如果你查看 *src* 文件夹，你会看到 *setupTests.js* 包含：
+- en: '[PRE94]'
+  id: totrans-296
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE94]'
+- en: So if you’re using Create React App, you don’t even have to include the import
+    in your test files.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以如果你正在使用 Create React App，你甚至不必在测试文件中包含导入。
+- en: Queries
+  id: totrans-298
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 查询
+- en: 'Queries are another feature of the React Testing Library that allow you to
+    match based on certain criteria. In order to demonstrate using a query, let’s
+    adjust the `Star` component to include a title. This will allow us to write a
+    common style of test—one that matches based on text:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询是 React 测试库的另一个特性，允许您根据特定条件进行匹配。为了演示如何使用查询，让我们调整`Star`组件以包含一个标题。这将允许我们编写一种常见的测试样式——基于文本匹配的测试：
+- en: '[PRE95]'
+  id: totrans-300
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE95]'
+- en: 'Let’s pause to think about what we’re trying to test. We want the component
+    to render, and now we want to test to see if the `h1` contains the correct text.
+    A function that’s part of React Testing Library, `render`, will help us do just
+    that. `render` will replace our need to use `ReactDOM.render()`, so the test will
+    look a bit different. Start by importing `render` from React Testing Library:'
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们暂停一下思考我们要测试的内容。我们希望组件被渲染，现在我们想要测试看看`h1`是否包含正确的文本。React 测试库的一部分功能`render`将帮助我们做到这一点。`render`将替换我们使用`ReactDOM.render()`的需要，因此测试会有所不同。首先从
+    React Testing Library 中导入`render`：
+- en: '[PRE96]'
+  id: totrans-302
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE96]'
+- en: '`render` will take in one argument: the component or element that we want to
+    render. The function returns an object of queries that can be used to check in
+    with values in that component or element. The query we’ll use is `getByText`,
+    which will find the first matching node for a query and throw an error if no elements
+    match. To return a list of all matching nodes, use `getAllBy` to return an array:'
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`render`将接受一个参数：我们要渲染的组件或元素。该函数返回一个查询对象，可用于检查该组件或元素中的值。我们将使用的查询是`getByText`，它将为查询找到第一个匹配的节点，并在没有匹配元素时抛出错误。要返回所有匹配节点的列表，请使用`getAllBy`返回一个数组：'
+- en: '[PRE97]'
+  id: totrans-304
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE97]'
+- en: '`getByText` finds the `h1` element via the regular expression that’s passed
+    to it. Then we use the Jest matcher `toHaveTextContent` to describe what text
+    the `h1` should include.'
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getByText`通过传递给它的正则表达式找到`h1`元素。然后我们使用 Jest 的匹配器`toHaveTextContent`来描述`h1`应包含的文本。'
+- en: Run the tests, and they’ll pass. If we change the text passed to the `toHaveTextContent()`
+    function, the test will fail.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行测试，它们会通过。如果我们更改传递给`toHaveTextContent()`函数的文本，测试将失败。
+- en: Testing Events
+  id: totrans-307
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 测试事件
+- en: 'Another important part of writing tests is testing events that are part of
+    components. Let’s use and test the `Checkbox` component we created in [Chapter 7](ch07.html#enhancing_components_with_hooks):'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写测试的另一个重要部分是测试组件的事件。让我们使用和测试我们在[第7章](ch07.html#enhancing_components_with_hooks)中创建的`Checkbox`组件：
+- en: '[PRE98]'
+  id: totrans-309
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE98]'
+- en: This component uses `useReducer` to toggle a checkbox. Our aim here is to create
+    an automated test that will click this checkbox and change the value of `checked`
+    from the default `false` to `true`. Writing a test to check the box will also
+    fire `useReducer` and test the hook.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个组件使用`useReducer`来切换复选框。我们的目标是创建一个自动化测试，点击这个复选框并将`checked`的值从默认的`false`更改为`true`。编写一个检查复选框的测试也会触发`useReducer`并测试这个钩子。
+- en: 'Let’s stub the test:'
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来桩测试：
+- en: '[PRE99]'
+  id: totrans-312
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE99]'
+- en: 'The first thing we need to do is select the element that we want to fire the
+    event on. In other words, which element do we want to click on with the automated
+    test? We’ll use one of Testing Library’s queries to find the element we’re looking
+    for. Since the input has a label, we can use `getByLabelText()`:'
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要做的第一件事是选择我们想要在其上触发事件的元素。换句话说，我们想在自动化测试中点击哪个元素？我们将使用 Testing Library 的查询之一来找到我们要找的元素。由于输入具有标签，我们可以使用`getByLabelText()`：
+- en: '[PRE100]'
+  id: totrans-314
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE100]'
+- en: 'When the component first renders, its label text reads `not checked`, so we
+    can search via a regular expression to find a match with the string:'
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当组件首次渲染时，其标签文本为`not checked`，因此我们可以通过正则表达式搜索匹配该字符串：
+- en: '[PRE101]'
+  id: totrans-316
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE101]'
+- en: 'Currently, this regex is case sensitive, so if you wanted to search for any
+    case, you could add an `i` to the end of it. Use that technique with caution depending
+    on how permissive you want the query selection to be:'
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，这个正则表达式是区分大小写的，所以如果您想搜索任何大小写，可以在末尾添加一个`i`。根据您希望的查询选择的宽松程度，谨慎使用这种技术：
+- en: '[PRE102]'
+  id: totrans-318
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE102]'
+- en: 'Now we have our checkbox selected. All we need to do now is fire the event
+    (click the checkbox) and write an assertion to make sure that the `checked` property
+    is set to `true` when the checkbox is clicked:'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经选择了我们的复选框。现在我们只需要触发事件（点击复选框）并编写一个断言，确保在点击复选框时`checked`属性设置为`true`：
+- en: '[PRE103]'
+  id: totrans-320
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE103]'
+- en: 'You also could add the reverse toggle to this checkbox test by firing the event
+    again and checking that the property is set to `false` on toggle. We changed the
+    name of the test to be more accurate:'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以通过再次触发事件并检查属性是否在切换时设置为`false`来为此复选框测试添加反向切换。我们改变了测试的名称以更准确地描述它：
+- en: '[PRE104]'
+  id: totrans-322
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE104]'
+- en: 'In this case, selecting the checkbox is pretty easy. We have a label we can
+    use to find the input we want to check. In the event that you don’t have such
+    an easy way to access a DOM element, Testing Library gives you another utility
+    you can use to check in with any DOM element. You’ll start by adding an attribute
+    to the element you want to select:'
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，选择复选框非常容易。我们有一个标签可以用来找到我们想要检查的输入。如果您无法轻松访问DOM元素，Testing Library 提供了另一个实用工具，可用于检查任何DOM元素。您将首先向要选择的元素添加一个属性：
+- en: '[PRE105]'
+  id: totrans-324
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE105]'
+- en: 'Then use the query `getByTestId`:'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后使用查询`getByTestId`：
+- en: '[PRE106]'
+  id: totrans-326
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE106]'
+- en: This will do the same thing but is particularly useful when reaching out to
+    DOM elements that are otherwise difficult to access.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做的效果相同，但在访问其他难以访问的DOM元素时特别有用。
+- en: Once this `Checkbox` component is tested, we can confidently incorporate it
+    into the rest of the application and reuse it.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦测试了这个`Checkbox`组件，我们就可以自信地将其整合到应用程序的其余部分并重复使用它。
+- en: Using Code Coverage
+  id: totrans-329
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用代码覆盖率
+- en: '*Code coverage* is the process of reporting on how many lines of code have
+    actually been tested. It provides a metric that can help you decide when you’ve
+    written enough tests.'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*代码覆盖率*是报告实际测试了多少行代码的过程。它提供了一个度量标准，可以帮助您确定何时已编写足够的测试。'
+- en: Jest ships with Istanbul, a JavaScript tool used to review your tests and generate
+    a report that describes how many statements, branches, functions, and lines have
+    been covered.
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest随附了Istanbul，这是一个JavaScript工具，用于审查您的测试并生成描述已覆盖多少语句、分支、函数和行的报告。
+- en: 'To run Jest with code coverage, simply add the `coverage` flag when you run
+    the `jest` command:'
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行带有代码覆盖率的Jest，只需在运行`jest`命令时添加`coverage`标志：
+- en: '[PRE107]'
+  id: totrans-333
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE107]'
+- en: This report tells you how much of your code in each file has been executed during
+    the testing process and reports on all files that have been imported into tests.
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这份报告告诉您在测试过程中每个文件中的代码执行了多少，并报告所有已导入测试的文件。
+- en: 'Jest also generates a report that you can run in your browser, which provides
+    more details about what code has been covered by tests. After running Jest with
+    coverage reporting, you’ll notice that a *coverage* folder has been added to the
+    root. In a web browser, open this file: */coverage/lcov-report/index.html*. It
+    will show you your code coverage in an interactive report.'
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest还生成了一个报告，您可以在浏览器中运行，该报告提供了有关测试覆盖了哪些代码的更多详细信息。运行Jest并生成覆盖率报告后，您会注意到根目录下添加了一个*coverage*文件夹。在Web浏览器中打开此文件：*/coverage/lcov-report/index.html*。它将以交互式报告显示您的代码覆盖率。
+- en: This report tells you how much of the code has been covered, as well as the
+    individual coverage based on each subfolder. You can drill down into a subfolder
+    to see how well the individual files within have been covered. If you select the
+    *components/ui* folder, you’ll see how well your user interface components are
+    covered by testing.
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这份报告告诉您代码的覆盖率，以及每个子文件夹的单独覆盖情况。您可以深入查看子文件夹，了解其中的各个文件的覆盖情况。如果您选择*components/ui*文件夹，您将看到测试覆盖您用户界面组件的程度。
+- en: You can see which lines have been covered in an individual file by clicking
+    on the filename.
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过单击文件名查看哪些行在单个文件中已被覆盖。
+- en: Code coverage is a great tool to measure the reach of your tests. It’s one benchmark
+    to help you understand when you’ve written enough unit tests for your code. It’s
+    not typical to have 100% code coverage in every project. Shooting for anything
+    above 85% is a good target.^([3](ch10.html#idm45901616918376))
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码覆盖率是衡量测试覆盖范围的重要工具。这是帮助您了解何时已为代码编写足够单元测试的一个基准。在每个项目中都达到100%的代码覆盖率并不常见。以85%以上为目标是一个不错的指标。^([3](ch10.html#idm45901616918376))
+- en: Testing can often feel like an extra step, but the tooling around React testing
+    has never been better. Even if you don’t test all of your code, starting to think
+    about how to incorporate testing practices can help you save time and money when
+    building production-ready applications.
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试通常会感觉像是一个额外的步骤，但围绕React测试的工具从未如此完善。即使您不对所有代码进行测试，开始考虑如何将测试实践纳入其中也能帮助您在构建可投入生产的应用程序时节省时间和金钱。
+- en: ^([1](ch10.html#idm45901621151704-marker)) For a brief introduction to unit
+    testing, see Martin Fowler’s article, [“Unit Testing”](http://martinfowler.com/bliki/UnitTest.html).
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch10.html#idm45901621151704-marker)) 要了解单元测试的简要介绍，请参阅马丁·福勒的文章，[“单元测试”](http://martinfowler.com/bliki/UnitTest.html)。
+- en: ^([2](ch10.html#idm45901618932040-marker)) For more on this development pattern,
+    see Jeff McWherter’s and James Bender’s [“Red, Green, Refactor”](https://oreil.ly/Hr6Me).
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch10.html#idm45901618932040-marker)) 欲了解更多有关这一开发模式的信息，请参阅杰夫·麦克沃特和詹姆斯·本德的[“红-绿-重构”](https://oreil.ly/Hr6Me)。
+- en: ^([3](ch10.html#idm45901616918376-marker)) See Martin Fowler’s article, [“Test-Coverage”](https://oreil.ly/Hbb-D).
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch10.html#idm45901616918376-marker)) 查看马丁·福勒的文章，[“测试覆盖率”](https://oreil.ly/Hbb-D)。

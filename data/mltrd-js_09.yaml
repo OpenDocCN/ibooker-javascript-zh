@@ -1,0 +1,993 @@
+- en: Chapter 8\. Analysis
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第八章。分析
+- en: By now you should be pretty familiar with building multithreaded applications
+    using JavaScript, whether it be code that runs in a user’s browser or your server,
+    or even applications that employ both. And, while this book provides a lot of
+    use cases and reference material, at no point did it say “you should add multithreading
+    to your application,” and there’s an important reason for this.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，您应该对使用JavaScript构建多线程应用程序非常熟悉，无论是在用户的浏览器中运行的代码，还是在您的服务器上运行的代码，甚至是同时使用两者的应用程序。尽管本书提供了许多用例和参考资料，但从未提到“你应该在应用程序中添加多线程”，这其中有一个重要的原因。
+- en: By and large the main reason to add workers to an application is to increase
+    performance. But this trade-off comes with a cost of added complexity. The *KISS
+    principle*, meaning “Keep It Simple, Stupid,” suggests that your applications
+    should be so stupidly simple that anyone can quickly look at the code and get
+    an understanding of it. Being able to read code after it has been written is of
+    paramount importance and simply adding threads to a program without purpose is
+    an absolute violation of KISS.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，向应用程序添加工作线程的主要原因是提高性能。但这种权衡是伴随着增加复杂性的代价而来的。*KISS原则*，即“保持简单，愚蠢”，建议您的应用程序应该非常简单，以至于任何人都可以快速查看代码并理解它。在编写代码后能够阅读代码至关重要，而毫无目的地向程序添加线程则绝对违反了KISS原则。
+- en: There are absolutely good reasons to add threads to an application, and as long
+    as you’re measuring performance and confirming that speed gains outweigh added
+    maintenance costs, then you’ve found yourself a situation deserving of threads.
+    But how do you identify situations where threads will or will not help without
+    going through all the work of implementing them? And how do you go about measuring
+    performance impact?
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有绝对充分的理由向应用程序添加线程，只要您在测量性能并确认速度提升超过增加的维护成本时，那么您就找到了值得添加线程的情况。但如何识别出线程是否有助于帮助而不需要实现它们的所有工作？又如何衡量性能影响？
+- en: When Not to Use
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 不适合使用多线程的情况
+- en: Threading is not a magic bullet capable of solving an application’s performance
+    problems. It is usually not the lowest-hanging fruit when it comes to performance,
+    either, and should often be done as a final effort. This is particularly true
+    in JavaScript, where multithreading isn’t as widely understood by the community
+    as other languages. Adding threading support may require heavy changes to an application,
+    which means your effort-to-performance gains will likely be higher if you first
+    hunt down other code inefficiencies first.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多线程不是解决应用程序性能问题的万能药。在性能方面，它通常不是最低果实。因此，通常应作为最后的尝试。这在JavaScript中尤为真实，因为多线程并没有像其他语言那样被社区广泛理解。添加线程支持可能需要对应用程序进行大幅更改，这意味着如果您首先解决其他代码效率低下的问题，您的工作投入与性能收益可能会更高。
+- en: Once that’s done, and you’ve made your application performant in other areas,
+    you are then left with the question, “Is now a good time to add multithreading?”
+    The rest of this section contains some situations where adding threads will most
+    likely not provide any performance benefits. This can help you avoid going through
+    some of the discovery work.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦完成了这些，并且你的应用在其他方面表现良好，你就会面临这样一个问题：“现在是添加多线程的好时机吗？”本节剩余部分列举了一些情况，其中添加线程很可能不会提供任何性能优势。这可以帮助你避免进行一些发现工作。
+- en: Low Memory Constraints
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 低内存约束
+- en: There is some additional memory overhead incurred when instantiating multiple
+    threads in JavaScript. This is because the browser needs to allocate additional
+    memory for the new JavaScript environment—this includes things like globals and
+    APIs available to your code as well as under-the-hood memory used by the engine
+    itself. This overhead might prove to be minimal in a normal server environment
+    in the case of Node.js or a beefy laptop in the case of browsers. But it could
+    be a hindrance if you’re running code on an embedded ARM device with 512 MB of
+    RAM or donated netbooks in a K–12 classroom.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript中实例化多个线程时会产生一些额外的内存开销。这是因为浏览器需要为新的JavaScript环境分配额外的内存——包括全局变量和您的代码可用的API，以及引擎本身使用的底层内存。在Node.js正常服务器环境或者浏览器运行在强大的笔记本电脑环境下，这种开销可能是很小的。但如果您在512
+    MB RAM的嵌入式ARM设备上运行代码，或者在K-12教室捐赠的网络书籍上运行代码，则可能会成为一种阻碍。
+- en: What’s the memory impact of additional threads? It’s a little hard to quantify,
+    and it changes depending on the JavaScript engine and platform. The safe answer
+    is that, like most performance aspects, you should measure it in a real-world
+    environment. But we can certainly try to get some concrete numbers.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 额外线程的内存影响是多少？这有点难以量化，并且取决于 JavaScript 引擎和平台。安全的答案是，像大多数性能方面一样，应该在真实环境中进行测量。但我们当然可以尝试得到一些具体的数字。
+- en: 'First, let’s consider a dead simple Node.js program that just kicks off a timer
+    and doesn’t pull in any third-party modules. This program looks like the following:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们考虑一个非常简单的 Node.js 程序，它只启动一个计时器，不引入任何第三方模块。该程序如下所示：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Running the program and measuring memory usage looks like this:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行程序并测量内存使用如下所示：
+- en: '[PRE1]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'The `pstree` command displays the threads used by the program. It displays
+    the main V8 JavaScript thread, as well as some of the background threads covered
+    in [“Hidden Threads”](ch01.xhtml#sec_hidden_threads). Here is an example output
+    from the command:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`pstree` 命令显示程序使用的线程。它显示主要的 V8 JavaScript 线程，以及一些在 [“隐藏线程”](ch01.xhtml#sec_hidden_threads)
+    中涵盖的后台线程。以下是该命令的输出示例：'
+- en: '[PRE2]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'The `ps` command displays information about the process, notably the memory
+    usage of the process. Here’s an example of the output from the command:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ps` 命令显示有关进程的信息，特别是进程的内存使用情况。以下是该命令的输出示例：'
+- en: '[PRE3]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: There are two important variables here used to measure the memory usage of a
+    program, both of them measured in kilobytes. The first here is `VSZ`, or *virtual
+    memory size*, which is the memory the process can access including swapped memory,
+    allocated memory, and even memory used by shared libraries (such as TLS), approximately
+    1.4 GB. The next is `RSS`, or *resident set size*, which is the amount of physical
+    memory currently being used by the process, approximately 48 MB.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里用于测量程序内存使用的两个重要变量，均以千字节为单位。首先是 `VSZ`，或称*虚拟内存大小*，这是进程可以访问的内存，包括交换内存、分配内存，甚至由共享库（如
+    TLS）使用的内存，大约为 1.4 GB。接下来是 `RSS`，或称*驻留集大小*，即当前进程正在使用的物理内存量，大约为 48 MB。
+- en: Measuring memory can be a little hand wavy, and it’s tricky to estimate how
+    many processes can actually fit in memory. In this case, we’ll mostly be looking
+    at the RSS value.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测量内存可能有些主观，估算进程实际上可以容纳多少也有些棘手。在这种情况下，我们主要关注 RSS 值。
+- en: 'Now, let’s consider a more complicated version of the program using threads.
+    Again, the same dead simple timer will be used, but in this case there will be
+    a total of four threads created. In this case a new *worker.js* file is required:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们考虑程序的更复杂版本，使用线程。同样，将使用相同的简单计时器，但这次将创建总共四个线程。在这种情况下需要一个新的 *worker.js* 文件：
+- en: '[PRE4]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Running the *leader.js* program with a numerical argument greater than 0 allows
+    the program to create additional workers. [Table 8-1](#table_thread_overhead)
+    is a listing of the memory usage output from `ps` for each of the different iterations
+    of additional threads.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行 *leader.js* 程序时，如果输入一个大于 0 的数值参数，程序将创建额外的工作线程。[表 8-1](#table_thread_overhead)
+    列出了不同额外线程迭代的内存使用输出。
+- en: Table 8-1\. Thread memory overhead with Node.js v16.5
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 8-1\. 使用 Node.js v16.5 时的线程内存开销
+- en: '| Add Threads | VSZ | RSS | SIZE |'
+  id: totrans-24
+  prefs: []
+  type: TYPE_TB
+  zh: '| 添加线程 | VSZ | RSS | 大小 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-25
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| 0 | 318,124 KB | 31,836 KB | 47,876 KB |'
+  id: totrans-26
+  prefs: []
+  type: TYPE_TB
+  zh: '| 0 | 318,124 KB | 31,836 KB | 47,876 KB |'
+- en: '| 1 | 787,880 KB | 38,372 KB | 57,772 KB |'
+  id: totrans-27
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 787,880 KB | 38,372 KB | 57,772 KB |'
+- en: '| 2 | 990,884 KB | 45,124 KB | 68,228 KB |'
+  id: totrans-28
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 990,884 KB | 45,124 KB | 68,228 KB |'
+- en: '| 4 | 1,401,500 KB | 56,160 KB | 87,708 KB |'
+  id: totrans-29
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 1,401,500 KB | 56,160 KB | 87,708 KB |'
+- en: '| 8 | 2,222,732 KB | 78,396 KB | 126,672 KB |'
+  id: totrans-30
+  prefs: []
+  type: TYPE_TB
+  zh: '| 8 | 2,222,732 KB | 78,396 KB | 126,672 KB |'
+- en: '| 16 | 3,866,220 KB | 122,992 KB | 205,420 KB |'
+  id: totrans-31
+  prefs: []
+  type: TYPE_TB
+  zh: '| 16 | 3,866,220 KB | 122,992 KB | 205,420 KB |'
+- en: '[Figure 8-1](#chart_threads_memory) displays the correlation between RSS memory
+    and thread count.'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 8-1](#chart_threads_memory) 显示了 RSS 内存与线程数量之间的相关性。'
+- en: '![Comparison of thread count with memory usage](Images/mtjs_0801.png)'
+  id: totrans-33
+  prefs: []
+  type: TYPE_IMG
+  zh: '![线程数量与内存使用的比较](Images/mtjs_0801.png)'
+- en: Figure 8-1\. Memory usage increases with each additional thread
+  id: totrans-34
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. 随着每个额外线程的内存使用增加
+- en: With this information it appears that the added RSS memory overhead of instantiating
+    each new thread, using Node.js 16.5 on an x86 processor, is approximately 6 MB.
+    Again, this number is a bit hand wavy, and you’ll need to measure it in your particular
+    situation. Of course, the memory overhead is compounded when the threads pull
+    in more modules. If you were to instantiate heavy frameworks and web servers in
+    each thread you may end up adding hundreds of megabytes of memory to your process.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据这些信息，在使用Node.js 16.5和x86处理器时，每个新线程实例化的RSS内存开销约为6 MB。再次强调，这个数字有些粗略，并且您需要在特定情况下进行测量。当线程引入更多模块时，内存开销会增加。如果在每个线程中实例化重型框架和Web服务器，可能会增加数百兆字节的内存开销。
+- en: Warning
+  id: totrans-36
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: While it’s becoming increasingly rare to find them, programs running on a 32-bit
+    computer or smart phone have a maximum addressable memory space of 4 GB. This
+    limit is shared across any threads in the program.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管越来越难以找到它们，但在32位计算机或智能手机上运行的程序具有最大可寻址内存空间为4 GB的限制。此限制适用于程序中的任何线程。
+- en: Low Core Count
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 低核心数
+- en: Your application will run slower in situations where it has fewer cores. This
+    is especially true if the machine has a single core, and it can also be true if
+    it has two cores. Even if you employ a thread pool in your application and scale
+    the pool based on the core count, the application will be slower if it creates
+    a single worker thread. When creating an additional thread, the application now
+    has at least two threads (the main and the worker), and the two threads will compete
+    with each other for attention.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在核心数较少的情况下，您的应用程序运行速度会变慢。如果机器只有一个核心，这一点尤其明显，如果有两个核心也可能如此。即使在应用程序中使用线程池并根据核心数扩展池，如果创建一个单工作线程，应用程序也会变慢。当创建额外的线程时，应用程序现在至少有两个线程（主线程和工作线程），这两个线程将竞争资源。
+- en: Another reason your application will slow down is that there is additional overhead
+    when it comes to communicating between threads. With a single core and two threads,
+    even if the two never compete for resources, i.e., the main thread has no work
+    to do while the worker is running and vice versa, there is still an overhead when
+    performing message passing between the two threads.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个导致您的应用程序变慢的原因是在线程之间进行通信时会增加额外开销。即使在单核和两个线程的情况下，即使两者不竞争资源，即主线程没有工作要做而工作线程在运行，反之亦然，在这两个线程之间进行消息传递时仍会存在开销。
+- en: This might not be a huge deal. For example, if you create a distributable application
+    that runs in many environments, often running on multicore systems and infrequently
+    on single-core systems, then this overhead might be OK. But if you’re building
+    an application that almost entirely runs in a single-core environment, you would
+    likely be better off by not adding threading at all. That is, you probably shouldn’t
+    build an app that takes advantage of your beefy multicore developer laptop and
+    then ship it to production where a container orchestrator limits the app to a
+    single core.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能并不是什么大问题。例如，如果您创建了一个可在多个环境中运行的可分发应用程序，通常在多核系统上运行，很少在单核系统上运行，则此开销可能是可以接受的。但是，如果您正在构建一个几乎完全在单核环境中运行的应用程序，那么最好根本不添加线程。换句话说，您可能不应该构建一个利用您强大的多核开发笔记本电脑的应用程序，然后将其部署到只允许单核的生产环境中。
+- en: How much of a performance loss are we talking? On the Linux operating system
+    it’s straightforward to tell the OS that a program, and all of its threads, should
+    only run on a subset of CPU cores. The use of this command allows developers to
+    test the effects of running a multithreaded application in a low core environment.
+    If you’re using a Linux-based computer, then feel free to run these examples;
+    if not, a summary will be provided.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在谈论多少性能损失？在Linux操作系统上，向操作系统指示程序及其所有线程应仅在CPU核心的子集上运行非常直接。使用此命令可以让开发人员测试在低核心环境中运行多线程应用程序的效果。如果您使用的是基于Linux的计算机，请随意运行这些示例；否则，将提供摘要。
+- en: 'First, go back to the *ch6-thread-pool/* example that you created in [“Thread
+    Pool”](ch06.xhtml#ch_patterns_sec_threadpool). Execute the application so that
+    it creates a worker pool with two workers:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，返回到您在[“线程池”](ch06.xhtml#ch_patterns_sec_threadpool)中创建的*ch6-thread-pool/*示例。执行应用程序以创建包含两个工作线程的工作池：
+- en: '[PRE5]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Note that with a thread pool of 2, the application has three JavaScript environments
+    available, and `libuv` should have a default pool of 5, leading to a total of
+    about eight threads as of Node.js v16\. With the program running and able to access
+    all of the cores on your machine, you’re ready to run a quick benchmark. Execute
+    the following command to send a barrage of requests to the server:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，当线程池为2时，应用程序有三个可用的 JavaScript 环境，而`libuv`应该有一个默认的池大小为5，因此 Node.js v16 版本会有大约8个线程。程序正在运行并且可以访问机器上的所有核心时，您可以准备运行快速基准测试。执行以下命令向服务器发送一连串的请求：
+- en: '[PRE6]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: In this case we’re just interested in the average request rate, identified in
+    the last table of the output with the Req/Sec row and the Avg column. In one sample
+    run the value of 17.5 was returned.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，我们只关注平均请求率，在输出的最后一个表格中，标识为 Req/Sec 行和 Avg 列。在一个样本运行中，返回了17.5的值。
+- en: 'Kill the server with Ctrl+C and run it again. But this time use the `taskset`
+    command to force the process (and all of its child threads) to use the same CPU
+    core:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 Ctrl+C 终止服务器并重新运行它。但是这次使用`taskset`命令来强制进程（及其所有子线程）使用相同的 CPU 核心：
+- en: '[PRE7]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'In this case the two environment variables `THREADS` and `STRATEGY` are set,
+    then the `taskset` command is run. The `-c 0` flag tells the command to only allow
+    the program to use the 0th CPU. The arguments that follow are then treated as
+    the command to run. Note that the `taskset` command can also be used to modify
+    an already running process. When that happens the command displays some useful
+    output to tell you what happens. Here’s a copy of that output when the command
+    is used on a computer with 16 cores:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，设置了两个环境变量`THREADS`和`STRATEGY`，然后运行了`taskset`命令。`-c 0`标志告诉命令只允许程序使用第0个
+    CPU。随后跟随的参数被视为要运行的命令。请注意，`taskset`命令还可以用于修改已经运行的进程。当这种情况发生时，命令会显示一些有用的输出来告诉您发生了什么。当在具有16个核心的计算机上使用该命令时，以下是该输出的一份副本：
+- en: '[PRE8]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: In this case it says that the program used to have access to all 16 cores (0–15),
+    but now it only has access to one (0).
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，程序曾经可以访问所有16个核心（0-15），但现在只能访问一个核心（0）。
+- en: 'With the program running and locked to a single CPU core to emulate an environment
+    with fewer cores available, run the same benchmark command again:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 程序运行并锁定到单个 CPU 核心以模拟可用核心较少的环境后，再次运行相同的基准测试命令：
+- en: '[PRE9]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In one such run the average requests per second has been reduced to 8.32\. This
+    means that the throughput of this particular program, when trying to use three
+    JavaScript threads in a single-core environment, leads to a performance of 48%
+    when compared to having access to all cores!
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一个这样的运行中，平均每秒请求减少到了8.32。这意味着，当尝试在单核心环境中使用三个 JavaScript 线程时，该特定程序的吞吐量与访问所有核心时相比，性能下降了48%！
+- en: 'A natural question might be: in order to maximize the throughput of the *ch6-thread-pool*
+    application, how large should the thread pool be and how many cores should be
+    provided to the application? To find an answer, 16 permutations of the benchmark
+    were applied to the application and the performance was measured. The length of
+    the test was doubled to two minutes to help reduce any outlying requests. A tabular
+    version of this data is provided in [Table 8-2](#table_core_vs_thread_perf).'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个自然的问题可能是：为了最大化*ch6-thread-pool*应用程序的吞吐量，线程池应该有多大，应用程序应该提供多少个核心？为了找到答案，应用程序的基准测试被应用了16种排列，并且测量了性能。为了帮助减少任何异常请求，测试的长度增加到了两分钟。此数据的表格版本在[表 8-2](#table_core_vs_thread_perf)中提供。
+- en: Table 8-2\. Available cores versus thread pool size and how it affects throughput
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 8-2\. 可用核心与线程池大小及其对吞吐量的影响
+- en: '|  | 1 core | 2 cores | 3 cores | 4 cores |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 1 核心 | 2 核心 | 3 核心 | 4 核心 |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| 1 thread | 8.46 | 9.08 | 9.21 | 9.19 |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 个线程 | 8.46 | 9.08 | 9.21 | 9.19 |'
+- en: '| 2 threads | 8.69 | 9.60 | 17.61 | 17.28 |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 个线程 | 8.69 | 9.60 | 17.61 | 17.28 |'
+- en: '| 3 threads | 8.23 | 9.38 | 16.92 | 16.91 |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 个线程 | 8.23 | 9.38 | 16.92 | 16.91 |'
+- en: '| 4 threads | 8.47 | 9.57 | 17.44 | 17.75 |'
+  id: totrans-63
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 个线程 | 8.47 | 9.57 | 17.44 | 17.75 |'
+- en: A graph of the data has been reproduced in [Figure 8-2](#graph_core_vs_thread_perf).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据的图表已在[图 8-2](#graph_core_vs_thread_perf)中重新生成。
+- en: In this case there is an obvious performance benefit when the number of threads
+    dedicated to the thread pool is at least two and the number of cores available
+    to the application is at least three. Other than that, there isn’t anything too
+    interesting about the data. When measuring the effects of cores versus threads
+    in a real-world application, you will likely see more interesting performance
+    trade-offs.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，当线程池中专用于的线程数至少为两个，而应用程序可用的核心数至少为三个时，显然会带来性能上的显著好处。除此之外，数据中并没有太多有趣的内容。在实际应用程序中测量核心与线程的影响时，您可能会看到更多有趣的性能权衡。
+- en: 'One question posed by this data is: why doesn’t adding more than two threads
+    or three threads make the application any faster? Answering questions like these
+    will require hypotheses, experimenting with application code, and trying to erase
+    any bottlenecks. In this case it may be that the main thread is so busy coordinating,
+    handling requests, and communicating with threads, that the worker threads aren’t
+    able to get much work done.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些数据提出的一个问题是：为什么添加超过两个或三个线程不会使应用程序运行更快？要回答这类问题需要假设、尝试应用程序代码，并试图消除任何瓶颈。在这种情况下，可能是主线程忙于协调、处理请求和与线程通信，导致工作线程无法有效完成工作。
+- en: '![Two Threads and three cores](Images/mtjs_0802.png)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_IMG
+  zh: '![两个线程和三个核心](Images/mtjs_0802.png)'
+- en: Figure 8-2\. Available cores versus thread pool size and how it affects throughput
+  id: totrans-68
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2\. 可用核心与线程池大小的关系及其对吞吐量的影响
+- en: Containers Versus Threads
+  id: totrans-69
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 容器与线程
+- en: When it comes to writing server software, like with Node.js, the rule of thumb
+    is that processes should scale horizontally. This is a fancy term meaning you
+    should run multiple redundant versions of the program in an isolated manner—such
+    as within a Docker container. Horizontal scaling benefits performance in a way
+    that allows developers to fine-tune the performance of the whole fleet of applications.
+    Such tuning can’t be performed as easily when the scaling primitive happens within
+    the program, in the form of a thread pool.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写服务器软件时，比如使用 Node.js，一个经验法则是进程应该进行水平扩展。这是一个复杂的术语，意味着您应该以隔离的方式运行多个程序的冗余版本，例如在
+    Docker 容器中。水平扩展有助于性能，使开发人员可以对整个应用程序群体的性能进行微调。当缩放基元以线程池的形式发生在程序内部时，这种调优并不容易执行。
+- en: Orchestrators, such as Kubernetes, are tools that run containers across multiple
+    servers. They make it easy to scale an application on demand; during the holiday
+    season an engineer can manually increase the number of instances running. Orchestrators
+    can also dynamically change the scale depending on other heuristics like CPU usage,
+    traffic throughput, and even the size of a work queue.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编排器（如 Kubernetes）是跨多台服务器运行容器的工具。它们使得根据需求轻松扩展应用程序；在假期季节期间，工程师可以手动增加运行实例的数量。编排器还可以根据CPU使用率、流量吞吐量甚至工作队列的大小等启发式动态调整规模。
+- en: How might this dynamic scaling look if it were performed within an application
+    at runtime? Well, certainly the available thread pool would need to be resized.
+    There would also need to be some sort of communication in place, allowing an engineer
+    to send messages to the processes to resize the pool; perhaps an additional server
+    needs to listen on a port for such administrative commands. Such functionality
+    then requires additional complexity to be added to the application code.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果在运行时在应用程序内执行动态缩放，会是什么样子？显然，可用的线程池需要重新调整大小。还需要一些通信机制，允许工程师发送消息给进程来调整池大小；也许需要一个额外的服务器监听端口以接收此类管理命令。这种功能需要在应用程序代码中增加额外的复杂性。
+- en: While adding additional processes instead of increasing thread count increases
+    overall resource consumption, not to mention the overhead of wrapping processes
+    in a container, larger companies usually prefer the scaling flexibility of this
+    approach.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然增加进程而不是增加线程数会增加整体资源消耗，更不用说将进程封装在容器中的开销了，但更大的公司通常更喜欢这种方法的缩放灵活性。
+- en: When to Use
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用时机
+- en: 'Sometimes you’ll get lucky and will end up with a problem that benefits greatly
+    from a multithreaded solution. Here are some of the most straightforward characteristics
+    of such a problem to keep an eye out for:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时候，您可能会走运，会遇到从多线程解决方案中获益良多的问题。以下是一些此类问题的最直接特征，需要特别留意：
+- en: Embarrassingly parallel
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 令人尴尬的并行
+- en: 'This is a class of problems where a large task can be broken down into smaller
+    tasks and very little or no sharing of state is required. One such problem is
+    the Game of Life simulation covered in [“Example Application: Conway’s Game of
+    Life”](ch05.xhtml#ch_adv_shared_mem_sec_app). With that problem, the game grid
+    can be subdivided into smaller grids, and each grid can be dedicated to an individual
+    thread.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个问题类别，一个大任务可以分解为较小的任务，并且几乎不需要或根本不需要共享状态。其中一个这样的问题是[“示例应用：康威生命游戏”](ch05.xhtml#ch_adv_shared_mem_sec_app)中涉及的生命游戏模拟。对于这个问题，游戏网格可以被细分为较小的网格，每个网格可以分配给一个单独的线程。
+- en: Heavy math
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大量数学
+- en: Another characteristic of problems that are a good fit for threads are those
+    that involve a heavy use of math, aka CPU-intensive work. Sure, one might say
+    that everything a computer does is math, but the inverse of a math-heavy application
+    is one that is I/O heavy, or one that mostly deals with network operations. Consider
+    a password hash cracking tool that has a weak SHA1 digest of a password. Such
+    tools may work by running the Secure Hash Algorithm 1 (SHA1) algorithm over every
+    possible combination of 10 character passwords, which is a lot of number crunching
+    indeed.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个适合线程的问题的特征是那些涉及大量使用数学，也就是 CPU 密集型工作的问题。可以说计算机所做的一切都是数学，但是一个数学密集型应用的反面是 I/O
+    重型应用，或者主要处理网络操作的应用。考虑一个密码哈希破解工具，该工具有一个弱 SHA1 密码的摘要。这样的工具可能通过对每个可能的 10 个字符密码组合运行安全哈希算法
+    1 (SHA1) 来工作，这确实需要大量的数学计算。
+- en: MapReduce-friendly problems
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MapReduce 友好的问题
+- en: MapReduce is a programming model that is inspired by functional programming.
+    This model is often used for large-scale data processing that has been spread
+    across many different machines. MapReduce is broken into two pieces. The first
+    is Map, which accepts a list of values and produces a list of values. The second
+    is Reduce, where the list of values are iterated on again, and a singular value
+    is produced. A single-threaded version of this could be created in JavaScript
+    using `Array#map()` and `Array#reduce()`, but a multithreaded version requires
+    different threads processing subsets of the lists of data. A search engine uses
+    Map to scan millions of documents for keywords, then Reduce to score and rank
+    them, providing a user with a page of relevant results. Database systems like
+    Hadoop and MongoDB benefit from MapReduce.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MapReduce 是受函数式编程启发的编程模型。这种模型通常用于跨多台不同机器分布的大规模数据处理。MapReduce 被分成两部分。第一部分是 Map，它接受一组值并生成一组值。第二部分是
+    Reduce，在这里再次迭代值列表，并生成一个单一的值。可以使用 JavaScript 中的 `Array#map()` 和 `Array#reduce()`
+    创建单线程版本，但多线程版本需要不同的线程处理数据列表的子集。搜索引擎使用 Map 扫描数百万篇文档中的关键字，然后使用 Reduce 对其进行评分和排名，为用户提供相关结果页面。像
+    Hadoop 和 MongoDB 这样的数据库系统受益于 MapReduce。
+- en: Graphics processing
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 图形处理
+- en: A lot of graphics processing tasks also benefit from multiple threads. Much
+    like the Game of Life problem, which operates on a grid of cells, images are represented
+    as a grid of pixels. In both cases the value at each coordinate can be represented
+    as a number, though Game of Life uses a single 1-bit number while images are more
+    likely to use 3 or 4 bytes (red, green, blue, and optional alpha transparency).
+    Image filtering then becomes a problem of subdividing an image into smaller images,
+    having threads in a thread-pool process with the smaller images in parallel, then
+    updating the interface once the change is complete.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多图形处理任务也受益于多线程。就像“生命游戏”问题一样，该问题在一个细胞网格上运行，图像也被表示为像素网格。在这两种情况下，每个坐标的值可以表示为一个数字，尽管“生命游戏”使用单个
+    1 位数字，而图像更可能使用 3 或 4 个字节（红色、绿色、蓝色和可选的 alpha 透明度）。图像过滤变成了将图像细分为更小的图像，使用线程池中的线程并行处理这些小图像，然后在更改完成后更新界面。
+- en: This isn’t a complete list of all the situations in which you should use multithreading;
+    it’s just a list of some of the most obvious use cases.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这并不是您应该使用多线程的所有情况的完整列表；这只是一些最明显的用例列表。
+- en: One of the repeating themes is that problems that don’t require shared data,
+    or at least that don’t require coordinated reads and writes to shared data, are
+    easier to model using multiple threads. Though it’s generally beneficial to write
+    code that doesn’t have many side effects, this benefit is compounded when writing
+    multithreaded code.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个重复的主题是不需要共享数据，或者至少不需要协调读写共享数据的问题更容易使用多线程建模。虽然编写没有太多副作用的代码通常是有益的，但在编写多线程代码时，这种好处会加倍。
+- en: Another use case that’s particularly beneficial to JavaScript applications is
+    that of template rendering. Depending on the library used, the rendering of a
+    template might be done using a string that represents the raw template and an
+    object that contains variables to modify the template. With such use cases there
+    usually isn’t much global state to consider, just the two inputs, while a single
+    string output is returned. This is the case with the popular template rendering
+    packages `mustache` and `handlebars`. Offloading template rendering from the main
+    thread of a Node.js application seems like a reasonable place to gain performance.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript应用程序特别有益的另一个用例是模板渲染。根据所使用的库，模板的渲染可能是使用表示原始模板的字符串和包含变量以修改模板的对象来完成的。在这种用例中，通常没有太多全局状态需要考虑，只有两个输入，而返回一个单个字符串输出。这是流行的模板渲染包`mustache`和`handlebars`的情况。将模板渲染从Node.js应用程序的主线程中转移似乎是获得性能的一个合理地方。
+- en: Let’s test this assumption out. Create a new directory named *ch8-template-render/*.
+    Inside this directory, copy and paste the existing *ch6-thread-pool/rpc-worker.js*
+    file from [Example 6-3](ch06.xhtml#ex_threadpool_rpcworker_1). Although the file
+    will work fine unmodified, you should comment out the `console.log()` statement
+    so that it doesn’t slow down the benchmark.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们测试这个假设。创建一个名为*ch8-template-render/*的新目录。在这个目录中，从[示例6-3](ch06.xhtml#ex_threadpool_rpcworker_1)中复制并粘贴现有的*ch6-thread-pool/rpc-worker.js*文件。虽然文件不经修改也能正常工作，但您应该注释掉`console.log()`语句，以免减慢基准测试的速度。
+- en: 'You’ll also want to initialize an npm project and install some basic packages.
+    You can do this by running the following commands:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要初始化一个npm项目并安装一些基本包。您可以通过运行以下命令来实现这一点：
+- en: '[PRE10]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Next, create a file named *server.js*. This represents an HTTP application that
+    performs basic HTML rendering when it receives a request. This benchmark is going
+    to use some real-world packages instead of loading built-in modules for everything.
+    Start the file off with the contents of [Example 8-1](#ex_template_server_1).
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为*server.js*的文件。这代表一个HTTP应用程序，当收到请求时执行基本的HTML渲染。这个基准测试将使用一些真实世界的包，而不是加载所有内置模块。从[示例8-1](#ex_template_server_1)的内容开始编写文件。
+- en: Example 8-1\. *ch8-template-render/server.js* (part 1)
+  id: totrans-91
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例8-1。*ch8-template-render/server.js*（第1部分）
+- en: '[PRE11]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The file starts off by instantiating the Fastify web framework, as well as a
+    worker pool with four workers. The application also loads a module named *template.js*
+    that will be used to render templates used by the web application.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件首先实例化了Fastify Web框架，以及一个具有四个工作线程的工作池。该应用程序还加载了一个名为*template.js*的模块，该模块将用于渲染Web应用程序使用的模板。
+- en: Now, you’re ready to declare some routes and to tell the server to listen for
+    requests. Keep editing the file by adding the content from [Example 8-2](#ex_template_server_2)
+    to it.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您已经准备好声明一些路由，并告诉服务器监听请求。继续编辑文件，将[示例8-2](#ex_template_server_2)中的内容添加到其中。
+- en: Example 8-2\. *ch8-template-render/server.js* (part 2)
+  id: totrans-95
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例8-2。*ch8-template-render/server.js*（第2部分）
+- en: '[PRE12]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Two routes have been introduced to the application. The first is `GET /main`
+    and will perform the rendering of the request in the main thread. This represents
+    a single-threaded application. The second route is `GET /offload`, where the rendering
+    work will be offloaded to a separate worker thread. Finally, the server is instructed
+    to listen on port 3000.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序引入了两条路由。第一条是`GET /main`，将在主线程中执行请求的渲染。这代表了一个单线程应用程序。第二条路由是`GET /offload`，其中渲染工作将被转移到一个单独的工作线程。最后，服务器被指示监听端口3000。
+- en: At this point the application is functionally complete. But as an added bonus,
+    it would be nice to be able to quantify the amount of work that the server is
+    busy doing. While it’s true that we can primarily test the efficiency of this
+    application by using an HTTP request benchmark, sometimes it’s nice to look at
+    other numbers as well. Add the content from [Example 8-3](#ex_template_server_3)
+    to finish off the file.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，应用程序在功能上已经完成。但作为额外的奖励，能够量化服务器正在忙碌处理的工作量将是很好的。虽然我们主要可以通过使用HTTP请求基准测试来测试此应用程序的效率，但有时也很好看看其他数字。添加[示例8-3](#ex_template_server_3)中的内容来完成文件。
+- en: Example 8-3\. *ch8-template-render/server.js* (part 3)
+  id: totrans-99
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例8-3。*ch8-template-render/server.js*（第3部分）
+- en: '[PRE13]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This code uses a `setInterval` call that runs every second. It wraps a `setImmediate()`
+    call, measuring current time in nanoseconds before and after the call is made.
+    It’s not perfect, but it is one way to approximate how much load the process is
+    currently receiving. As the event loop for the process gets busier, the number
+    that is reported will get higher. Also, the busyness of the event loop affects
+    the delay of asynchronous operations throughout the process. Keeping this number
+    lower therefore correlates to a more performant application.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码使用 `setInterval` 调用，每秒运行一次。它包装了一个 `setImmediate()` 调用，在调用前后测量当前时间的纳秒数。这并非完美，但这是一种近似当前进程负载的方法。随着进程事件循环变得更加繁忙，报告的数字也会更高。事件循环的繁忙程度还会影响整个过程中异步操作的延迟。因此，保持这个数字较低与应用程序的性能更加相关。
+- en: Next, create a file named *worker.js*. Add the content from [Example 8-4](#ex_template_worker)
+    to it.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为 *worker.js* 的文件。将内容从 [示例 8-4](#ex_template_worker) 添加到其中。
+- en: Example 8-4\. *ch8-template-render/worker.js*
+  id: totrans-103
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-4\. *ch8-template-render/worker.js*
+- en: '[PRE14]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: This is a modified version of the worker file that you created before. In this
+    case a single command is used, `renderLove()`, which accepts an object with key
+    value pairs to be used by the template rendering function.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是您之前创建的工作文件的修改版本。在这种情况下，只使用一个命令 `renderLove()`，它接受一个包含键值对的对象，供模板渲染函数使用。
+- en: Finally, create a file named *template.js*, and add the content from [Example 8-5](#ex_template_template)
+    to it.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，创建一个名为 *template.js* 的文件，并将内容从 [示例 8-5](#ex_template_template) 添加到其中。
+- en: Example 8-5\. *ch8-template-render/template.js*
+  id: totrans-107
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-5\. *ch8-template-render/template.js*
+- en: '[PRE15]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: In a real-world application, this file might be used for reading template files
+    from disk and substituting values, exposing a complete list of templates. For
+    this simple example just a single template renderer is exported and a single hard-coded
+    template is used. This template uses two variables, `me` and `you`. The string
+    is repeated many times to approach the length of a template that a real application
+    might use. The longer the template, the longer it takes to render.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实际应用中，该文件可能用于从磁盘读取模板文件并替换值，暴露出完整的模板列表。对于这个简单示例，只导出一个单一模板渲染器并使用一个硬编码模板。此模板使用两个变量
+    `me` 和 `you`。字符串多次重复以接近实际应用可能使用的模板长度。模板越长，渲染时间越长。
+- en: 'Now that the files have been created, you’re ready to run the application.
+    Run the following commands to run the server and then to launch a benchmark against
+    it:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在文件已创建好，可以准备运行应用程序了。运行以下命令启动服务器，然后对其进行基准测试：
+- en: '[PRE16]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: On a test run on a beefy 16-core laptop, when rendering templates entirely in
+    the main thread, the application had an average throughput of 13,285 requests
+    per second. However, when running the same test while offloading template rendering
+    to a worker thread, the average throughput was 18,981 requests per second. In
+    this particular situation it means the throughput increased by about 43%.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一台强大的 16 核笔记本上进行的测试中，当完全在主线程中渲染模板时，应用程序的平均吞吐量为每秒 13,285 个请求。然而，当将模板渲染任务转移到工作线程时，同样的测试的平均吞吐量达到每秒
+    18,981 个请求。在这种情况下，吞吐量增加了约 43%。
+- en: The event loop latency also decreased significantly. Sampling the time it takes
+    to call `setImmediate()` while the process is idle gets us about 87 μs on average.
+    When performing template rendering in the main thread, the latency averages 769
+    μs. The same samples taken when offloading rendering to a worker thread are on
+    average 232 μs. Subtracting out the idle state from both values means it’s about
+    a 4.7x improvement when using threads. [Figure 8-3](#chart_eventloop_delay) compares
+    these samples over time during the 60-second benchmark.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件循环延迟也显著减少。在进程空闲时调用 `setImmediate()` 的平均时间约为 87 μs。当在主线程执行模板渲染时，延迟平均为 769 μs。将渲染任务转移到工作线程后，同样的样本平均值为
+    232 μs。从这两个值中减去空闲状态的时间意味着使用线程时的性能提升约为 4.7 倍。[图 8-3](#chart_eventloop_delay) 在
+    60 秒基准测试期间比较了这些样本。
+- en: '![The event loop is always further delayed when single threaded](Images/mtjs_0803.png)'
+  id: totrans-114
+  prefs: []
+  type: TYPE_IMG
+  zh: '![单线程时，事件循环总是进一步延迟](Images/mtjs_0803.png)'
+- en: Figure 8-3\. Event loop delay when using single thread versus multiple threads
+  id: totrans-115
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. 在单线程与多线程使用时的事件循环延迟
+- en: Does this mean you should run out and refactor your applications to offload
+    rendering to another thread? Not necessarily. With this contrived example the
+    application was made faster with the additional threads, but this was done on
+    a 16-core machine. It’s very likely that your production applications have access
+    to fewer cores.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是否意味着您应该立即重构应用程序，将渲染工作移交给另一个线程？未必。通过这个假设的例子，应用程序在增加线程后变得更快，但这是在一台 16 核的机器上完成的。您的生产应用程序很可能只能访问更少的核心。
+- en: That said, the biggest performance differentiator while testing this was the
+    size of the templates. When they’re a lot smaller, like without repeating the
+    string, it’s faster to render the templates in a single thread. The reason it’s
+    going to be slower is that the overhead of passing the template data between threads
+    is going to be much larger than the time it takes to render a tiny template.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，在测试过程中性能差异最大的是模板的大小。当它们较小，如不重复字符串时，使用单个线程渲染模板会更快。之所以会变慢，是因为在线程之间传递模板数据的开销要比渲染微小模板所需的时间大得多。
+- en: As with all benchmarks, take this one with a grain of salt. You’ll need to test
+    such changes with your application in a production environment to know for sure
+    if it benefits from additional threads or not.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像所有基准测试一样，需要以一颗谷物的心态看待这个。您需要在生产环境中测试这些更改，以确保是否从额外的线程中受益。
+- en: Summary of Caveats
+  id: totrans-119
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 注意事项总结
+- en: 'This is a combined list of the aforementioned caveats when working with threads
+    in JavaScript:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是在 JavaScript 中使用线程时需注意的几个注意事项的综合列表：
+- en: Complexity
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复杂性
+- en: Applications tend to be more complex when using shared memory. This is especially
+    true if you are hand-writing calls with `Atomics` and manually working with `SharedBufferArray`
+    instances. Now, admittedly, a lot of this complexity can be hidden from the application
+    through the use of a third-party module. In such a case it can be possible to
+    represent your workers in a clean manner, communicating with them from the main
+    thread, and having all the intercommunication and coordination abstracted away.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用共享内存时，应用程序往往更加复杂。如果您手动使用 `Atomics` 进行调用并手动处理 `SharedBufferArray` 实例，则特别如此。诚然，通过使用第三方模块，可以隐藏应用程序的大部分复杂性。在这种情况下，可以以清晰的方式表示您的工作线程，与主线程通信，并将所有的互通和协调抽象化处理。
+- en: Memory overhead
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储器开销
+- en: There is additional memory overhead with each thread that is added to a program.
+    This memory overhead is compounded if a lot of modules are being loaded in each
+    thread. Although the overhead might not be a huge deal on modern computers, it
+    is worth testing on the end hardware the code will ultimately run on just to be
+    safe. One way to help alleviate this issue is to audit the code that is being
+    loaded in separate threads. Make sure you’re not unnecessarily loading the kitchen
+    sink!
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每增加一个线程都会增加程序的额外内存开销。如果在每个线程中加载了大量模块，则会使内存开销进一步增加。虽然在现代计算机上内存开销可能不是一个大问题，但最终运行代码的硬件上进行测试仍然是值得的。帮助缓解此问题的一种方法是审查在单独线程中加载的代码。确保您不会不必要地加载太多内容！
+- en: No shared objects
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无共享对象
+- en: The inability to share objects between threads can make it difficult to easily
+    convert a single-threaded application to a multithreaded one. Instead, when it
+    comes to mutating objects, you’ll need to pass messages around that end up mutating
+    an object that lives in a single location.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不能在线程之间共享对象可能会导致将单线程应用程序轻松转换为多线程应用程序变得困难。相反，当涉及到对象变异时，您需要传递消息，以便最终变异一个存在于单一位置的对象。
+- en: No DOM access
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不进行 DOM 访问
+- en: Only the main thread of a browser-based application has access to the DOM. This
+    can make it difficult to offload UI rendering tasks to another thread. That said,
+    it’s entirely possible for the main thread to be in charge of DOM mutation while
+    additional threads can do the heavy lifting and return data changes to the main
+    thread to update the UI.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅浏览器应用程序的主线程可以访问 DOM。这可能会使将 UI 渲染任务转移到另一个线程变得困难。尽管如此，主线程可以负责 DOM 变化，而其他线程可以进行大量的计算工作，并将数据变化返回给主线程以更新
+    UI 是完全可能的。
+- en: Modified APIs
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修改后的 API
+- en: Along the same lines as the lack of DOM access, there are slight changes to
+    APIs available in threads. In the browser this means no calls to `alert()`, and
+    individual worker types have even more rules, like disallowing blocking `XMLHttpRequest#open()`
+    requests, `localStorage` restrictions, top-level `await`, etc. While some concerns
+    are a little fringe, it does mean that not all code can run unmodified in every
+    possible JavaScript context. Documentation is your friend when dealing with this.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与缺乏 DOM 访问的情况类似，可用的线程 API 有一些细微的变化。在浏览器中，这意味着不能调用 `alert()`，而且各个工作线程类型还有更多的规则，比如不允许阻塞
+    `XMLHttpRequest#open()` 请求、`localStorage` 限制、顶级 `await` 等。虽然有些问题看起来比较边缘，但这意味着并不是所有代码都能在所有可能的
+    JavaScript 环境中未经修改地运行。当处理这些问题时，文档是你的朋友。
+- en: Structured clone algorithm constraints
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结构化克隆算法的限制。
+- en: There are some constraints on the structured clone algorithm that may make it
+    difficult to pass certain class instances between different threads. Currently,
+    even if two threads have access to the same class definition, instances of the
+    class passed between threads become plain `Object` instances. While it’s possible
+    to rehydrate the data back into a class instance, it does require manual effort.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结构化克隆算法有一些限制，可能会使得在不同线程之间传递某些类实例变得困难。目前，即使两个线程访问的是相同的类定义，传递给线程的类实例也会变成普通的 `Object`
+    实例。虽然可以将数据重新恢复为类实例，但这确实需要手动操作。
+- en: Browsers require special headers
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器需要特殊的头信息。
+- en: When working with shared memory in the browser via `SharedArrayBuffer`, the
+    server must supply two additional headers in the request for the HTML document
+    used by the page. If you have complete control of the server, then these headers
+    may be easy to introduce. However, in certain hosting environments, it might be
+    difficult or impossible to supply such headers. Even the package used in this
+    book to host a local server required modifications to enable the headers.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器中通过 `SharedArrayBuffer` 操作共享内存时，服务器必须在页面使用的 HTML 文档请求中提供两个额外的头信息。如果你完全控制服务器，那么这些头信息可能很容易添加。然而，在某些托管环境中，可能很难或不可能提供这些头信息。即使是这本书中用来托管本地服务器的包也需要修改才能启用这些头信息。
+- en: Thread preparedness detection
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 线程准备就绪检测。
+- en: There is no built-in functionality to know when a spawned thread is ready to
+    work with shared memory. Instead, a solution must first be built that essentially
+    pings the thread and then waits until a response has been received.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有内置功能来知道一个被创建的线程何时准备好与共享内存工作。相反，必须首先构建一个解决方案，基本上是向线程发送 ping，然后等待收到响应。

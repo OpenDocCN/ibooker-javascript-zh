@@ -1,0 +1,1011 @@
+- en: Chapter 13\. Server-Side Rendering with Vue
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第13章\. 使用Vue进行服务器端渲染
+- en: In the previous chapter, we learned how to set up our Vue application’s complete
+    CI/CD pipeline. We also learned how to deploy our application using Netlify for
+    production. Our application is now ready for users to access via the web. With
+    that, we have almost finished our journey with learning Vue. This chapter will
+    explore the other aspect of using Vue, the server-side rendering and static site
+    generation with Nuxt.js.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前一章中，我们学习了如何设置Vue应用程序的完整CI/CD管道。我们还学习了如何使用Netlify进行生产部署。我们的应用程序现在已准备好供用户通过网络访问。因此，我们几乎完成了使用Vue学习的旅程。本章将探讨Vue的另一个方面，即使用Nuxt.js进行服务器端渲染和静态站点生成。
+- en: Client-Side Rendering in Vue
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Vue中的客户端渲染
+- en: By default, Vue applications are for client-side rendering, with a placeholder
+    `index.html` file, JavaScript file (usually compiled in chunks by Vite for performance
+    optimization), and other files like CSS, icons, images, etc., for a complete UI
+    experience. In the initial load, the browser sends a request to the server for
+    the `index.html` file. In return, the server will deliver the original placeholder
+    file (often with a single element with a unique id selector `app` for the Vue
+    engine to mount the app instance, and a `script` tag pointing to the required
+    JavaScript file containing the main code. Once the browser receives the HTML file,
+    it will start parsing and request additional resources, such as the desired `main.js`
+    file, then execute it to render the rest of the content accordingly ([Figure 13-1](#figure_chap12_02)).
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，Vue应用程序用于客户端渲染，具有占位符`index.html`文件、JavaScript文件（通常由Vite编译为优化的代码块）、以及其他文件如CSS、图标、图像等，以提供完整的UI体验。在初始加载时，浏览器向服务器发送请求获取`index.html`文件。服务器将返回原始的占位符文件（通常包含一个带有唯一id选择器`app`的单个元素，用于Vue引擎挂载应用程序实例，以及一个指向包含主要代码的`script`标签）。一旦浏览器接收到HTML文件，它将开始解析并请求其他资源，如所需的`main.js`文件，然后执行它以相应地渲染其余内容（参见[图 13-1](#figure_chap12_02)）。
+- en: '![Screenshot of a HTML placeholder file containing a single div with id of
+    app, and a script tag containing the main code](assets/lvue_1301.png)'
+  id: totrans-4
+  prefs: []
+  type: TYPE_IMG
+  zh: '![包含单个带有id为app的div和包含主要代码的script标记的HTML占位符文件的屏幕截图](assets/lvue_1301.png)'
+- en: Figure 13-1\. Flow of rendering a client-side Vue application
+  id: totrans-5
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图13-1\. 客户端Vue应用程序渲染流程
+- en: From this point on, the application finishes initialization, and the user can
+    start interacting with it. Vue will dynamically handle the view-changing requests
+    by users with the built-in routing system. However, if you right-click the page
+    and select *View page source*, you will see only the code of the original root
+    `index.html` file but not the current UI view. This behavior can be problematic,
+    especially when building a website or an app that requires good Search Engine
+    Optimization^([1](ch13.html#id1755)) (SEO).
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这一点开始，应用程序完成初始化，用户可以开始与其进行交互。Vue将通过内置的路由系统动态处理用户的视图更改请求。但是，如果您右键单击页面并选择*查看页面源代码*，您将只看到原始根`index.html`文件的代码，而不是当前的UI视图。这种行为可能会有问题，特别是在构建需要良好搜索引擎优化（SEO）的网站或应用程序时^([1](ch13.html#id1755))。
+- en: In addition, the process of loading and executing JavaScript code before displaying
+    any content to the user can cause a long waiting time for the user due to factors
+    such as heavyweight JavaScript files to download, slow networks, the amount of
+    time the browser takes to paint the content (First Paint), etc. As a result, the
+    whole process can lead to a slow Time To Interactive^([2](ch13.html#id1756)) (TTI)
+    and a slow First Contentful Paint^([3](ch13.html#id1757)) (FCP). All of these
+    factors affect the overall app performance and user experience and often are challenging
+    to fix.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，加载和执行JavaScript代码以在向用户显示任何内容之前可能导致用户等待时间较长，原因包括需要下载的重量级JavaScript文件、慢速网络、浏览器绘制内容所需的时间（首次绘制）等因素。因此，整个过程可能导致较长的交互时间^([2](ch13.html#id1756))和较慢的首次内容绘制^([3](ch13.html#id1757))。所有这些因素影响了整体应用程序的性能和用户体验，并且通常难以解决。
+- en: In such scenarios, there may be better choices than client-side rendering applications,
+    such as server-side rendering, which we will explore next.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，可能有比客户端渲染应用程序更好的选择，例如我们将在下一节中探讨的服务器端渲染。
+- en: Server-Side Rendering (SSR)
+  id: totrans-9
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 服务器端渲染（SSR）
+- en: As its name indicates, server-side rendering (SSR) is an approach to compile
+    everything on the server side into a fully working HTML page and then deliver
+    to the client side (browser) on demand, instead of performing on the browser.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如其名称所示，服务器端渲染（SSR）是一种在服务器端将所有内容编译为完全工作的HTML页面，然后根据需要（而不是在浏览器上执行）将其提供给客户端（浏览器）的方法。
+- en: 'To develop a local SSR Vue application, we will need a local server to communicate
+    with the browser and handle all the data requests. We can do this by installing
+    Express.js^([4](ch13.html#id1766)) as our project’s dependency with the following
+    command:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开发本地SSR Vue应用程序，我们需要一个本地服务器来与浏览器通信并处理所有数据请求。我们可以通过以下命令安装Express.js^([4](ch13.html#id1766))作为我们项目的依赖项：
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Once this is installed, we can create a `server.js` file in our project’s root
+    directly with the code in [Example 13-1](#server-js) to set up our local server.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完成后，我们可以在项目的根目录中创建一个名为`server.js`的文件，并使用[示例 13-1](#server-js)中的代码来设置我们的本地服务器。
+- en: Example 13-1\. The `server.js` file for the local server
+  id: totrans-14
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-1\. 本地服务器的`server.js`文件
+- en: '[PRE1]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO1-1)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO1-1)'
+- en: Create a `server` instance
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`server`实例
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO1-2)'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO1-2)'
+- en: Define the handler for any request for the entry URL *“/”*
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为入口URL“/”定义处理程序
+- en: '[![3](assets/3.png)](#co_server_side_rendering_with_vue_CO1-3)'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_server_side_rendering_with_vue_CO1-3)'
+- en: The handler will return a string acting as an HTML page that displays *Vue SSR
+    Demo* on the browser.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理程序将返回一个字符串，作为在浏览器上显示*Vue SSR Demo*的HTML页面。
+- en: '[![4](assets/4.png)](#co_server_side_rendering_with_vue_CO1-4)'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_server_side_rendering_with_vue_CO1-4)'
+- en: We set up the local server to run and listen at port 3000.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们设置本地服务器以在端口3000上运行和侦听。
+- en: Within the project’s root directory, we can start our local server using the
+    `node server.js` command. Once our server is ready, we must create our application
+    on the server with the method `createSSRApp` from the `vue` package. For example,
+    let’s compose a Vue application that displays a digital clock with the current
+    date and time in a dedicated file, `app.js`, with the code in [Example 13-2](#app-js).
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在项目的根目录中，我们可以使用`node server.js`命令启动本地服务器。一旦服务器准备好，我们必须使用`vue`包中的`createSSRApp`方法在服务器上创建我们的应用程序。例如，让我们编写一个Vue应用程序，在`app.js`文件中显示当前日期和时间的数字时钟，代码在[示例 13-2](#app-js)中。
+- en: Example 13-2\. The `app.js` file for the Digital Clock application
+  id: totrans-25
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-2\. 数字时钟应用程序的`app.js`文件
+- en: '[PRE2]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO2-1)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO2-1)'
+- en: We define the options for our main application’s component, App.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为主应用程序组件App定义选项。
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO2-2)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO2-2)'
+- en: We use `createSSRApp()` to build the application on the server side with `App`
+    options.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`createSSRApp()`和`App`选项在服务器端构建应用程序。
+- en: This file exposes a single method, `createApp()`, to use in both server and
+    client, returning a Vue instance ready for mounting.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件暴露了一个方法`createApp()`，可用于服务器端和客户端，返回一个准备好用于挂载的Vue实例。
+- en: In our `server.js` file, we will use this `createApp()` from `app.js` to create
+    the server-side app instance and render it into an HTML formatted string with
+    the `renderToString()` method from the `vue/server-renderer` package. Once `renderToString()`
+    resolves with a content string, we will replace the content in the returned response
+    with it, as shown in [Example 13-3](#update-server-js).
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的`server.js`文件中，我们将使用`app.js`中的`createApp()`创建服务器端应用程序实例，并使用`vue/server-renderer`包中的`renderToString()`方法将其渲染为HTML格式的字符串。一旦`renderToString()`返回带有内容字符串的响应，我们将用它替换返回的响应中的内容，如[示例 13-3](#update-server-js)所示。
+- en: Example 13-3\. Update `server.js` to render the app instance into an HTML string
+  id: totrans-33
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-3\. 更新`server.js`以将应用实例渲染为HTML字符串
+- en: '[PRE3]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO3-1)'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO3-1)'
+- en: App instance creation with `createApp()`
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`createApp()`创建应用实例
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO3-2)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO3-2)'
+- en: Place the generated HTML string from `renderToString()` within a `div` of `#app`
+    as its id.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`renderToString()`生成的HTML字符串放置在具有`#app`作为其id的`div`中。
+- en: When we head to *[*http://locahost:3000/*](http://locahost:3000/)*, we will
+    see the browser displays only the title, *Digital Clock* ([Figure 13-2](#figure_ch12_clock_empty)),
+    with the fields `date` and `time` empty.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们访问 [*http://locahost:3000/*](http://locahost:3000/) 时，我们将只看到浏览器仅显示标题 *数字时钟*（[图
+    13-2](#figure_ch12_clock_empty)），字段 `date` 和 `time` 为空。
+- en: '![Digital Clock](assets/lvue_1302.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![数字时钟](assets/lvue_1302.png)'
+- en: Figure 13-2\. Empty Digital Clock
+  id: totrans-41
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-2\. 空数字时钟
+- en: This behavior happens because we only generate the HTML static code to return
+    to the client side, but no Vue is available in the browser. The same goes for
+    any interactive behavior, such as the `onClick` event handler. To solve this interactive
+    problem, we need to mount our app in hydration mode, allowing Vue to take over
+    the static HTML and make it interactive and dynamic once the HTML is available
+    on the browser side. We can do this by defining an `entry-client.js`, which will
+    use the `createApp()` from `app.js` to get the app instance. The browser will
+    execute this file and mount the Vue instance to the correct element in the DOM
+    ([Example 13-4](#entry-client-js)).
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种行为发生是因为我们只生成了返回客户端的 HTML 静态代码，但在浏览器中没有 Vue 可用。同样的情况也适用于任何交互行为，例如 `onClick`
+    事件处理程序。为了解决这个交互问题，我们需要在水合模式下挂载我们的应用程序，允许 Vue 接管静态 HTML，并在 HTML 在浏览器端可用时使其变得交互和动态。我们可以通过定义一个
+    `entry-client.js` 来做到这一点，该文件将使用 `app.js` 中的 `createApp()` 获取应用程序实例。浏览器将执行此文件并将
+    Vue 实例挂载到 DOM 中的正确元素上（[示例 13-4](#entry-client-js)）。
+- en: Example 13-4\. The `entry-client.js` file for mounting the app instance in hydration
+    mode
+  id: totrans-43
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-4\. `entry-client.js` 文件，用于在水合模式下挂载应用实例
+- en: '[PRE4]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: We will also update the `server.js` file to load the `entry-client.js` file
+    in the browser using the `<script>` tag, and enable serving client files in the
+    browser ([Example 13-5](#update-server-js-2)).
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将更新 `server.js` 文件，以使用 `<script>` 标签在浏览器中加载 `entry-client.js` 文件，并启用在浏览器中提供客户端文件（[示例
+    13-5](#update-server-js-2)）。
+- en: Example 13-5\. Update `server.js` to load `entry-client.js` in the browser
+  id: totrans-46
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-5\. 更新 `server.js` 以在浏览器中加载 `entry-client.js`
+- en: '[PRE5]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO4-1)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO4-1)'
+- en: Load the source for the `vue` package using `importmap`
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `importmap` 加载 `vue` 包的源代码
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO4-2)'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO4-2)'
+- en: Load the `entry-client.js` file in the browser using a `<script>` tag
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `<script>` 标签在浏览器中加载 `entry-client.js` 文件
+- en: '[![3](assets/3.png)](#co_server_side_rendering_with_vue_CO4-3)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_server_side_rendering_with_vue_CO4-3)'
+- en: Enable serving client files in the browser
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器中启用提供客户端文件
+- en: When we restart the server and refresh the browser, we will see the clock displayed
+    with the updated date and time.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们重新启动服务器并刷新浏览器时，将会看到以更新的日期和时间显示的时钟。
+- en: '![Digital Clock](assets/lvue_1303.png)'
+  id: totrans-55
+  prefs: []
+  type: TYPE_IMG
+  zh: '![数字时钟](assets/lvue_1303.png)'
+- en: Figure 13-3\. Digital Clock
+  id: totrans-56
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-3\. 数字时钟
+- en: Using DOM API and Node API in SSR
+  id: totrans-57
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在 SSR 中使用 DOM API 和 Node API
+- en: You can’t use DOM APIs and web APIs in SSR, since those are browser-only APIs.
+    You also can’t use Node API for client-side components only, such as `fs` for
+    file reader.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你不能在 SSR 中使用 DOM API 和 Web API，因为这些只是浏览器的 API。你也不能仅使用 Node API，例如文件读取中的 `fs`，用于客户端组件。
+- en: We have learned how to create a simple SSR Vue application. Nevertheless, when
+    we need to handle a more complex application, such as using Vue SFC, code splitting,
+    Vue Router, which may require `window` API, and so on, we may need to build an
+    engine to handle application code bundling, rendering with the right bundled code,
+    wrapping Vue Router to work, etc., which can be a tedious task.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了如何创建一个简单的 SSR Vue 应用程序。然而，当我们需要处理更复杂的应用程序时，例如使用 Vue 单文件组件、代码分割、Vue Router，可能需要使用
+    `window` API 等时，我们可能需要构建一个引擎来处理应用程序代码捆绑、使用正确捆绑代码进行渲染、包装 Vue Router 等等，这可能是一个繁琐的任务。
+- en: Instead, we can use a framework that already provides this engine, such as Nuxt.js,
+    discussed in the next section.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，我们可以使用已经提供此引擎的框架，例如下一节讨论的 Nuxt.js。
+- en: Server-Side Rendering with Nuxt.Js
+  id: totrans-61
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Nuxt.Js 进行服务器端渲染
+- en: Nuxt.js (Nuxt) is an open source modular-based SSR framework built on Vue. It
+    offers many features out of the box, such as file-based routing systems, performance
+    optimization, different build mode, etc., while focusing on the developer’s experience
+    ([Figure 13-4](#figure_ch12_nuxtjs)).
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nuxt.js（Nuxt）是一个基于 Vue 构建的开源模块化 SSR 框架。它提供了许多开箱即用的功能，如基于文件的路由系统、性能优化、不同的构建模式等，同时专注于开发者的体验（[图
+    13-4](#figure_ch12_nuxtjs)）。
+- en: '![Nuxt.js Official Website](assets/lvue_1304.png)'
+  id: totrans-63
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Nuxt.js 官方网站](assets/lvue_1304.png)'
+- en: Figure 13-4\. Nuxt.js official website
+  id: totrans-64
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-4\. Nuxt.js 官方网站
+- en: As a modular-based framework, the Nuxt package acts as the core, where we can
+    plug other Nuxt-supported modules into the app to extend an application’s core
+    functionality. You can find the list of available Nuxt modules at [Nuxt modules
+    official documentation](https://oreil.ly/hkdnj), including modules for SEO, PWA,
+    i18n, etc.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为基于模块的框架，Nuxt包充当核心，我们可以向应用程序中插入其他Nuxt支持的模块以扩展核心功能。您可以在[Nuxt模块官方文档](https://oreil.ly/hkdnj)中找到可用的Nuxt模块列表，包括SEO、PWA、i18n等模块。
+- en: Note
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Visit [Nuxt’s official documentation](https://oreil.ly/1B2vg) to learn more
+    about its API documentation, installation, and primary use cases for reference.
+    At the time of writing, Nuxt 3.4.2 is the latest version.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 访问[Nuxt官方文档](https://oreil.ly/1B2vg)以了解其API文档、安装方法以及主要用途的参考资料。截至撰写时，Nuxt 3.4.2是最新版本。
+- en: 'In this section, we will create our Pizza House application featured in [Chapter 8](ch08.html#unique_chapter_id_07)
+    using Nuxt. We will start with the following command to create a new Nuxt application:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将使用Nuxt创建我们在[第8章](ch08.html#unique_chapter_id_07)中介绍的Pizza House应用程序。我们将从以下命令开始创建新的Nuxt应用程序：
+- en: '[PRE6]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '`pizza-house` is our project name, and `nuxi` is the Nuxt CLI that will scaffold
+    a Nuxt application with the following main files:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`pizza-house`是我们的项目名称，而`nuxi`是Nuxt CLI，将使用以下主要文件搭建Nuxt应用程序：'
+- en: '`app.vue`'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`app.vue`'
+- en: The root component for the application.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序的根组件。
+- en: '`nuxt.config.ts`'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`nuxt.config.ts`'
+- en: The configuration file for Nuxt, including setting up the plugins, CSS path,
+    application metadata, etc.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nuxt的配置文件，包括设置插件、CSS路径、应用程序元数据等。
+- en: Note
+  id: totrans-75
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Nuxt will create the application with TypeScript support by default.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nuxt默认支持TypeScript的应用程序创建。
+- en: Nuxt will also create script commands for building and running the application
+    locally in `package.json`, as seen in [Example 13-6](#package_json).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nuxt还将在`package.json`中创建用于构建和本地运行应用程序的脚本命令，如[示例13-6](#package_json)所示。
+- en: Example 13-6\. The `package.json` file for Nuxt application
+  id: totrans-78
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-6\. Nuxt应用程序的`package.json`文件
+- en: '[PRE7]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: After running the `yarn` command to install the dependencies, we can run the
+    `yarn dev` command to start the application locally and visit *http://localhost:3000*
+    to see the default Nuxt landing page.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行`yarn`命令安装依赖后，可以运行`yarn dev`命令在本地启动应用程序，并访问*http://localhost:3000*查看默认的Nuxt登陆页面。
+- en: 'Since Nuxt supports file-based routing using the `pages` folder, we will now
+    define our routing systems under this folder:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于Nuxt支持使用`pages`文件夹进行基于文件的路由，现在我们将在此文件夹下定义我们的路由系统：
+- en: index.vue
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: index.vue
+- en: The home page for the application. Nuxt will automatically map this page to
+    the root path (*/*).
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序的主页。Nuxt将自动将此页面映射到根路径（*/*）。
+- en: pizzas/index.vue
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: pizzas/index.vue
+- en: The page displaying the list of pizzas, with the path */pizzas*.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示披萨列表的页面，路径为*/pizzas*。
+- en: pizzas/[id].vue
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: pizzas/[id].vue
+- en: This is a dynamic nested page, where `[id]` is the placeholder for the pizza’s
+    id for displaying the pizza details. Nuxt will automatically map this page to
+    the path */pizzas/:id*, such as */pizza/1*, */pizza/2*, etc.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个动态嵌套页面，其中`[id]`是显示披萨详细信息的占位符。Nuxt将自动将此页面映射到路径*/pizzas/:id*，如*/pizza/1*、*/pizza/2*等。
+- en: Next, we need to replace the content of `app.vue` with the code in [Example 13-7](#update-app-vue)
+    to have the routing system working.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要用[示例13-7](#update-app-vue)中的代码替换`app.vue`的内容，以使路由系统正常工作。
+- en: Example 13-7\. Update `app.vue` to use Nuxt’s layout and page components
+  id: totrans-89
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-7\. 更新`app.vue`以使用Nuxt的布局和页面组件
+- en: '[PRE8]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '`NuxtLayout` is the layout component for the application, and `NuxtPage` is
+    the page component for the application. Nuxt will replace these components with
+    the defined pages and layout components automatically.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`NuxtLayout`是应用程序的布局组件，`NuxtPage`是页面组件。Nuxt将自动用定义的页面和布局组件替换这些组件。'
+- en: Let’s add the code from [Example 13-8](#ch12-example-pizzas-home) to `pages/index.vue`
+    to display the home page.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将[示例13-8](#ch12-example-pizzas-home)中的代码添加到`pages/index.vue`中，以显示首页。
+- en: Example 13-8\. Home page for the Pizza House application
+  id: totrans-93
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-8\. Pizza House应用程序的首页
+- en: '[PRE9]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: And the code from [Example 13-9](#ch12-example-pizzas-list) to `pages/pizzas/index.vue`
+    to display the list of pizzas.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以及从[示例13-9](#ch12-example-pizzas-list)到`pages/pizzas/index.vue`的代码，用于显示披萨列表。
+- en: Example 13-9\. Pizzas page for the Pizza House application
+  id: totrans-96
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-9\. Pizza House应用程序的Pizzas页面
+- en: '[PRE10]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: This page uses the `PizzaCard` component from [Example 11-1](ch11.html#ch10_pizza_card)
+    and the `usePizzas` composable from `composables/usePizzas.ts` to get a list of
+    pizzas for displaying, with the code from [Example 13-10](#ch12-example-pizzas-composable).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此页面使用来自 [示例 11-1](ch11.html#ch10_pizza_card) 的 `PizzaCard` 组件和来自 `composables/usePizzas.ts`
+    的 `usePizzas` 组合式，以获取要显示的披萨列表，使用了 [示例 13-10](#ch12-example-pizzas-composable)
+    中的代码。
+- en: Example 13-10\. Composable for the Pizza House application
+  id: totrans-99
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-10\. Pizza House 应用程序的组合式
+- en: '[PRE11]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: When we run the application using `yarn dev`, we will see the home page ([Figure 13-5](#figure_ch12_nuxt_home))
+    and the pizzas page ([Figure 13-6](#figure_ch12_nuxt_pizzas)), respectively, displayed
+    in the browser.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们使用 `yarn dev` 运行应用程序时，将分别在浏览器中看到首页（[图 13-5](#figure_ch12_nuxt_home)）和披萨页面（[图
+    13-6](#figure_ch12_nuxt_pizzas)）。
+- en: '![Home page for the Pizza House application](assets/lvue_1305.png)'
+  id: totrans-102
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Pizza House 应用程序的首页](assets/lvue_1305.png)'
+- en: Figure 13-5\. Home page for the Pizza House application
+  id: totrans-103
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-5\. Pizza House 应用程序的首页
+- en: '![Pizzas page for the Pizza House application](assets/lvue_1306.png)'
+  id: totrans-104
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Pizza House 应用程序的披萨页面](assets/lvue_1306.png)'
+- en: Figure 13-6\. Pizzas page for the Pizza House application
+  id: totrans-105
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-6\. Pizza House 应用程序的披萨页面
+- en: Now we will implement the pizza details page by adding the code from [Example 13-11](#ch12-example-pizzas-details)
+    to `pages/pizzas/[id].vue`.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们将通过将代码从 [示例 13-11](#ch12-example-pizzas-details) 添加到 `pages/pizzas/[id].vue`
+    来实现披萨详情页面。
+- en: Example 13-11\. Pizza details component
+  id: totrans-107
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-11\. 披萨详情组件
+- en: '[PRE12]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO5-1)'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO5-1)'
+- en: Use `useRoute`, the global composable from Vue Router, to get the current route’s
+    information.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `useRoute`，Vue Router 的全局组合式，获取当前路由的信息。
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO5-2)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO5-2)'
+- en: '`route.params.id` is the id of the pizza in the URL.'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`route.params.id` 是 URL 中披萨的 id。'
+- en: When we go to */pizzas/1*, we will see the pizza details page displayed in the
+    browser ([Figure 13-7](#figure_ch12_nuxt_pizza_details)).
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们访问 */pizzas/1* 时，将在浏览器中看到披萨详情页面（[图 13-7](#figure_ch12_nuxt_pizza_details)）。
+- en: '![Details page for pizza of id 1](assets/lvue_1307.png)'
+  id: totrans-114
+  prefs: []
+  type: TYPE_IMG
+  zh: '![id 为 1 的披萨详情页面](assets/lvue_1307.png)'
+- en: Figure 13-7\. The details page of pizza with id 1
+  id: totrans-115
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-7\. id 为 1 的披萨详情页面
+- en: Note
+  id: totrans-116
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注
+- en: Unlike a regular Vue application, we can’t map the routing params `id` to the
+    `id` props of the `PizzaDetails` component. Instead, we need to use the `useRoute`
+    composable to get the current route’s information, including its parameters.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与常规的 Vue 应用程序不同，我们不能将路由参数 `id` 映射到 `PizzaDetails` 组件的 `id` 属性。相反，我们需要使用 `useRoute`
+    组合式获取当前路由的信息，包括其参数。
+- en: Next, we will implement a default layout for our application with a navigation
+    bar. We will create a new file, `layouts/default.vue`, with the code from [Example 13-12](#ch12-example-default-layout).
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将通过将代码从 [示例 13-12](#ch12-example-default-layout) 添加到 `layouts/default.vue`
+    文件来实现应用程序的默认布局。
+- en: Example 13-12\. Default layout for the Pizza House application
+  id: totrans-119
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-12\. Pizza House 应用程序的默认布局
+- en: '[PRE13]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO6-1)'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_server_side_rendering_with_vue_CO6-1)'
+- en: '`NuxtLink` is the Nuxt component for rendering link elements, similar to `RouterLink`
+    in Vue Router.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`NuxtLink` 是 Nuxt 组件，用于渲染链接元素，类似于 Vue Router 中的 `RouterLink`。'
+- en: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO6-2)'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_server_side_rendering_with_vue_CO6-2)'
+- en: '`<slot />` is the slot element to render the page’s content.'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<slot />` 是用于渲染页面内容的插槽元素。'
+- en: Nuxt will replace `NuxtLayout` with the default layout, and we will see the
+    navigation bar displayed in the browser ([Figure 13-8](#figure_ch12_nuxt_default_layout)).
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Nuxt 将使用默认布局替换 `NuxtLayout`，我们将在浏览器中看到导航栏显示（[图 13-8](#figure_ch12_nuxt_default_layout)）。
+- en: '![Default layout for the Pizza House application](assets/lvue_1308.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Pizza House 应用程序的默认布局](assets/lvue_1308.png)'
+- en: Figure 13-8\. Default layout for the Pizza House application
+  id: totrans-127
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 13-8\. Pizza House 应用程序的默认布局
+- en: We can also create different layout files in `layouts` and pass the desired
+    layout file name to the props `name` of `NuxtLayout`. Nuxt will pick up the suitable
+    layout component to render based on its value. For example, we can create a new
+    layout file, `layouts/pizzas.vue`, with the code from [Example 13-13](#ch12-example-pizzas-layout).
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以在 `layouts` 中创建不同的布局文件，并将所需的布局文件名传递给 `NuxtLayout` 的 `name` 属性。Nuxt 将根据其值选择适当的布局组件进行渲染。例如，我们可以创建一个名为
+    `layouts/pizzas.vue` 的新布局文件，并使用 [示例 13-13](#ch12-example-pizzas-layout) 中的代码。
+- en: Example 13-13\. Pizzas layout for the Pizza House application
+  id: totrans-129
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 13-13\. Pizza House 应用程序的披萨布局
+- en: '[PRE14]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: In `app.vue`, we will pass the layout name to the `name` props of `NuxtLayout`
+    conditionally ([Example 13-14](#ch12-example-pizzas-layout-app)).
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`app.vue`中，我们将布局名称有条件地传递给`NuxtLayout`的`name` props（[示例 13-14](#ch12-example-pizzas-layout-app)）。
+- en: Example 13-14\. Using pizzas layout for PizzaDetails component
+  id: totrans-132
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例13-14\. 使用pizzas布局的PizzaDetails组件
+- en: '[PRE15]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: When we head to */pizzas/1*, we will see the pizza details page rendered with
+    the `layouts/pizzas` layout ([Figure 13-9](#figure_ch12_nuxt_pizza_details_pizzas_layout)).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们转到*/pizzas/1*时，我们将看到使用`layouts/pizzas`布局呈现的披萨详情页面（[图 13-9](#figure_ch12_nuxt_pizza_details_pizzas_layout)）。
+- en: Note
+  id: totrans-135
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Apart from the `pages` structure, the rest of the application structure is the
+    same as a regular Vue application. Hence, converting a Vue application to a Nuxt
+    application is straightforward.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了`pages`结构外，其余应用结构与常规Vue应用相同。因此，将Vue应用转换为Nuxt应用非常简单。
+- en: With SSR, we can achieve a quicker initial page load and better SEO since the
+    browser receives our app’s fully populated HTML file. However, a disadvantage
+    of SSR is that with every browser refresh, the app requires complete reloading,
+    compared to the client-side rendering with single-page application approach.^([5](ch13.html#id1798))
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过SSR，我们可以实现更快的初始页面加载和更好的SEO，因为浏览器接收到我们应用的完全填充的HTML文件。然而，SSR的缺点是，每次浏览器刷新时，与单页面应用程序相比，应用需要完全重新加载。^([5](ch13.html#id1798))
+- en: '![Pizza details page rendered with pizzas layout](assets/lvue_1309.png)'
+  id: totrans-138
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用披萨布局呈现的披萨详情页面](assets/lvue_1309.png)'
+- en: Figure 13-9\. Pizza details page rendered with custom layout
+  id: totrans-139
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图13-9\. 使用自定义布局呈现的披萨详情页面
+- en: In addition, since SSR requires populating the page content dynamically on the
+    server before returning the page content file to the browser, it can lead to a
+    delay in rendering the page, and any interaction that requires page content changes
+    can cause multiple server requests, affecting the app’s performance overall. We
+    can use the static side generator (SSG) approach to address this issue.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，由于SSR需要在服务器上动态填充页面内容后再将页面内容文件返回给浏览器，这可能导致页面渲染延迟，并且任何需要页面内容更改的交互都可能导致多个服务器请求，从而影响整体应用性能。我们可以使用静态页面生成器（SSG）方法来解决这个问题。
+- en: Static Side Generator (SSG)
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 静态页面生成器（SSG）
+- en: The static side generator (SSG) is a type of server-side rendering. Unlike regular
+    server-side rendering, SSG will generate and index all the pages in the application
+    at build time, and serve those pages to the browser on demand. By doing so, it
+    ensures the initial load and the performance on the client side.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态页面生成器（SSG）是一种服务器端渲染的类型。与常规服务器端渲染不同，SSG将在构建时生成并索引应用程序中的所有页面，并根据需要将这些页面提供给浏览器。通过这种方式，它确保了客户端的初始加载和性能。
+- en: Note
+  id: totrans-143
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This approach is suitable for applications that don’t require dynamic content,
+    such as blogs, documentation, etc. However, if your application contains dynamic
+    content such as user-generated content (authentication, etc.), consider using
+    SSR or a [hybrid approach](https://oreil.ly/zqTn1) instead.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法适用于不需要动态内容的应用，例如博客、文档等。但是，如果您的应用包含用户生成的内容（认证等），请考虑使用SSR或者[混合方法](https://oreil.ly/zqTn1)。
+- en: Using SSG in Nuxt is straightforward. We can use the `yarn generate` command,
+    in the same codebase. This command will generate the static files for the application
+    in the `dist` directory, ready for deployment.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Nuxt中使用SSG非常简单。我们可以在同一个代码库中使用`yarn generate`命令。该命令将生成应用的静态文件，存储在`dist`目录中，准备部署。
+- en: The `generate` command will generate the static files for the application in
+    the `.output/public` directory, ready for deployment ([Figure 13-10](#figure_ch12_output_ssg)).
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`generate`命令将生成应用的静态文件，存储在`.output/public`目录中，准备部署（[图 13-10](#figure_ch12_output_ssg)）。'
+- en: '![Screenshot of the build result after running yarn generate](assets/lvue_1310.png)'
+  id: totrans-147
+  prefs: []
+  type: TYPE_IMG
+  zh: '![运行yarn generate后的构建结果截图](assets/lvue_1310.png)'
+- en: Figure 13-10\. The `.output` directory after running `yarn generate`
+  id: totrans-148
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图13-10\. 运行`yarn generate`后的`.output`目录
+- en: That’s all it takes. The last step is to deploy the `dist` directory to a static
+    hosting service, such as Netlify, Vercel, etc. These hosting platforms will deliver
+    the static files to the browser on demand using a Content Delivery Network (CDN)
+    with caches.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样了。最后一步是将`dist`目录部署到静态托管服务，例如Netlify、Vercel等。这些托管平台将使用带缓存的内容交付网络（CDN）将静态文件按需提供给浏览器。
+- en: Last Words
+  id: totrans-150
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 最后一点
+- en: In this chapter, we learned how to build SSR and SSG applications with Nuxt.
+    With that, we end our journey together in this book.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们学习了如何使用 Nuxt 构建 SSR 和 SSG 应用程序。通过这一点，我们在本书中的旅程也告一段落。
+- en: We have covered all the basics of Vue, including the core concepts, the Options
+    API, the lifecycle of a Vue component, and how to use the Composition API effectively
+    to create a robust and reusable component system in a Vue application. We also
+    learned how to integrate Vue Router and Pinia to create a fully working Vue application
+    with routings and data state management. We explored different aspects of developing
+    a flow for a Vue application, from unit testing with Vitest and E2E testing with
+    Playwright to creating a deployment pipeline with GitHub workflows and hosting
+    using Netlify.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经涵盖了 Vue 的所有基础知识，包括核心概念、Options API、Vue 组件的生命周期，以及如何有效地使用 Composition API
+    在 Vue 应用中创建强大和可重用的组件系统。我们还学习了如何集成 Vue Router 和 Pinia，以创建具有路由和数据状态管理的完全可工作的 Vue
+    应用程序。我们探索了开发 Vue 应用程序流程的不同方面，从使用 Vitest 进行单元测试和使用 Playwright 进行端到端测试，到使用 GitHub
+    workflows 创建部署流水线并使用 Netlify 进行托管。
+- en: You are now ready to explore more advanced Vue topics, and you have the necessary
+    skills to build your own Vue projects. So, where should you go from here? A variety
+    of possibilities await you. Start building your Vue applications and explore the
+    Vue ecosystem further. If you want to develop content-based sites, consider digging
+    deeper into Nuxt. If you are into making a UI library for Vue, check out Vite
+    and design systems concepts like atomic design.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经准备好探索更高级的 Vue 主题，并且具备了构建自己的 Vue 项目所需的技能。那么，接下来应该怎么做呢？有许多可能性等待着你。开始构建你的
+    Vue 应用程序并进一步探索 Vue 生态系统。如果你想开发基于内容的网站，请考虑深入了解 Nuxt。如果你对为 Vue 制作 UI 库感兴趣，请查看 Vite
+    和像原子设计这样的设计系统概念。
+- en: Regardless of your choice, the skills you have learned in Vue will always be
+    handy on your journey to becoming a great frontend engineer and Vue developer.
+    Hopefully this book will be your companion as a reference and foundation along
+    the way.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论你的选择是什么，你在 Vue 中学到的技能将始终在你成为优秀的前端工程师和 Vue 开发者的旅程中派上用场。希望这本书能成为你在这条路上的参考和基础。
+- en: Developing web applications, especially with Vue, is fun and exciting. Start
+    creating and share what you achieve!
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发 Web 应用程序，特别是使用 Vue，是一件有趣而令人兴奋的事情。开始创造并分享你所实现的成就吧！
+- en: ^([1](ch13.html#id1755-marker)) SEO is the process of making your app better
+    for search engines to index in the search results.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch13.html#id1755-marker)) SEO 是使你的应用程序更适合搜索引擎在搜索结果中索引的过程。
+- en: ^([2](ch13.html#id1756-marker)) The time when the user can interact with the
+    page.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch13.html#id1756-marker)) 用户可以与页面进行交互的时间点。
+- en: ^([3](ch13.html#id1757-marker)) The first time when content is visible to the
+    user.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch13.html#id1757-marker)) 用户第一次看到内容的时间点。
+- en: ^([4](ch13.html#id1766-marker)) Express.js is a Node.js web application framework.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch13.html#id1766-marker)) Express.js 是一个 Node.js Web 应用程序框架。
+- en: ^([5](ch13.html#id1798-marker)) Single-page application is an approach to dynamically
+    replace the current view with new data without the need to reload the entire page.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch13.html#id1798-marker)) 单页面应用程序是一种方法，可以动态地用新数据替换当前视图，而无需重新加载整个页面。

@@ -1,0 +1,2297 @@
+- en: Chapter 4\. Type Design
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第四章 类型设计
+- en: Show me your flowcharts and conceal your tables, and I shall continue to be
+    mystified. Show me your tables, and I won’t usually need your flowcharts; they’ll
+    be obvious.
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 给我看你的流程图，隐藏你的表格，我将继续感到困惑。给我看你的表格，我通常就不需要你的流程图了；它们会很明显。
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Fred Brooks, *The Mythical Man Month*
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 弗雷德·布鲁克斯，《人月神话》
+- en: 'The language in Fred Brooks’s quote is dated, but the sentiment remains true:
+    code is difficult to understand if you can’t see the data or data types on which
+    it operates. This is one of the great advantages of a type system: by writing
+    out types, you make them visible to readers of your code. And this makes your
+    code understandable.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 弗雷德·布鲁克斯的引用语言已经过时，但情感仍然如此：如果你看不到代码操作的数据或数据类型，代码就很难理解。这就是类型系统的一个巨大优势之一：通过编写类型，你使得它们对代码读者可见。这使得你的代码易于理解。
+- en: 'Other chapters cover the nuts and bolts of TypeScript types: using them, inferring
+    them, and writing declarations with them. This chapter discusses the design of
+    the types themselves. The examples in this chapter are all written with TypeScript
+    in mind, but most of the ideas are more broadly applicable.'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他章节涵盖了 TypeScript 类型的基础知识：如何使用它们、推断它们以及编写声明。本章讨论了类型本身的设计。本章的示例都是以 TypeScript
+    为基础编写的，但大部分思想都具有更广泛的适用性。
+- en: If you write your types well, then with any luck your flowcharts will be obvious,
+    too.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你能良好地设计你的类型，你的流程图也应该是显而易见的。
+- en: 'Item 28: Prefer Types That Always Represent Valid States'
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第28条：更喜欢总是代表有效状态的类型
+- en: If you design your types well, your code should be straightforward to write.
+    But if you design your types poorly, no amount of cleverness or documentation
+    will save you. Your code will be confusing and bug prone.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你设计得好，你的代码写起来应该很直观。但如果你的类型设计不好，再聪明或是再多的文档也救不了你。你的代码将会令人困惑且容易出错。
+- en: A key to effective type design is crafting types that can only represent a valid
+    state. This item walks through a few examples of how this can go wrong and shows
+    you how to fix them.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有效类型设计的关键是制定只能表示有效状态的类型。本条目通过几个例子详细介绍了这些问题，并向你展示如何修复它们。
+- en: 'Suppose you’re building a web application that lets you select a page, loads
+    the content of that page, and then displays it. You might write the state like
+    this:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你正在构建一个网页应用程序，它允许你选择页面，加载该页面的内容，然后显示它。你可能会这样写状态：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'When you write your code to render the page, you need to consider all of these
+    fields:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你编写代码来渲染页面时，你需要考虑所有这些字段：
+- en: '[PRE1]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Is this right, though? What if `isLoading` and `error` are both set? What would
+    that mean? Is it better to display the loading message or the error message? It’s
+    hard to say! There’s not enough information available.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过这样做对吗？如果`isLoading`和`error`都被设置了呢？那意味着什么？是显示加载消息还是错误消息更好呢？很难说！没有足够的信息可用。
+- en: 'Or what if you’re writing a `changePage` function? Here’s an attempt:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，如果你正在编写一个`changePage`函数呢？以下是一种尝试：
+- en: '[PRE2]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'There are many problems with this! Here are a few:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这有许多问题！以下是一些例子：
+- en: We forgot to set `state.isLoading` to `false` in the error case.
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在错误情况下，我们忘记将`state.isLoading`设置为`false`。
+- en: We didn’t clear out `state.error`, so if the previous request failed, then you’ll
+    keep seeing that error message instead of a loading message.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们没有清除`state.error`，所以如果先前的请求失败了，你会继续看到那个错误消息而不是加载消息。
+- en: If the user changes pages again while the page is loading, who knows what will
+    happen. They might see a new page and then an error, or the first page and not
+    the second depending on the order in which the responses come back.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果用户在页面加载时再次更改页面，谁知道会发生什么。他们可能会看到一个新页面然后是一个错误，或者第一个页面但不是第二个，这取决于响应返回的顺序。
+- en: 'The problem is that the state includes both too little information (which request
+    failed? which is loading?) and too much: the `State` type allows both `isLoading`
+    and `error` to be set, even though this represents an invalid state. This makes
+    both `render()` and `changePage()` impossible to implement well.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于状态包含了太少的信息（哪个请求失败了？哪个正在加载？）和太多的信息：`State`类型允许同时设置`isLoading`和`error`，即使这代表了一个无效的状态。这使得`render()`和`changePage()`都难以实现良好。
+- en: 'Here’s a better way to represent the application state:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一种更好的方式来表示应用程序的状态：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'This uses a tagged union (also known as a “discriminated union”) to explicitly
+    model the different states that a network request can be in. This version of the
+    state is three to four times longer, but it has the enormous advantage of not
+    admitting invalid states. The current page is modeled explicitly, as is the state
+    of every request that you issue. As a result, the `renderPage` and `changePage`
+    functions are easy to implement:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使用了一个标记联合（也称为“辨识联合”）来明确地模拟网络请求可能处于的不同状态。这个状态的版本要长三到四倍，但它有一个巨大的优势，即不允许无效状态。当前页面和你发出的每一个请求的状态都被显式地建模了。因此，`renderPage`和`changePage`函数很容易实现：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'The ambiguity from the first implementation is entirely gone: it’s clear what
+    the current page is, and every request is in exactly one state. If the user changes
+    the page after a request has been issued, that’s no problem either. The old request
+    still completes, but it doesn’t affect the UI.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个实现中的歧义完全消失了：当前页面是明确的，每个请求都处于完全确定的状态中。如果用户在发出请求后更改页面，这也不是问题。旧的请求仍然完成，但不会影响UI。
+- en: For a simpler but more dire example, consider the fate of Air France Flight
+    447, an Airbus 330 that disappeared over the Atlantic on June 1, 2009\. The Airbus
+    was a fly-by-wire aircraft, meaning that the pilots’ control inputs went through
+    a computer system before affecting the physical control surfaces of the plane.
+    In the wake of the crash there were many questions raised about the wisdom of
+    relying on computers to make such life-and-death decisions. Two years later when
+    the black box recorders were recovered, they revealed many factors that led to
+    the crash. But a key one was bad state design.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 举个简单但更加严峻的例子，考虑一下Air France 447航班的命运，这是一架空客A330飞机，于2009年6月1日在大西洋上消失。这架空客是一种电传飞行飞机，意味着飞行员的控制输入先经过计算机系统，然后再影响飞机的物理控制面。在事故发生后，人们对依赖计算机做出生死决策的智慧提出了许多质疑。两年后，当黑匣子记录器被找到时，它们揭示了导致事故的许多因素。但其中一个关键因素是糟糕的状态设计。
+- en: 'The cockpit of the Airbus 330 had a separate set of controls for the pilot
+    and copilot. The “side sticks” controlled the angle of attack. Pulling back would
+    send the airplane into a climb, while pushing forward would make it dive. The
+    Airbus 330 used a system called “dual input” mode, which let the two side sticks
+    move independently. Here’s how you might model its state in TypeScript:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 空客A330的驾驶舱有一个独立的控制系统，用于飞行员和副驾驶员。“侧置杆”控制进场角。向后拉会使飞机上升，而向前推会使其俯冲。空客A330使用了称为“双输入”模式的系统，这让两个侧置杆可以独立移动。下面是在TypeScript中模拟其状态的方式：
+- en: '[PRE5]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Suppose you were given this data structure and asked to write a `getStickSetting`
+    function that computed the current stick setting. How would you do it?
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你被提供了这个数据结构，并被要求编写一个`getStickSetting`函数来计算当前的杆位设置。你会如何做？
+- en: 'One way would be to assume that the pilot (who sits on the left) is in control:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是假设坐在左侧的飞行员控制着：
+- en: '[PRE6]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'But what if the copilot has taken control? Maybe you should use whichever stick
+    is away from zero:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果副驾驶员已经掌控了呢？也许你应该使用远离零点的那个控制杆：
+- en: '[PRE7]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'But there’s a problem with this implementation: we can only be confident returning
+    the left setting if the right one is neutral. So you should check for that:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是这种实现存在一个问题：我们只能确保在右侧设置为中性时才返回左侧的设置。所以你应该检查一下：
+- en: '[PRE8]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'What do you do if they’re both non-zero? Hopefully they’re about the same,
+    in which case you could just average them:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果它们两个都非零，你该怎么办？希望它们大致相同，那么你可以简单地对它们求平均：
+- en: '[PRE9]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'But what if they’re not? Can you throw an error? Not really: the ailerons need
+    to be set at some angle!'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果它们不是呢？你能抛出错误吗？实际上不能：副翼必须设置某个角度！
+- en: On Air France 447, the copilot silently pulled back on his side stick as the
+    plane entered a storm. It gained altitude but eventually lost speed and entered
+    a stall, a condition in which the plane is moving too slowly to effectively generate
+    lift. It began to drop.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Air France 447航班上，副驾驶员在飞机进入风暴时默默地向后拉他的侧置杆。飞机升高了，但最终失去了速度并进入了失速状态，这种状态下飞机速度过慢，无法有效产生升力。它开始下降。
+- en: 'To escape a stall, pilots are trained to push the controls forward to make
+    the plane dive and regain speed. This is exactly what the pilot did. But the copilot
+    was still silently pulling back on his side stick. And the Airbus function looked
+    like this:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了摆脱失速，飞行员们接受过训练，向前推动控制杆使飞机俯冲并重新获得速度。这正是飞行员所做的。但副驾驶员仍在默默地向后拉他的侧置杆。而空客的功能看起来是这样的：
+- en: '[PRE10]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Even though the pilot pushed the stick fully forward, it averaged out to nothing.
+    He had no idea why the plane wasn’t diving. By the time the copilot revealed what
+    he’d done, the plane had lost too much altitude to recover and it crashed into
+    the ocean, killing all 228 people on board.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使飞行员全力向前推杆，效果平均为零。他不知道飞机为何不俯冲。等到副驾驶透露他所做的时候，飞机已经失去太多高度无法恢复，并坠入海中，机上228人全部遇难。
+- en: 'The point of all this is that there is no good way to implement `getStickSetting`
+    given that input! The function has been set up to fail. In most planes the two
+    sets of controls are mechanically connected. If the copilot pulls back, the pilot’s
+    controls will also pull back. The state of these controls is simple to express:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些的要点是，在给定输入情况下没有好方法实现 `getStickSetting`！这个函数已经被设置为失败。在大多数飞机上，这两套控制装置是机械连接的。如果副驾驶拉后，飞行员的控制装置也会拉后。这些控制装置的状态很容易表达：
+- en: '[PRE11]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: And now, as in the Fred Brooks quote from the start of the chapter, our flowcharts
+    are obvious. You don’t need a `getStickSetting` function at all.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，正如本章开头的 Fred Brooks 的引言中所言，我们的流程图显而易见。您根本不需要 `getStickSetting` 函数。
+- en: As you design your types, take care to think about which values you are including
+    and which you are excluding. If you only allow values that represent valid states,
+    your code will be easier to write and TypeScript will have an easier time checking
+    it. This is a very general principle, and several of the other items in this chapter
+    will cover specific manifestations of it.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在设计类型时，请仔细考虑包含哪些值和排除哪些值。如果只允许表示有效状态的值，编写代码将更容易，TypeScript 也会更轻松地检查它。这是一个非常普遍的原则，本章中的几个其他条目将涵盖它的具体表现形式。
+- en: Things to Remember
+  id: totrans-48
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Types that represent both valid and invalid states are likely to lead to confusing
+    and error-prone code.
+  id: totrans-49
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 表示有效和无效状态的类型可能会导致混乱和容易出错的代码。
+- en: Prefer types that only represent valid states. Even if they are longer or harder
+    to express, they will save you time and pain in the end!
+  id: totrans-50
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更倾向于仅表示有效状态的类型。即使它们更长或更难表达，最终它们会为您节省时间和痛苦！
+- en: 'Item 29: Be Liberal in What You Accept and Strict in What You Produce'
+  id: totrans-51
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 29：在接受的事物上要宽容，在生产的事物上要严格。
+- en: 'This idea is known as the *robustness principle* or *Postel’s Law*, after Jon
+    Postel, who wrote it in the context of TCP:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个想法被称为*健壮性原则*或*Postel's Law*，以 TCP 的编写者 Jon Postel 的名字命名：
+- en: 'TCP implementations should follow a general principle of robustness: be conservative
+    in what you do, be liberal in what you accept from others.'
+  id: totrans-53
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: TCP 实现应遵循一个总体原则：在所做之事上要保守，从他人那里接受的东西要宽容。
+- en: A similar rule applies to the contracts for functions. It’s fine for your functions
+    to be broad in what they accept as inputs, but they should generally be more specific
+    in what they produce as outputs.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数的契约也适用类似的规则。函数在接受输入时可以很宽泛，但在产生输出时通常应更为具体。
+- en: 'As an example, a 3D mapping API might provide a way to position the camera
+    and to calculate a viewport for a bounding box:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，3D 映射 API 可能会提供一种定位摄像机和计算边界框视口的方法：
+- en: '[PRE12]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: It is convenient that the result of `viewportForBounds` can be passed directly
+    to `setCamera` to position the camera.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`viewportForBounds` 的结果可以直接传递给 `setCamera` 来定位摄像机非常方便。'
+- en: 'Let’s look at the definitions of these types:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看这些类型的定义：
+- en: '[PRE13]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The fields in `CameraOptions` are all optional because you might want to set
+    just the center or zoom without changing the bearing or pitch. The `LngLat` type
+    also makes `setCamera` liberal in what it accepts: you can pass in a `{lng, lat}`
+    object, a `{lon, lat}` object, or a `[lng, lat]` pair if you’re confident you
+    got the order right. These accommodations make the function easy to call.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`CameraOptions` 中的字段都是可选的，因为您可能只想设置中心或缩放而不改变方位或俯仰。`LngLat` 类型也使得 `setCamera`
+    在接受参数时宽容：您可以传递 `{lng, lat}` 对象，`{lon, lat}` 对象，或者 `[lng, lat]` 对象，只要您有信心顺序正确即可。这些调整使得函数易于调用。'
+- en: 'The `viewportForBounds` function takes in another “liberal” type:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`viewportForBounds` 函数接受另一种“宽容”类型：'
+- en: '[PRE14]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: You can specify the bounds either using named corners, a pair of lat/lngs, or
+    a four-tuple if you’re confident you got the order right. Since `LngLat` already
+    accommodates three forms, there are no fewer than 19 possible forms for `LngLatBounds`.
+    Liberal indeed!
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用命名的角落、一对经纬度，或者如果您确信顺序正确，还可以使用四元组指定边界。由于 `LngLat` 已经适应了三种形式，因此 `LngLatBounds`
+    至少有19种可能的形式。确实宽容！
+- en: 'Now let’s write a function that adjusts the viewport to accommodate a GeoJSON
+    Feature and stores the new viewport in the URL (for a definition of `calculateBoundingBox`,
+    see [Item 31](#null-values-to-perimeter)):'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们编写一个函数，调整视口以适应 GeoJSON Feature，并将新的视口存储在 URL 中（有关`calculateBoundingBox`的定义，请参见[Item
+    31](#null-values-to-perimeter)）：
+- en: '[PRE15]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Whoops! Only the `zoom` property exists, but its type is inferred as `number|undefined`,
+    which is also problematic. The issue is that the type declaration for `viewportForBounds`
+    indicates that it is liberal not just in what it accepts but also in what it *produces*.
+    The only type-safe way to use the `camera` result is to introduce a code branch
+    for each component of the union type ([Item 22](ch03.html#narrowing)).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 糟糕！只有`zoom`属性存在，但其类型被推断为`number|undefined`，这也是个问题。问题在于`viewportForBounds`的类型声明表明它不仅在接受的内容上很宽松，而且在*生成*的内容上也是如此。使用`camera`结果的唯一类型安全方式是为联合类型的每个组件引入代码分支（[Item
+    22](ch03.html#narrowing)）。
+- en: The return type with lots of optional properties and union types makes `viewportForBounds`
+    difficult to use. Its broad parameter type is convenient, but its broad return
+    type is not. A more convenient API would be strict in what it produces.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具有大量可选属性和联合类型的返回类型使得`viewportForBounds`难以使用。它的宽泛参数类型很方便，但其宽泛的返回类型则不是。更便捷的 API
+    应该在其生成的内容上严格控制。
+- en: 'One way to do this is to distinguish a canonical format for coordinates. Following
+    JavaScript’s convention of distinguishing “Array” and “Array-like” ([Item 16](ch02_split_001.html#number-index)),
+    you can draw a distinction between `LngLat` and `LngLatLike`. You can also distinguish
+    between a fully defined `Camera` type and the partial version accepted by `setCamera`:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是为坐标定义一个规范格式。按照 JavaScript 的约定区分“Array”和“Array-like”（[Item 16](ch02_split_001.html#number-index)），你可以区分`LngLat`和`LngLatLike`。你还可以区分完全定义的`Camera`类型和`setCamera`接受的部分版本：
+- en: '[PRE16]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: The loose `CameraOptions` type adapts the stricter `Camera` type ([Item 14](ch02_split_001.html#map-between-types)).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 松散的`CameraOptions`类型适应了严格的`Camera`类型（[Item 14](ch02_split_001.html#map-between-types)）。
+- en: 'Using `Partial<Camera>` as the parameter type in `setCamera` would not work
+    here since you do want to allow `LngLatLike` objects for the `center` property.
+    And you can’t write "`CameraOptions extends Partial<Camera>`" since `LngLatLike`
+    is a superset of `LngLat`, not a subset ([Item 7](ch02_split_000.html#types-as-sets)).
+    If this seems too complicated, you could also write the type out explicitly at
+    the cost of some repetition:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`setCamera`中使用`Partial<Camera>`作为参数类型在这里行不通，因为你确实希望允许`center`属性为`LngLatLike`对象。而且你不能写"`CameraOptions
+    extends Partial<Camera>`"，因为`LngLatLike`是`LngLat`的超集，而不是子集（[Item 7](ch02_split_000.html#types-as-sets)）。如果这看起来太复杂，你也可以明确地写出类型，尽管会有一些重复：
+- en: '[PRE17]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'In either case, with these new type declarations the `focusOnFeature` function
+    passes the type checker:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论哪种情况，使用这些新的类型声明，`focusOnFeature`函数都能通过类型检查器：
+- en: '[PRE18]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: This time the type of `zoom` is `number`, rather than `number|undefined`. The
+    `viewportForBounds` function is now much easier to use. If there were any other
+    functions that produced bounds, you would also need to introduce a canonical form
+    and a distinction between `LngLatBounds` and `LngLatBoundsLike`.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次`zoom`的类型是`number`，而不是`number|undefined`。`viewportForBounds`函数现在使用起来简单多了。如果还有其他生成边界框的函数，你还需要引入一个规范形式，并区分`LngLatBounds`和`LngLatBoundsLike`之间的区别。
+- en: Is allowing 19 possible forms of bounding box a good design? Perhaps not. But
+    if you’re writing type declarations for a library that does this, you need to
+    model its behavior. Just don’t have 19 return types!
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 允许19种可能形式的边界框是一个好的设计吗？也许不是。但如果你正在为执行此操作的库编写类型声明，你需要模拟其行为。只是不要有19种返回类型！
+- en: Things to Remember
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住的事情
+- en: Input types tend to be broader than output types. Optional properties and union
+    types are more common in parameter types than return types.
+  id: totrans-78
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 输入类型往往比输出类型更广泛。在参数类型中，可选属性和联合类型比返回类型更常见。
+- en: To reuse types between parameters and return types, introduce a canonical form
+    (for return types) and a looser form (for parameters).
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要在参数和返回类型之间重复使用类型，请引入一个规范形式（用于返回类型）和一个较松散的形式（用于参数）。
+- en: 'Item 30: Don’t Repeat Type Information in Documentation'
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Item 30：不要在文档中重复类型信息
+- en: What’s wrong with this code?
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码有什么问题？
+- en: '[PRE19]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The code and the comment disagree! Without more context it’s hard to say which
+    is right, but something is clearly amiss. As a professor of mine used to say,
+    “when your code and your comments disagree, they’re both wrong!”
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码和注释不一致！在没有更多上下文的情况下很难说哪个是正确的，但显然有些问题。正如我的一位教授曾经说过的：“当你的代码和你的注释不一致时，它们都是错误的！”
+- en: 'Let’s assume that the code represents the desired behavior. There are a few
+    issues with this comment:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们假设代码表示了期望的行为。这个注释有几个问题：
+- en: It says that the function returns the color as a `string` when it actually returns
+    an `{r, g, b}` object.
+  id: totrans-85
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它说这个函数返回一个`string`类型的颜色，但实际上返回的是一个`{r, g, b}`对象。
+- en: It explains that the function takes zero or one arguments, which is already
+    clear from the type signature.
+  id: totrans-86
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它解释说这个函数接受零个或一个参数，这从类型签名中已经很清楚了。
+- en: 'It’s needlessly wordy: the comment is longer than the function declaration
+    *and* implementation!'
+  id: totrans-87
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它显得很啰嗦：注释比函数声明*和*实现还要长！
+- en: TypeScript’s type annotation system is designed to be compact, descriptive,
+    and readable. Its developers are language experts with decades of experience.
+    It’s almost certainly a better way to express the types of your function’s inputs
+    and outputs than your prose!
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript的类型注解系统设计得紧凑、描述性和可读性强。其开发人员是具有数十年经验的语言专家。这几乎肯定是比你的散文更好地表达函数输入和输出类型的方法！
+- en: And because your type annotations are checked by the TypeScript compiler, they’ll
+    never get out of sync with the implementation. Perhaps `getForegroundColor` used
+    to return a string but was later changed to return an object. The person who made
+    the change might have forgotten to update the long comment.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为你的类型注解是由TypeScript编译器检查的，它们永远不会与实现不同步。也许`getForegroundColor`曾经返回一个字符串，但后来改成返回一个对象。做出更改的人可能忘记更新长注释。
+- en: Nothing stays in sync unless it’s forced to. With type annotations, TypeScript’s
+    type checker is that force! If you put type information in annotations and not
+    in documentation, you greatly increase your confidence that it will remain correct
+    as the code evolves.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果不强制保持同步，什么都不会保持同步。通过类型注解，TypeScript的类型检查器就是这种强制！如果你将类型信息放在注解中而不是文档中，你就大大增加了代码在演变过程中保持正确性的信心。
+- en: 'A better comment might look like this:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的注释可能是这样的：
+- en: '[PRE20]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: If you want to describe a particular parameter, use an `@param` JSDoc annotation.
+    See [Item 48](ch06.html#use-tsdoc) for more on this.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果要描述特定的参数，请使用`@param` JSDoc注释。有关更多信息，请参见[Item 48](ch06.html#use-tsdoc)。
+- en: 'Comments about a lack of mutation are also suspect. Don’t just say that you
+    don’t modify a parameter:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于缺乏突变的评论也值得怀疑。不要只是说你不修改一个参数：
+- en: '[PRE21]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Instead, declare it `readonly` ([Item 17](ch02_split_001.html#readonly)) and
+    let TypeScript enforce the contract:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，将其声明为`readonly`（[Item 17](ch02_split_001.html#readonly)），并让TypeScript强制执行契约：
+- en: '[PRE22]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'What’s true for comments is also true for variable names. Avoid putting types
+    in them: rather than naming a variable `ageNum`, name it `age` and make sure it’s
+    really a `number`.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于变量名也是如此。避免在变量名中放置类型信息：而不是将一个变量命名为`ageNum`，命名为`age`并确保它确实是一个`number`。
+- en: An exception to this is for numbers with units. If it’s not clear what the units
+    are, you may want to include them in a variable or property name. For instance,
+    `timeMs` is a much clearer name than just `time`, and `temperatureC` is a much
+    clearer name than `temperature`. [Item 37](#brands) describes “brands,” which
+    provide a more type-safe approach to modeling units.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有一个例外是具有单位的数字。如果不清楚单位是什么，您可能希望在变量或属性名中包含它们。例如，`timeMs`比`time`更清晰，`temperatureC`比`temperature`更清晰。[Item
+    37](#brands)描述了“品牌”，这提供了一种更类型安全的方法来建模单位。
+- en: Things to Remember
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Avoid repeating type information in comments and variable names. In the best
+    case it is duplicative of type declarations, and in the worst it will lead to
+    conflicting information.
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免在注释和变量名中重复类型信息。在最好的情况下，它是类型声明的重复，而在最坏的情况下，它将导致冲突的信息。
+- en: Consider including units in variable names if they aren’t clear from the type
+    (e.g., `timeMs` or `temperatureC`).
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果变量名不清楚其单位（例如`timeMs`或`temperatureC`），考虑在变量名中包含单位。
+- en: 'Item 31: Push Null Values to the Perimeter of Your Types'
+  id: totrans-103
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目31：将空值推送到类型的边缘
+- en: 'When you first turn on `strictNullChecks`, it may seem as though you have to
+    add scores of if statements checking for `null` and `undefined` values throughout
+    your code. This is often because the relationships between null and non-null values
+    are implicit: when variable A is non-null, you know that variable B is also non-null
+    and vice versa. These implicit relationships are confusing both for human readers
+    of your code and for the type checker.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您第一次打开`strictNullChecks`时，似乎您必须在整个代码中添加大量检查`null`和`undefined`值的if语句。这通常是因为空值和非空值之间的关系是隐含的：当变量A为非null时，您知道变量B也是非null，反之亦然。这些隐含的关系对您代码的人类读者和类型检查器来说都很令人困惑。
+- en: Values are easier to work with when they’re either completely null or completely
+    non-null, rather than a mix. You can model this by pushing the null values out
+    to the perimeter of your structures.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当数值完全为null或完全为非null时，处理起来更加容易，而不是混合。您可以通过将空值推到结构的边缘来建模这一点。
+- en: 'Suppose you want to calculate the min and max of a list of numbers. We’ll call
+    this the “extent.” Here’s an attempt:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您想要计算一组数字的最小值和最大值。我们称之为“extent”。这是一个尝试：
+- en: '[PRE23]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'The code type checks (without `strictNullChecks`) and has an inferred return
+    type of `number[]`, which seems fine. But it has a bug and a design flaw:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码类型检查通过（不使用`strictNullChecks`），并且推断的返回类型为`number[]`，这似乎没问题。但它存在一个bug和一个设计缺陷：
+- en: If the min or max is zero, it may get overridden. For example, `extent([0, 1,
+    2])` will return `[1, 2]` rather than `[0, 2]`.
+  id: totrans-109
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果最小值或最大值为零，则可能会被覆盖。例如，`extent([0, 1, 2])`将返回`[1, 2]`而不是`[0, 2]`。
+- en: If the `nums` array is empty, the function will return `[undefined, undefined]`.
+    This sort of object with several `undefined`s will be difficult for clients to
+    work with and is exactly the sort of type that this item discourages. We know
+    from reading the source code that `min` and `max` will either both be `undefined`
+    or neither, but that information isn’t represented in the type system.
+  id: totrans-110
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果`nums`数组为空，则函数将返回`[undefined, undefined]`。这种带有几个`undefined`的对象对客户端来说很难处理，正是这种类型的问题所在。从源代码阅读中我们知道，`min`和`max`要么都是`undefined`，要么都不是，但这种信息并没有在类型系统中表示出来。
+- en: 'Turning on `strictNullChecks` makes both of these issues more apparent:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 打开`strictNullChecks`选项会让这些问题更加明显：
+- en: '[PRE24]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'The return type of `extent` is now inferred as `(number | undefined)[]`, which
+    makes the design flaw more apparent. This is likely to manifest as a type error
+    wherever you call `extent`:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在`extent`的返回类型被推断为`(number | undefined)[]`，这使得设计缺陷更加明显。无论您在何处调用`extent`，这很可能表现为类型错误：
+- en: '[PRE25]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: The error in the implementation of `extent` comes about because you’ve excluded
+    `undefined` as a value for `min` but not `max`. The two are initialized together,
+    but this information isn’t present in the type system. You could make it go away
+    by adding a check for `max`, too, but this would be doubling down on the bug.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`extent`实现中的错误是因为您排除了`min`的`undefined`值，但没有排除`max`的`undefined`值。这两者是一起初始化的，但这些信息并未在类型系统中呈现出来。您可以通过添加对`max`的检查来解决这个问题，但这将是对bug的双重下注。'
+- en: 'A better solution is to put the min and max in the same object and make this
+    object either fully `null` or fully non-`null`:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的解决方案是将最小值和最大值放在同一个对象中，并使该对象完全为`null`或完全为非`null`：
+- en: '[PRE26]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'The return type is now `[number, number] | null`, which is easier for clients
+    to work with. The min and max can be retrieved with either a non-null assertion:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在返回类型是`[number, number] | null`，这对客户端来说更容易处理。最小值和最大值可以使用非null断言来检索：
+- en: '[PRE27]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'or a single check:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者单一检查：
+- en: '[PRE28]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'By using a single object to track the extent, we’ve improved our design, helped
+    TypeScript understand the relationship between null values, and fixed the bug:
+    the `if (!result)` check is now problem free.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用单个对象来跟踪范围，我们改进了设计，帮助TypeScript理解了空值之间的关系，并修复了bug：现在`if (!result)`检查已经没有问题了。
+- en: 'A mix of null and non-null values can also lead to problems in classes. For
+    instance, suppose you have a class that represents both a user and their posts
+    on a forum:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: null和非null值的混合也可能导致类中的问题。例如，假设您有一个同时表示用户及其在论坛上的帖子的类：
+- en: '[PRE29]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: While the two network requests are loading, the `user` and `posts` properties
+    will be `null`. At any time, they might both be `null`, one might be `null`, or
+    they might both be non-`null`. There are four possibilities. This complexity will
+    seep into every method on the class. This design is almost certain to lead to
+    confusion, a proliferation of `null` checks, and bugs.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当两个网络请求加载时，`user`和`posts`属性将为`null`。在任何时候，它们可能都是`null`，一个可能是`null`，或者它们都可能是非`null`。有四种可能性。这种复杂性会渗入类的每个方法中。这种设计几乎肯定会导致混乱，大量的`null`检查和错误。
+- en: 'A better design would wait until all the data used by the class is available:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的设计应该等到类使用的所有数据都可用时：
+- en: '[PRE30]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Now the `UserPosts` class is fully non-`null`, and it’s easy to write correct
+    methods on it. Of course, if you need to perform operations while data is partially
+    loaded, then you’ll need to deal with the multiplicity of `null` and non-`null`
+    states.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在`UserPosts`类已完全非`null`，编写正确方法变得轻而易举。当然，如果您需要在数据部分加载时执行操作，则需要处理多个`null`和非`null`状态。
+- en: (Don’t be tempted to replace nullable properties with Promises. This tends to
+    lead to even more confusing code and forces all your methods to be async. Promises
+    clarify the code that loads data but tend to have the opposite effect on the class
+    that uses that data.)
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （不要试图用Promise替换可为空的属性。这往往会导致更加混乱的代码，并迫使所有方法都变成异步。Promise可以澄清加载数据的代码，但对于使用该数据的类则有相反的效果。）
+- en: Things to Remember
+  id: totrans-130
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住的事情
+- en: Avoid designs in which one value being `null` or not `null` is implicitly related
+    to another value being `null` or not `null`.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免设计中一个值的`null`或非`null`与另一个值的`null`或非`null`有隐式关联。
+- en: Push `null` values to the perimeter of your API by making larger objects either
+    `null` or fully non-`null`. This will make code clearer both for human readers
+    and for the type checker.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将`null`值推向API的边缘，通过使较大的对象要么为`null`要么完全为非`null`，可以使代码对人类读者和类型检查器更清晰。
+- en: Consider creating a fully non-`null` class and constructing it when all values
+    are available.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 考虑创建一个完全非`null`的类，并在所有值可用时进行构造。
+- en: While `strictNullChecks` may flag many issues in your code, it’s indispensable
+    for surfacing the behavior of functions with respect to null values.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 虽然`strictNullChecks`可能会标记代码中的许多问题，但它对于显示函数在空值方面的行为是不可或缺的。
+- en: 'Item 32: Prefer Unions of Interfaces to Interfaces of Unions'
+  id: totrans-135
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目32：优先使用接口的联合而不是联合的接口
+- en: If you create an interface whose properties are union types, you should ask
+    whether the type would make more sense as a union of more precise interfaces.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您创建一个属性为联合类型的接口，则应该考虑该类型是否作为更精确接口的联合更合理。
+- en: 'Suppose you’re building a vector drawing program and want to define an interface
+    for layers with specific geometry types:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您正在构建一个矢量绘图程序，并希望为具有特定几何类型的图层定义一个接口：
+- en: '[PRE31]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: The `layout` field controls how and where the shapes are drawn (rounded corners?
+    straight?), while the `paint` field controls styles (is the line blue? thick?
+    thin? dashed?).
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`layout`字段控制形状的绘制方式和位置（圆角？直线？），而`paint`字段控制样式（线条是否蓝色？粗细？虚线？）。'
+- en: Would it make sense to have a layer whose `layout` is `LineLayout` but whose
+    `paint` property is `FillPaint`? Probably not. Allowing this possibility makes
+    using the library more error-prone and makes this interface difficult to work
+    with.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是否有意义创建一个其`layout`为`LineLayout`但`paint`属性为`FillPaint`的图层？可能不太合适。允许这种可能性会增加库的使用错误率，并使接口难以使用。
+- en: 'A better way to model this is with separate interfaces for each type of layer:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的建模方式是为每种类型的图层创建单独的接口：
+- en: '[PRE32]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: By defining `Layer` in this way, you’ve excluded the possibility of mixed `layout`
+    and `paint` properties. This is an example of following [Item 28](#valid-states)’s
+    advice to prefer types that only represent valid states.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式定义`Layer`，您已排除了混合`layout`和`paint`属性的可能性。这是遵循[项目28](#valid-states)建议的一个例子，即优先使用仅表示有效状态的类型。
+- en: 'The most common example of this pattern is the “tagged union” (or “discriminated
+    union”). In this case one of the properties is a union of string literal types:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此模式的最常见示例是“标签联合”（或“区分联合”）。在这种情况下，属性之一是字符串文字类型的联合：
+- en: '[PRE33]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'As before, would it make sense to have `type: ''fill''` but then a `LineLayout`
+    and `PointPaint`? Certainly not. Convert `Layer` to a union of interfaces to exclude
+    this possibility:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与之前一样，是否有意义拥有`type: ''fill''`，但接着是`LineLayout`和`PointPaint`？当然不。将`Layer`转换为接口联合以排除这种可能性：'
+- en: '[PRE34]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'The `type` property is the “tag” and can be used to determine which type of
+    `Layer` you’re working with at runtime. TypeScript is also able to narrow the
+    type of `Layer` based on the tag:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`属性是“标签”，可用于确定您在运行时正在处理哪种类型的`Layer`。TypeScript还能够根据标签来缩小`Layer`的类型：'
+- en: '[PRE35]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: By correctly modeling the relationship between the properties in this type,
+    you help TypeScript check your code’s correctness. The same code involving the
+    initial `Layer` definition would have been cluttered with type assertions.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过正确地建模这种类型中属性之间的关系，您可以帮助TypeScript检查您代码的正确性。涉及初始`Layer`定义的相同代码使用类型断言会显得混乱。
+- en: 'Because they work so well with TypeScript’s type checker, tagged unions are
+    ubiquitous in TypeScript code. Recognize this pattern and apply it when you can.
+    If you can represent a data type in TypeScript with a tagged union, it’s usually
+    a good idea to do so. If you think of optional fields as a union of their type
+    and `undefined`, then they fit this pattern as well. Consider this type:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为它们与TypeScript的类型检查器配合得很好，标记联合在TypeScript代码中随处可见。当你能够使用标记联合来表示TypeScript中的数据类型时，通常是一个很好的想法。如果你将可选字段看作其类型与`undefined`的联合，则它们也符合这种模式。考虑这种类型：
+- en: '[PRE36]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: The comment with type information is a strong sign that there might be a problem
+    ([Item 30](#jsdoc-repeat)). There is a relationship between the `placeOfBirth`
+    and `dateOfBirth` fields that you haven’t told TypeScript about.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具有类型信息的注释是可能存在问题的强烈迹象（[Item 30](#jsdoc-repeat)）。`placeOfBirth`和`dateOfBirth`字段之间存在关系，但您并没有告诉TypeScript。
+- en: 'A better way to model this is to move both of these properties into a single
+    object. This is akin to moving `null` values to the perimeter ([Item 31](#null-values-to-perimeter)):'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种更好的建模方法是将这两个属性移到一个单独的对象中。这类似于将`null`值移到边缘位置（[Item 31](#null-values-to-perimeter)）：
+- en: '[PRE37]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'Now TypeScript complains about values with a place but no date of birth:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在TypeScript会抱怨具有地点但没有出生日期的值：
+- en: '[PRE38]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Additionally, a function that takes a `Person` object only needs to do a single
+    check:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，仅需要对`Person`对象进行一次检查的函数：
+- en: '[PRE39]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'If the structure of the type is outside your control (e.g., it’s coming from
+    an API), then you can still model the relationship between these fields using
+    a now-familiar union of interfaces:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果类型的结构不在你的控制之外（例如，它来自API），那么你仍然可以使用现熟悉的接口联合来建模这些字段之间的关系：
+- en: '[PRE40]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'Now you get some of the same benefits as with the nested object:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您可以获得与嵌套对象相同的一些好处：
+- en: '[PRE41]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: In both cases, the type definition makes the relationship between the properties
+    more clear.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这两种情况下，类型定义使属性之间的关系更加清晰。
+- en: Things to Remember
+  id: totrans-165
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Interfaces with multiple properties that are union types are often a mistake
+    because they obscure the relationships between these properties.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 具有多个属性的联合类型接口通常是一个错误，因为它们模糊了这些属性之间的关系。
+- en: Unions of interfaces are more precise and can be understood by TypeScript.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 接口的联合更加精确，并且可以被TypeScript理解。
+- en: Consider adding a “tag” to your structure to facilitate TypeScript’s control
+    flow analysis. Because they are so well supported, tagged unions are ubiquitous
+    in TypeScript code.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 考虑为你的结构添加一个“标签”以便于TypeScript的控制流分析。因为标记联合在TypeScript代码中得到了很好的支持，它们随处可见。
+- en: 'Item 33: Prefer More Precise Alternatives to String Types'
+  id: totrans-169
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Item 33: 更倾向于比字符串类型更精确的替代方案'
+- en: 'The domain of the `string` type is big: `"x"` and `"y"` are in it, but so is
+    the complete text of *Moby Dick* (it starts `"Call me Ishmael…"` and is about
+    1.2 million characters long). When you declare a variable of type `string`, you
+    should ask whether a narrower type would be more appropriate.'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`string`类型的领域很大：`"x"`和`"y"`属于其中，但完整的*Moby Dick*文本也属于其中（它以`"Call me Ishmael…"`开头，约120万个字符长）。当您声明一个`string`类型的变量时，您应该询问是否更适合使用一个更窄的类型。'
+- en: 'Suppose you’re building a music collection and want to define a type for an
+    album. Here’s an attempt:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您正在构建一个音乐收藏，并希望为专辑定义一个类型。以下是一种尝试：
+- en: '[PRE42]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'The prevalence of `string` types and the type information in comments (see
+    [Item 30](#jsdoc-repeat)) are strong indications that this `interface` isn’t quite
+    right. Here’s what can go wrong:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`string`类型的普遍性以及注释中的类型信息（见[Item 30](#jsdoc-repeat)）表明，这个`interface`可能并不完全正确。以下是可能出错的情况：'
+- en: '[PRE43]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: The `releaseDate` field is incorrectly formatted (according to the comment)
+    and `"Studio"` is capitalized where it should be lowercase. But these values *are*
+    both strings, so this object is assignable to `Album` and the type checker doesn’t
+    complain.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`releaseDate` 字段格式不正确（根据注释），并且 `"Studio"` 首字母大写，应为小写。但这些值确实都是字符串，因此这个对象可以分配给
+    `Album`，类型检查器不会抱怨。'
+- en: 'These broad `string` types can mask errors for valid `Album` objects, too.
+    For example:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些广义的 `string` 类型也可能掩盖了对有效 `Album` 对象的错误。例如：
+- en: '[PRE44]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: The parameters are reversed in the call to `recordRelease` but both are strings,
+    so the type checker doesn’t complain. Because of the prevalence of `string` types,
+    code like this is sometimes called “stringly typed.”
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用 `recordRelease` 时参数顺序颠倒了，但两者都是字符串，因此类型检查器不会抱怨。由于 `string` 类型的普遍存在，这样的代码有时被称为“字符串类型化”。
+- en: 'Can you make the types narrower to prevent these sorts of issues? While the
+    complete text of *Moby Dick* would be a ponderous artist name or album title,
+    it’s at least plausible. So `string` is appropriate for these fields. For the
+    `releaseDate` field it’s better to just use a `Date` object and avoid issues around
+    formatting. Finally, for the `recordingType` field, you can define a union type
+    with just two values (you could also use an `enum`, but I generally recommend
+    avoiding these; see [Item 53](ch07.html#avoid-non-ecma)):'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您能否将类型变得更窄以防止此类问题？尽管完整的 *Moby Dick* 文本可能成为一个冗长的艺术家名称或专辑标题，但至少是可能的。因此，对于这些字段，使用
+    `string` 是合适的。对于 `releaseDate` 字段，最好只使用 `Date` 对象，避免格式化问题。最后，对于 `recordingType`
+    字段，可以定义一个仅包含两个值的联合类型（您也可以使用 `enum`，但我通常建议避免这样做；参见 [Item 53](ch07.html#avoid-non-ecma)）：
+- en: '[PRE45]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'With these changes TypeScript is able to do a more thorough check for errors:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更改，TypeScript 能够进行更彻底的错误检查：
+- en: '[PRE46]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'There are advantages to this approach beyond stricter checking. First, explicitly
+    defining the type ensures that its meaning won’t get lost as it’s passed around.
+    If you wanted to find albums of just a certain recording type, for instance, you
+    might define a function like this:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的优势不仅限于更严格的检查。首先，显式定义类型确保其含义在传递过程中不会丢失。例如，如果您只想查找某一录音类型的专辑，可能会定义如下函数：
+- en: '[PRE47]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: How does the caller of this function know what `recordingType` is expected to
+    be? It’s just a `string`. The comment explaining that it’s `"studio"` or `"live"`
+    is hidden in the definition of `Album`, where the user might not think to look.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用此函数的人如何知道 `recordingType` 应该是什么？它只是一个 `string`。解释其值为 `"studio"` 或 `"live"`
+    的评论隐藏在 `Album` 的定义中，用户可能不会注意到这一点。
+- en: 'Second, explicitly defining a type allows you attach documentation to it (see
+    [Item 48](ch06.html#use-tsdoc)):'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其次，显式定义类型允许您为其附加文档（参见 [Item 48](ch06.html#use-tsdoc)）：
+- en: '[PRE48]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: When you change `getAlbumsOfType` to take a `RecordingType`, the caller is able
+    to click through and see the documentation (see [Figure 4-1](#efts-04in01)).
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 `getAlbumsOfType` 修改为接受 `RecordingType` 后，调用者可以点击并查看文档（见 [Figure 4-1](#efts-04in01)）。
+- en: '![efts 04in01](assets/efts_04in01.png)'
+  id: totrans-189
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 04in01](assets/efts_04in01.png)'
+- en: Figure 4-1\. Using a named type instead of string makes it possible to attach
+    documentation to the type that is surfaced in your editor.
+  id: totrans-190
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-1\. 使用命名类型而不是字符串使得可以将文档附加到编辑器中显示的类型。
+- en: 'Another common misuse of `string` is in function parameters. Say you want to
+    write a function that pulls out all the values for a single field in an array.
+    The Underscore library calls this “pluck”:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个常见的 `string` 误用是在函数参数中。假设您想编写一个函数，从数组中提取单个字段的所有值。Underscore 库将此称为“pluck”：
+- en: '[PRE49]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'How would you type this? Here’s an initial attempt:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您如何为此添加类型？以下是一个初始尝试：
+- en: '[PRE50]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'This type checks but isn’t great. The `any` types are problematic, particularly
+    on the return value (see [Item 38](ch05.html#narrowest-any)). The first step to
+    improving the type signature is introducing a generic type parameter:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种类型检查是可以的，但并不完美。`any` 类型存在问题，特别是对于返回值（参见 [Item 38](ch05.html#narrowest-any)）。改进类型签名的第一步是引入泛型类型参数：
+- en: '[PRE51]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'TypeScript is now complaining that the `string` type for `key` is too broad.
+    And it’s right to do so: if you pass in an array of `Album`s then there are only
+    four valid values for `key` (“artist,” “title,” “releaseDate,” and “recordingType”),
+    as opposed to the vast set of strings. This is precisely what the `keyof Album`
+    type is:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 现在抱怨 `key` 的 `string` 类型过于广泛。它是正确的：如果传入一个 `Album` 数组，那么 `key` 只有四个有效值（“artist,”
+    “title,” “releaseDate,” 和 “recordingType”），而不是广泛的字符串集合。这正是 `keyof Album` 类型的用途：
+- en: '[PRE52]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'So the fix is to replace `string` with `keyof T`:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此修复方法是将 `string` 替换为 `keyof T`：
+- en: '[PRE53]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'This passes the type checker. We’ve also let TypeScript infer the return type.
+    How does it do? If you mouse over `pluck` in your editor, the inferred type is:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将通过类型检查器。我们还让TypeScript推断返回类型。它的表现如何？如果在编辑器中将鼠标悬停在`pluck`上，推断的类型是：
+- en: '[PRE54]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: '`T[keyof T]` is the type of any possible value in `T`. If you’re passing in
+    a single string as the `key`, this is too broad. For example:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`T[keyof T]`是`T`中任何可能值的类型。如果您将单个字符串作为`key`传入，这太广泛了。例如：'
+- en: '[PRE55]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'The type should be `Date[]`, not `(string | Date)[]`. While `keyof T` is much
+    narrower than `string`, it’s *still* too broad. To narrow it further, we need
+    to introduce a second generic parameter that is a subset of `keyof T` (probably
+    a single value):'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型应为`Date[]`，而不是`(string | Date)[]`。虽然`keyof T`比`string`窄得多，但*仍然*太广泛了。要进一步缩小范围，我们需要引入第二个泛型参数，它是`keyof
+    T`的子集（可能是单个值）：
+- en: '[PRE56]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: (For more on `extends` in this context, see [Item 14](ch02_split_001.html#map-between-types).)
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （有关此上下文中`extends`的更多信息，请参见[Item 14](ch02_split_001.html#map-between-types)。）
+- en: 'The type signature is now completely correct. We can check this by calling
+    `pluck` in a few different ways:'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型签名现在完全正确。我们可以通过几种不同的方式调用`pluck`来进行检查：
+- en: '[PRE57]'
+  id: totrans-209
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: The language service is even able to offer autocomplete on the keys of `Album`
+    (as shown in [Figure 4-2](#efts-04in02)).
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语言服务甚至能够为`Album`的键提供自动完成（如[Figure 4-2](#efts-04in02)所示）。
+- en: '![efts 04in02](assets/efts_04in02.png)'
+  id: totrans-211
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 04in02](assets/efts_04in02.png)'
+- en: Figure 4-2\. Using a parameter type of keyof Album instead of string results
+    in better autocomplete in your editor.
+  id: totrans-212
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-2。在您的编辑器中使用`Album`的参数类型为`keyof`而不是字符串可以获得更好的自动完成。
+- en: '`string` has some of the same problems as `any`: when used inappropriately,
+    it permits invalid values and hides relationships between types. This thwarts
+    the type checker and can hide real bugs. TypeScript’s ability to define subsets
+    of `string` is a powerful way to bring type safety to JavaScript code. Using more
+    precise types will both catch errors and improve the readability of your code.'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`string`与`any`存在一些相同的问题：当不适当使用时，它允许无效值并隐藏类型之间的关系。这会妨碍类型检查器，并且可能隐藏真正的错误。TypeScript定义`string`子集的能力是将类型安全引入JavaScript代码的强大方式。使用更精确的类型将捕获错误并提高代码的可读性。'
+- en: Things to Remember
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住这些事项
+- en: Avoid “stringly typed” code. Prefer more appropriate types where not every `string`
+    is a possibility.
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免“字符串类型”代码。在不是每个`string`都可能的情况下，请优先选择更合适的类型。
+- en: Prefer a union of string literal types to `string` if that more accurately describes
+    the domain of a variable. You’ll get stricter type checking and improve the development
+    experience.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果更准确地描述变量的域，更倾向于使用字符串字面类型的联合而不是`string`。这将提供更严格的类型检查并改善开发体验。
+- en: Prefer `keyof T` to `string` for function parameters that are expected to be
+    properties of an object.
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于预期为对象属性的函数参数，最好使用`keyof T`而不是`string`。
+- en: 'Item 34: Prefer Incomplete Types to Inaccurate Types'
+  id: totrans-218
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目34：更喜欢不完整类型而不是不准确类型
+- en: 'In writing type declarations you’ll inevitably find situations where you can
+    model behavior in a more precise or less precise way. Precision in types is generally
+    a good thing because it will help your users catch bugs and take advantage of
+    the tooling that TypeScript provides. But take care as you increase the precision
+    of your type declarations: it’s easy to make mistakes, and incorrect types can
+    be worse than no types at all.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写类型声明时，您将不可避免地遇到可以以更精确或不太精确的方式建模行为的情况。类型的精确性通常是件好事，因为它将帮助用户捕获错误并利用TypeScript提供的工具。但是在增加类型声明的精确性时要小心：容易犯错，不正确的类型可能比没有类型更糟糕。
+- en: 'Suppose you are writing type declarations for GeoJSON, a format we’ve seen
+    before in [Item 31](#null-values-to-perimeter). A GeoJSON Geometry can be one
+    of a few types, each of which have differently shaped coordinate arrays:'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您正在为GeoJSON编写类型声明，这是我们在[Item 31](#null-values-to-perimeter)中已经见过的格式。GeoJSON几何可以是几种类型之一，每种类型都有不同形状的坐标数组：
+- en: '[PRE58]'
+  id: totrans-221
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'This is fine, but `number[]` for a coordinate is a bit imprecise. Really these
+    are latitudes and longitudes, so perhaps a tuple type would be better:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做没问题，但是对于坐标来说，`number[]`有点不够精确。实际上这些是纬度和经度，因此也许元组类型会更好：
+- en: '[PRE59]'
+  id: totrans-223
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: You publish your more precise types to the world and wait for the adulation
+    to roll in. Unfortunately, a user complains that your new types have broken everything.
+    Even though you’ve only ever used latitude and longitude, a position in GeoJSON
+    is allowed to have a third element, an elevation, and potentially more. In an
+    attempt to make the type declarations more precise, you’ve gone too far and made
+    the types inaccurate! To continue using your type declarations, your user will
+    have to introduce type assertions or silence the type checker entirely with `as
+    any`.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你发布了更精确的类型到世界上，并等待赞美之声的涌现。不幸的是，有用户抱怨说你的新类型搞乱了一切。即使你以前只用过纬度和经度，GeoJSON 中的位置可以有第三个元素，即高度，甚至可能更多。为了使类型声明更精确，你走得太远了，使类型变得不准确！为了继续使用你的类型声明，用户将不得不引入类型断言或完全使用`as
+    any`静默类型检查。
+- en: 'As another example, consider trying to write type declarations for a Lisp-like
+    language defined in JSON:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 举个例子，考虑尝试为 JSON 中定义的类似 Lisp 的语言编写类型声明：
+- en: '[PRE60]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'The Mapbox library uses a system like this to determine the appearance of map
+    features across many devices. There’s a whole spectrum of precision with which
+    you could try to type this:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Mapbox 库使用类似的系统来确定在许多设备上地图要素的外观。你可以尝试使用各种精度来定义这个：
+- en: Allow anything.
+  id: totrans-228
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 允许任何内容。
+- en: Allow strings, numbers, and arrays.
+  id: totrans-229
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 允许字符串、数字和数组。
+- en: Allow strings, numbers, and arrays starting with known function names.
+  id: totrans-230
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 允许字符串、数字和以已知函数名称开头的数组。
+- en: Make sure each function gets the correct number of arguments.
+  id: totrans-231
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 确保每个函数都得到正确数量的参数。
+- en: Make sure each function gets the correct type of arguments.
+  id: totrans-232
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 确保每个函数都得到正确类型的参数。
+- en: 'The first two options are straightforward:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前两个选项很简单：
+- en: '[PRE61]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'Beyond this, you should introduce a test set of expressions that are valid
+    and expressions that are not. As you make your types more precise, this will help
+    prevent regressions (see [Item 52](ch06.html#test-your-types)):'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，你应该引入一组表达式的测试集，包括有效和无效表达式。随着类型的精确度提高，这将有助于防止退化（见 [Item 52](ch06.html#test-your-types)）：
+- en: '[PRE62]'
+  id: totrans-236
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'To go to the next level of precision you can use a union of string literal
+    types as the first element of a tuple:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要提高精度，你可以将字符串字面类型的联合作为元组的第一个元素：
+- en: '[PRE63]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: There’s one new caught error and no regressions. Pretty good!
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 出现了一个新的捕获错误，没有退化。相当不错！
+- en: 'What if you want to make sure that each function gets the correct number of
+    arguments? This gets trickier since the type now needs to be recursive to reach
+    down into all the function calls. As of TypeScript 3.6, to make this work you
+    needed to introduce at least one `interface`. Since `interface`s can’t be unions,
+    you’ll have to write the call expressions using `interface` instead. This is a
+    bit awkward since fixed-length arrays are most easily expressed as tuple types.
+    But you *can* do it:'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想确保每个函数都得到正确数量的参数怎么办？这会变得更复杂，因为现在类型需要递归到所有函数调用中。截至 TypeScript 3.6，为了使其工作，你需要引入至少一个`interface`。由于`interface`不能是联合类型，你将不得不使用`interface`编写调用表达式。这有点尴尬，因为固定长度数组最容易表示为元组类型。但你*可以*做到：
+- en: '[PRE64]'
+  id: totrans-241
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: Now all the invalid expressions produce errors. And it’s interesting that you
+    can express something like “an array of even length” using a TypeScript `interface`.
+    But these error messages aren’t very good, and the error about `**` has gotten
+    quite a bit worse since the previous typings.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在所有无效表达式都会产生错误。有趣的是，你可以使用 TypeScript 的`interface`表达“偶数长度的数组”。但这些错误消息并不是很好，而且关于`**`的错误自上次键入以来已经恶化了很多。
+- en: Is this an improvement over the previous, less precise types? The fact that
+    you get errors for some incorrect usages is a win, but the errors will make this
+    type more difficult to work with. Language services are as much a part of the
+    TypeScript experience as type checking (see [Item 6](ch02_split_000.html#editor)),
+    so it’s a good idea to look at the error messages resulting from your type declarations
+    and try autocomplete in situations where it should work. If your new type declarations
+    are more precise but break autocomplete, then they’ll make for a less enjoyable
+    TypeScript development experience.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是否比之前不太精确的类型有所改进？对于一些不正确的用法能够得到错误提示确实是一种胜利，但这些错误会使得这种类型更难处理。语言服务与 TypeScript
+    的开发体验一样重要（见 [Item 6](ch02_split_000.html#editor)），因此建议查看由类型声明导致的错误消息，并尝试在应该起作用的情况下使用自动补全。如果你的新类型声明更精确但破坏了自动补全，那么它们将使
+    TypeScript 的开发体验变得不那么愉快。
+- en: 'The complexity of this type declaration has also increased the odds that a
+    bug will creep in. For example, `Expression4` requires that all math operators
+    take two parameters, but the Mapbox expression spec says that `+` and `*` can
+    take more. Also, `-` can take a single parameter, in which case it negates its
+    input. `Expression4` incorrectly flags errors in all of these:'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此类型声明的复杂性还增加了错误蔓延的可能性。例如，`Expression4` 要求所有数学运算符都需要两个参数，但 Mapbox 表达规范说 `+` 和
+    `*` 可以接受更多参数。此外，`-` 可以接受单个参数，在这种情况下它会对其输入取反。`Expression4` 错误地标记了所有这些情况：
+- en: '[PRE65]'
+  id: totrans-245
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: Once again, in trying to be more precise we’ve overshot and become inaccurate.
+    These inaccuracies can be corrected, but you’ll want to expand your test set to
+    convince yourself that you haven’t missed anything else. Complex code generally
+    requires more tests, and the same is true of types.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次强调，在试图变得更精确时，我们超前并变得不准确了。这些不准确之处可以纠正，但您需要扩展测试集以确保没有漏掉其他问题。复杂的代码通常需要更多的测试，类型也是如此。
+- en: As you refine types, it can be helpful to think of the “uncanny valley” metaphor.
+    Refining very imprecise types like `any` is usually helpful. But as your types
+    get more precise, the expectation that they’ll also be accurate increases. You’ll
+    start to rely on the types more, and so inaccuracies will produce bigger problems.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您优化类型时，思考“不可信峡谷”的隐喻可能会有所帮助。优化非常不精确的类型（如 `any`）通常是有帮助的。但是随着您的类型变得更精确，对其准确性的期望也会增加。您将开始依赖这些类型，因此不准确性将导致更大的问题。
+- en: Things to Remember
+  id: totrans-248
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: 'Avoid the uncanny valley of type safety: incorrect types are often worse than
+    no types.'
+  id: totrans-249
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免类型安全的不可信峡谷：错误的类型通常比没有类型更糟糕。
+- en: If you cannot model a type accurately, do not model it inaccurately! Acknowledge
+    the gaps using `any` or `unknown`.
+  id: totrans-250
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果无法准确建模类型，请不要使用不准确的模型！使用 `any` 或 `unknown` 来承认这些空白。
+- en: 'Pay attention to error messages and autocomplete as you make typings increasingly
+    precise. It’s not just about correctness: developer experience matters, too.'
+  id: totrans-251
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 注意错误消息和自动完成，随着类型越来越精确。这不仅关乎正确性：开发者体验也很重要。
+- en: 'Item 35: Generate Types from APIs and Specs, Not Data'
+  id: totrans-252
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 35 条：从 API 和规范生成类型，而不是从数据生成
+- en: The other items in this chapter have discussed the many benefits of designing
+    your types well and shown what can go wrong if you don’t. A well-designed type
+    makes TypeScript a pleasure to use, while a poorly designed one can make it miserable.
+    But this does put quite a bit of pressure on type design. Wouldn’t it be nice
+    if you didn’t have to do this yourself?
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章的其他内容讨论了设计良好类型的许多好处，并展示了如果不这样做可能会出现的问题。一个设计良好的类型使得 TypeScript 使用起来非常愉快，而一个设计不佳的类型可能会让人感到痛苦。但是这确实对类型设计施加了相当大的压力。如果您不必自己这样做，那不是挺好的吗？
+- en: 'At least some of your types are likely to come from outside your program: file
+    formats, APIs, or specs. In these cases you may be able to avoid writing types
+    by generating them instead. If you do this, the key is to generate types from
+    specifications, rather than from example data. When you generate types from a
+    spec, TypeScript will help ensure that you haven’t missed any cases. When you
+    generate types from data, you’re only considering the examples you’ve seen. You
+    might be missing important edge cases that could break your program.'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的一些类型可能来自于程序外部：文件格式、API 或规范。在这些情况下，您可以通过生成类型而不是编写类型来避免。如果这样做，关键在于从规范生成类型，而不是从示例数据生成。当您从规范生成类型时，TypeScript
+    将帮助确保您没有遗漏任何情况。当您从数据生成类型时，您只考虑到您看到的示例。您可能会忽略可能导致程序出错的重要边缘情况。
+- en: 'In [Item 31](#null-values-to-perimeter) we wrote a function to calculate the
+    bounding box of a GeoJSON Feature. Here’s what it looked like:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [Item 31](#null-values-to-perimeter) 中，我们编写了一个函数来计算 GeoJSON Feature 的边界框。以下是它的样子：
+- en: '[PRE66]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'The `GeoJSONFeature` type was never explicitly defined. You could write it
+    using some of the examples from [Item 31](#null-values-to-perimeter). But a better
+    approach is to use the formal GeoJSON spec.^([1](ch04.html#idm45331654786008))
+    Fortunately for us, there are already TypeScript type declarations for it on DefinitelyTyped.
+    You can add these in the usual way:'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`GeoJSONFeature` 类型从未明确定义过。您可以使用 [Item 31](#null-values-to-perimeter) 中的一些示例来编写它。但更好的方法是使用正式的
+    GeoJSON 规范。^([1](ch04.html#idm45331654786008)) 幸运的是，DefinitelyTyped 上已经有了 TypeScript
+    类型声明。您可以按照通常的方式添加这些：'
+- en: '[PRE67]'
+  id: totrans-258
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'When you plug in the GeoJSON declarations, TypeScript immediately flags an
+    error:'
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您插入 GeoJSON 声明时，TypeScript 立即标记出错：
+- en: '[PRE68]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: The problem is that your code assumes a geometry will have a `coordinates` property.
+    This is true for many geometries, including points, lines, and polygons. But a
+    GeoJSON geometry can also be a `GeometryCollection`, a heterogeneous collection
+    of other geometries. Unlike the other geometry types, it does not have a `coordinates`
+    property.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于你的代码假定几何图形将具有 `coordinates` 属性。这对于许多几何图形（包括点、线和多边形）是正确的。但 GeoJSON 几何图形也可以是
+    `GeometryCollection`，这是其他几何图形的异构集合，不具有 `coordinates` 属性。
+- en: If you call `calculateBoundingBox` on a Feature whose geometry is a `GeometryCollection`,
+    it will throw an error about not being able to read property `0` of `undefined`.
+    This is a real bug! And we caught it using type definitions from a spec.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你对一个具有 `GeometryCollection` 几何图形的要素调用 `calculateBoundingBox`，它将抛出一个关于无法读取
+    `undefined` 的 `0` 属性的错误。这是一个真实的错误！我们通过规范中的类型定义捕获了它。
+- en: 'One option for fixing it is to explicitly disallow `GeometryCollection`s, as
+    shown here:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复它的一个选择是显式禁止 `GeometryCollection`，如下所示：
+- en: '[PRE69]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: TypeScript is able to refine the type of `geometry` based on the check, so the
+    reference to `geometry.coordinates` is allowed. If nothing else, this results
+    in a clearer error message for the user.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 能够根据检查来细化 `geometry` 的类型，因此允许对 `geometry.coordinates` 的引用。即使没有其他内容，这也会为用户提供更清晰的错误消息。
+- en: 'But the better solution is to support all the types of geometry! You can do
+    this by pulling out another helper function:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但更好的解决方案是支持所有类型的几何图形！你可以通过提取另一个辅助函数来实现这一点：
+- en: '[PRE70]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: Had you written type declarations for GeoJSON yourself, you would have based
+    them off of your understanding and experience with the format. This might not
+    have included `GeometryCollection`s and would have led to a false sense of security
+    about your code’s correctness. Using types based on a spec gives you confidence
+    that your code will work with all values, not just the ones you’ve seen.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你自己为 GeoJSON 编写类型声明，那么你会基于自己对格式的理解和经验进行。这可能不包括 `GeometryCollection`，并会导致对代码正确性的虚假安全感。使用基于规范的类型可以确保你的代码适用于所有值，而不仅仅是你见过的值，这让你更加自信。
+- en: 'Similar considerations apply to API calls: if you can generate types from the
+    specification of an API, then it is usually a good idea to do so. This works particularly
+    well with APIs that are typed themselves, such as GraphQL.'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对 API 调用也适用类似的考虑：如果你能从 API 规范生成类型，通常建议这样做。这在与自身具有类型的 API（如 GraphQL）特别有效。
+- en: 'A GraphQL API comes with a schema that specifies all the possible queries and
+    interfaces using a type system somewhat similar to TypeScript. You write queries
+    that request specific fields in these interfaces. For example, to get information
+    about a repository using the GitHub GraphQL API you might write:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL API 是一个带有模式的 API，使用一种类似 TypeScript 的类型系统指定所有可能的查询和接口。你编写查询请求这些接口中特定的字段。例如，要使用
+    GitHub GraphQL API 获取有关存储库的信息，你可能会写成：
+- en: '[PRE71]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'The result is:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果如下：
+- en: '[PRE72]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: The beauty of this approach is that you can generate TypeScript types *for your
+    specific query*. As with the GeoJSON example, this helps ensure that you model
+    the relationships between types and their nullability accurately.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的美妙之处在于，你可以为*你的特定查询*生成 TypeScript 类型。就像 GeoJSON 示例一样，这有助于确保你准确地建模类型之间的关系及其可空性。
+- en: 'Here’s a query to get the open source license for a GitHub repository:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个获取 GitHub 存储库开源许可证的查询：
+- en: '[PRE73]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: '`$owner` and `$name` are GraphQL variables which are themselves typed. The
+    type syntax is similar enough to TypeScript that it can be confusing to go back
+    and forth. `String` is a GraphQL type—it would be `string` in TypeScript (see
+    [Item 10](ch02_split_000.html#avoid-object-wrapper-types)). And while TypeScript
+    types are not nullable, types in GraphQL are. The `!` after the type indicates
+    that it is guaranteed to not be null.'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`$owner` 和 `$name` 是 GraphQL 变量，它们本身也有类型。类型语法与 TypeScript 类似，这可能会使人们在两者之间感到困惑。`String`
+    是 GraphQL 类型，在 TypeScript 中会是 `string`（参见 [Item 10](ch02_split_000.html#avoid-object-wrapper-types)）。而
+    TypeScript 类型不可为空，而 GraphQL 类型可以为空。类型后面的 `!` 表示它保证不为空。'
+- en: 'There are many tools to help you go from a GraphQL query to TypeScript types.
+    One is Apollo. Here’s how you use it:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多工具可以帮助你从 GraphQL 查询生成 TypeScript 类型。其中之一是 Apollo。以下是如何使用它：
+- en: '[PRE74]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'You need a GraphQL schema to generate types for a query. Apollo gets this from
+    the `api.github.com/graphql` endpoint. The output looks like this:'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要一个 GraphQL 模式来为查询生成类型。Apollo 从 `api.github.com/graphql` 端点获取这些信息。输出看起来像这样：
+- en: '[PRE75]'
+  id: totrans-281
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'The important bits to note here are that:'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里需要注意的重要点是：
+- en: Interfaces are generated for both the query parameters (`getLicenseVariables`)
+    and the response (`getLicense`).
+  id: totrans-283
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 接口为查询参数（`getLicenseVariables`）和响应（`getLicense`）生成。
+- en: Nullability information is transferred from the schema to the response interfaces.
+    The `repository`, `description`, `licenseInfo`, and `spdxId` fields are nullable,
+    whereas the license `name` and the query variables are not.
+  id: totrans-284
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 可空性信息从架构传递到响应接口。 `repository`、`description`、`licenseInfo` 和 `spdxId` 字段可为空，而许可证
+    `name` 和查询变量则不可为空。
+- en: Documentation is transferred as JSDoc so that it appears in your editor ([Item
+    48](ch06.html#use-tsdoc)). These comments come from the GraphQL schema itself.
+  id: totrans-285
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 文档以JSDoc形式传输，这样它就会出现在你的编辑器中（[第48项](ch06.html#use-tsdoc)）。这些注释来自GraphQL架构本身。
+- en: 'This type information helps ensure that you use the API correctly. If your
+    queries change, the types will change. If the schema changes, then so will your
+    types. There is no risk that your types and reality diverge since they are both
+    coming from a single source of truth: the GraphQL schema.'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些类型信息有助于确保正确使用API。如果查询变更，类型也会变更。如果架构变更，类型也会跟着变。由于它们都来自单一的真实来源：GraphQL架构，不存在类型与现实不符的风险。
+- en: 'What if there’s no spec or official schema available? Then you’ll have to generate
+    types from data. Tools like `quicktype` can help with this. But be aware that
+    your types may not match reality: there may be edge cases that you’ve missed.'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有规范或官方架构可用怎么办？那么你将不得不从数据生成类型。像 `quicktype` 这样的工具可以帮助你。但要注意，你的类型可能与现实不匹配：可能会有你忽略的边缘情况。
+- en: Even if you’re not aware of it, you are already benefiting from code generation.
+    TypeScript’s type declarations for the browser DOM API are generated from the
+    official interfaces (see [Item 55](ch07.html#understand-the-dom)). This ensures
+    that they correctly model a complicated system and helps TypeScript catch errors
+    and misunderstandings in your own code.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使你可能不知道，你已经从代码生成中受益。 TypeScript 对浏览器 DOM API 的类型声明是从官方接口生成的（见[第55项](ch07.html#understand-the-dom)）。这确保它们正确地模拟了一个复杂的系统，并帮助
+    TypeScript 在你自己的代码中捕获错误和误解。
+- en: Things to Remember
+  id: totrans-289
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需记住的事情
+- en: Consider generating types for API calls and data formats to get type safety
+    all the way to the edge of your code.
+  id: totrans-290
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 考虑为API调用和数据格式生成类型，以确保类型安全性覆盖到代码的边缘。
+- en: Prefer generating code from specs rather than data. Rare cases matter!
+  id: totrans-291
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更倾向于根据规范而不是数据生成代码。罕见情况很重要！
+- en: 'Item 36: Name Types Using the Language of Your Problem Domain'
+  id: totrans-292
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第36条：使用问题域的语言命名类型。
+- en: 'There are only two hard problems in Computer Science: cache invalidation and
+    naming things.'
+  id: totrans-293
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 计算机科学中只有两个难题：缓存失效和命名事物。
+- en: ''
+  id: totrans-294
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Phil Karlton
+  id: totrans-295
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: Phil Karlton
+- en: This book has had much to say about the *shape* of types and the sets of values
+    in their domains, but much less about what you *name* your types. But this is
+    an important part of type design, too. Well-chosen type, property, and variable
+    names can clarify intent and raise the level of abstraction of your code and types.
+    Poorly chosen types can obscure your code and lead to incorrect mental models.
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本书对类型的*形状*和其域中值的集合有很多讨论，但对于你如何为类型*命名*却说得很少。但这也是类型设计的重要部分。选择恰当的类型、属性和变量名称能够澄清意图并提高代码和类型的抽象级别。选择不当的类型可能会使你的代码变得晦涩难懂，导致错误的心理模型。
+- en: 'Suppose you’re building out a database of animals. You create an interface
+    to represent one:'
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你正在构建一个动物数据库。你创建一个接口来表示一个：
+- en: '[PRE76]'
+  id: totrans-298
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'There are a few issues here:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里存在几个问题：
+- en: '`name` is a very general term. What sort of name are you expecting? A scientific
+    name? A common name?'
+  id: totrans-300
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`name` 是一个非常一般的术语。你期望什么样的名称？科学名称？通用名称？'
+- en: The boolean `endangered` field is also ambiguous. What if an animal is extinct?
+    Is the intent here “endangered or worse?” Or does it literally mean endangered?
+  id: totrans-301
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 布尔值字段 `endangered` 也存在歧义。如果一个动物已经灭绝了怎么办？这里的意图是“濒危或更糟？”还是字面上的濒危？
+- en: The `habitat` field is very ambiguous, not just because of the overly broad
+    `string` type ([Item 33](#avoid-strings)) but also because it’s unclear what’s
+    meant by “habitat.”
+  id: totrans-302
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`habitat` 字段非常模糊，不仅因为过于广泛的 `string` 类型（[第33项](#avoid-strings)），而且还不清楚“栖息地”指的是什么。'
+- en: The variable name is `leopard`, but the value of the `name` property is “Snow
+    Leopard.” Is this distinction meaningful?
+  id: totrans-303
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 变量名为 `leopard`，但 `name` 属性的值是 “Snow Leopard”。这种区分是否有意义？
+- en: 'Here’s a type declaration and value with less ambiguity:'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个更少歧义的类型声明和值：
+- en: '[PRE77]'
+  id: totrans-305
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: 'This makes a number of improvements:'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这带来了一些改进：
+- en: '`name` has been replaced with more specific terms: `commonName`, `genus`, and
+    `species`.'
+  id: totrans-307
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`名称（name）`已被更具体的术语替代：`通用名称（commonName）`、`属（genus）`和`种（species）`。'
+- en: '`endangered` has become `conservationStatus` and uses a standard classification
+    system from the IUCN.'
+  id: totrans-308
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`濒危（endangered）`已成为`保护状态（conservationStatus）`，并使用了IUCN的标准分类系统。'
+- en: '`habitat` has become `climates` and uses another standard taxonomy, the Köppen
+    climate classification.'
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`栖息地（habitat）`已变为`气候（climates）`，并使用了另一个标准分类系统，即Köppen气候分类。'
+- en: If you needed more information about the fields in the first version of this
+    type, you’d have to go find the person who wrote them and ask. In all likelihood,
+    they’ve left the company or don’t remember. Worse yet, you might run `git blame`
+    to find out who wrote these lousy types, only to find that it was you!
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你需要更多关于第一版此类字段的信息，你将不得不去找编写它们的人并询问。很可能他们已经离开公司或忘记了。更糟糕的是，你可能会用`git blame`来找出写这些糟糕类型的人，结果发现那个人是你自己！
+- en: The situation is much improved with the second version. If you want to learn
+    more about the Köppen climate classification system or track down what the precise
+    meaning of a conservation status is, then there are myriad resources online to
+    help you.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 情况在第二版中得到了显著改善。如果你想了解更多关于Köppen气候分类系统的信息，或追溯保护状态的精确含义，那么网络上有无数资源可以帮助你。
+- en: Every domain has specialized vocabulary to describe its subject. Rather than
+    inventing your own terms, try to reuse terms from the domain of your problem.
+    These vocabularies have often been honed over years, decades, or centuries and
+    are well understood by people in the field. Using these terms will help you communicate
+    with users and increase the clarity of your types.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个领域都有专门的词汇来描述其主题。与其创造自己的术语，不如尝试重用与问题领域相关的术语。这些词汇往往经过多年、几十年甚至几个世纪的磨练，被领域内的人们充分理解。使用这些术语将有助于与用户沟通，并提高类型的清晰度。
+- en: 'Take care to use domain vocabulary accurately: co-opting the language of a
+    domain to mean something different is even more confusing than inventing your
+    own.'
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保准确使用领域词汇：将领域语言用来表达不同含义比创造自己的术语更加令人困惑。
+- en: 'Here are a few other rules to keep in mind as you name types, properties, and
+    variables:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在命名类型、属性和变量时，请记住以下几条规则：
+- en: Make distinctions meaningful. In writing and speech it can be tedious to use
+    the same word over and over. We introduce synonyms to break the monotony. This
+    makes prose more enjoyable to read, but it has the opposite effect on code. If
+    you use two different terms, make sure you’re drawing a meaningful distinction.
+    If not, you should use the same term.
+  id: totrans-315
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使区别具有意义。在写作和演讲中，反复使用同一个词可能很乏味。我们引入同义词来打破单调。这使得散文更易读，但对代码的影响则相反。如果你使用了两个不同的术语，请确保你在进行有意义的区分。如果不是，你应该使用相同的术语。
+- en: Avoid vague, meaningless names like “data,” “info,” “thing,” “item,” “object,”
+    or the ever-popular “entity.” If Entity has a specific meaning in your domain,
+    fine. But if you’re using it because you don’t want to think of a more meaningful
+    name, then you’ll eventually run into trouble.
+  id: totrans-316
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免使用模糊、无意义的名称，如“数据（data）”、“信息（info）”、“东西（thing）”、“项目（item）”、“对象（object）”或广受欢迎的“实体（entity）”。如果在你的领域中“实体（entity）”有特定的含义，那没问题。但如果你使用它是因为不想想出一个更有意义的名称，那么最终你会遇到麻烦。
+- en: Name things for what they are, not for what they contain or how they are computed.
+    `Directory` is more meaningful than `INodeList`. It allows you to think about
+    a directory as a concept, rather than in terms of its implementation. Good names
+    can increase your level of abstraction and decrease your risk of inadvertent collisions.
+  id: totrans-317
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 命名物品要根据它们的实际内容或计算方式，而不是它们包含的内容或计算方式。`目录（Directory）`比`INodeList`更有意义。它使你可以把目录作为一个概念来思考，而不是只考虑它的实现方式。良好的命名可以增加抽象级别，并减少无意中的命名冲突风险。
+- en: Things to Remember
+  id: totrans-318
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事项
+- en: Reuse names from the domain of your problem where possible to increase the readability
+    and level of abstraction of your code.
+  id: totrans-319
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在可能的情况下，重复使用问题领域中的名称，以提高代码的可读性和抽象级别。
+- en: 'Avoid using different names for the same thing: make distinctions in names
+    meaningful.'
+  id: totrans-320
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免对同一事物使用不同的名称：使名称的区别具有意义。
+- en: 'Item 37: Consider “Brands” for Nominal Typing'
+  id: totrans-321
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第37条目：考虑“品牌”用于名义类型
+- en: '[Item 4](ch01.html#structural) discussed structural (“duck”) typing and how
+    it can sometimes lead to surprising results:'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第4条目](ch01.html#structural)讨论了结构（“鸭子”）类型和它有时可能导致令人惊讶的结果：'
+- en: '[PRE78]'
+  id: totrans-323
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: What if you’d like `calculateNorm` to reject 3D vectors? This goes against the
+    structural typing model of TypeScript but is certainly more mathematically correct.
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你希望`calculateNorm`拒绝3D向量怎么办？这与 TypeScript 的结构化类型模型相悖，但在数学上是更加正确的。
+- en: 'One way to achieve this is with *nominal typing*. With nominal typing, a value
+    is a `Vector2D` because you say it is, not because it has the right shape. To
+    approximate this in TypeScript, you can introduce a “brand” (think cows, not Coca-Cola):'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实现这一点的一种方法是使用*名称类型*。使用名称类型，一个值是`Vector2D`，是因为你这么说，而不是因为它具有正确的形状。要在 TypeScript
+    中近似此功能，你可以引入一个“品牌”（想想牛，而不是可口可乐）：
+- en: '[PRE79]'
+  id: totrans-326
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: 'The brand ensures that the vector came from the right place. Granted there’s
+    nothing stopping you from adding `_brand: ''2d''` to the `vec3D` value. But this
+    is moving from the accidental into the malicious. This sort of brand is typically
+    enough to catch inadvertent misuses of functions.'
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '品牌确保向量来自正确的位置。虽然你可以在`vec3D`值中添加`_brand: ''2d''`，但这是从意外变成恶意的一步。这种品牌通常足以捕捉函数的无意误用。'
+- en: Interestingly, you can get many of the same benefits as explicit brands while
+    operating only in the type system. This removes runtime overhead and also lets
+    you brand built-in types like `string` or `number` where you can’t attach additional
+    properties.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是，你可以在仅在类型系统中操作的情况下获得与显式品牌相同的许多好处。这消除了运行时开销，还允许你对内置类型如`string`或`number`进行品牌化，无法附加附加属性的地方。
+- en: For instance, what if you have a function that operates on the filesystem and
+    requires an absolute (as opposed to a relative) path? This is easy to check at
+    runtime (does the path start with “/”?) but not so easy in the type system.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果你有一个在文件系统上操作并需要绝对路径（而不是相对路径）的函数，这在运行时很容易检查（路径是否以“/”开头？）但在类型系统中不那么容易。
+- en: 'Here’s an approach with brands:'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是一种使用品牌的方法：
+- en: '[PRE80]'
+  id: totrans-331
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: You can’t construct an object that is a `string` and has a `_brand` property.
+    This is purely a game with the type system.
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你无法构造一个既是`string`又具有`_brand`属性的对象。这纯粹是在类型系统中玩游戏。
+- en: 'If you have a `string` path that could be either absolute or relative, you
+    can check using the type guard, which will refine its type:'
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你有一个可能是绝对路径或相对路径的`string`路径，你可以使用类型守卫进行检查，这将细化其类型：
+- en: '[PRE81]'
+  id: totrans-334
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: 'This sort of approach could be helpful in documenting which functions expect
+    absolute or relative paths and which type of path each variable holds. It is not
+    an ironclad guarantee, though: `path as AbsolutePath` will succeed for any `string`.
+    But if you avoid these sorts of assertions, then the only way to get an `AbsolutePath`
+    is to be given one or to check, which is exactly what you want.'
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法可能有助于记录哪些函数期望绝对路径或相对路径以及每个变量持有的路径类型。但这并非铁证保证：`path as AbsolutePath`将对任何`string`成功。但如果避免这些断言，那么获取`AbsolutePath`的唯一方法就是被给予一个或检查，这正是你想要的。
+- en: 'This approach can be used to model many properties that cannot be expressed
+    within the type system. For example, using binary search to find an element in
+    a list:'
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法可用于建模许多无法在类型系统中表示的属性。例如，使用二分搜索在列表中查找元素：
+- en: '[PRE82]'
+  id: totrans-337
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE82]'
+- en: 'This works if the list is sorted, but will result in false negatives if it
+    is not. You can’t represent a sorted list in TypeScript’s type system. But you
+    can create a brand:'
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果列表已排序，则此方法有效，但如果列表未排序，则会导致错误的负面结果。在 TypeScript 的类型系统中无法表示排序列表。但你可以创建一个品牌：
+- en: '[PRE83]'
+  id: totrans-339
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE83]'
+- en: In order to call this version of `binarySearch`, you either need to be given
+    a `SortedList` (i.e., have a proof that the list is sorted) or prove that it’s
+    sorted yourself using `isSorted`. The linear scan isn’t great, but at least you’ll
+    be safe!
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了调用这个版本的`binarySearch`，你要么需要得到一个`SortedList`（即具有列表已排序的证明），要么用`isSorted`自行证明它已排序。线性扫描不是很好，但至少你会安全！
+- en: This is a helpful perspective to have on the type checker in general. In order
+    to call a method on an object, for instance, you either need to be given a non-`null`
+    object or prove that it’s non-`null` yourself with a conditional.
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是对类型检查器的一种有益的视角。例如，为了在对象上调用方法，你要么需要获得一个非`null`对象，要么用条件证明它不是`null`。
+- en: 'You can also brand `number` types—for example, to attach units:'
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以对`number`类型进行品牌化——例如，附加单位：
+- en: '[PRE84]'
+  id: totrans-343
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE84]'
+- en: 'This can be awkward in practice since arithmetic operations make the numbers
+    forget their brands:'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在实践中可能会有些尴尬，因为算术操作会使数字忘记它们的品牌：
+- en: '[PRE85]'
+  id: totrans-345
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE85]'
+- en: If your code involves lots of numbers with mixed units, however, this may still
+    be an attractive approach to documenting the expected types of numeric parameters.
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的代码涉及大量带有混合单位的数字，这种方式仍然可能是记录数字参数预期类型的一种吸引人的方法。
+- en: Things to Remember
+  id: totrans-347
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: TypeScript uses structural (“duck”) typing, which can sometimes lead to surprising
+    results. If you need nominal typing, consider attaching “brands” to your values
+    to distinguish them.
+  id: totrans-348
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript 使用结构化（“鸭子”）类型，有时会导致令人意外的结果。如果你需要名义上的类型，请考虑为你的值附加“品牌”以区分它们。
+- en: In some cases you may be able to attach brands entirely in the type system,
+    rather than at runtime. You can use this technique to model properties outside
+    of TypeScript’s type system.
+  id: totrans-349
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在某些情况下，你可以完全在类型系统中附加品牌，而不是在运行时附加。你可以使用这种技术来建模 TypeScript 类型系统之外的属性。
+- en: ^([1](ch04.html#idm45331654786008-marker)) GeoJSON is also known as RFC 7946\.
+    The very readable spec is at [*http://geojson.org*](http://geojson.org).
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch04.html#idm45331654786008-marker)) GeoJSON 也被称为 RFC 7946。这个非常易读的规范可以在
+    [*http://geojson.org*](http://geojson.org) 找到。

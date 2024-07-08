@@ -1,0 +1,710 @@
+- en: Chapter 24\. Mobile Application Authentication
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第24章 手机应用程序认证
+- en: If you’ve ever stayed with a relative, vacationed at a rental property, or rented
+    a furnished apartment, you know what it’s like to be surrounded by things that
+    aren’t yours. It can be hard to feel settled in these types of environments, not
+    wanting to leave something out of place or make a mess. When I’m in these situations,
+    no matter how kind or accommodating the host is, this lack of ownership leaves
+    me on edge. What can I say? I’m just not comfortable unless I can put a glass
+    down without a coaster.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你曾与亲戚住过，或在租赁物业度假，或租了一间带家具的公寓，你就知道被周围不属于自己的东西包围是什么感觉。在这些环境中很难感到舒适，不想让东西摆放不整齐或弄脏。当我处于这种情况时，无论主人多么友好或周到，这种缺乏归属感总让我感到紧张。我能说什么呢？除非我能放下杯子而不用垫子，否则我就不会感到舒适。
+- en: Without the ability to customize or read user-specific data, our app might fill
+    users with the same sense of discomfort. Their notes are simply mixed in with
+    those of everyone else, not making the application truly their own. In this chapter
+    we’ll add authentication to our application. To accomplish this, we’ll introduce
+    an authentication routing flow, store token data using Expo’s `SecureStore`, create
+    text forms in React Native, and perform authentication GraphQL mutations.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的应用程序无法自定义或读取用户特定数据，用户可能会感到不适。他们的笔记只是与其他人混在一起，使得应用程序无法真正成为他们自己的。在本章中，我们将为我们的应用程序添加认证功能。为了实现这一点，我们将引入认证路由流程，使用Expo的`SecureStore`存储令牌数据，在React
+    Native中创建文本表单，并执行认证GraphQL变更。
+- en: Authentication Routing Flow
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 认证路由流程
+- en: Let’s begin by creating our authentication flow. When a user first accesses
+    our application, we’ll present them with a sign-in screen. When the user signs
+    in, we’ll store a token on the device, allowing them to bypass the sign-in screen
+    on future application uses. We’ll also add a settings screen, where a user can
+    click a button to log out of the application and remove the token from their device.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们开始创建我们的认证流程。当用户首次访问我们的应用程序时，我们将向他们呈现一个登录屏幕。用户登录后，我们将在设备上存储一个令牌，允许他们在将来的应用程序使用中绕过登录屏幕。我们还将添加一个设置屏幕，用户可以点击按钮退出应用程序并从他们的设备中删除令牌。
+- en: 'To accomplish this, we’ll be adding several new screens:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了实现这一点，我们将添加几个新的屏幕：
+- en: '*authloading.js*'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*authloading.js*'
+- en: This will be an interstitial screen, which users won’t interact with. When the
+    app is opened, we’ll use the screen to check if a token is present and navigate
+    the user to either the sign-in screen or the application content.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将是一个插页屏幕，用户不会与之交互。当应用程序打开时，我们将使用这个屏幕来检查是否存在令牌，并将用户导航到登录屏幕或应用程序内容。
+- en: '*signin.js*'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*signin.js*'
+- en: This is the screen where a user can sign in to their account. After a successful
+    login attempt, we will store a token on the device.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是用户可以登录其帐户的屏幕。登录尝试成功后，我们将在设备上存储一个令牌。
+- en: '*settings.js*'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*settings.js*'
+- en: In the settings screen, a user will be able to click a button and log out of
+    the application. Once they are logged out, they will be routed back to the sign-in
+    screen.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在设置屏幕中，用户将能够点击按钮退出应用程序。一旦他们退出登录，他们将被路由回登录屏幕。
+- en: Using an Existing Account
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用现有帐户
+- en: We’ll be adding the ability to create an account through the app later in the
+    chapter. If you haven’t already, it would be useful to create an account either
+    directly through your API instance’s GraphQL Playground or the web application
+    interface.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在本章后面添加通过应用程序创建帐户的能力。如果你还没有这样做，通过你的API实例的GraphQL Playground或Web应用程序界面创建一个帐户会很有用。
+- en: For storing and working with tokens, we’ll be using Expo’s [SecureStore library](https://oreil.ly/nvqEO).
+    I’ve found SecureStore to be a straightforward way to encrypt and store data locally
+    on a device. For iOS devices, SecureStore makes use of the built-in [keychain
+    services](https://oreil.ly/iCu8R), while on Android it uses the OS’s Shared Preferences,
+    encrypting the data with [Keystore](https://oreil.ly/gIXsp). All of this happens
+    under the hood, allowing us to simply store and retrieve data.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了存储和处理令牌，我们将使用Expo的[SecureStore库](https://oreil.ly/nvqEO)。我发现SecureStore是一种简单的方式，在设备上本地加密和存储数据。对于iOS设备，SecureStore利用内置的[keychain服务](https://oreil.ly/iCu8R)，而在Android上则使用操作系统的Shared
+    Preferences，并使用[Keystore](https://oreil.ly/gIXsp)加密数据。所有这些都是在幕后进行的，使我们能够简单地存储和检索数据。
+- en: 'To begin with, we’ll create our sign-in screen. For now, our sign-in screen
+    will consist of a `Button` component that, when pressed, will store a token. Let’s
+    create a new screen component at *src/screens/signin.js*, importing our dependencies:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将创建我们的登录屏幕。目前，我们的登录屏幕将包含一个`Button`组件，按下该按钮将存储一个令牌。让我们在*src/screens/signin.js*创建一个新的屏幕组件，并导入我们的依赖项：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Next, let’s create our authentication loading component at *src/screens/authloading.js*,
+    which for now will simply display a loading indicator:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们在*src/screens/authloading.js*创建我们的认证加载组件，目前它将简单地显示一个加载指示器：
+- en: '[PRE1]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Finally, we can create our settings screen at *src/screens/settings.js*:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以在*src/screens/settings.js*创建我们的设置屏幕：
+- en: '[PRE2]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'With these components written, we will update our routing to handle the authenticated
+    and unauthenticated states. In *src/screens/index.js*, add the new screens to
+    our list of import statements as follows:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写完这些组件后，我们将更新路由以处理已认证和未认证的状态。在*src/screens/index.js*中，按以下方式将新屏幕添加到我们的导入语句列表中：
+- en: '[PRE3]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: We’ll also need to update our `react-navigation` dependency to include `createSwitchNavigator`,
+    which allows us to display a single screen at a time and switch between them.
+    The [`SwitchNavigator`](https://oreil.ly/vSURH) resets routes to the default state
+    when a user navigates and does not offer back-navigation options.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要更新我们的`react-navigation`依赖项，包括`createSwitchNavigator`，它允许我们一次显示一个屏幕并在它们之间切换。[`SwitchNavigator`](https://oreil.ly/vSURH)在用户导航时重置路由到默认状态，并且不提供后退导航选项。
+- en: '[PRE4]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'We can create a new `StackNavigator` for our authentication and settings screens.
+    This will allow us to add subnavigation screens when or if needed in the future:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以为我们的认证和设置屏幕创建一个新的`StackNavigator`。这将允许我们在将来需要时添加子导航屏幕：
+- en: '[PRE5]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'We will then add our settings screen to the bottom `TabNavigator`. The rest
+    of the tab navigation settings will stay the same:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将我们的设置屏幕添加到底部的`TabNavigator`。其余的选项卡导航设置将保持不变：
+- en: '[PRE6]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'We can now create our `SwitchNavigator` by defining the screens to switch between
+    and setting a default screen, the `AuthLoading`. We’ll then replace our existing
+    `export` statement with one that exports the `SwitchNavigator`:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以通过定义要在其间切换的屏幕并设置默认屏幕`AuthLoading`来创建我们的`SwitchNavigator`。然后，我们将用一个导出`SwitchNavigator`的新`export`语句替换我们现有的语句：
+- en: '[PRE7]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'All together, our *src/screens/index.js* file will appear as follows:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些组件一起，我们的*src/screens/index.js*文件将如下所示：
+- en: '[PRE8]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Right now, when we preview our app we’ll only see loading spinner, since our
+    `AuthLoading` route is the initial screen. Let’s update this so that the loading
+    screen checks for the existence of a `token` value in the application’s `SecureStore`.
+    If the token is present, we’ll navigate the user to the main application screen.
+    However, if no token is present, the user should be routed to the sign-in screen.
+    Let’s update *src/screens/**authloading.js* to perform this check:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当我们预览我们的应用程序时，我们只会看到加载旋转器，因为`AuthLoading`路由是初始屏幕。让我们更新这个，以便加载屏幕检查应用程序的`SecureStore`中是否存在`token`值。如果令牌存在，我们将用户导航到主应用程序屏幕。但是，如果没有令牌存在，用户应该被路由到登录屏幕。让我们更新*src/screens/**authloading.js*来执行这个检查：
+- en: '[PRE9]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'With this change, when we load the app we should now be routed to the sign-in
+    screen, since no token is present. For now, let’s update our sign-in screen to
+    store a generic token and navigate to the application when the user presses the
+    button ([Figure 24-1](#temp_sign_in)):'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个变化，当我们加载应用程序时，现在我们应该被路由到登录屏幕，因为没有令牌存在。现在，让我们更新我们的登录屏幕，以便在用户按下按钮时存储一个通用令牌，并导航到应用程序（[图24-1](#temp_sign_in)）。
+- en: '[PRE10]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '![A screenshot of the temporary sign in screen](assets/jsev_2401.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![临时登录屏幕的截图](assets/jsev_2401.png)'
+- en: Figure 24-1\. Clicking the button will store a token and route the user to the
+    application
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图24-1。单击按钮将存储一个令牌并将用户路由到应用程序
+- en: 'Now, when a user presses the button, a token is stored via `SecureStore`. With
+    the sign-in functionality in place, let’s add the ability for users to sign out
+    of the application. To do so, we’ll add a button on our settings screen that,
+    when pressed, will remove the *token* from `SecureStore` ([Figure 24-2](#sign-out)).
+    In *src/screens/settings.js*:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当用户按下按钮时，将通过`SecureStore`存储一个令牌。通过设置登录功能，让我们添加用户退出应用程序的功能。为此，在我们的设置屏幕上添加一个按钮，按下该按钮将从`SecureStore`中删除*token*（[图24-2](#sign-out)）。在*src/screens/settings.js*中：
+- en: '[PRE11]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '![A screenshot of the setting screen](assets/jsev_2402.png)'
+  id: totrans-41
+  prefs: []
+  type: TYPE_IMG
+  zh: '![设置屏幕的截图](assets/jsev_2402.png)'
+- en: Figure 24-2\. Clicking the button will remove the token from the device and
+    return the user to the sign-in screen
+  id: totrans-42
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 24-2\. 点击按钮将从设备中删除令牌，并将用户返回到登录屏幕
+- en: With these pieces in place, we have everything we need to create an application
+    authentication flow.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些组件，我们拥有了创建应用程序认证流所需的一切。
+- en: Be Sure to Sign Out
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 记得登出
+- en: If you haven’t already, tap the Sign Out button in your local app instance.
+    We’ll be adding proper sign-in functionality in the upcoming sections.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你还没有这样做，请点击本地应用实例中的登出按钮。我们将在接下来的章节中添加适当的登录功能。
+- en: Creating a Sign-in Form
+  id: totrans-46
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个登录表单
+- en: 'While we can now click a button and store a token on the user’s device, we’re
+    not yet allowing a user to sign in to an account by entering their own information.
+    Let’s begin to remedy this by creating a form where a user can enter their email
+    address and password. To do this, we’ll create a new component at *src/components/UserForm.js*
+    with a form using React Native’s `TextInput` component:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们现在可以点击按钮并在用户设备上存储令牌，但我们还没有允许用户通过输入自己的信息来登录帐户。让我们通过创建一个表单来解决这个问题，用户可以在其中输入他们的电子邮件地址和密码。为此，我们将在
+    *src/components/UserForm.js* 中创建一个新的组件，使用 React Native 的 `TextInput` 组件编写表单：
+- en: '[PRE12]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Now we can display this form on our authentication screen. To do so, update
+    *src/screens/signin.js* to import and use the component like so:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在我们的认证屏幕上显示这个表单了。为此，更新 *src/screens/signin.js* 以导入并使用该组件，如下所示：
+- en: '[PRE13]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'With this, we’ll see a basic form display on the authentication screen, but
+    it lacks any style or functionality. We can continue implementing the form in
+    our *src/components/UserForm.js* file. We’ll be using React’s `useState` hook
+    to read and set the values of our form elements:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这一步骤，我们将在认证屏幕上看到一个基本的表单显示，但缺乏任何样式或功能。我们可以继续在我们的 *src/components/UserForm.js*
+    文件中实现表单。我们将使用 React 的 `useState` 钩子来读取和设置我们表单元素的值：
+- en: '[PRE14]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Now we can add a few more additional properties to our form elements to provide
+    users with the expected functionality when working with email addresses or passwords.
+    Full documentation of the `TextInput` API can be found in the [React Native docs](https://oreil.ly/yvgyU).
+    We’ll also call a function when the button is pressed, though the functionality
+    will be limited.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以为我们的表单元素添加一些额外的属性，以便在处理电子邮件地址或密码时为用户提供预期的功能。完整的 `TextInput` API 文档可以在
+    [React Native docs](https://oreil.ly/yvgyU) 中找到。当按钮被按下时，我们还将调用一个函数，尽管功能会有所限制。
+- en: '[PRE15]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Our form has all of the necessary components, but the styling leaves a lot
+    to be desired. Let’s use the Styled Components library to give the form a more
+    appropriate appearance:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的表单具备所有必要的组件，但样式还有很大的提升空间。让我们使用 Styled Components 库，为表单赋予更合适的外观：
+- en: '[PRE16]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Finally, our `Button` component is limited to the default style options, with
+    the exception of accepting a `color` property value. To create a custom-styled
+    button component, we can use the React Native wrapper `TouchableOpacity` (see
+    [Figure 24-3](#styled-sign-in)):'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们的 `Button` 组件仅限于默认样式选项，除了接受一个 `color` 属性值。要创建一个自定义样式的按钮组件，我们可以使用 React
+    Native 的包装器 `TouchableOpacity`（见 [Figure 24-3](#styled-sign-in)）：
+- en: '[PRE17]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: With this, we’ve implemented a sign-in form and applied custom styles. Let’s
+    now implement the form’s functionality.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个步骤，我们实现了一个登录表单并应用了自定义样式。现在让我们实现表单的功能。
+- en: '![A screenshot of the completed sign in form](assets/jsev_2403.png)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个完成的登录表单的截图](assets/jsev_2403.png)'
+- en: Figure 24-3\. Our sign-in form with custom styles
+  id: totrans-61
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 24-3\. 我们的带有自定义样式的登录表单
+- en: Authentication with GraphQL Mutations
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 GraphQL Mutations 进行认证
+- en: You may recall the authentication flow we’ve developed from the API and web
+    application chapters, but before moving forward let’s do a quick refresher. We
+    will send a GraphQL mutation to our API that includes the user’s email address
+    and password. If the email address is present in our database and the password
+    is correct, our API will respond with a JWT. We can then store the token on the
+    user’s device, as we’ve already been doing, and send it along with every GraphQL
+    request. This will allow us to identify the user on every API request, without
+    requiring them to constantly re-enter their password.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能还记得我们从 API 和 Web 应用程序章节中开发的认证流程，但在继续之前让我们做一个快速复习。我们将向我们的 API 发送一个包含用户电子邮件地址和密码的
+    GraphQL mutation。如果电子邮件地址存在于我们的数据库中并且密码正确，我们的 API 将回复一个 JWT。我们可以像之前一样将令牌存储在用户的设备上，并在每个
+    GraphQL 请求中发送它。这将允许我们在每个 API 请求中识别用户，而无需他们不断重新输入密码。
+- en: 'With our form in place, we can write our GraphQL mutation in *src/screens/signin.js*.
+    First, we’ll add the Apollo libraries as well as our `Loading` component to our
+    list of imports:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了我们的表单，我们可以在*src/screens/signin.js*中编写我们的GraphQL mutation。首先，我们将添加Apollo库以及我们的`Loading`组件到我们的导入列表中：
+- en: '[PRE18]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'Next, we can add our GraphQL query:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们可以添加我们的GraphQL查询：
+- en: '[PRE19]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'And update our `storeToken` function to store a token string passed as a parameter:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并更新我们的`storeToken`函数以存储作为参数传递的令牌字符串：
+- en: '[PRE20]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Finally, we update the component as a GraphQL mutation. We’ll also pass several
+    property values to the `UserForm` component, allowing us to share the mutation
+    data, identify the type of form we are calling, and make use of the router’s navigation.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将组件更新为GraphQL mutation。我们还将几个属性值传递给`UserForm`组件，允许我们共享mutation数据，标识我们调用的表单类型，并利用路由器的导航。
+- en: '[PRE21]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Now we can make a simple change in our *src/components/UserForm.js* component,
+    which will enable it to pass the user-entered data to the mutation. Within the
+    component, we will update our `handleSubmit` function to pass the form values
+    to our mutation:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在*src/components/UserForm.js*组件中做一个简单的更改，使其能够将用户输入的数据传递给mutation。在组件内部，我们将更新我们的`handleSubmit`函数，以将表单值传递给我们的mutation：
+- en: '[PRE22]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: With our mutation written and form complete, users can now sign in to the application,
+    which will store the returned JSON Web Token for future use.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们编写完毕并完成表单时，用户现在可以登录应用程序，该应用程序将存储返回的JSON Web Token以备将来使用。
+- en: Authenticated GraphQL Queries
+  id: totrans-75
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 鉴权GraphQL查询
+- en: Now that our users can sign-in to their account, we’ll need to use the stored
+    token to authenticate each request. This will allow us to request user-specific
+    data, such as a list of notes by the current user or a list of notes the user
+    has marked as “favorites.” To accomplish this, we’ll update the Apollo configuration
+    to check for the existence of a token and, when one is present, send that token’s
+    value with each API call.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的用户可以登录他们的帐户，我们需要使用存储的令牌来认证每个请求。这将允许我们请求用户特定的数据，例如当前用户的笔记列表或用户标记为“收藏夹”的笔记列表。为此，我们将更新Apollo配置以检查令牌的存在，并在存在令牌时发送该令牌的值与每个API调用。
+- en: 'In *src/Main.js*, first add `SecureStore` to the list of imports and update
+    the Apollo Client dependencies to include `createHttpLink` and `setContext`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/Main.js*中，首先将`SecureStore`添加到导入列表中，并更新Apollo Client的依赖项以包括`createHttpLink`和`setContext`：
+- en: '[PRE23]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'We can then update our Apollo Client configuration to send the token value
+    with each request:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以更新我们的Apollo Client配置以发送每个请求的令牌值：
+- en: '[PRE24]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: With the token sent in the header of each request, we can now update the `mynotes`
+    and `favorites` screens to request user-specific data. If you followed along through
+    the web chapters, these queries should look very familiar.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用每个请求头中的令牌，我们现在可以更新`mynotes`和`favorites`屏幕，请求用户特定的数据。如果您通过网络章节跟随，这些查询应该非常熟悉。
+- en: 'In *src/screens/mynotes.js*:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/screens/mynotes.js*中：
+- en: '[PRE25]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'In *src/screens/favorites.js*:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/screens/favorites.js*中：
+- en: '[PRE26]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '![An image of a cartoonish tiger head](assets/jsev_2404.png)'
+  id: totrans-86
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一张卡通虎头的图片](assets/jsev_2404.png)'
+- en: Figure 24-4\. Passing the token in the header of each request allows us to make
+    user-specific queries in our application
+  id: totrans-87
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图24-4\. 在每个请求的头部传递令牌允许我们在应用程序中进行用户特定的查询。
+- en: We are now retrieving user-specific data based on the token value stored on
+    the user’s device ([Figure 24-4](#authenticated_query)).
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们基于存储在用户设备上的令牌值检索用户特定的数据（[图24-4](#authenticated_query)）。
+- en: Adding a Sign-up Form
+  id: totrans-89
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加注册表单
+- en: Right now a user can sign in to an existing account, but they have no way to
+    create an account if one doesn’t exist. A common UI pattern is to add a link to
+    a registration form below the sign-in link (or vice versa). Let’s add a sign-up
+    screen to allow users to create a new account from within our application.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在用户可以登录到现有帐户，但如果不存在帐户，他们无法创建帐户。一个常见的UI模式是在登录链接下（或反之）添加一个链接到注册表单的链接。让我们添加一个注册屏幕，以允许用户从应用程序内创建新帐户。
+- en: 'To begin, let’s create a new screen component at *src/screens/signup.js*. This
+    component will be nearly identical to our sign-in screen, but we’ll call our `signUp`
+    GraphQL mutation and pass a `formType="signUp"` property to our `UserForm` component:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们在*src/screens/signup.js*创建一个新的屏幕组件。这个组件将几乎与我们的登录屏幕相同，但我们将调用我们的`signUp`
+    GraphQL mutation，并将一个`formType="signUp"`属性传递给我们的`UserForm`组件：
+- en: '[PRE27]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'With the screen created, we can add it to our router. In the *src/screens/index.js*
+    file, first add the new component to our list of file imports:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建了屏幕后，我们可以将其添加到我们的路由器中。在*src/screens/index.js*文件中，首先将新组件添加到我们的文件导入列表中：
+- en: '[PRE28]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'Next, we will update our `AuthStack` to include the sign-up screen:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将更新我们的`AuthStack`以包括注册屏幕：
+- en: '[PRE29]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: With this, our component is created and routable; however, our `UserForm` component
+    does not contain all of the necessary fields. Rather than creating a registration
+    form component, we can make use of the `formType` property that we’re passing
+    to `UserForm` to customize the form, depending on the type.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这样，我们的组件已经创建并且可路由；然而，我们的`UserForm`组件并不包含所有必要的字段。与其创建一个注册表单组件，我们可以利用传递给`UserForm`的`formType`属性来根据类型自定义表单。
+- en: 'In our *src/components/UserForm.js* file, let’s first update the form to include
+    a username field when the `formType` equals `signUp`:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的*src/components/UserForm.js*文件中，首先在`formType`等于`signUp`时更新表单以包含用户名字段：
+- en: '[PRE30]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Next, let’s add a link at the bottom of the sign-in form that will allow a
+    user to route to the sign-up form when pressed:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，在登录表单底部添加一个链接，当按下时允许用户路由到注册表单：
+- en: '[PRE31]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'We can then use styled components to update the look of the link:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以使用styled components来更新链接的外观：
+- en: '[PRE32]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'And in the component’s JSX:'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并且在组件的JSX中：
+- en: '[PRE33]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'All together, our *src/components/UserForm.js* file will now be as follows:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，我们的*src/components/UserForm.js*文件现在如下所示：
+- en: '[PRE34]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: With these changes, a user can both sign in and register for an account with
+    our application ([Figure 24-5](#reg_screen)).
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更改，用户可以在我们的应用程序中既登录又注册帐户（[图24-5](#reg_screen)）。
+- en: '![A screenshot of the completed sign in and sign up screens](assets/jsev_2405.png)'
+  id: totrans-109
+  prefs: []
+  type: TYPE_IMG
+  zh: '![完成的登录和注册屏幕的截图](assets/jsev_2405.png)'
+- en: Figure 24-5\. A user can now register an account and navigate between the authentication
+    screens
+  id: totrans-110
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图24-5\. 用户现在可以注册一个帐户并在认证屏幕之间导航
+- en: Conclusion
+  id: totrans-111
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we looked at how to bring authentication to an application.
+    Through a combination of React Native’s text form elements, React Navigation’s
+    routing capabilities, Expo’s SecureStore library, and GraphQL mutations, we can
+    create a user-friendly authentication flow. Having a solid understanding of this
+    type of authentication also enables us to explore additional React Native authentication
+    methods, such as Expo’s [`AppAuth`](https://oreil.ly/RaxNo) or [`GoogleSignIn`](https://oreil.ly/Ic6BW).
+    In this next chapter, we’ll look at how we can publish and distribute a React
+    Native application.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们看了如何为应用程序引入身份验证。通过React Native的文本表单元素、React Navigation的路由能力、Expo的SecureStore库和GraphQL的mutations的组合，我们可以创建用户友好的身份验证流程。对这种类型的身份验证有扎实的理解还使我们能够探索额外的React
+    Native身份验证方法，例如Expo的[`AppAuth`](https://oreil.ly/RaxNo)或[`GoogleSignIn`](https://oreil.ly/Ic6BW)。在下一章中，我们将看看如何发布和分发React
+    Native应用程序。

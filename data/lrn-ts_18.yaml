@@ -1,0 +1,1146 @@
+- en: Chapter 14\. Syntax Extensions
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 14 章。语法扩展
+- en: “TypeScript does not add
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “TypeScript 不会添加
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: to the JavaScript runtime.”
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 到 JavaScript 运行时的影响。”
+- en: ''
+  id: totrans-4
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: …was that all a lie?!
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: …那一切都是谎言吗？！
+- en: When TypeScript was first released in 2012, web applications were growing in
+    complexity faster than plain JavaScript was adding features that supported the
+    deep complexity. The most popular JavaScript language flavor at the time, CoffeeScript,
+    had made its mark diverging from JavaScript by introducing new and exciting syntactic
+    constructs.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 TypeScript 在 2012 年首次发布时，Web 应用程序的复杂性增长速度远远快于普通 JavaScript 添加支持深层复杂性的功能。当时最流行的
+    JavaScript 语言变体，CoffeeScript，通过引入新颖的语法结构，与 JavaScript 趋向分歧。
+- en: 'Nowadays, extending JavaScript syntax with new runtime features specific to
+    a superset language such as TypeScript is considered bad practice for several
+    reasons:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如今，通过引入针对 TypeScript 等超集语言的新运行时特性扩展 JavaScript 语法被认为是不良实践，原因有几个：
+- en: Most importantly, runtime syntax extensions might conflict with new syntax in
+    newer versions of JavaScript.
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 最重要的是，运行时语法扩展可能与较新版本的 JavaScript 中的新语法冲突。
+- en: They make it more difficult for programmers new to the language to understand
+    where JavaScript ends and other languages begin.
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它们使得对于新接触该语言的程序员来说更难理解 JavaScript 的结束和其他语言的开始。
+- en: They increase complexity of transpilers that take superset language code and
+    emit JavaScript.
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它们增加了将超集语言代码转译为 JavaScript 的转译器的复杂性。
+- en: 'Thus, it is with a heavy heart and deep regret that I must inform you that
+    the early TypeScript designers introduced three syntax extensions to JavaScript
+    in the TypeScript language:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我怀着沉重的心情和深深的遗憾告诉你，早期的 TypeScript 设计者在 TypeScript 语言中引入了三个 JavaScript 语法扩展：
+- en: Classes, which aligned with JavaScript classes as the spec was ratified
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 类，在规范确定的情况下与 JavaScript 类对齐
+- en: Enums, a straightforward syntactic sugar akin to a plain object of keys and
+    values
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 枚举，类似于键和值的普通对象的简单语法糖
+- en: Namespaces, a solution predating modern modules to structure and arrange code
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 命名空间，一种在现代模块之前结构化和排列代码的解决方案
+- en: Note
+  id: totrans-15
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: TypeScript’s “original sin” of runtime syntax extensions to JavaScript is fortunately
+    not a design decision the language has made since its early years. TypeScript
+    does not add new runtime syntax constructs until they have made significant progress
+    through the ratification process to be added to JavaScript itself.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 在 JavaScript 的运行时语法扩展“原罪”在 TypeScript 早期并不是一种设计决策。TypeScript 不会在这些新的运行时语法构造通过严格的审议过程被添加到
+    JavaScript 本身之前引入它们。
+- en: TypeScript classes ended up looking and behaving almost identical to JavaScript
+    classes (phew!) with the exception of `useDefineForClassFields` behavior (a configuration
+    option not covered in this book) and parameter properties (covered here). Enums
+    are still used in some projects because they are occasionally useful. Virtually
+    no new projects use namespaces anymore.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 类最终看起来和行为几乎与 JavaScript 类相同（哦！），除了 `useDefineForClassFields` 行为（本书未涵盖的配置选项）和参数属性（在此涵盖）。由于它们偶尔有用，枚举仍然在某些项目中使用。几乎没有新项目再使用命名空间。
+- en: TypeScript also adopted an experimental proposal for JavaScript “decorators”
+    that I’ll cover as well.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 也采纳了 JavaScript “装饰器”的实验性提案，我也会涵盖这个内容。
+- en: Class Parameter Properties
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类参数属性
+- en: Tip
+  id: totrans-20
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: I recommend avoiding using class parameter properties unless you’re working
+    in a project that heavily uses classes or a framework that would benefit from
+    them.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我建议避免使用类参数属性，除非你在一个大量使用类或从中受益的框架的项目中工作。
+- en: It is common in JavaScript classes to want to take in a parameter in a constructor
+    and immediately assign it to a class property.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 类中，通常希望在构造函数中接收一个参数并立即将其分配给类属性。
+- en: 'This `Engineer` class takes in a single `area` parameter of type `string` and
+    assigns it to an `area` property of type `string`:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 `Engineer` 类接受一个 `area` 参数，类型为 `string`，并将其赋给类型为 `string` 的 `area` 属性：
+- en: '[PRE0]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'TypeScript includes a shorthand syntax for declaring these kinds of “parameter
+    properties”: properties that are assigned to a member property of the same type
+    at the beginning of a class constructor. Placing `readonly` and/or one of the
+    privacy modifiers—`public`, `protected`, or `private`—in front of the parameter
+    to a constructor indicates to TypeScript to also declare a property of that same
+    name and type.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript包括一种用于声明这些“参数属性”的快捷语法：在类构造函数的开头为同一类型的成员属性分配属性。在构造函数参数前面放置`readonly`和/或其中一个隐私修饰符——`public`、`protected`或`private`，告诉TypeScript还要声明一个同名和类型的属性。
+- en: 'The previous `Engineer` example could be rewritten in TypeScript using a parameter
+    property for `area`:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前述的`Engineer`示例可以使用参数属性在TypeScript中重写`area`：
+- en: '[PRE1]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Parameter properties are assigned at the very beginning of the class constructor
+    (or after the `super()` call if the class is derived from a base class). They
+    can be intermixed with other parameters and/or properties on a class.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数属性在类构造函数的最开始（或在继承自基类的情况下`super()`调用之后）被分配。它们可以与类的其他参数和/或属性混合使用。
+- en: 'The following `NamedEngineer` class declares a regular property `fullName`,
+    a regular parameter `name`, and a parameter property `area`:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的`NamedEngineer`类声明了一个常规属性`fullName`，一个常规参数`name`和一个参数属性`area`：
+- en: '[PRE2]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Its equivalent TypeScript without parameter properties looks similar, but with
+    a couple more lines of code to explicitly assign `area`:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有参数属性的等效TypeScript看起来类似，但需要更多代码行来显式赋值`area`：
+- en: '[PRE3]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Parameter properties are a sometimes-debated issue in the TypeScript community.
+    Most projects prefer to avoid them categorically, as they’re a runtime syntax
+    extension and therefore suffer from the same drawbacks I mentioned earlier. They
+    also can’t be used with the newer `#` class private fields syntax.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数属性在TypeScript社区中有时是一个争议性问题。大多数项目倾向于彻底避免它们，因为它们是运行时语法扩展，因此遭受我之前提到的相同缺点的影响。它们也无法与新的`#`类私有字段语法一起使用。
+- en: On the other hand, they’re quite nice when used in projects that heavily favor
+    creating classes. Parameter properties solve a convenience issue of needing to
+    declare the parameter property name and type twice, which is inherent to TypeScript
+    and not JavaScript.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，在那些非常偏爱创建类的项目中，它们的使用效果非常好。参数属性解决了一个便利性问题，即需要两次声明参数属性名称和类型，这是TypeScript固有的，而不是JavaScript。
+- en: Experimental Decorators
+  id: totrans-35
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 实验性装饰器
+- en: Tip
+  id: totrans-36
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 小贴士
+- en: I recommend avoiding decorators if at all possible until a version of ECMAScript
+    is ratified with decorator syntax. If you’re working in a version of a framework
+    such as Angular or NestJS that recommends using TypeScript decorators, the framework’s
+    documentation will guide how to use them.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我建议尽可能避免装饰器，直到ECMAScript的一个版本通过装饰器语法。如果您正在使用像Angular或NestJS这样的框架版本，该框架的文档将指导如何使用它们。
+- en: Many other languages that contain classes allow annotating, or decorating, those
+    classes and/or their members with some kind of runtime logic to modify them. *Decorator*
+    functions are a proposal for JavaScript to allow annotating classes and members
+    by placing a `@` and the name of a function first.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多其他允许类注释或装饰这些类及其成员的语言，使用某种运行时逻辑修改它们。*装饰器*函数是JavaScript允许通过首先放置`@`和函数名称来注释类和成员的建议。
+- en: 'For example, the following code snippet shows just the syntax for using a decorator
+    on a class `MyClass`:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，以下代码段展示了如何在类`MyClass`上使用装饰器的语法：
+- en: '[PRE4]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Decorators have not yet been ratified in ECMAScript, so TypeScript does not
+    support them by default as of version 4.7.2. However, TypeScript does include
+    an `experimentalDecorators` compiler option that allows for an old experimental
+    version of them to be used in code. It can be enabled via the `tsc` CLI or in
+    a TSConfig file, shown here, like other compiler options:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ECMAScript尚未正式通过装饰器，因此截至版本4.7.2，TypeScript默认不支持它们。但是，TypeScript包含一个`experimentalDecorators`编译选项，允许在代码中使用旧的实验版本。可以通过`tsc`命令行或TSConfig文件启用，如下所示，与其他编译选项一样：
+- en: '[PRE5]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Each usage of a decorator will execute once, as soon as the entity it’s decorating
+    is created. Each kind of decorator—accessor, class, method, parameter, and property—receives
+    a different set of arguments describing the entity it’s decorating.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次使用装饰器时，它都会在所装饰的实体创建时执行一次。每种装饰器——访问器、类、方法、参数和属性——都接收一组描述所装饰实体的不同参数。
+- en: 'For example, this `logOnCall` decorator used on a `Greeter` class method receives
+    the `Greeter` class itself, the key of the property (`"log"`), and a `descriptor`
+    object describing the property. Modifying `descriptor.value` to log before calling
+    the original `greet` method on the `Greeter` class “decorates” the `greet` method:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，此`logOnCall`装饰器用于`Greeter`类方法上，接收`Greeter`类本身，属性键（`"log"`），以及描述该属性的`descriptor`对象。修改`descriptor.value`以在调用`Greeter`类上的原始`greet`方法之前记录“装饰”`greet`方法：
+- en: '[PRE6]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: I won’t delve into the nuances and specifics of how the old `experimentalDecorators`
+    works for each of the possible decorator types. TypeScript’s decorator support
+    is experimental and does not align with the latest drafts of the ECMAScript proposal.
+    Writing your own decorators in particular is rarely justified in any TypeScript
+    project.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我不会深入探讨旧的`experimentalDecorators`如何为每种可能的装饰器类型工作的细微差别和具体信息。 TypeScript的装饰器支持是实验性的，并且与ECMAScript提案的最新草案不一致。尤其是在任何TypeScript项目中编写自己的装饰器很少是合理的。
+- en: Enums
+  id: totrans-47
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 枚举
+- en: Tip
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: I recommend not to use enums unless you have a set of literals that are repeated
+    often, can all be described by a common name, and whose code would be much easier
+    to read if switched to an enum.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我建议不要使用枚举，除非您有一组经常重复的字面值，所有这些字面值都可以用一个常见名称描述，并且如果切换到枚举将更容易阅读其代码。
+- en: Most programming languages contain the concept of an “enum,” or enumerated type,
+    to represent a set of related values. Enums can be thought of as a set of literal
+    values stored in an object with a friendly name for each value.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数编程语言包含“枚举”或枚举类型的概念，用于表示一组相关值。枚举可以被视为存储在对象中的一组字面值，并为每个值提供友好的名称。
+- en: 'JavaScript does not include an enum syntax because traditional objects can
+    be used in place of them. For example, while HTTP status codes can be stored and
+    used as numbers, many developers find it more readable to store them in an object
+    that keys them by their friendly name:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript不包括枚举语法，因为传统对象可以用来替代它们。例如，虽然HTTP状态码可以存储并用作数字，但许多开发人员发现将它们存储在由友好名称键入的对象中更易于阅读：
+- en: '[PRE7]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: The tricky thing with enum-like objects in TypeScript is that there isn’t a
+    great type system way to represent that a value must be one of their values. One
+    common method is to use the `keyof` and `typeof` type modifiers from [Chapter 9,
+    “Type Modifiers”](ch09.xhtml#type_modifiers_chapter) to hack one together, but
+    that’s a fair amount of syntax to type out.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript中类似枚举对象的棘手之处在于没有很好的类型系统方法来表示值必须是它们的值之一。一种常见的方法是使用来自[第9章，“类型修饰符”](ch09.xhtml#type_modifiers_chapter)的`keyof`和`typeof`类型修改器来“拼凑”一个，但这需要一定的语法输入。
+- en: 'The following `StatusCodeValue` type uses the previous `StatusCodes` value
+    to create a type union of its possible status code number values:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的`StatusCodeValue`类型使用先前的`StatusCodes`值创建其可能状态码数字值的类型联合：
+- en: '[PRE8]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: TypeScript provides an `enum` syntax for creating an object with literal values
+    of type `number` or `string`. Start with the `enum` keyword, then a name of an
+    object—conventionally in PascalCase—then an `{}` object containing comma-separated
+    keys in the enum. Each key can optionally use `=` before an initial value.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript提供了一个用于创建类型为`number`或`string`字面值的对象的`enum`语法。从`enum`关键字开始，然后是一个对象的名称——通常是PascalCase——然后是包含枚举中逗号分隔键的`{}`对象。每个键可以选择在初始值前使用`=`。
+- en: 'The previous `StatusCodes` object would look like this `StatusCode` enum:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前一个`StatusCodes`对象将类似于此`StatusCode`枚举：
+- en: '[PRE9]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'As with class names, an enum name such as `StatusCode` can be used as the type
+    name in a type annotation. Here, the `statusCode` variable of type `StatusCode`
+    may be given `StatusCode.Ok` or a number value:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与类名一样，`StatusCode`等枚举名称可以用作类型注释中的类型名称。在此处，类型为`StatusCode`的`statusCode`变量可以给予`StatusCode.Ok`或一个数字值：
+- en: '[PRE10]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Warning
+  id: totrans-61
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: TypeScript allows any number to be assigned to a numeric enum value as a convenience
+    at the cost of a little type safety. `statusCode = -1` would have also been allowed
+    in the previous code snippet.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript允许将任何数字分配给数值枚举值以方便，但会略微降低类型安全性。在先前的代码片段中，`statusCode = -1`也将被允许。
+- en: Enums compile down to an equivalent object in output compiled JavaScript. Each
+    of their members becomes an object member key with the corresponding value, and
+    vice versa.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举编译为输出编译后的JavaScript中的等效对象。它们的每个成员都变成了具有相应值的对象成员键，反之亦然。
+- en: 'The previous `enum StatusCode` would create roughly the following JavaScript:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 先前的`enum StatusCode`将大致创建以下JavaScript：
+- en: '[PRE11]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Enums are a mildly contentious topic in the TypeScript community. On the one
+    hand, they violate TypeScript’s general mantra of never adding new runtime syntax
+    constructs to JavaScript. They present a new non-JavaScript syntax for developers
+    to learn and have a few quirks around options such as `preserveConstEnums`, covered
+    later in this chapter.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举是 TypeScript 社区中一个略具争议的话题。 一方面，它们违反了 TypeScript 不向 JavaScript 添加新的运行时语法结构的一般原则。
+    它们为开发人员学习提供了一种新的非 JavaScript 语法，并围绕选项（如 `preserveConstEnums`，稍后在本章中讨论）存在一些怪癖。
+- en: On the other hand, they’re quite useful for explicitly declaring known sets
+    of values. Enums are used extensively in both the TypeScript and VS Code source
+    repositories!
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，它们对于显式声明已知值集合非常有用。 枚举在 TypeScript 和 VS Code 源代码库中广泛使用！
+- en: Automatic Numeric Values
+  id: totrans-68
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 自动数值
+- en: Enum members don’t need to have an explicit initial value. When values are omitted,
+    TypeScript will start the first value off with `0` and increment each subsequent
+    value by `1`. Allowing TypeScript to choose the values for enum members is a good
+    option when the value doesn’t matter beyond being unique and associated with the
+    key name.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举成员不需要具有显式初始值。 当省略值时，TypeScript 将从 `0` 开始第一个值，并递增每个后续值 `1`。 当值在只需唯一关联键名而不重要时，允许
+    TypeScript 选择枚举成员的值是一个不错的选择。
+- en: 'This `VisualTheme` enum allows TypeScript to choose the values entirely, resulting
+    in three integers:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 `VisualTheme` 枚举允许 TypeScript 完全选择值，结果是三个整数：
+- en: '[PRE12]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'The emitted JavaScript looks the same as if the values had been set explicitly:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发出的 JavaScript 看起来与如果值已被显式设置时相同：
+- en: '[PRE13]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: In enums with numeric values, any members missing an explicit value will be
+    `1` greater than the previous value.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在带有数值的枚举中，任何未显式设置值的成员都会比前一个值高`1`。
+- en: 'As an example, a `Direction` enum might only care that its `Top` member has
+    a value of `1` and the remaining values are also positive integers:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，`Direction` 枚举可能只关心其 `Top` 成员的值为 `1`，其余值也是正整数：
+- en: '[PRE14]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Its output JavaScript would also look the same as if the remaining members
+    had explicit values `2`, `3`, and `4`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其输出的 JavaScript 也将与其余成员显式值 `2`、`3` 和 `4` 相同：
+- en: '[PRE15]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Warning
+  id: totrans-79
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Modifying the order of an enum will cause the underlying number to change. If
+    you persist these values somewhere, such as a database, be careful of changing
+    the enum order or removing an entry. Your data may suddenly be corrupt because
+    the saved number will no longer represent what your code expects.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修改枚举的顺序将导致底层数值发生变化。 如果你将这些值持久化存储在某个地方（如数据库），请小心更改枚举顺序或删除条目。 因为保存的数值将不再代表你的代码所期望的内容，你的数据可能会突然损坏。
+- en: String-Valued Enums
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 字符串值枚举
+- en: Enums may also use strings for their members instead of numbers.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举也可以使用字符串作为其成员而不是数字。
+- en: 'This `LoadStyle` enum uses friendly string values for its members:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 `LoadStyle` 枚举使用友好的字符串值作为其成员：
+- en: '[PRE16]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Output JavaScript for enums with string member values looks structurally the
+    same as enums with numeric member values:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用字符串成员值的枚举在输出 JavaScript 方面与使用数值成员值的枚举结构上看起来一样：
+- en: '[PRE17]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: String valued enums are handy for aliasing shared constants under legible names.
+    Instead of using a type union of string literals, string valued enums allow for
+    more powerful editor autocompletions and renames of those properties—as covered
+    in [Chapter 12, “Using IDE Features”](ch12.xhtml#using_ide_features).
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 字符串值枚举对于为共享常量起别名很有用。 而不是使用字符串文字的类型联合，字符串值枚举允许更强大的编辑器自动完成和重命名这些属性，正如在 [第 12 章，“使用
+    IDE 功能”](ch12.xhtml#using_ide_features) 中所述。
+- en: One downside of string member values is that they cannot be computed automatically
+    by TypeScript. Only enum members that follow a member with a numeric value are
+    allowed to be computed automatically.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 字符串成员值的一个缺点是 TypeScript 不能自动计算它们。 仅允许跟随数值成员值的枚举成员可以自动计算。
+- en: 'TypeScript would be able to provide an implicit value of `9001` in this enum’s
+    `ImplicitNumber` because the previous member value is the number `9000`, but its
+    `NotAllowed` member would issue an error because it follows a string member value:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 可以为此枚举的 `ImplicitNumber` 隐式提供值 `9001`，因为前一个成员值是数字 `9000`，但其 `NotAllowed`
+    成员将会因其后跟字符串成员值而发出错误：
+- en: '[PRE18]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Tip
+  id: totrans-91
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: In theory, you could make an enum with both numeric and string member values.
+    In practice, that enum would likely be unnecessarily confusing, so you probably
+    shouldn’t.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理论上，你可以创建一个既有数值成员又有字符串成员值的枚举。 实际上，这种枚举可能会导致混淆，所以你可能不应该这样做。
+- en: Const Enums
+  id: totrans-93
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 常量枚举
+- en: Because enums create a runtime object, using them produces more code than the
+    common alternative strategy of unions of literal values. TypeScript allows declaring
+    enums with the `const` modifier in front of them to tell TypeScript to omit their
+    objects definition and property lookups from compiled JavaScript code.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为枚举创建了一个运行时对象，使用它们会产生比使用字面值联合的常见替代策略更多的代码。TypeScript 允许在枚举前加上 `const` 修饰符来告诉
+    TypeScript 从编译的 JavaScript 代码中省略它们的对象定义和属性查找。
+- en: 'This `DisplayHint` enum is used as a value for a `displayHint` variable:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 `DisplayHint` 枚举用作 `displayHint` 变量的值：
+- en: '[PRE19]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'The output compiled JavaScript code would be missing the enum declaration altogether
+    and would use a comment for the enum’s value:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出的编译后 JavaScript 代码将完全省略枚举声明，并在枚举值上使用注释：
+- en: '[PRE20]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: For projects where it’s still desirable to create enum object definitions, a
+    `preserveConstEnums` compiler option does exist that would keep the enum declaration
+    itself in existence. Values would still directly use literals instead of accessing
+    them on the enum object.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于仍希望创建枚举对象定义的项目，确实存在一个 `preserveConstEnums` 编译器选项，该选项将保留枚举声明本身的存在。值仍将直接使用字面量，而不是在枚举对象上访问它们。
+- en: 'The previous code snippet would still omit the property lookup in its compiled
+    JavaScript output:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前面的代码片段在其编译后的 JavaScript 输出中仍将省略属性查找：
+- en: '[PRE21]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: '`preserveConstEnums` can help reduce the size of emitted JavaScript code, though
+    not all ways to transpile TypeScript code support it. See [Chapter 13, “Configuration
+    Options”](ch13.xhtml#configuration_options) for more information on the `isolatedModules`
+    compiler option and when `const` enums may not be supported.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`preserveConstEnums` 可以帮助减少生成的 JavaScript 代码的大小，尽管并非所有的 TypeScript 代码转译方式都支持它。参见
+    [第13章，“配置选项”](ch13.xhtml#configuration_options) 获取关于 `isolatedModules` 编译器选项以及何时可能不支持
+    `const` 枚举的更多信息。'
+- en: Namespaces
+  id: totrans-103
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 命名空间
+- en: Warning
+  id: totrans-104
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Unless you are authoring DefinitelyTyped type definitions for an existing package,
+    do not use namespaces. Namespaces do not match up to modern JavaScript module
+    semantics. Their automatic member assignments can make code confusing to read.
+    I only mention them because you may come across them in *.d.ts* files.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除非您正在为现有包编写 DefinitelyTyped 类型定义文件，否则不要使用命名空间。命名空间不符合现代 JavaScript 模块语义。它们的自动成员赋值可能使代码难以阅读。我之所以提到它们，是因为您可能会在
+    *.d.ts* 文件中遇到它们。
+- en: Back before ECMAScript modules were ratified, it wasn’t uncommon for web applications
+    to bundle much of their output code into a single file loaded by the browser.
+    Those giant single files often created global variables to hold references to
+    important values across different areas of the project. It was simpler for pages
+    to include that one file than to set up an old module loader such as RequireJS—and
+    oftentimes more performant to load, since many servers didn’t yet support HTTP/2
+    download streaming. Projects made for a single-file output needed a way to organize
+    sections of code and those global variables.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 ECMAScript 模块得到批准之前，将大量输出代码捆绑到浏览器加载的单个文件中并不罕见。这些巨大的单文件通常创建全局变量来保存项目不同区域重要数值的引用。将这个文件包含在页面中比设置旧的模块加载器（如
+    RequireJS）更为简单——在许多服务器尚未支持 HTTP/2 下载流时，这样做通常也更为高效。为单文件输出的项目需要一种组织代码部分和全局变量的方式。
+- en: The TypeScript language provided one solution with the concept of “internal
+    modules,” now referred to as namespaces. A *namespace* is a globally available
+    object with “exported” contents available to call as members of that object. Namespaces
+    are defined with the `namespace` keyword followed by a `{}` block of code. Everything
+    in that namespace block is evaluated inside a function closure.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 语言通过“内部模块”的概念提供了一种解决方案，现在称为命名空间。*命名空间* 是一个全局可用的对象，其“导出”的内容可作为该对象的成员调用。命名空间使用
+    `namespace` 关键字后跟一个 `{}` 代码块来定义。该命名空间块中的所有内容在函数闭包内部评估。
+- en: 'This `Randomized` namespace creates a `value` variable and uses it internally:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 `Randomized` 命名空间创建一个 `value` 变量并在内部使用它：
+- en: '[PRE22]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Its output JavaScript creates a `Randomized` object and evaluates the contents
+    of the block inside a function, so the `value` variable isn’t available outside
+    of the namespace:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它的输出 JavaScript 创建了一个 `Randomized` 对象，并在函数内部评估了块的内容，因此 `value` 变量在命名空间外部不可用：
+- en: '[PRE23]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Warning
+  id: totrans-112
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Namespaces and the `namespace` keyword were originally called “modules” and
+    "`module`,” respectively, in TypeScript. That was a regrettable choice in hindsight
+    given the rise of modern module loaders and ECMAScript modules. The `module` keyword
+    is still occasionally found in very old projects, but can—and should—be safely
+    replaced with `namespace`.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间和`namespace`关键字最初在TypeScript中分别称为“模块”和“`module`”。考虑到现代模块加载器和ECMAScript模块的兴起，这是一个可惜的选择。在回顾中，`module`关键字在非常旧的项目中仍偶尔会出现，但可以——也应该——安全地替换为`namespace`。
+- en: Namespace Exports
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 命名空间导出
+- en: The key feature of namespaces that made them useful was that a namespace could
+    “export” contents by making them a member of the namespace object. Other areas
+    of code can then refer to that member by name.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间的关键特性是它可以通过将内容作为命名空间对象的成员来“导出”。然后，代码的其他部分可以通过名称引用该成员。
+- en: 'Here, a `Settings` namespace exports `describe`, `name`, and `version` values
+    used internally and externally to the namespace:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`Settings`命名空间导出了在命名空间内部和外部使用的`describe`、`name`和`version`值：
+- en: '[PRE24]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'The output JavaScript shows that the values are always referenced as members
+    of `Settings` (e.g., `Settings.name`) in both internal and external usage:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出的JavaScript显示，值始终作为`Settings`的成员（例如，`Settings.name`）在内部和外部使用：
+- en: '[PRE25]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'By using a `var` for the output object and referencing exported contents as
+    members of those objects, namespaces by design work well when split across multiple
+    files. The previous `Settings` namespace could be rewritten across multiple files:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`var`来输出对象，并将导出的内容引用为这些对象的成员，命名空间的设计在跨多个文件时工作良好。之前的`Settings`命名空间可以在多个文件中重写：
+- en: '[PRE26]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '[PRE27]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '[PRE28]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'The output JavaScript, concatenated together, would look roughly like:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出的JavaScript，拼接在一起，大致如下：
+- en: '[PRE29]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'In both the single-file and multiple-file declaration forms, the output object
+    at runtime is one with three keys. Roughly:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在单文件和多文件声明形式中，运行时输出对象是一个具有三个键的对象。大致上：
+- en: '[PRE30]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: The key difference with using a namespace is that it can be split across different
+    files and members can still refer to each other under the namespace’s name.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用命名空间的关键区别在于，它可以跨不同文件分割，并且成员仍然可以在命名空间的名称下相互引用。
+- en: Nested Namespaces
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 嵌套命名空间
+- en: Namespaces can be “nested” to indefinite levels by either exporting a namespace
+    from within another namespace or putting one or more `.` periods inside a name.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间可以通过将命名空间从另一个命名空间导出或在名称中放置一个或多个`.`（点）来“嵌套”到无限级别。
+- en: 'The following two namespace declarations would behave identically:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下两个命名空间声明的行为将是相同的：
+- en: '[PRE31]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'They both compile to structurally identical code:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它们都编译为结构上相同的代码：
+- en: '[PRE32]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Nested namespaces are a handy way to enforce more delineation between sections
+    within larger projects organized with namespaces. Many developers opted to use
+    a root namespace by the name of their project—perhaps inside a namespace for their
+    company and/or organization—and child namespaces for each major area of the project.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 嵌套命名空间是强制在使用命名空间组织的大型项目中的各个部分之间更好地划分的一个方便方法。许多开发人员选择使用项目名称的根命名空间——也许在公司的和/或组织的命名空间内部——以及项目的每个主要区域的子命名空间。
+- en: Namespaces in Type Definitions
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型定义中的命名空间
+- en: The only redeeming quality for namespaces today—and the only reason why I opted
+    to include them in this book—is that they can be useful for DefinitelyTyped type
+    definitions. Many JavaScript libraries—particularly older web application staples
+    such as jQuery—are set up to be included in web browsers with a traditional, non-module
+    `<script>` tag. Their typings need to indicate that they create a global variable
+    available to all code—structure perfectly captured by namespaces.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在命名空间的唯一优点——也是我选择将其包括在本书中的唯一原因——是它们对于DefinitelyTyped类型定义非常有用。许多JavaScript库——特别是一些较旧的Web应用程序基础库，如jQuery——是为了在Web浏览器中以传统的、非模块化的`<script>`标签包含而设置的。它们的类型定义需要指示它们创建一个对所有代码可用的全局变量——这种结构正是命名空间所完美捕捉的。
+- en: Additionally, many browser-capable JavaScript libraries are set up both to be
+    imported in more modern module systems and also to create a global namespace.
+    TypeScript allows a module type definition to include an `export as namespace`,
+    followed by a global name, to indicate the module is also available globally under
+    that name.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，许多支持浏览器的JavaScript库既可以在更现代的模块系统中导入，也可以创建一个全局命名空间。TypeScript允许模块类型定义包括一个`export
+    as namespace`，后跟全局名称，以指示该模块也在该名称下全局可用。
+- en: 'For example, this declaration file for a module exports a `value` and is available
+    globally:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，这个模块的声明文件导出了一个 `value` 并且在全局可用：
+- en: '[PRE33]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'The type system would know that both `import("my-example-lib")` and `window.libExample`
+    would give back the module, with a `value` property of type `number`:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型系统将会知道 `import("my-example-lib")` 和 `window.libExample` 都将返回一个带有类型为 `number`
+    的 `value` 属性的模块：
+- en: '[PRE34]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Prefer Modules Over Namespaces
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 更倾向于使用模块而非命名空间
+- en: 'Instead of using namespaces, the previous examples’ *settings/constants.ts*
+    file and *settings/describe.ts* file could be rewritten for modern standards with
+    ECMAScript modules:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其使用命名空间，前面示例中的 *settings/constants.ts* 文件和 *settings/describe.ts* 文件可以根据现代标准改为使用
+    ECMAScript 模块：
+- en: '[PRE35]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: '[PRE36]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: '[PRE37]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: TypeScript code structured with namespaces can’t be easily tree-shaken (have
+    unused files removed) in modern builders such as Webpack because namespaces create
+    implicit, rather than explicitly declared, ties between files the way ECMAScript
+    modules do. It is generally strongly preferred to write runtime code using ECMAScript
+    modules and not TypeScript namespaces.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用命名空间结构化的 TypeScript 代码中，由于命名空间创建的是隐式的文件之间联系，而非 ECMAScript 模块那样显式声明的联系，因此现代构建工具（如
+    Webpack）很难对其进行树摇（即删除未使用的文件）。通常强烈建议使用 ECMAScript 模块而非 TypeScript 命名空间编写运行时代码。
+- en: Note
+  id: totrans-149
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As of 2022, TypeScript itself is written in namespaces, but the TypeScript team
+    is working on migrating over to modules. Who knows, maybe by the time you’re reading
+    this, they’ll have finished that conversion! Fingers crossed.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 截至 2022 年，TypeScript 本身是用命名空间编写的，但 TypeScript 团队正在努力转换为模块。谁知道，也许在您阅读本文时，他们已完成这一转换！让我们拭目以待。
+- en: Type-Only Imports and Exports
+  id: totrans-151
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 仅类型导入和导出
+- en: I’d like to end this chapter on a positive note. One last set of syntax extensions,
+    type-only imports and exports, can be quite useful and don’t add any complexity
+    to output emitted JavaScript.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我希望以积极的笔调结束这一章节。最后介绍的一组语法扩展——仅类型导入和导出，非常有用且不会增加生成的 JavaScript 的复杂性。
+- en: TypeScript’s transpiler will remove values used only in the type system from
+    imports and exports in files because they aren’t used in runtime JavaScript.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的编译器将从导入和导出的值中删除仅在类型系统中使用的值，因为它们不在运行时 JavaScript 中使用。
+- en: 'For example, the following *index.ts* file creates an `action` variable and
+    an `ActivistArea` type, then later exports both of them with a standalone export
+    declaration. When compiling it to *index.js*, TypeScript’s transpiler would know
+    to remove `ActivistArea` from that standalone export declaration:'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，以下的 *index.ts* 文件创建了一个 `action` 变量和一个 `ActivistArea` 类型，然后通过独立的导出声明导出它们。当编译到
+    *index.js* 时，TypeScript 的编译器会知道从独立导出声明中移除 `ActivistArea`：
+- en: '[PRE38]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: '[PRE39]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Knowing to remove re-exported types such as that `ActivistArea` requires knowledge
+    of the TypeScript type system. Transpilers such as Babel that act on a single
+    file at a time don’t have access to the TypeScript type system to know whether
+    each name is only used in the type system. TypeScript’s `isolatedModules` compiler
+    option, covered in [Chapter 13, “Configuration Options”](ch13.xhtml#configuration_options),
+    helps make sure code will transpile in tools other than TypeScript.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 知道如何删除像 `ActivistArea` 这样的重新导出类型需要了解 TypeScript 类型系统。像 Babel 这样逐个文件操作的转译器无法访问
+    TypeScript 类型系统，无法知道每个名称是否仅在类型系统中使用。TypeScript 的 `isolatedModules` 编译选项，在除 TypeScript
+    外的其他工具中帮助确保代码将转译成功，详见 [第 13 章，“配置选项”](ch13.xhtml#configuration_options)。
+- en: TypeScript allows adding the `type` modifier in front of individual imported
+    names or the entire `{...}` object in `export` and `import` declarations. Doing
+    so indicates they’re only meant to be used in the type system. Marking a default
+    import of a package as `type` is allowed as well.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 允许在单个导入名称或整个 `{...}` 对象的 `export` 和 `import` 声明前面添加 `type` 修饰符。这样做表示它们仅用于类型系统中。还可以将包的默认导入标记为
+    `type`。
+- en: 'In the following snippet, only the `value` import and export are kept when
+    *index.ts* is transpiled to the output *index.js*:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在以下代码片段中，当 *index.ts* 转译为输出的 *index.js* 时，只有 `value` 的导入和导出被保留：
+- en: '[PRE40]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: '[PRE41]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: Some TypeScript developers even prefer to opt into using type-only imports to
+    make it more clear which imports are only used as types. If an import is marked
+    as type-only, attempting to use it as a runtime value will trigger a TypeScript
+    error.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些 TypeScript 开发者甚至更喜欢选择使用仅类型导入，以明确哪些导入仅用作类型。如果将导入标记为仅类型，则尝试将其用作运行时值将触发 TypeScript
+    错误。
+- en: 'The following `ClassOne` is imported normally and can be used at runtime, but
+    `ClassTwo` cannot because it is imported as a type:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[ClassOne](https://learningtypescript.com/syntax-extensions)被正常导入并可在运行时使用，但是`ClassTwo`不能，因为它作为类型导入：'
+- en: '[PRE42]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: Instead of adding complexity to emitted JavaScript, type-only imports and exports
+    make it clear to transpilers outside of TypeScript when it’s possible to remove
+    pieces of code. Most TypeScript developers therefore don’t treat them with the
+    distaste given to the previous syntax extensions covered in this chapter.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是向生成的JavaScript添加复杂性，仅限于类型的导入和导出能够明确告知TypeScript之外的转译器在何时可以移除代码片段。因此，大多数TypeScript开发者不会像对待本章所覆盖的先前语法扩展一样，对它们产生厌恶情绪。
+- en: Summary
+  id: totrans-166
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: 'In this chapter, you worked with some of the JavaScript syntax extensions included
+    in TypeScript:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，你使用了TypeScript中包含的一些JavaScript语法扩展：
+- en: Declaring class parameter properties in class constructors
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在类构造函数中声明类参数属性
+- en: Using decorators to augment classes and their fields
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用装饰器增强类及其字段
+- en: Representing groups of values with enums
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用枚举表示值的组合
+- en: Using namespaces to create groupings across files or in type definitions
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用命名空间在文件间或类型定义中创建分组
+- en: Type-only imports and exports
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 仅限类型的导入和导出
+- en: Tip
+  id: totrans-173
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Now that you’ve finished reading this chapter, practice what you’ve learned
+    on [*https://learningtypescript.com/syntax-extensions*](https://learningtypescript.com/syntax-extensions).
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你完成阅读本章之后，练习你所学到的内容[*https://learningtypescript.com/syntax-extensions*](https://learningtypescript.com/syntax-extensions)。
+- en: What do you call the cost of supporting legacy JavaScript extensions in TypeScript?
+  id: totrans-175
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 在TypeScript中，你如何称呼支持遗留JavaScript扩展的成本？
+- en: ''
+  id: totrans-176
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: “Sin tax.”
+  id: totrans-177
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “罪恶税”

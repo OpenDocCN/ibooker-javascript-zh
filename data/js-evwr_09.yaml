@@ -1,0 +1,651 @@
+- en: Chapter 8\. User Actions
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章. 用户操作
+- en: Imagine you had just joined a club (remember the “Secret Club for Super Cool
+    People”?), but when you showed up for the first time there was nothing to do.
+    The club was a big, empty room with people wandering in and out with no way of
+    interacting with the club or one another. I’m a bit of an introvert, so this doesn’t
+    sound *that* bad, but I wouldn’t be willing to pay a membership fee for it.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一下你刚刚加入了一个俱乐部（记得那个“超酷人士秘密俱乐部”吗？），但是当你第一次来到这里时却没什么事可做。俱乐部是一个空荡荡的大房间，人们进进出出，彼此之间无法互动。我有点内向，所以这听起来并不是
+    *那么* 糟糕，但我不会愿意为此支付会费。
+- en: Right now our API is essentially a big, useless club. We have a way to create
+    data and a way for users to sign in, but nothing allows a user to own that data.
+    In this chapter, we’ll be addressing this by adding user interactions. We’ll write
+    the code that will enable a user to own the notes they create, limit who can delete
+    or modify a note, and enable users to “favorite” a note that they like. Additionally,
+    we’ll enable API users to make nested queries, allowing our UIs to write simple
+    queries that relate users to notes.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的 API 本质上是一个大而无用的俱乐部。我们有一种方法来创建数据和一种让用户登录的方法，但没有任何方法让用户拥有这些数据。在本章中，我们将通过添加用户交互来解决这个问题。我们将编写的代码将使用户能够拥有他们创建的注释，限制谁可以删除或修改注释，并使用户能够“收藏”他们喜欢的注释。此外，我们将使
+    API 用户能够进行嵌套查询，从而使我们的 UI 能够编写与用户和注释相关的简单查询。
+- en: Before We Get Started
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在我们开始之前
+- en: In this chapter, we’ll be making some pretty significant changes to our notes
+    files. Since we have a small amount of data in our database, you may find it easier
+    to remove the existing notes from your local database. This isn’t necessary, but
+    can reduce confusion as you work through this chapter.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将对我们的注释文件进行一些相当重大的更改。由于我们的数据库中只有少量数据，您可能会发现将现有注释从本地数据库中删除会更容易。这并非必需，但可以减少您在本章中工作时的混淆。
+- en: 'To do this, we’ll go into the MongoDB shell, ensure that we’re referencing
+    the `notedly` database (the name of the database in our *.env* file), and use
+    MongoDB’s `.remove()` method. From your terminal, type the following:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了做到这一点，我们将进入 MongoDB shell，确保我们引用的是 `notedly` 数据库（我们 *.env* 文件中的数据库名称），并使用
+    MongoDB 的 `.remove()` 方法。从您的终端中，输入以下内容：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Attach a User to New Notes
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将用户附加到新注释
+- en: In the previous chapter we updated our *src/index.js* file so that when a user
+    makes a request, we check for a JWT. If the token exists, we decode it and add
+    the current user to our GraphQL context. This allows us to send the user’s information
+    to each resolver function that we call. We’ll update our existing GraphQL mutations
+    to verify the user’s information. To do this we’ll utilize Apollo Server’s `AuthenticationError`
+    and `ForbiddenError` methods, which will allow us to throw appropriate errors.
+    These will help us both debug in development as well as send appropriate responses
+    to the client.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一章中，我们更新了我们的 *src/index.js* 文件，以便当用户发出请求时，我们检查 JWT 是否存在。如果令牌存在，我们解码它并将当前用户添加到我们的
+    GraphQL 上下文中。这允许我们将用户的信息发送到我们调用的每个解析器函数中。我们将更新我们现有的 GraphQL 变化以验证用户的信息。为此，我们将利用
+    Apollo Server 的 `AuthenticationError` 和 `ForbiddenError` 方法，这将允许我们抛出适当的错误。这些将帮助我们在开发过程中进行调试，同时向客户端发送适当的响应。
+- en: 'Before we get started, we’ll need to import the `mongoose` package into our
+    *mutations.js* resolver file. This will allow us to appropriately assign cross-referencing
+    MongoDB object IDs to our fields. Update the module imports at the top of *src/resolvers/**mutation.js*
+    as follows:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们开始之前，我们需要将`mongoose`包导入到我们   在我们开始之前，我们需要将 `mongoose` 包导入到我们的 *mutations.js*
+    解析器文件中。这将允许我们适当地将 MongoDB 对象 ID 分配给我们的字段。更新 *src/resolvers/**mutation.js* 顶部的模块导入如下：
+- en: '[PRE1]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Now, in our `newNote` mutation, we’ll add `user` as a function parameter, then
+    check to see if a user is passed into the function. If a user ID is not found,
+    we’ll throw an `AuthenticationError`, as a person must be signed in to our service
+    to create a new note. Once we have verified that the request has been made by
+    an authenticated user, we can create the note in the database. In doing so, we
+    will now assign the author the user ID that is passed to the resolver. This will
+    allow us to reference the creating user from the note itself.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在我们的 `newNote` 变化中，我们将添加 `user` 作为函数参数，然后检查是否向函数传递了用户。如果未找到用户 ID，则抛出 `AuthenticationError`，因为必须登录我们的服务才能创建新的注释。一旦我们验证了请求是由经过身份验证的用户发出的，我们就可以在数据库中创建注释。这样做，我们现在将作者分配给传递给解析器的用户
+    ID。这将允许我们从注释本身引用创建用户。
+- en: 'In *src/resolvers/mutation.js*, add the following:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/mutation.js* 中添加以下内容：
+- en: '[PRE2]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'The last step is to apply the cross-referencing to the data in our database.
+    To do this, we will need to update the `author` field of our MongoDB notes schema.
+    In */src/models/note.js*, update the `author` field as follows:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一步是将交叉引用应用于我们数据库中的数据。为此，我们将需要更新 MongoDB 笔记模式中的 `author` 字段。在 */src/models/note.js*
+    中，按照以下方式更新 `author` 字段：
+- en: '[PRE3]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'With this reference in place, all new notes will accurately record and cross-reference
+    the author from the context of the request. Let’s try this out by writing a `newNote`
+    mutation in the GraphQL Playground:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个参考，所有新的注释将准确记录并交叉引用来自请求上下文的作者。让我们通过在 GraphQL Playground 中编写 `newNote` 变更来尝试一下：
+- en: '[PRE4]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'When writing the mutation, we also must be sure to pass a JWT in the `Authorization`
+    header (see [Figure 8-1](#user_newnote)):'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写变更时，我们还必须确保在 `Authorization` 标头中传递一个 JWT（参见 [图 8-1](#user_newnote)）：
+- en: '[PRE5]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: How to Retrieve a JWT
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 如何检索 JWT
+- en: If you don’t have the JWT handy, you can perform a `signIn` mutation to retrieve
+    one.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你没有方便的 JWT，可以执行 `signIn` 变更以检索一个。
+- en: '![Screenshot of the newNote mutation in the GraphQL Playground](assets/jsev_0801.png)'
+  id: totrans-22
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground 中 newNote 变更的截图](assets/jsev_0801.png)'
+- en: Figure 8-1\. A newNote mutation in the GraphQL Playground
+  id: totrans-23
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. GraphQL Playground 中的 newNote 变更
+- en: 'For now, our API doesn’t return the author information, but we can verify that
+    the author was added correctly by looking up the note in the MongoDB shell. In
+    a terminal window, type the following:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们的 API 不返回作者信息，但我们可以通过在 MongoDB shell 中查找注释来验证已正确添加作者。在终端窗口中，输入以下内容：
+- en: '[PRE6]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The returned value should include an author key, with a value of an object ID.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回的值应包括一个作者键，其值为对象 ID。
+- en: User Permissions for Updates and Deletes
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 更新和删除的用户权限
+- en: Now we can add user checks to our `deleteNote` and `updateNote` mutations as
+    well. These will require that we check both that a user is passed to the context
+    and whether that user is the owner of the note. To accomplish this, we’ll check
+    if the user ID stored in the `author` field of our database matches the user ID
+    that is passed into the resolver context.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们也可以向 `deleteNote` 和 `updateNote` 变更中添加用户检查。这些将要求我们检查上下文中是否传递了用户，以及该用户是否是注释的所有者。为了实现这一点，我们将检查存储在我们数据库中的
+    `author` 字段中的用户 ID 是否与传递给解析器上下文的用户 ID 匹配。
+- en: 'In *src/resolvers/mutation.js*, update the `deleteNote` mutation as follows:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/mutation.js* 中，按照以下方式更新 `deleteNote` 变更：
+- en: '[PRE7]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Now, also in *src/resolvers/mutation.js*, update the `updateNote` mutation
+    as follows:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/resolvers/mutation.js* 中，按照以下方式更新 `updateNote` 变更：
+- en: '[PRE8]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: User Queries
+  id: totrans-33
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 用户查询
+- en: 'With our existing mutations updated to include user checks, let’s also add
+    some user-specific queries. To do this, we’ll add three new queries:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们更新现有的变更以包括用户检查之后，让我们也添加一些特定于用户的查询。为此，我们将添加三个新的查询：
+- en: '`user`'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`user`'
+- en: Given a specific username, returns the user’s information
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定特定用户名，返回用户的信息
+- en: '`users`'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`users`'
+- en: Returns a list of all users
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回所有用户的列表
+- en: '`me`'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`me`'
+- en: Returns the user information for the current user
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回当前用户的用户信息
+- en: 'Before we write the query resolver code, add these queries to the GraphQL *src/schema.js*
+    file like so:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编写查询解析器代码之前，将这些查询添加到 GraphQL 的 *src/schema.js* 文件中，如下所示：
+- en: '[PRE9]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Now in the *src/resolvers/query.js* file, write the following resolver query
+    code:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在在 *src/resolvers/query.js* 文件中，编写以下解析器查询代码：
+- en: '[PRE10]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Let’s see how these look in our GraphQL Playground. First, we can write a user
+    query to look up the information of a specific user. Be sure to use a username
+    that you’ve already created:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在 GraphQL Playground 中看看这些东西。首先，我们可以编写一个用户查询来查找特定用户的信息。确保使用已经创建的用户名：
+- en: '[PRE11]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This will return a data object, containing the username, email, and ID values
+    for the specified user ([Figure 8-2](#user_query)).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将返回一个数据对象，包含指定用户的用户名、电子邮件和 ID 值（[图 8-2](#user_query)）。
+- en: '![A screenshot of the user query in the GraphQL Playground](assets/jsev_0802.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground 中用户查询的截图](assets/jsev_0802.png)'
+- en: Figure 8-2\. The user query in the GraphQL Playground
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2\. GraphQL Playground 中的用户查询
+- en: 'Now to look up all of the users in our database, we can use the `users` query,
+    which will return a data object containing the information of all users ([Figure 8-3](#users_query)):'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以使用 `users` 查询来查找我们数据库中的所有用户，该查询将返回一个包含所有用户信息的数据对象（[图 8-3](#users_query)）：
+- en: '[PRE12]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '![A screenshot of the users query in the GraphQL Playground](assets/jsev_0803.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground 中用户查询的截图](assets/jsev_0803.png)'
+- en: Figure 8-3\. The users query in GraphQL Playground
+  id: totrans-53
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. GraphQL Playground 中的用户查询
+- en: Now we can use a JWT, passed in the HTTP header, to look up information about
+    the signed-in user, using the `me` query.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以使用JWT在HTTP头部传递，通过`me`查询查找已登录用户的信息。
+- en: 'First, be sure to include the token in the HTTP header portion of the GraphQL
+    Playground:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，请确保在GraphQL Playground的HTTP头部部分包含令牌：
+- en: '[PRE13]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Now, perform the `me` query like so ([Figure 8-4](#me_query)):'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，执行`me`查询如下（[图 8-4](#me_query)）：
+- en: '[PRE14]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '![A screenshot of the me query in the GraphQL Playground](assets/jsev_0804.png)'
+  id: totrans-59
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在GraphQL Playground中进行me查询的屏幕截图](assets/jsev_0804.png)'
+- en: Figure 8-4\. The me query in GraphQL Playground
+  id: totrans-60
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-4\. GraphQL Playground中的me查询
+- en: With these resolvers in place, we can now query our API for user information.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些解析器的设置，我们现在可以查询我们的API以获取用户信息。
+- en: Toggling Note Favorites
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 切换笔记收藏夹
+- en: We have one last piece of functionality to add to our user interactions. You
+    may recall that our application specifications stated that “users will be able
+    to favorite the notes of other users as well as retrieve a list of their favorites.”
+    Similar to Twitter “hearts” and Facebook “likes,” we’d like our users to be able
+    to mark (and unmark) a note as a favorite. To implement this behavior, we’ll follow
+    our standard pattern of updating the GraphQL schema, then the database model,
+    and lastly the resolver function.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还有最后一个功能要添加到我们的用户交互中。您可能记得我们的应用程序规范说明“用户将能够收藏其他用户的笔记并检索其收藏列表。”类似于Twitter的“喜欢”和Facebook的“赞”，我们希望用户能够将笔记标记为收藏（取消收藏）。为了实现这一行为，我们将遵循更新GraphQL模式、然后更新数据库模型，最后更新解析器函数的标准模式。
+- en: First, we will update our GraphQL schema in *./src/schema.js* by adding two
+    new properties to our `Note` type. `favoriteCount` will track the total number
+    of “favorites” that a note has received. `favoritedBy` will contain an array of
+    users who have favorited a note.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将通过在*./src/schema.js*中的`Note`类型中添加两个新属性来更新我们的GraphQL模式。`favoriteCount`将跟踪笔记收到的“收藏”总数。`favoritedBy`将包含已收藏笔记的用户数组。
+- en: '[PRE15]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'We’ll also add the list of favorites to our `User` type:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将在`User`类型中添加收藏列表：
+- en: '[PRE16]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Next, we will add a mutation in *./src/schema.js* called `toggleFavorite`, which
+    will resolve by either adding or removing a favorite for the specified note. This
+    mutation will take a note ID as a parameter and return the specified note.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将在*./src/schema.js*中添加一个名为`toggleFavorite`的变异，通过添加或删除指定笔记的收藏来解决。此变异将接受笔记ID作为参数，并返回指定的笔记。
+- en: '[PRE17]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Next, we need to update our note model to include the `favoriteCount` and `favoritedBy`
+    properties in our database. `favoriteCount` will be a `Number` type with a default
+    value of `0`. `favoritedBy` will be an array of objects, containing references
+    to user object IDs in our database. Our full *./src/models/note.js* file will
+    look as follows:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要更新我们的笔记模型，包括在数据库中添加`favoriteCount`和`favoritedBy`属性。`favoriteCount`将是一个`Number`类型，初始值为`0`。`favoritedBy`将是一个包含对数据库中用户对象ID引用的对象数组。我们完整的*./src/models/note.js*文件将如下所示：
+- en: '[PRE18]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'With our GraphQL schema and database models updated, we can write the `toggle``Favorite`
+    mutation. This mutation will receive a note ID as a parameter and check to see
+    if the user is already listed in the `favoritedBy` array. If the user is listed,
+    we will remove the favorite by decreasing the `favoriteCount` and removing the
+    user from the list. If the user has not yet favorited the note, we will increment
+    the `favoriteCount` by 1 and add the current user to the `favoritedBy` array.
+    To do all of this, add the following code to the *src/resolvers/mutation.js* file:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过更新我们的GraphQL模式和数据库模型，我们可以编写`toggleFavorite`变异。此变异将接收一个笔记ID作为参数，并检查用户是否已列在`favoritedBy`数组中。如果用户已列出，我们将通过减少`favoriteCount`并从列表中移除用户来取消收藏。如果用户尚未收藏笔记，我们将增加`favoriteCount`1并将当前用户添加到`favoritedBy`数组中。为了执行所有这些操作，请将以下代码添加到*src/resolvers/mutation.js*文件中：
+- en: '[PRE19]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'With this code in place, let’s test our ability to toggle a note favorite in
+    the GraphQL Playground. Let’s do this with a freshly created note. We’ll begin
+    by writing a `newNote` mutation, being sure to include an `Authorization` header
+    with a valid JWT ([Figure 8-5](#user_newnote2)):'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这段代码，让我们在GraphQL Playground中测试切换笔记收藏的能力。我们将使用新创建的笔记进行测试。我们将从编写`newNote`变异开始，确保在有效的JWT（[图 8-5](#user_newnote2)）中包含`Authorization`头部：
+- en: '[PRE20]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '![A screenshote of a newNote mutation in the GraphQL Playground](assets/jsev_0805.png)'
+  id: totrans-76
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在GraphQL Playground中进行newNote变异的屏幕截图](assets/jsev_0805.png)'
+- en: Figure 8-5\. A newNote mutation
+  id: totrans-77
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-5\. newNote变异
+- en: You’ll notice that the `favoriteCount` of this new note is automatically set
+    to `0`, because that’s the default value we set in our data model. Now, let’s
+    write a `toggle``Favorite` mutation to mark it as a favorite, passing the ID of
+    the note as a parameter. Again, be sure to include the `Authorization` HTTP header,
+    with a valid JWT.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会注意到，这个新笔记的 `favoriteCount` 自动设置为 `0`，因为这是我们在数据模型中设置的默认值。现在，让我们编写一个 `toggleFavorite`
+    mutation 来将其标记为收藏夹，将笔记的 ID 作为参数传递。再次确保包含有效的 JWT 的 `Authorization` HTTP 标头。
+- en: '[PRE21]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: After you run this mutation, the value of the note’s `favoriteCount` should
+    be `1`. If you rerun the mutation, the `favoriteCount` will reduce to `0` ([Figure 8-6](#favorite_count)).
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行此 mutation 后，笔记的 `favoriteCount` 值应为 `1`。如果重新运行 mutation，则 `favoriteCount`
+    将减少为 `0`（[图 8-6](#favorite_count)）。
+- en: '![A screenshot of the toggleFavorite mutation in the GraphQL Playground](assets/jsev_0806.png)'
+  id: totrans-81
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在 GraphQL Playground 中切换收藏夹的 mutation 的截图](assets/jsev_0806.png)'
+- en: Figure 8-6\. The toggleFavorite mutation
+  id: totrans-82
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-6\. 切换收藏夹的 mutation
+- en: Users can now mark and unmark notes as favorites. More importantly, I hope that
+    this functionality demonstrates how you can add new features to a GraphQL application’s
+    API.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户现在可以标记和取消标记笔记为收藏夹。更重要的是，我希望这个功能展示了如何向 GraphQL 应用程序的 API 添加新功能。
+- en: Nested Queries
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 嵌套查询
+- en: One of the great things about GraphQL is that we can *nest* queries, allowing
+    us to write a single query that returns precisely the data we need, rather than
+    multiple queries. Our GraphQL schema’s `User` type includes a list of notes by
+    the author in an array format, while our `Notes` type includes a reference to
+    its author. As a result, we can pull a list of notes from a user query or get
+    the author information from a note query.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 的一个很棒的功能之一是我们可以 *嵌套* 查询，允许我们编写一个单一的查询，精确返回我们需要的数据，而不是多个查询。我们的 GraphQL
+    模式的 `User` 类型包含作者的笔记列表，以数组格式存在，而 `Notes` 类型包含其作者的引用。因此，我们可以从用户查询中获取笔记列表，或从笔记查询中获取作者信息。
+- en: 'This means that we can write a query that looks like this:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们可以编写如下查询：
+- en: '[PRE22]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: If we currently try to run a nested query like the preceding one, we’ll receive
+    an error. This is because we haven’t yet written the resolver code that performs
+    the database lookup for this information.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们当前尝试运行类似上述的嵌套查询，我们将收到一个错误。这是因为我们尚未编写执行此信息数据库查找的解析器代码。
+- en: To enable this functionality, we’ll add two new files in our *src/resolvers*
+    directory.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要启用此功能，我们将在 *src/resolvers* 目录中添加两个新文件。
+- en: 'In *src/resolvers/note.js*, add the following:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/note.js* 中，添加以下内容：
+- en: '[PRE23]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'In *src/resolvers/user.js*, add this:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/resolvers/user.js* 中，添加以下内容：
+- en: '[PRE24]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Now we need to update our *src/resolvers/index.js* to import and export these
+    new resolver modules. Overall the *src/resolvers/index.js* file should now look
+    as follows:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要更新我们的 *src/resolvers/index.js* 文件来导入和导出这些新的解析器模块。总体而言，*src/resolvers/index.js*
+    文件现在应如下所示：
+- en: '[PRE25]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Now if we write a nested GraphQL query or mutation, we will receive the information
+    that we expect. You can try this out by writing the following `note` query:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们编写一个嵌套的 GraphQL 查询或 mutation，我们将收到我们期望的信息。您可以尝试编写以下 `note` 查询：
+- en: '[PRE26]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'This query should correctly resolve with the author’s username and ID. Another
+    practical example would be to return information about users who have “favorited”
+    a note:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此查询应正确解析出作者的用户名和 ID。另一个实际示例是返回收藏某个笔记的用户的信息：
+- en: '[PRE27]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: With nested resolvers in place, we can write precise queries and mutations that
+    return exactly the data that we need.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用嵌套解析器，我们可以编写精确的查询和 mutation，精确返回我们需要的数据。
+- en: Conclusion
+  id: totrans-101
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: 'Congratulations! In this chapter our API graduated to being something that
+    users can truly interact with. This API demonstrates the true power of GraphQL
+    by integrating user actions, adding new features, and nesting resolvers. We’ve
+    also followed a tried-and-true pattern for adding new code to our projects: first
+    write the GraphQL schema, then write the database model, and finally write the
+    resolver code to query or update the data. By breaking down the process into these
+    three steps, we can add all sorts of features to our applications. In the next
+    chapter we’ll look at the final steps needed to make our API production ready,
+    including pagination and security.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 祝贺！在本章中，我们的 API 毕业成为用户真正可以互动的东西。通过集成用户操作、添加新功能和嵌套解析器，此 API 展示了 GraphQL 的真正威力。我们还遵循了一个行之有效的模式来向项目中添加新代码：首先编写
+    GraphQL 模式，然后编写数据库模型，最后编写解析器代码来查询或更新数据。通过将这个过程分解为三个步骤，我们可以为我们的应用程序添加各种功能。在下一章中，我们将讨论使我们的
+    API 准备投入生产所需的最后步骤，包括分页和安全性。

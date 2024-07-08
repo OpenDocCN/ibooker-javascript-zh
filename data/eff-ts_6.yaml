@@ -1,0 +1,1628 @@
+- en: Chapter 6\. Types Declarations and @types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 6 章。类型声明和 @types
+- en: Dependency management can be confusing in any language, and TypeScript is no
+    exception. This chapter will help you build a mental model for how dependencies
+    work in TypeScript and show you how to work through some of the issues that can
+    come up with them. It will also help you craft your own type declaration files
+    to publish and share with others. By writing great type declarations, you can
+    help not just your own project but the entire TypeScript community.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何语言中的依赖管理都可能令人困惑，TypeScript 也不例外。本章将帮助您建立一个关于 TypeScript 中依赖工作方式的思维模型，并向您展示如何解决可能出现的一些问题。它还将帮助您编写自己的类型声明文件以发布和与他人共享。通过编写优秀的类型声明，您不仅可以帮助自己的项目，还可以帮助整个
+    TypeScript 社区。
+- en: 'Item 45: Put TypeScript and @types in devDependencies'
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '项目 45: 将 TypeScript 和 @types 放在 devDependencies 中'
+- en: The Node Package Manager, npm, is ubiquitous in the JavaScript world. It provides
+    both a repository of JavaScript libraries (the npm registry) and a way to specify
+    which versions of them you depend on (*package.json*).
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node 包管理器 npm 在 JavaScript 世界中无处不在。它既提供了 JavaScript 库的仓库（npm 注册表），又提供了指定你依赖的它们的版本的方法（*package.json*）。
+- en: 'npm draws a distinction between a few types of dependencies, each of which
+    goes in a separate section of *package.json*:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: npm 在 *package.json* 中区分几种依赖类型：
+- en: '`dependencies`'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`dependencies`'
+- en: These are packages that are required to run your JavaScript. If you import `lodash`
+    at runtime, then it should go in `dependencies`. When you publish your code on
+    npm and another user installs it, it will also install these dependencies. (These
+    are known as transitive dependencies.)
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些包是运行 JavaScript 所必需的。如果您在运行时导入 `lodash`，则应该放在 `dependencies` 中。当您在 npm 上发布您的代码并且另一个用户安装它时，它也会安装这些依赖项。（这些被称为传递依赖项。）
+- en: '`devDependencies`'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`devDependencies`'
+- en: These packages are used to develop and test your code but are not required at
+    runtime. Your test framework would be an example of a `devDependency`. Unlike
+    `dependencies`, these are *not* installed transitively with your packages.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些包用于开发和测试您的代码，但在运行时不需要。您的测试框架将是 `devDependency` 的一个示例。与 `dependencies` 不同，这些包不会与您的包一起传递安装。
+- en: '`peerDependencies`'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`peerDependencies`'
+- en: These are packages that you require at runtime but don’t want to be responsible
+    for tracking. The canonical example is a plug-in. Your jQuery plug-in is compatible
+    with a range of versions of jQuery itself, but you’d prefer that the user select
+    one, rather than you choosing for them.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些是运行时需要但不想负责跟踪的包。经典示例是插件。您的 jQuery 插件与多个版本的 jQuery 兼容，但您更希望用户选择一个版本，而不是由您选择。
+- en: Of these, `dependencies` and `devDependencies` are by far the most common. As
+    you use TypeScript, be aware of which type of dependency you’re adding. Because
+    TypeScript is a development tool and TypeScript types do not exist at runtime
+    ([Item 3](ch01.html#independent)), packages related to TypeScript generally belong
+    in `devDependencies`.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中，`dependencies` 和 `devDependencies` 是最常见的。在使用 TypeScript 时，请注意你正在添加哪种类型的依赖。因为
+    TypeScript 是一个开发工具，TypeScript 类型在运行时不存在（[项目 3](ch01.html#independent)），与 TypeScript
+    相关的包通常应放在 `devDependencies` 中。
+- en: 'The first dependency to consider is TypeScript itself. It is possible to install
+    TypeScript system-wide, but this is generally a bad idea for two reasons:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先要考虑的依赖是 TypeScript 本身。虽然可以系统范围安装 TypeScript，但通常这不是一个好主意，原因有两个：
+- en: There’s no guarantee that you and your coworkers will always have the same version
+    installed.
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不能保证您和您的同事总是安装相同的版本。
+- en: It adds a step to your project setup.
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它为你的项目设置增加了一步。
+- en: Make TypeScript a `devDependency` instead. That way you and your coworkers will
+    always get the correct version when you run `npm install`. And updating your TypeScript
+    version follows the same pattern as updating any other package.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 TypeScript 作为 `devDependency`。这样当你运行 `npm install` 时，你和你的同事将始终获得正确的版本。更新 TypeScript
+    版本与更新其他任何包的模式相同。
+- en: 'Your IDE and build tools will happily discover a version of TypeScript installed
+    in this way. On the command line you can use `npx` to run the version of `tsc`
+    installed by npm:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的 IDE 和构建工具将愉快地发现以这种方式安装的 TypeScript 版本。在命令行上，您可以使用 `npx` 运行 npm 安装的 `tsc`
+    版本：
+- en: '[PRE0]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'The next type of dependency to consider is *type dependencies* or `@types`.
+    If a library itself does not come with TypeScript type declarations, then you
+    may still be able to find typings on DefinitelyTyped, a community-maintained collection
+    of type definitions for JavaScript libraries. Type definitions from DefinitelyTyped
+    are published on the npm registry under the `@types` scope: `@types/jquery` has
+    type definitions for the jQuery, `@types/lodash` has types for Lodash, and so
+    on. These `@types` packages only contain the *types*. They don’t contain the implementation.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要考虑的下一个依赖类型是 *类型依赖* 或 `@types`。 如果库本身没有 TypeScript 类型声明，则可能仍然可以在 DefinitelyTyped
+    上找到 typings，这是一个由社区维护的 JavaScript 库类型定义集合。 DefinitelyTyped 上的类型定义发布在 npm 注册表下的
+    `@types` 范围内：`@types/jquery` 提供了 jQuery 的类型定义，`@types/lodash` 提供了 Lodash 的类型定义等。
+    这些 `@types` 包只包含 *类型*。 它们不包含实现。
+- en: 'Your `@types` dependencies should also be `devDependencies`, even if the package
+    itself is a direct dependency. For example, to depend on React and its type declarations,
+    you might run:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的 `@types` 依赖项也应该是 `devDependencies`，即使该包本身是直接依赖关系。 例如，要依赖于 React 及其类型声明，您可以运行：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'This will result in a *package.json* file that looks something like this:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将导致一个类似以下内容的 *package.json* 文件：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: The idea here is that you should publish JavaScript, not TypeScript, and your
+    JavaScript does not depend on the `@types` when you run it. There are a few things
+    that can go wrong with `@types` dependencies, and the next item will delve deeper
+    into this topic.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里的理念是您应该发布 JavaScript，而不是 TypeScript，并且当您运行它时，您的 JavaScript 不依赖于 `@types`。
+    `@types` 依赖项可能会出现一些问题，下一项将更深入地探讨这个主题。
+- en: Things to Remember
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事项
+- en: Avoid installing TypeScript system-wide. Make TypeScript a `devDependency` of
+    your project to ensure that everyone on the team is using a consistent version.
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免在系统范围内安装 TypeScript。 将 TypeScript 作为项目的 `devDependency`，以确保团队中的每个人都使用一致的版本。
+- en: Put `@types` dependencies in `devDependencies`, not `dependencies`. If you need
+    `@types` at runtime, then you may want to rework your process.
+  id: totrans-27
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将 `@types` 依赖项放入 `devDependencies`，而不是 `dependencies`。 如果您需要在运行时使用 `@types`，则可能需要重新调整您的流程。
+- en: 'Item 46: Understand the Three Versions Involved in Type Declarations'
+  id: totrans-28
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '条款 46: 理解涉及类型声明的三个版本'
+- en: Dependency management rarely conjures up happy feelings for software developers.
+    Usually you just want to use a library and not think too much about whether its
+    transitive dependencies are compatible with yours.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于软件开发人员来说，依赖管理很少能带来愉快的感觉。 通常您只想使用一个库，而不用太过关心其传递依赖是否与您的兼容。
+- en: 'The bad news is that TypeScript doesn’t make this any better. In fact, it makes
+    dependency management quite a bit *more* complicated. This is because instead
+    of having a single version to worry about, you now have three:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不好的消息是，TypeScript 并没有使这个过程变得更好。 实际上，它使依赖管理变得相当 *复杂*。 这是因为现在您不再需要关心单一版本，而是有了三个版本：
+- en: The version of the package
+  id: totrans-31
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包的版本
+- en: The version of its type declarations (`@types`)
+  id: totrans-32
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 其类型声明的版本 (`@types`)
+- en: The version of TypeScript
+  id: totrans-33
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript 的版本
+- en: If any of these versions get out of sync with one another, you can run into
+    errors that may not be clearly related to dependency management. But as the saying
+    goes, “make things as simple as possible but no simpler.” Understanding the full
+    complexity of TypeScript package management will help you diagnose and fix problems.
+    And it will help you make more informed decisions when it comes time to publish
+    type declarations of your own.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果其中任何一个版本与其他版本不同步，可能会遇到与依赖管理无关但错误不明显的问题。但正如俗话说的，“使事情尽可能简单，但不要过于简单。” 理解 TypeScript
+    包管理的全部复杂性将有助于您诊断和解决问题。 它还将帮助您在发布自己的类型声明时做出更明智的决策。
+- en: 'Here’s how dependencies in TypeScript are supposed to work. You install a package
+    as a direct dependency, and you install its types as a dev dependency (see [Item
+    45](#dev-dependencies)):'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 中依赖项的工作方式如下。 您将一个包作为直接依赖项安装，并将其类型作为 `devDependency` 安装（参见 [条款 45](#dev-dependencies)）：
+- en: '[PRE4]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Note that the major and minor versions (`16.8`) match but that the patch versions
+    (`.6` and `.19`) do not. This is exactly what you want to see. The `16.8` in the
+    `@types` version means that these type declarations describe the API of version
+    `16.8` of `react`. Assuming the `react` module follows good semantic versioning
+    hygiene, the patch versions (`16.8.1`, `16.8.2`, …) will not change its public
+    API and will not require updates to the type declarations. But the type declarations
+    *themselves* might have bugs or omissions. The patch versions of the `@types`
+    module correspond to these sorts of fixes and additions. In this case, there were
+    many more updates to the type declarations than the library itself (19 versus
+    6).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意主要和次要版本（`16.8`）相匹配，但修订版本（`.6` 和 `.19`）不匹配。这正是你想要看到的。`@types` 版本中的 `16.8`
+    意味着这些类型声明描述了 `react` 版本 `16.8` 的 API。假设 `react` 模块遵循良好的语义化版本控制，修订版本（`16.8.1`、`16.8.2`，……）不会改变其公共
+    API，也不需要更新类型声明。但类型声明*本身*可能存在错误或遗漏。`@types` 模块的修订版本对应于这些修复和添加。在这种情况下，类型声明更新比库本身要多（19
+    与 6）。
+- en: This can go wrong in a few ways.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能会以几种方式出现。
+- en: First, you might update a library but forget to update its type declarations.
+    In this case you’ll get type errors whenever you try to use new features of the
+    library. If there were breaking changes to the library, you might get runtime
+    errors despite your code passing the type checker.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，你可能会更新一个库，但忘记更新它的类型声明。在这种情况下，每当你尝试使用库的新功能时，你将收到类型错误。如果库有重大变更，尽管你的代码通过了类型检查器，你可能会得到运行时错误。
+- en: The solution is usually to update your type declarations so that the versions
+    are back in sync. If the type declarations have not been updated, you have a few
+    options. You can use an augmentation in your own project to add new functions
+    and methods that you’d like to use. Or you can contribute updated type declarations
+    back to the community.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案通常是更新类型声明，使版本重新同步。如果类型声明没有更新，你有几个选择。你可以在自己的项目中使用扩展来添加想要使用的新函数和方法。或者你可以向社区贡献更新的类型声明。
+- en: Second, your type declarations might get ahead of your library. This can happen
+    if you’ve been using a library without its typings (perhaps you gave it an `any`
+    type using `declare module`) and try to install them later. If there have been
+    new releases of the library and its type declarations, your versions might be
+    out of sync. The symptoms of this are similar to the first problem, just in reverse.
+    The type checker will be comparing your code against the latest API, while you’ll
+    be using an older one at runtime. The solution is to either upgrade the library
+    or downgrade the type declarations until they match.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二，你的类型声明可能会超过库的版本。如果你之前在没有类型声明的情况下使用了一个库（也许你使用了 `declare module` 来给它一个 `any`
+    类型），然后试图稍后安装它们。如果库及其类型声明有新的发布，你的版本可能不会同步。这种情况的症状与第一个问题类似，只是反过来。类型检查器将与最新的 API
+    对比你的代码，而你在运行时将使用较旧的 API。解决方案是要么升级库，要么降低类型声明版本，直到它们匹配。
+- en: Third, the type declarations might require a newer version of TypeScript than
+    you’re using in your project. Much of the development of TypeScript’s type system
+    has been motivated by an attempt to more precisely type popular JavaScript libraries
+    like Lodash, React, and Ramda. It makes sense that the type declarations for these
+    libraries would want to use the latest and greatest features to get you better
+    type safety.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三，类型声明可能需要比项目中正在使用的 TypeScript 版本更新的新版本。TypeScript 类型系统的许多开发都是为了更准确地为像 Lodash、React
+    和 Ramda 这样的流行 JavaScript 库类型化。因此，这些库的类型声明希望使用最新和最好的特性来提供更好的类型安全性是有道理的。
+- en: 'If this happens, you’ll experience it as type errors in the `@types` declarations
+    themselves. The solution is to either upgrade your TypeScript version, use an
+    older version of the type declarations, or, if you really can’t update TypeScript,
+    stub out the types with `declare module`. It is possible for a library to provide
+    different type declarations for different versions of TypeScript via `typesVersions`,
+    but this is rare: at the time of this writing, fewer than 1% of the packages on
+    DefinitelyTyped did so.'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果出现这种情况，你会将其体验为`@types` 声明中的类型错误。解决方案是升级 TypeScript 版本，使用旧版本的类型声明，或者如果真的不能更新
+    TypeScript，则使用 `declare module` 来存根化类型。有些库可以通过 `typesVersions` 为不同版本的 TypeScript
+    提供不同的类型声明，但这种情况很少见：在撰写本文时，绝大多数在 DefinitelyTyped 上的包都没有这么做。
+- en: 'To install `@types` for a specific version of TypeScript, you can use:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要安装特定版本 TypeScript 的`@types`，您可以使用：
+- en: '[PRE5]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The version matching between libraries and their types is best effort and may
+    not always be correct. But the more popular the library is, the more likely it
+    is that its type declarations will get this right.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 库和它们类型之间的版本匹配是尽力而为的，可能不总是正确的。但是，库越受欢迎，它的类型声明正确性的可能性就越大。
+- en: 'Fourth, you can wind up with duplicate `@types` dependencies. Say you depend
+    on `@types/foo` and `@types/bar`. If `@types/bar` depends on an incompatible version
+    of `@types/foo`, then npm will attempt to resolve this by installing both versions,
+    one in a nested folder:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第四点，您可能会遇到重复的`@types`依赖。假设您依赖于`@types/foo`和`@types/bar`。如果`@types/bar`依赖于不兼容的`@types/foo`版本，那么
+    npm 将尝试解决此问题，将两个版本都安装，一个在嵌套文件夹中：
+- en: '[PRE6]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: While this is sometimes OK for node modules that are used at runtime, it almost
+    certainly won’t be OK for type declarations, which live in a flat global namespace.
+    You’ll see this as errors about duplicate declarations or declarations that cannot
+    be merged. You can track down why you have a duplicate type declaration by running
+    `npm ls @types/foo`. The solution is typically to update your dependency on `@types/foo`
+    or `@types/bar` so that they are compatible. Transitive `@types` dependencies
+    like these are often a source of trouble. If you’re publishing types, see [Item
+    51](#mirror-types-for-deps) for ways to avoid them.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然对于在运行时使用的节点模块有时是可以接受的，但对于类型声明来说几乎肯定是不可接受的，因为它们存在于一个平面全局命名空间中。您会看到关于重复声明或无法合并声明的错误。您可以通过运行`npm
+    ls @types/foo`来追踪为什么会有重复的类型声明。解决方案通常是更新您对`@types/foo`或`@types/bar`的依赖，使它们兼容。像这样的传递依赖`@types`通常是问题的根源。如果您要发布类型，请参阅[第51条](#mirror-types-for-deps)以避免这些问题。
+- en: 'Some packages, particularly those written in TypeScript, choose to bundle their
+    own type declarations. This is usually indicated by a `"types"` field in their
+    *package.json* which points to a *.d.ts* file:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些包，特别是用 TypeScript 编写的包，选择捆绑它们自己的类型声明。这通常通过它们的 *package.json* 中的 `"types"`
+    字段指向一个 *.d.ts* 文件来表示：
+- en: '[PRE7]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Does this solve all our problems? Would I even be asking if the answer was “yes”?
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这能解决我们所有的问题吗？如果答案是“是”，那我会提这个问题吗？
+- en: Bundling types *does* solve the problem of version mismatch, particularly if
+    the library itself is written in TypeScript and the type declarations are generated
+    by `tsc`. But bundling has some problems of its own.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 捆绑类型确实解决了版本不匹配的问题，特别是如果库本身是用 TypeScript 编写的，并且类型声明是由 `tsc` 生成的。但捆绑也有自己的问题。
+- en: 'First, what if there’s an error in the bundled types that can’t be fixed through
+    augmentation? Or the types worked fine when they were published, but a new TypeScript
+    version has since been released which flags an error. With `@types` you could
+    depend on the library’s implementation but not its type declarations. But with
+    bundled types, you lose this option. One bad type declaration might keep you stuck
+    on an old version of TypeScript. Contrast this with DefinitelyTyped: as TypeScript
+    is developed, Microsoft runs it against all the type declarations on DefinitelyTyped.
+    Breaks are fixed quickly.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一点，如果捆绑类型中有一个无法通过增补修复的错误？或者类型在发布时工作正常，但后来发布了一个新的 TypeScript 版本，它标记了一个错误。使用`@types`，您可以依赖于库的实现但不依赖于其类型声明。但是对于捆绑类型，您将失去这个选项。一个坏的类型声明可能会让您困在旧版本的
+    TypeScript 上。与 DefinitelyTyped 相比，微软在开发 TypeScript 时会运行它来验证 DefinitelyTyped 上所有类型声明的正确性。问题会很快得到修复。
+- en: 'Second, what if your types depend on another library’s type declarations? Usually
+    this would be a `devDependency` ([Item 45](#dev-dependencies)). But if you publish
+    your module and another user installs it, they won’t get your `devDependencies`.
+    Type errors will result. On the other hand, you probably don’t want to make it
+    a direct dependency either, since then your JavaScript users will install `@types`
+    modules for no reason. [Item 51](#mirror-types-for-deps) discusses the standard
+    workaround for this situation. But if you publish your types on DefinitelyTyped,
+    this is not a problem at all: you declare your type dependency there and only
+    your TypeScript users will get it.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二点，如果您的类型依赖于另一个库的类型声明怎么办？通常这会是一个`devDependency`（参见[#dev-dependencies](#dev-dependencies)）。但如果您发布您的模块，另一个用户安装它时，他们将不会得到您的`devDependencies`。这会导致类型错误。另一方面，您可能也不想将其作为直接依赖，因为这样一来，您的
+    JavaScript 用户将无故安装`@types`模块。[第51条](#mirror-types-for-deps)讨论了这种情况的标准解决方法。但如果您在
+    DefinitelyTyped 上发布您的类型，这将不是问题：您在那里声明您的类型依赖，只有您的 TypeScript 用户会得到它。
+- en: Third, what if you need to fix an issue with the type declarations of an old
+    version of your library? Would you be able to go back and release a patch update?
+    DefinitelyTyped has mechanisms for simultaneously maintaining type declarations
+    for different versions of the same library, something that might be hard for you
+    to do in your own project.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三，如果你需要修复旧版本库的类型声明问题，你能否回到并发布一个补丁更新？DefinitelyTyped 有机制同时维护同一库不同版本的类型声明，这在你自己的项目中可能会比较困难。
+- en: Fourth, how committed to accepting patches for type declarations are you? Remember
+    the versions of `react` and `@types/react` from the start of this item. There
+    were three times more patch updates to the type declarations than the library
+    itself. DefinitelyTyped is community-maintained and is able to handle this volume.
+    In particular, if a library maintainer doesn’t look at a patch within five days,
+    a global maintainer will. Can you commit to a similar turnaround time for your
+    library?
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第四，你对于接受类型声明的补丁有多大的承诺？记住这一条目开始时的 `react` 和 `@types/react` 的三个版本。类型声明的补丁更新次数比库本身多三倍。DefinitelyTyped
+    是由社区维护的，能够处理这么大的量。特别是，如果一个库维护者在五天内没有查看补丁，将会由全局维护者来处理。你能否承诺为你的库提供类似的响应时间？
+- en: 'Managing dependencies in TypeScript can be challenging, but it does come with
+    rewards: well-written type declarations can help you learn how to use libraries
+    correctly and can greatly improve your productivity with them. As you run into
+    issues with dependency management, keep the three versions in mind.'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 TypeScript 中管理依赖可能具有挑战性，但这确实带来了回报：良好编写的类型声明可以帮助你正确使用库，并极大地提高你的生产力。当你遇到依赖管理问题时，请记住这三个版本。
+- en: If you are publishing packages, weigh the pros and cons of bundling type declarations
+    versus publishing them on DefinitelyTyped. The official recommendation is to bundle
+    type declarations only if the library is written in TypeScript. This works well
+    in practice since `tsc` can automatically generate type declarations for you (using
+    the `declaration` compiler option). For JavaScript libraries, handcrafted type
+    declarations are more likely to contain errors, and they’ll require more updates.
+    If you publish your type declarations on DefinitelyTyped, the community will help
+    you support and maintain them.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你要发布包，权衡在捆绑类型声明和在 DefinitelyTyped 上发布之间的利弊。官方建议是只有当库是用 TypeScript 编写时才捆绑类型声明。这在实践中效果很好，因为
+    `tsc` 可以使用 `declaration` 编译选项自动生成类型声明。对于 JavaScript 库来说，手工编写的类型声明更容易包含错误，并且它们需要更多的更新。如果你将你的类型声明发布在
+    DefinitelyTyped 上，社区将帮助你支持和维护它们。
+- en: Things to Remember
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情
+- en: 'There are three versions involved in an `@types` dependency: the library version,
+    the `@types` version, and the TypeScript version.'
+  id: totrans-61
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在 `@types` 依赖中涉及三个版本：库的版本、`@types` 的版本和 TypeScript 的版本。
+- en: If you update a library, make sure you update the corresponding `@types`.
+  id: totrans-62
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你更新了一个库，请确保你也更新了相应的 `@types`。
+- en: Understand the pros and cons of bundling types versus publishing them on DefinitelyTyped.
+    Prefer bundling types if your library is written in TypeScript and DefinitelyTyped
+    if it is not.
+  id: totrans-63
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 了解捆绑类型和在 DefinitelyTyped 上发布之间的利弊。如果你的库是用 TypeScript 编写的，最好选择捆绑类型；如果不是，选择 DefinitelyTyped。
+- en: 'Item 47: Export All Types That Appear in Public APIs'
+  id: totrans-64
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目 47：导出所有出现在公共 API 中的类型
+- en: Use TypeScript long enough and you’ll eventually find yourself wanting to use
+    a `type` or `interface` from a third-party module only to find that it isn’t exported.
+    Fortunately TypeScript’s tools for mapping between types are rich enough that,
+    as a library user, you can almost always find a way to reference the type you
+    want. As a library author, this means that you ought to just export your types
+    to begin with. If a type ever appears in a function declaration, it is effectively
+    exported. So you may as well make things explicit.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 TypeScript 足够长的时间，你最终会发现自己想要使用第三方模块中的 `type` 或 `interface`，却发现它们未被导出。幸运的是，TypeScript
+    提供了丰富的类型映射工具，作为库的用户，你几乎总能找到引用你想要的类型的方法。作为库的作者，这意味着你应该从一开始就导出你的类型。如果一个类型在函数声明中出现，那么它实际上是被导出的。因此，最好让事情显式化。
+- en: 'Suppose you want to create some secret, unexported types:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你想创建一些秘密的、未导出的类型：
+- en: '[PRE8]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'As a user of your module, I cannot directly import `SecretName` or `SecretSanta`,
+    only `getGift`. But this is no barrier: because those types appear in an exported
+    function signature, I can extract them. One way is to use the `Parameters` and
+    `ReturnType` generic types:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为你的模块的用户，我无法直接导入 `SecretName` 或 `SecretSanta`，只能导入 `getGift`。但这并不是障碍：因为这些类型出现在导出函数签名中，我可以提取它们。一种方法是使用
+    `Parameters` 和 `ReturnType` 泛型类型：
+- en: '[PRE9]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: If your goal in not exporting these types was to preserve flexibility, then
+    the jig is up! You’ve already committed to them by putting them in a public API.
+    Do your users a favor and export them.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你不导出这些类型是为了保持灵活性，那么这个计划已经失败！你已经通过将它们放在公共 API 中而承诺了它们。为了让用户方便，最好是导出它们。
+- en: Things to Remember
+  id: totrans-71
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Export types that appear in any form in any public method. Your users will be
+    able to extract them anyway, so you may as well make it easy for them.
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 导出任何形式出现在任何公共方法中的类型。你的用户无论如何都能提取它们，所以最好让他们更容易。
+- en: 'Item 48: Use TSDoc for API Comments'
+  id: totrans-73
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 'Item 48: 使用 TSDoc 编写 API 注释'
+- en: 'Here’s a TypeScript function to generate a greeting:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个生成问候语的 TypeScript 函数：
+- en: '[PRE10]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'The author was kind enough to leave a comment describing what this function
+    does. But for documentation intended to be read by users of your functions, it’s
+    better to use JSDoc-style comments:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作者很好地留下了一条描述这个函数做什么的注释。但是对于打算供你的函数用户阅读的文档，最好使用 JSDoc 风格的注释：
+- en: '[PRE11]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The reason is that there is a nearly universal convention in editors to surface
+    JSDoc-style comments when the function is called (see [Figure 6-1](#efts-06in01)).
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 原因是编辑器几乎普遍遵循的约定是在调用函数时显示 JSDoc 风格的注释（参见 [图 6-1](#efts-06in01)）。
+- en: '![efts 06in01](assets/efts_06in01.png)'
+  id: totrans-79
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 06in01](assets/efts_06in01.png)'
+- en: Figure 6-1\. JSDoc-style comments are typically surfaced in tooltips in your
+    editor.
+  id: totrans-80
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-1\. JSDoc 风格的注释通常会在编辑器的工具提示中显示。
+- en: Whereas the inline comment gets no such treatment (see [Figure 6-2](#efts-06in02)).
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而内联注释则不会得到这样的待遇（参见 [图 6-2](#efts-06in02)）。
+- en: '![efts 06in02](assets/efts_06in02.png)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 06in02](assets/efts_06in02.png)'
+- en: Figure 6-2\. Inline comments are typically not shown in tooltips.
+  id: totrans-83
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-2\. 内联注释通常不会显示在工具提示中。
+- en: 'The TypeScript language service supports this convention, and you should take
+    advantage of it. If a comment describes a public API, it should be JSDoc. In the
+    context of TypeScript, these comments are sometimes called TSDoc. You can use
+    many of the usual conventions like `@param` and `@returns`:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 语言服务支持这种约定，你应该利用它。如果一个注释描述了一个公共 API，那么它应该是 JSDoc。在 TypeScript 的上下文中，这些注释有时被称为
+    TSDoc。你可以使用许多常见的约定，比如 `@param` 和 `@returns`：
+- en: '[PRE12]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This lets editors show the relevant documentation for each parameter as you’re
+    writing out a function call (as shown in [Figure 6-3](#efts-06in03)).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样编辑器就可以在你编写函数调用时显示每个参数的相关文档（如 [图 6-3](#efts-06in03) 所示）。
+- en: '![efts 06in03](assets/efts_06in03.png)'
+  id: totrans-87
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 06in03](assets/efts_06in03.png)'
+- en: Figure 6-3\. An @param annotation lets your editor show documentation for the
+    current parameter as you type it.
+  id: totrans-88
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-3\. 一个 @param 注释可以让你的编辑器在输入参数时显示当前参数的文档。
+- en: 'You can also use TSDoc with type definitions:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以在类型定义中使用 TSDoc：
+- en: '[PRE13]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: As you inspect individual fields in a `Measurement` object, you’ll get contextual
+    documentation (see [Figure 6-4](#efts-06in04)).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你检查 `Measurement` 对象中的各个字段时，你会得到上下文文档（参见 [图 6-4](#efts-06in04)）。
+- en: '![efts 06in04](assets/efts_06in04.png)'
+  id: totrans-92
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 06in04](assets/efts_06in04.png)'
+- en: Figure 6-4\. TSDoc for a field is shown when you mouse over that field in your
+    editor.
+  id: totrans-93
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-4\. 当你在编辑器中悬停在该字段上时，会显示字段的 TSDoc。
+- en: 'TSDoc comments are formatted using Markdown, so if you want to use bold, italic,
+    or bulleted lists, you can (see [Figure 6-5](#efts_06in05)):'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TSDoc 注释使用 Markdown 格式，因此如果你想使用粗体、斜体或项目列表，你可以使用（参见 [图 6-5](#efts_06in05)）：
+- en: '[PRE14]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '![efts 06in05](assets/efts_06in05.png)'
+  id: totrans-96
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 06in05](assets/efts_06in05.png)'
+- en: Figure 6-5\. TSDoc comments
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-5\. TSDoc 注释
+- en: 'Try to avoid writing essays in your documentation, though: the best comments
+    are short and to the point.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽量避免在你的文档中写文章，最好的注释是简短而直接的。
+- en: JSDoc includes some conventions for specifying type information (`@param {string}
+    name ...`), but you should avoid these in favor of TypeScript types ([Item 30](ch04.html#jsdoc-repeat)).
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JSDoc 包含一些约定来指定类型信息（`@param {string} name ...`），但你应该避免这些，而是选择 TypeScript 类型（[Item
+    30](ch04.html#jsdoc-repeat)）。
+- en: Things to Remember
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Use JSDoc-/TSDoc-formatted comments to document exported functions, classes,
+    and types. This helps editors surface information for your users when it’s most
+    relevant.
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 JSDoc-/TSDoc 格式的注释来记录导出的函数、类和类型。这有助于编辑器在最相关的时候为用户提供信息。
+- en: Use `@param`, `@returns`, and Markdown for formatting.
+  id: totrans-102
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 `@param`、`@returns` 和 Markdown 进行格式化。
+- en: Avoid including type information in documentation (see [Item 30](ch04.html#jsdoc-repeat)).
+  id: totrans-103
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 避免在文档中包含类型信息（参见 [Item 30](ch04.html#jsdoc-repeat)）。
+- en: 'Item 49: Provide a Type for this in Callbacks'
+  id: totrans-104
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目 49：在回调中为 `this` 提供类型
+- en: 'JavaScript’s `this` keyword is one of the most notoriously confusing parts
+    of the language. Unlike variables declared with `let` or `const`, which are lexically
+    scoped, `this` is dynamically scoped: its value depends not on the way in which
+    it was *defined* but on the way in which it was *called*.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 的 `this` 关键字是语言中最令人困惑的部分之一。与使用 `let` 或 `const` 声明的变量不同，它们具有词法作用域，`this`
+    具有动态作用域：其值不取决于其 *定义* 方式，而取决于其 *调用* 方式。
+- en: '`this` is most often used in classes, where it typically references the current
+    instance of an object:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this` 最常用于类中，通常引用对象的当前实例：'
+- en: '[PRE15]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'This logs:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将记录：
+- en: '[PRE16]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Now look what happens if you try to put `logSquares` in a variable and call
+    that:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在看看如果你尝试将 `logSquares` 放在变量中并调用它会发生什么：
+- en: '[PRE17]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'This version throws an error at runtime:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此版本在运行时会抛出错误：
+- en: '[PRE18]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'The problem is that `c.logSquares()` actually does two things: it calls `C.prototype.logSquares`
+    *and* it binds the value of `this` in that function to `c`. By pulling out a reference
+    to `logSquares`, you’ve separated these, and `this` gets set to `undefined`.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 问题在于 `c.logSquares()` 实际上做了两件事：它调用了 `C.prototype.logSquares` *并且* 绑定了该函数中 `this`
+    的值为 `c`。通过提取对 `logSquares` 的引用，你将它们分开了，并且 `this` 的值被设置为 `undefined`。
+- en: 'JavaScript gives you complete control over `this` binding. You can use `call`
+    to explicitly set `this` and fix the problem:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 允许你完全控制 `this` 绑定。你可以使用 `call` 显式设置 `this` 并解决问题：
+- en: '[PRE19]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'There’s no reason that `this` had to be bound to an instance of `C`. It could
+    have been bound to anything. So libraries can, and do, make the value of `this`
+    part of their APIs. Even the DOM makes use of this. In an event handler, for instance:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有理由 `this` 必须绑定到 `C` 的一个实例。它可以绑定到任何东西。因此，库可以并且确实将 `this` 的值作为其 API 的一部分。即使
+    DOM 也利用了它。例如，在事件处理程序中：
+- en: '[PRE20]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '`this` binding often comes up in the context of callbacks like this one. If
+    you want to define an `onClick` handler in a class, for example, you might try
+    this:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this` 绑定经常出现在像这样的回调上下文中。例如，如果你想在类中定义一个 `onClick` 处理程序，你可能会尝试这样做：'
+- en: '[PRE21]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'When `Button` calls `onClick`, it will alert “Reset undefined.” Oops! As usual,
+    the culprit is `this` binding. A common solution is to create a bound version
+    of the method in the constructor:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 `Button` 调用 `onClick` 时，它将弹出 “Reset undefined.”。糟糕！和往常一样，问题出在 `this` 绑定上。一个常见的解决方案是在构造函数中创建一个绑定版本的方法：
+- en: '[PRE22]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: The `onClick() { ... }` definition defines a property on `ResetButton.prototype`.
+    This is shared by all instances of `ResetButton`. When you bind `this.onClick
+    = ...` in the constructor, it creates a property called `onClick` on the instance
+    of `ResetButton` with `this` bound to that instance. The `onClick` instance property
+    comes before the `onClick` prototype property in the lookup sequence, so `this.onClick`
+    refers to the bound function in the `render()` method.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onClick() { ... }` 定义在 `ResetButton.prototype` 上定义了一个属性。这个属性被所有 `ResetButton`
+    的实例共享。当你在构造函数中绑定 `this.onClick = ...` 时，它会在 `ResetButton` 的实例上创建一个名为 `onClick`
+    的属性，并且将 `this` 绑定到该实例。`onClick` 实例属性在查找顺序中位于 `onClick` 原型属性之前，因此 `this.onClick`
+    在 `render()` 方法中指向绑定的函数。'
+- en: 'There is a shorthand for binding that can sometimes be convenient:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一个绑定的缩写形式，有时可能很方便：
+- en: '[PRE23]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Here we’ve replaced `onClick` with an arrow function. This will define a new
+    function every time a `ResetButton` is constructed with `this` set to the appropriate
+    value. It’s instructive to look at the JavaScript that this generates:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们用箭头函数替换了 `onClick`。这将每次用适当值构造 `ResetButton` 时定义一个新的函数。看一下这段 JavaScript
+    代码生成的内容是很有启发性的：
+- en: '[PRE24]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: So what does this all have to do with TypeScript? Because `this` binding is
+    part of JavaScript, TypeScript models it. This means that if you’re writing (or
+    typing) a library that sets the value of `this` on callbacks, then you should
+    model this, too.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么 TypeScript 与此有何关系呢？因为 `this` 绑定是 JavaScript 的一部分，TypeScript 对其进行建模。这意味着，如果你正在编写（或键入）一个在回调中设置
+    `this` 值的库，那么你也应该对此进行建模。
+- en: 'You do this by adding a `this` parameter to your callback:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以通过在回调中添加一个 `this` 参数来实现这一点：
+- en: '[PRE25]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'The `this` parameter is special: it’s not just another positional argument.
+    You can see this if you try to call it with two parameters:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this` 参数是特殊的：它不只是另一个位置参数。如果尝试使用两个参数调用它，可以看到这一点：'
+- en: '[PRE26]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Even better, TypeScript will enforce that you call the function with the correct
+    `this` context:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更好的是，TypeScript 将强制你以正确的`this`上下文调用该函数：
+- en: '[PRE27]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'As a user of this function, you can reference `this` in the callback and get
+    full type safety:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为此函数的用户，你可以在回调中引用`this`，并获得完全的类型安全性：
+- en: '[PRE28]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'Of course, if you use an arrow function here, you’ll override the value of
+    `this`. TypeScript will catch the issue:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，如果你在这里使用箭头函数，你会覆盖`this`的值。TypeScript 将捕捉到这个问题：
+- en: '[PRE29]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Don’t forget about `this`! If you set the value of `this` in your callbacks,
+    then it’s part of your API, and you should include it in your type declarations.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要忘记`this`！如果你在回调函数中设置了`this`的值，那么它就成为了你的 API 的一部分，你应该在类型声明中包含它。
+- en: Things to Remember
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情
+- en: Understand how `this` binding works.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 理解`this`绑定的工作原理。
+- en: Provide a type for `this` in callbacks when it’s part of your API.
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当它作为你的 API 的一部分时，为回调函数中的`this`提供类型。
+- en: 'Item 50: Prefer Conditional Types to Overloaded Declarations'
+  id: totrans-143
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目 50：更喜欢条件类型而不是重载声明
+- en: How would you write a type declaration for this JavaScript function?
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会如何为这个 JavaScript 函数编写类型声明？
+- en: '[PRE30]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '`double` can be passed either a `string` or a `number`. So you might use a
+    union type:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`double`可以传入`string`或`number`。因此，你可能会使用一个联合类型：'
+- en: '[PRE31]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: (These examples all make use of TypeScript’s concept of function overloading.
+    For a refresher, see [Item 3](ch01.html#independent).)
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （这些示例都利用了 TypeScript 的函数重载概念。如果需要回顾，请参见[条目 3](ch01.html#independent)。）
+- en: 'While this declaration is accurate, it’s a bit imprecise:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这个声明是准确的，但有点不太精确：
+- en: '[PRE32]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: When `double` is passed a `number`, it returns a `number`. And when it’s passed
+    a `string`, it returns a `string`. This declaration misses that nuance and will
+    produce types that are hard to work with.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`double`传入一个`number`时，它返回一个`number`。当传入一个`string`时，它返回一个`string`。这个声明忽略了这种细微差别，导致类型处理起来很困难。
+- en: 'You might try to capture this relationship using a generic:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以尝试使用泛型来捕捉这种关系：
+- en: '[PRE33]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Unfortunately, in our zeal for precision we’ve overshot. The types are now
+    a little *too* precise. When passed a `string` type, this `double` declaration
+    will result in a `string` type, which is correct. But when passed a string *literal*
+    type, the return type is the same string literal type. This is wrong: doubling
+    `''x''` results in `''xx''`, not `''x''`.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，在我们追求精确性的过程中，我们有些过火了。这些类型现在有点*过于*精确了。当传入一个`string`类型时，这个`double`声明将导致一个`string`类型，这是正确的。但是当传入一个字符串*字面量*类型时，返回类型却是相同的字符串字面量类型。这是错误的：将`'x'`翻倍得到的是`'xx'`，而不是`'x'`。
+- en: 'Another option is to provide multiple type declarations. While TypeScript only
+    allows you to write one implementation of a function, it allows you to write any
+    number of type declarations. You can use this to improve the type of `double`:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个选项是提供多个类型声明。虽然 TypeScript 只允许你编写一个函数的实现，但允许你编写任意数量的类型声明。你可以利用这一点来改进`double`的类型：
+- en: '[PRE34]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'This is progress! But is this declaration correct? Unfortunately there’s still
+    a subtle bug. This type declaration will work with values that are either a `string`
+    or a `number`, but not with values that could be either:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是进步！但是这个声明是否正确？不幸的是，仍然存在一个细微的 bug。这个类型声明将适用于值是`string`或`number`的情况，但不适用于可能是两者之一的值：
+- en: '[PRE35]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: This call to `double` is safe and should return `string|number`. When you overload
+    type declarations, TypeScript processes them one by one until it finds a match.
+    The error you’re seeing is a result of the last overload (the `string` version)
+    failing, because `string|number` is not assignable to `string`.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次对`double`的调用是安全的，并且应该返回`string|number`。当你重载类型声明时，TypeScript 会逐个处理直到找到匹配项。你看到的错误是最后一个重载（`string`版本）失败，因为`string|number`不能赋值给`string`。
+- en: 'While you could patch this issue by adding a third `string|number` overload,
+    the best solution is to use a *conditional type*. Conditional types are like if
+    statements (conditionals) in type space. They’re perfect for situations like this
+    one where there are a few possibilities that you need to cover:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然你可以通过添加第三个`string|number`重载来解决这个问题，但最好的解决方案是使用*条件类型*。条件类型在类型空间中类似于 if 语句（条件语句）。它们非常适合像这种需要涵盖几种可能性的情况：
+- en: '[PRE36]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'This is similar to the first attempt to type `double` using a generic, but
+    with a more elaborate return type. You read the conditional type like you’d read
+    a ternary (`?:`) operator in JavaScript:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与使用泛型首次尝试为`double`编写类型类似，但返回类型更为复杂。你可以像在 JavaScript 中读取三元（`?:`）操作符一样读取条件类型：
+- en: If `T` is a subset of `string` (e.g., `string` or a string literal or a union
+    of string literals), then the return type is `string`.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果 `T` 是 `string` 的子集（例如，`string` 或者字符串字面量或字符串字面量的联合），那么返回类型是 `string`。
+- en: Otherwise return `number`.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 否则返回 `number`。
+- en: 'With this declaration, all of our examples work:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这个声明，我们所有的例子都可以工作：
+- en: '[PRE37]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'The `number|string` example works because conditional types distribute over
+    unions. When `T` is `number|string`, TypeScript resolves the conditional type
+    as follows:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`number|string` 的例子之所以有效，是因为条件类型可以在联合中分布。当 `T` 是 `number|string` 时，TypeScript
+    解析条件类型如下：'
+- en: '[PRE38]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: While the type declaration using overloading was simpler to write, the version
+    using conditional types is more correct because it generalizes to the union of
+    the individual cases. This is often the case for overloads. Whereas overloads
+    are treated independently, the type checker can analyze conditional types as a
+    single expression, distributing them over unions. If you find yourself writing
+    an overloaded type declarations, consider whether it might be better expressed
+    using a conditional type.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用重载进行类型声明虽然更容易编写，但使用条件类型版本更加正确，因为它泛化到各个单独情况的联合。对于重载，这种情况经常发生。而重载是独立处理的，类型检查器可以将条件类型作为单个表达式分析，并在联合中分发它们。如果你发现自己正在编写重载的类型声明，考虑是否可以使用条件类型更好地表达它。
+- en: Things to Remember
+  id: totrans-170
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Prefer conditional types to overloaded type declarations. By distributing over
+    unions, conditional types allow your declarations to support union types without
+    additional overloads.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更倾向于使用条件类型而不是重载类型声明。通过在联合中分布，条件类型允许你的声明支持联合类型而无需额外的重载。
+- en: 'Item 51: Mirror Types to Sever Dependencies'
+  id: totrans-172
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目 51：镜像类型以减少依赖关系
+- en: 'Suppose you’ve written a library for parsing CSV files. Its API is simple:
+    you pass in the contents of the CSV file and get back a list of objects mapping
+    column names to values. As a convenience for your NodeJS users, you allow the
+    contents to be either a `string` or a NodeJS `Buffer`:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你编写了一个用于解析 CSV 文件的库。其 API 很简单：你传入 CSV 文件的内容，然后得到一个将列名映射到值的对象列表。作为方便，你允许内容既可以是一个
+    `string`，也可以是一个 NodeJS 的 `Buffer`：
+- en: '[PRE39]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'The type definition for `Buffer` comes from the NodeJS type declarations, which
+    you must install:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Buffer` 的类型定义来自于 NodeJS 的类型声明，你必须安装它：'
+- en: '[PRE40]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'When you publish your CSV parsing library, you include the type declarations
+    with it. Since your type declarations depend on the NodeJS types, you include
+    these as a `devDependency` ([Item 45](#dev-dependencies)). If you do this, you’re
+    liable to get complaints from two groups of users:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你发布你的 CSV 解析库时，你需要将类型声明与之一同发布。由于你的类型声明依赖于 NodeJS 的类型，因此将这些声明作为 `devDependency`
+    包含在内（[条目 45](#dev-dependencies)）。如果这样做，你可能会从两组用户那里得到抱怨：
+- en: JavaScript developers who wonder what these `@types` modules are that they’re
+    depending on.
+  id: totrans-178
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对 JavaScript 开发者来说，他们想知道他们依赖的这些 `@types` 模块是什么。
+- en: TypeScript web developers who wonder why they’re depending on NodeJS.
+  id: totrans-179
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对 TypeScript 的 Web 开发者来说，他们想知道为什么他们要依赖于 NodeJS。
+- en: These complaints are reasonable. The `Buffer` behavior isn’t essential and is
+    only relevant for users who are using NodeJS already. And the declaration in `@types/node`
+    is only relevant to NodeJS users who are also using TypeScript.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些抱怨是合理的。`Buffer` 的行为并不重要，只对已经使用 NodeJS 的用户相关。而 `@types/node` 中的声明只对同时使用 TypeScript
+    和 NodeJS 的用户相关。
+- en: 'TypeScript’s structural typing ([Item 4](ch01.html#structural)) can help you
+    out of the jam. Rather than using the declaration of `Buffer` from `@types/node`,
+    you can write your own with just the methods and properties you need. In this
+    case that’s just a `toString` method that accepts an encoding:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的结构化类型（[条目 4](ch01.html#structural)）可以帮助你摆脱困境。不要使用来自 `@types/node`
+    的 `Buffer` 声明，你可以只编写自己需要的方法和属性的声明。在这种情况下，只需要一个接受编码的 `toString` 方法：
+- en: '[PRE41]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'This interface is dramatically shorter than the complete one, but it does capture
+    our (simple) needs from a `Buffer`. In a NodeJS project, calling `parseCSV` with
+    a real `Buffer` is still OK because the types are compatible:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个接口比完整接口要短得多，但它确实捕捉了我们对 `Buffer` 的（简单）需求。在 NodeJS 项目中，使用真实的 `Buffer` 调用 `parseCSV`
+    仍然可以，因为类型是兼容的：
+- en: '[PRE42]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: If your library only depends on the types for another library, rather than its
+    implementation, consider mirroring just the declarations you need into your own
+    code. This will result in a similar experience for your TypeScript users and an
+    improved experience for everyone else.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的库只依赖于另一个库的类型而不依赖于其实现，请考虑将你所需的声明镜像到你自己的代码中。这将为你的 TypeScript 用户提供类似的体验，并为其他用户提供改进的体验。
+- en: If you depend on the implementation of a library, you may still be able to apply
+    the same trick to avoid depending on its typings. But this becomes increasingly
+    difficult as the dependence grows larger and more essential. If you’re copying
+    a large portion of the type declarations for another library, you may want to
+    formalize the relationship by making the `@types` dependency explicit.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你依赖于一个库的实现，可能仍然可以应用相同的技巧来避免依赖于其类型。但随着依赖的增长和变得更加重要，这变得越来越困难。如果你复制了另一个库的大部分类型声明，可能需要通过显式地声明
+    `@types` 依赖来正式化这种关系。
+- en: This technique is also helpful for severing dependencies between your unit tests
+    and production systems. See the `getAuthors` example in [Item 4](ch01.html#structural).
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此技术对于割裂单元测试与生产系统之间的依赖关系也很有帮助。请参阅 [Item 4](ch01.html#structural) 中的 `getAuthors`
+    示例。
+- en: Things to Remember
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记住的事情
+- en: Use structural typing to sever dependencies that are nonessential.
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用结构类型来割裂非必要的依赖关系。
+- en: Don’t force JavaScript users to depend on `@types`. Don’t force web developers
+    to depend on NodeJS.
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不要强迫 JavaScript 用户依赖于 `@types`。不要强迫 Web 开发者依赖于 NodeJS。
+- en: 'Item 52: Be Aware of the Pitfalls of Testing Types'
+  id: totrans-191
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 52：注意测试类型的陷阱
+- en: You wouldn’t publish code without writing tests for it (I hope!), and you shouldn’t
+    publish type declarations without writing tests for them, either. But how do you
+    test types? If you’re authoring type declarations, testing is an essential but
+    surprisingly fraught undertaking. It’s tempting to make assertions about types
+    inside the type system using the tools that TypeScript provides. But there are
+    several pitfalls with this approach. Ultimately it’s safer and more straightforward
+    to use `dtslint` or a similar tool that inspects types from outside of the type
+    system.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你不会发布没有写测试的代码（希望如此！），你也不应该发布没有为其写类型声明测试的代码。但是如何测试类型呢？如果你在编写类型声明，测试是一项必不可少但令人惊讶的艰巨工作。诱人的是使用
+    TypeScript 提供的工具在类型系统内部对类型进行断言。但这种方法存在几个陷阱。最终，更安全、更直接的方法是使用 `dtslint` 或类似的工具，从类型系统外部检查类型。
+- en: 'Suppose you’ve written a type declaration for a `map` function provided by
+    a utility library (the popular Lodash and Underscore libraries both provide such
+    a function):'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你已经为实用库提供的 `map` 函数编写了类型声明（流行的 Lodash 和 Underscore 库都提供了这样的函数）：
+- en: '[PRE43]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'How can you check that this type declaration results in the expected types?
+    (Presumably there are separate tests for the implementation.) One common technique
+    is to write a test file that calls the function:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何检查此类型声明是否产生了预期的类型？（假设实现有单独的测试。）一个常见的技术是编写一个调用该函数的测试文件：
+- en: '[PRE44]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'This will do some blunt error checking: if your declaration of `map` only listed
+    a single parameter, this would catch the mistake. But does it feel like something
+    is missing here?'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将进行一些粗糙的错误检查：如果你的 `map` 声明只列出了一个参数，这将捕获错误。但你觉得这里有些什么遗漏了吗？
+- en: 'The equivalent of this style of test for runtime behavior might look something
+    like this:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于运行时行为的此类测试的等效物可能看起来像这样：
+- en: '[PRE45]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Sure, this tests that the `square` function doesn’t throw an error. But it’s
+    missing any checks on the return value, so there’s no real test of the behavior.
+    An incorrect implementation of `square` would still pass this test.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，这会测试 `square` 函数不会抛出错误。但它没有检查返回值，因此无法真正测试其行为。`square` 的错误实现仍然会通过这个测试。
+- en: This approach is common in testing type declaration files because it’s simple
+    to copy over existing unit tests for a library. And while it does provide some
+    value, it would be much better to actually check some types!
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法在测试类型声明文件中很常见，因为可以简单地复制现有库的单元测试。虽然这确实提供了一些价值，但实际上检查一些类型会更好！
+- en: 'One way is to assign the result to a variable with a specific type:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是将结果分配给具有特定类型的变量：
+- en: '[PRE46]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This is exactly the sort of superfluous type declaration that [Item 19](ch03.html#avoid-inferable)
+    would encourage you to remove. But here it plays an essential role: it provides
+    some confidence that the `map` declaration is at least doing something sensible
+    with the types. And indeed you can find many type declarations in DefinitelyTyped
+    that use exactly this approach for testing. But, as we’ll see, there are a few
+    fundamental problems with using assignment for testing.'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是 [项目 19](ch03.html#avoid-inferable) 鼓励您移除的多余类型声明。但在这里，它发挥了关键作用：它确保 `map`
+    声明至少对类型进行了一些合理的操作。确实，您可以在 DefinitelyTyped 中找到许多使用这种方法进行测试的类型声明。但是，正如我们将看到的那样，使用赋值进行测试存在一些根本性问题。
+- en: One is that you have to create a named variable that is likely to be unused.
+    This adds boilerplate, but also means that you’ll have to disable some forms of
+    linting.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中之一是，您必须创建一个可能未使用的命名变量。这增加了样板，但也意味着您必须禁用某些形式的 linting。
+- en: 'A common workaround is to define a helper:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个常见的解决方法是定义一个辅助函数：
+- en: '[PRE47]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: This eliminates the unused variable issue, but there are still surprises.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这消除了未使用变量的问题，但仍然存在一些意外情况。
+- en: 'A second issue is that we’re checking *assignability* of the two types rather
+    than equality. Often this works as you’d expect. For example:'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个问题是，我们检查的是两种类型的*可赋性*而不是相等性。通常情况下，这样做的效果如您所期望的那样。例如：
+- en: '[PRE48]'
+  id: totrans-210
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: If you inspect the `n` symbol, you’ll see that its type is actually `12`, a
+    numeric literal type. This is a subtype of `number` and so the assignability check
+    passes, just as you’d expect.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您检查 `n` 符号，您会看到它的类型实际上是 `12`，一个数字文字类型。这是 `number` 的子类型，因此可赋性检查会通过，正如您所期望的那样。
+- en: 'So far so good. But things get murkier when you start checking the types of
+    objects:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止一切顺利。但是当您开始检查对象的类型时，情况就变得更加复杂了：
+- en: '[PRE49]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'The `map` call returns an array of `{name: string, inYellowSubmarine: boolean}`
+    objects. This is assignable to `{name: string}[]`, sure, but shouldn’t we be forced
+    to acknowledge the yellow submarine? Depending on the context you may or may not
+    really want to check for type equality.'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`map` 调用返回一个数组，其中包含 `{name: string, inYellowSubmarine: boolean}` 对象。这可以赋值给
+    `{name: string}[]`，当然可以，但是我们是否应该被迫承认黄色潜艇？根据上下文，您可能确实希望检查类型的相等性。'
+- en: 'If your function returns another function, you may be surprised at what’s considered
+    assignable:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的函数返回另一个函数，您可能会对可赋性的判断感到惊讶：
+- en: '[PRE50]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Are you surprised that the second assertion succeeds? The reason is that a
+    function in TypeScript is assignable to a function type, which takes fewer parameters:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您是否对第二个断言成功感到惊讶？原因是 TypeScript 中的函数可以赋值给参数较少的函数类型：
+- en: '[PRE51]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'This reflects the fact that it’s perfectly fine to call a JavaScript function
+    with more parameters than it’s declared to take. TypeScript chooses to model this
+    behavior rather than bar it, largely because it is pervasive in callbacks. The
+    callback in the Lodash `map` function, for example, takes up to three parameters:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这反映了调用 JavaScript 函数时使用更多参数是完全可以的事实。 TypeScript 选择模拟此行为而不是禁止它，主要是因为它在回调函数中普遍存在。例如，Lodash
+    `map` 函数中的回调最多接受三个参数：
+- en: '[PRE52]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: While all three are available, it’s very common to use only one or sometimes
+    two, as we have so far in this item. In fact, it’s quite rare to use all three.
+    By disallowing this assignment, TypeScript would report errors in an enormous
+    amount of JavaScript code.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管所有三者都可用，但非常常见的情况是仅使用一个或两个，就像我们在本条目中到目前为止所做的那样。事实上，很少同时使用所有三者。通过禁止这种赋值，TypeScript
+    将在大量的 JavaScript 代码中报告错误。
+- en: 'So what can you do? You could break apart the function type and test its pieces
+    using the generic `Parameters` and `ReturnType` types:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么您能做什么呢？您可以拆分函数类型，并使用通用的 `Parameters` 和 `ReturnType` 类型测试其各个部分：
+- en: '[PRE53]'
+  id: totrans-223
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'But if “this” isn’t complicated enough, there’s another issue: `map` sets the
+    value of `this` for its callback. TypeScript can model this behavior (see [Item
+    49](#this-in-callbacks)), so your type declaration should do so. And you should
+    test it. How can we do that?'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果“这”还不够复杂，那就有另一个问题：`map` 设置了其回调的 `this` 值。 TypeScript 可以模拟此行为（请参见 [项目 49](#this-in-callbacks)），因此您的类型声明应该这样做。并且您应该进行测试。我们怎么做呢？
+- en: 'Our tests of `map` so far have been a bit black box in style: we’ve run an
+    array and function through `map` and tested the type of the result, but we haven’t
+    tested the details of the intermediate steps. We can do so by filling out the
+    callback function and verifying the types of its parameters and `this` directly:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们对`map`的测试都有点黑盒风格：我们通过`map`运行了一个数组和函数，并测试了结果的类型，但我们没有测试中间步骤的细节。我们可以通过填写回调函数并直接验证其参数和`this`的类型来做到这一点：
+- en: '[PRE54]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: This surfaced a few issues with our declaration of `map`. Note the use of a
+    non-arrow function so that we could test the type of `this`.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这揭示了我们对`map`声明的一些问题。请注意使用非箭头函数，以便我们可以测试`this`的类型。
+- en: 'Here is a declaration that passes the checks:'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个通过检查的声明：
+- en: '[PRE55]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'There remains a final issue, however, and it is a major one. Here’s a complete
+    type declaration file for our module that will pass even the most stringent tests
+    for `map` but is worse than useless:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但还有一个最后的问题，它是一个重大问题。这是我们模块的一个完整类型声明文件，即使经过最严格的`map`测试也是一无是处：
+- en: '[PRE56]'
+  id: totrans-231
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: This assigns an `any` type to the *entire module*. Your tests will all pass,
+    but you won’t have any type safety. What’s worse, every call to a function in
+    this module will quietly produce an `any` type, contagiously destroying type safety
+    throughout your code. Even with `noImplicitAny`, you can still get `any` types
+    through type declarations.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会将`any`类型分配给*整个模块*。您的所有测试都将通过，但您将没有任何类型安全性。更糟糕的是，该模块中每个函数的调用都会悄悄产生`any`类型，从而在您的代码中传播破坏类型安全性。即使使用了`noImplicitAny`，您仍然可以通过类型声明获得`any`类型。
+- en: Barring some advanced trickery, it’s quite difficult to detect an `any` type
+    from within the type system. This is why the preferred method for testing type
+    declarations is to use a tool that operates *outside* the type checker.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除非使用一些高级技巧，否则很难从类型系统内部检测到`any`类型。这就是为什么测试类型声明的首选方法是使用在类型检查器*外部*操作的工具。
+- en: 'For type declarations in the DefinitelyTyped repository, this tool is `dtslint`.
+    It operates through specially formatted comments. Here’s how you might write the
+    last test for the `map` function using `dtslint`:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于DefinitelyTyped仓库中的类型声明，这个工具是`dtslint`。它通过特殊格式的注释来操作。以下是您如何使用`dtslint`为`map`函数编写最后一个测试的方法：
+- en: '[PRE57]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'Rather than checking assignability, `dtslint` inspects the type of each symbol
+    and does a textual comparison. This matches how you’d manually test the type declarations
+    in your editor: `dtslint` essentially automates this process. This approach does
+    have some drawbacks: `number|string` and `string|number` are textually different
+    but the same type. But so are `string` and `any`, despite being assignable to
+    each other, which is really the point.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其检查可分配性，`dtslint`检查每个符号的类型并进行文本比较。这与您在编辑器中手动测试类型声明的方式匹配：`dtslint`本质上自动化了这个过程。这种方法确实有一些缺点：`number|string`和`string|number`在文本上是不同的，但类型相同。但是`string`和`any`也是如此，尽管它们可以相互分配，这确实是重点。
+- en: Testing type declarations is tricky business. You *should* test them. But be
+    aware of the pitfalls of some of the common techniques and consider using a tool
+    like `dtslint` to avoid them.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试类型声明是一件棘手的事情。你*应该*测试它们。但要注意一些常见技术的缺陷，并考虑使用像`dtslint`这样的工具来避免它们。
+- en: Things to Remember
+  id: totrans-238
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: When testing types, be aware of the difference between equality and assignability,
+    particularly for function types.
+  id: totrans-239
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在测试类型时，要注意等式和可分配性之间的差异，特别是对于函数类型。
+- en: For functions that use callbacks, test the inferred types of the callback parameters.
+    Don’t forget to test the type of `this` if it’s part of your API.
+  id: totrans-240
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于使用回调的函数，请测试回调参数的推断类型。如果它是您API的一部分，请不要忘记测试`this`的类型。
+- en: Be wary of `any` in tests involving types. Consider using a tool like `dtslint`
+    for stricter, less error-prone checking.
+  id: totrans-241
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在涉及类型的测试中要谨慎使用`any`。考虑使用像`dtslint`这样的工具进行更严格、更少出错的检查。

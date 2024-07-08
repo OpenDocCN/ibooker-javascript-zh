@@ -1,0 +1,443 @@
+- en: Appendix D. Recipes for Writing Declaration Files for Third-Party JavaScript
+    Modules
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 附录 D. 为第三方 JavaScript 模块编写声明文件的配方
+- en: This appendix covers a few key building blocks and patterns that come up over
+    and over again when typing third-party modules. For a deeper discussion of typing
+    third-party code, head over to [“JavaScript That Doesn’t Have Type Declarations
+    on DefinitelyTyped”](ch11.html#writing-3rd-party-typings).
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本附录涵盖了一些关键的构建块和模式，这些在输入第三方模块时反复出现。要深入讨论输入第三方代码，请转到[“在DefinitelyTyped上没有类型声明的JavaScript”](ch11.html#writing-3rd-party-typings)。
+- en: Since module declaration files have to live in *.d.ts* files and so can’t contain
+    values, when you declare module types you need to use the `declare` keyword to
+    affirm that values of the given type really are exported by your module. [Table D-1](#type-only-table)
+    provides a short summary of regular declarations and their type declaration equivalents.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为模块声明文件必须存在于 *.d.ts* 文件中，不能包含值，所以在声明模块类型时，需要使用`declare`关键字来确认给定类型的值确实被模块导出。[表
+    D-1](#type-only-table) 提供了常规声明及其类型声明等效的简短摘要。
+- en: Table D-1\. TypeScript and its type-only equivalents
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 D-1. TypeScript 及其仅类型等效项
+- en: '| *.ts* | *.d.ts* |'
+  id: totrans-4
+  prefs: []
+  type: TYPE_TB
+  zh: '| *.ts* | *.d.ts* |'
+- en: '| --- | --- |'
+  id: totrans-5
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `var a = 1` | `declare var a: number` |'
+  id: totrans-6
+  prefs: []
+  type: TYPE_TB
+  zh: '| `var a = 1` | `declare var a: number` |'
+- en: '| `let a = 1` | `declare let a: number` |'
+  id: totrans-7
+  prefs: []
+  type: TYPE_TB
+  zh: '| `let a = 1` | `declare let a: number` |'
+- en: '| `const a = 1` | `declare const a: 1` |'
+  id: totrans-8
+  prefs: []
+  type: TYPE_TB
+  zh: '| `const a = 1` | `declare const a: 1` |'
+- en: '| `function a(b) { return b.toFixed() }` | `declare function a(b: number):
+    string` |'
+  id: totrans-9
+  prefs: []
+  type: TYPE_TB
+  zh: '| `function a(b) { return b.toFixed() }` | `declare function a(b: number):
+    string` |'
+- en: '| `class A { b() { return 3 } }` | `declare class A { b(): number }` |'
+  id: totrans-10
+  prefs: []
+  type: TYPE_TB
+  zh: '| `class A { b() { return 3 } }` | `declare class A { b(): number }` |'
+- en: '| `namespace A {}` | `declare namespace A {}` |'
+  id: totrans-11
+  prefs: []
+  type: TYPE_TB
+  zh: '| `namespace A {}` | `declare namespace A {}` |'
+- en: '| `type A = number` | `type A = number` |'
+  id: totrans-12
+  prefs: []
+  type: TYPE_TB
+  zh: '| `type A = number` | `type A = number` |'
+- en: '| `interface A { b?: string }` | `interface A { b?: string }` |'
+  id: totrans-13
+  prefs: []
+  type: TYPE_TB
+  zh: '| `interface A { b?: string }` | `interface A { b?: string }` |'
+- en: Types of Exports
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 导出类型
+- en: Whether your module uses global, ES2015, or CommonJS exports will affect how
+    you write your declaration files.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模块使用全局、ES2015 或 CommonJS 导出会影响你编写声明文件的方式。
+- en: Globals
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局
+- en: 'If your module only assigns values to the global namespace and doesn’t actually
+    export anything, you can just create a script-mode file (see [“Module Mode Versus
+    Script Mode”](ch10.html#module-mode)) and prefix your variable, function, and
+    class declarations with `declare` (every other kind of declaration—`enum`, `type`,
+    and so on—remains unchanged):'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的模块只是将值分配给全局命名空间，并且实际上并没有导出任何东西，你可以创建一个脚本模式文件（参见[“模块模式与脚本模式”](ch10.html#module-mode)），并使用`declare`前缀你的变量、函数和类声明（其他类型的声明如`enum`、`type`等保持不变）：
+- en: '[PRE0]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Each of these declarations will be globally available to every file in your
+    project without requiring an explicit import. Here, you could use `someGlobal`
+    in any file in your project without importing it first, but at runtime, `someGlobal`
+    would need to be assigned to the global namespace (`window` in browsers or `global`
+    in NodeJS).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些声明都将全局可用，无需显式导入到项目中的每个文件。在此，你可以在项目中的任何文件中使用`someGlobal`，而无需首先导入它，但在运行时，`someGlobal`需要分配给全局命名空间（浏览器中的`window`或
+    NodeJS 中的`global`）。
+- en: Be careful to avoid `import`s and `export`s in your declaration file in order
+    to keep your file in script mode.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要保持文件在脚本模式下，请小心避免在声明文件中使用`import`和`export`。
+- en: ES2015 Exports
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: ES2015 导出
+- en: 'If your module uses ES2015 exports—that is, the `export` keyword—simply replace
+    `declare` (which affirms that a global variable is defined) with `export` (which
+    affirms that an ES2015 binding is exported):'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的模块使用 ES2015 导出，即`export`关键字，只需用`export`替换`declare`（它确认全局变量已定义）：
+- en: '[PRE1]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: CommonJS Exports
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: CommonJS 导出
+- en: 'CommonJS was the de facto module standard before ES2015, and is still the standard
+    for NodeJS at the time of writing. It also uses the `export` keyword, but the
+    syntax is a bit different:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 ES2015 之前，CommonJS 是事实上的模块标准，并且仍然是 NodeJS 的标准。它也使用`export`关键字，但语法有些不同：
+- en: '[PRE2]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Notice how we assigned our exports to `export`, rather than using `export` as
+    a modifier (like we do for ES2015 exports).
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意我们是如何将我们的导出分配给`export`，而不是像我们对 ES2015 导出所做的那样使用`export`作为修饰符。
+- en: A type declaration for a third-party CommonJS module can contain exactly one
+    export. To export multiple things, we take advantage of declaration merging (see
+    [Appendix C](app03.html#types-and-values)).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第三方 CommonJS 模块的类型声明可以只包含一个导出。要导出多个内容，我们利用声明合并（参见[附录 C](app03.html#types-and-values)）。
+- en: 'For example, to type multiple exports and no default export, we export a single
+    `namespace`:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，要为多个导出定义类型而没有默认导出，我们导出一个单一的`namespace`：
+- en: '[PRE3]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'What about a CommonJS module that has both a default export and named exports?
+    We take advantage of declaration merging:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个 CommonJS 模块同时具有默认导出和命名导出呢？我们可以利用声明合并的功能：
+- en: '[PRE4]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: UMD Exports
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: UMD 导出
+- en: 'Typing a UMD module is nearly identical to typing an ES2015 module. The only
+    difference is that if you want to make your module globally available to script-mode
+    files (see [“Module Mode Versus Script Mode”](ch10.html#module-mode)), you use
+    the special `export as namespace` syntax. For example:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型化 UMD 模块几乎与类型化 ES2015 模块相同。唯一的区别在于，如果你想让你的模块在脚本模式文件中全局可用（参见[“模块模式与脚本模式”](ch10.html#module-mode)），你需要使用特殊的`export
+    as namespace`语法。例如：
+- en: '[PRE5]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Notice that last line—if you have a script-mode file in your project, you can
+    now use that module directly (without importing it first) on the global `MyModule`
+    namespace:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意最后一行——如果你在项目中有一个脚本模式文件，你现在可以直接在全局`MyModule`命名空间下使用该模块（无需先导入它）：
+- en: '[PRE6]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Extending a Module
+  id: totrans-38
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 扩展模块
+- en: Extending a module’s type declaration is less common than typing a module, but
+    it might come up if you write a JQuery plugin or a Lodash mixin. Try to avoid
+    doing it when possible; instead, consider using a separate module. That is, instead
+    of a Lodash mixin use a regular function, and instead of a JQuery plugin—wait,
+    why are you still using JQuery?
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展模块类型声明不如给模块加类型常见，但如果你编写了一个 JQuery 插件或 Lodash 混合功能，可能会遇到这种情况。在可能的情况下，尽量避免这样做；相反，考虑使用一个单独的模块。也就是说，不要使用
+    Lodash 混合功能，而应使用常规函数，不要使用 JQuery 插件——等等，你为什么还在用 JQuery？
+- en: Globals
+  id: totrans-40
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局
+- en: If you want to extend another module’s global namespace or interface, just create
+    a script-mode file (see [“Module Mode Versus Script Mode”](ch10.html#module-mode)),
+    and augment it. Note that this only works for interfaces and namespaces because
+    TypeScript will take care of merging them for you.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想扩展另一个模块的全局命名空间或接口，只需创建一个脚本模式文件（参见[“模块模式与脚本模式”](ch10.html#module-mode)），然后增加它。请注意，这仅适用于接口和命名空间，因为
+    TypeScript 会为您处理它们的合并。
+- en: 'For example, let’s add an awesome new `marquee` method to JQuery. We’ll start
+    by installing `jquery` itself:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们给 JQuery 添加一个新的厉害的`marquee`方法。我们首先安装`jquery`本身：
+- en: '[PRE7]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'We’ll then create a new file—say *jquery-extensions.d.ts*—in our project, and
+    add `marquee` to JQuery’s global `JQuery` interface (I found that JQuery defines
+    its methods on the `JQuery` interface by sleuthing through its type declarations):'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们会在项目中创建一个新文件，比如*jquery-extensions.d.ts*，并将`marquee`添加到 JQuery 的全局`JQuery`接口中（我发现
+    JQuery 在其类型声明中定义了其方法）：
+- en: '[PRE8]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now, in any file where we use JQuery, we can use `marquee` (of course, we’ll
+    want to add a runtime implementation for `marquee` too):'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在任何使用 JQuery 的文件中，我们都可以使用`marquee`（当然，我们还需要为`marquee`添加一个运行时实现）：
+- en: '[PRE9]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Note that this is the same technique we used to extend built-in globals in [“Safely
+    Extending the Prototype”](ch06.html#extending-the-prototype).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，这与我们在[“安全扩展原型”](ch06.html#extending-the-prototype)中用来扩展内置全局变量的技术相同。
+- en: Modules
+  id: totrans-49
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 模块
+- en: 'Extending module exports is a bit trickier, and has more pitfalls: you need
+    to type your extension correctly, load your modules in the correct order at runtime,
+    and make sure to update your extension’s types when the structure of the type
+    declarations for the module you’re extending changes.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展模块导出有点棘手，并且有更多陷阱：你需要正确地为你的扩展类型，运行时按正确的顺序加载你的模块，并确保当你扩展的模块类型声明结构发生变化时更新你的扩展类型。
+- en: 'As an example, let’s type a new export for React. We’ll start by installing
+    React and its type declarations:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们为 React 类型化一个新的导出。我们首先安装 React 及其类型声明：
+- en: '[PRE10]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Then we’ll take advantage of module merging (see [“Declaration Merging”](ch10.html#namespace-merging))
+    and simply declare a module with the same name as our React module:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们利用模块合并（参见[“声明合并”](ch10.html#namespace-merging)），简单地声明一个与我们的 React 模块同名的模块：
+- en: '[PRE11]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Note that unlike in our example for extending globals, it doesn’t matter whether
+    our extension file is in module mode or script mode.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，与我们用于扩展全局变量的示例不同，我们的扩展文件是否处于模块模式或脚本模式并不重要。
+- en: 'What about extending a specific export from a module? Inspired by [ReasonReact](https://reasonml.github.io/reason-react),
+    let’s say we want to add a built-in reducer for our React components (a reducer
+    is a way to declare an explicit set of state transitions for a React component).
+    At the time of writing, React’s type declarations declare the `React.Component`
+    type as an interface and a class that get merged together into a single UMD export:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以考虑从模块中扩展特定的导出功能吗？灵感来自[ReasonReact](https://reasonml.github.io/reason-react)，假设我们想为我们的React组件添加一个内置的reducer（reducer是为React组件声明显式状态转换的一种方式）。在撰写本文时，React的类型声明将`React.Component`类型声明为一个接口和一个类，这两者会合并为单个UMD导出：
+- en: '[PRE12]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Let’s extend `Component` with our `reducer` method. We can do this by entering
+    the following in a *react-extensions.d.ts* file in the project root:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过在项目根目录中的*react-extensions.d.ts*文件中输入以下内容来扩展`Component`与我们的`reducer`方法：
+- en: '[PRE13]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '[![1](assets/1.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-1)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-1)'
+- en: We import `'react'`, switching our extension file into script mode, which we
+    need to be in to consume a React module. Note that there are other ways we could
+    have switched to script mode, like importing something else, exporting something,
+    or exporting an empty object (`export {}`)—we didn’t have to import `'react'`
+    specifically.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们导入`'react'`，将我们的扩展文件切换到脚本模式，这是我们需要以消耗React模块的方式。请注意，我们还可以通过导入其他内容、导出某些内容或导出空对象（`export
+    {}`）等其他方式切换到脚本模式，不一定非要专门导入`'react'`。
+- en: '[![2](assets/2.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-2)'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-2)'
+- en: We declare the `'react'` module, indicating to TypeScript that we want to declare
+    types for that specific `import` path. Because we already installed `@types/react`
+    (which defines an export for the same exact `'react'` path), TypeScript will merge
+    this module declaration with the one provided by `@types/react`.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明`'react'`模块，告诉TypeScript我们要为该特定的`import`路径声明类型。因为我们已经安装了`@types/react`（它为相同的`'react'`路径定义了一个导出），TypeScript将会把这个模块声明与`@types/react`提供的合并。
+- en: '[![3](assets/3.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-3)'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-3)'
+- en: We augment the `Component` interface provided by React by declaring our own
+    `Component` interface. Following the rules of interface merging ([“Declaration
+    Merging”](ch05.html#interface-merging)), we have to use the same exact signature
+    in our declaration as the one in `@types/react`.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过声明自己的`Component`接口来增强React提供的`Component`接口。根据接口合并的规则（“声明合并”），我们在声明中必须使用与`@types/react`中相同的确切签名。
+- en: '[![4](assets/4.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-4)'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_recipes_for_writing_declaration_files_for_third_party_javascript_modules_CO1-4)'
+- en: Finally, we declare our `reducer` method.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们声明我们的`reducer`方法。
+- en: 'After declaring these types (and assuming we’ve implemented the runtime behavior
+    to support this update somewhere), we can now declare React components with built-in
+    `reducers` in a typesafe way:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在声明这些类型之后（并假设我们已经在某个地方实现了支持此更新的运行时行为），我们现在可以以类型安全的方式声明具有内置`reducers`的React组件：
+- en: '[PRE14]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: As noted at the start of this section, it’s good practice to avoid this pattern
+    when possible (even though it’s cool) because it can make your modules brittle
+    and dependent on load order. Instead, try to use composition so that your module
+    extensions consume the module they’re extending, and export a wrapper rather than
+    modifying that module.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如本节开头所述，尽量避免可能使您的模块变脆弱且依赖于加载顺序的模式（即使它很酷）。相反，尝试使用组合，使您的模块扩展消耗它们正在扩展的模块，并导出一个包装器，而不是修改该模块。

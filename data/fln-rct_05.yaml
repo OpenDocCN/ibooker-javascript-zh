@@ -1,0 +1,1191 @@
+- en: Chapter 4\. Inside Reconciliation
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第四章 内部协调
+- en: To be truly fluent in React, we need to understand *what* its functions do.
+    So far, we’ve understood JSX and `React.createElement`. We’ve also understood
+    the virtual DOM in some appreciable level of detail. Let’s explore the practical
+    applications of it in React in this chapter, and understand what `ReactDOM.createRoot(element).​ren⁠der()`
+    does. Specifically, we’ll explore *how* React builds its virtual DOM and then
+    updates the real DOM through a process called reconciliation.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要真正精通 React，我们需要理解它的功能 *做什么*。到目前为止，我们已经理解了 JSX 和 `React.createElement`。我们还在某种程度上理解了虚拟
+    DOM。让我们在本章中探讨它在 React 中的实际应用，并理解 `ReactDOM.createRoot(element).​ren⁠der()` 做了什么。具体来说，我们将探讨
+    React 如何构建其虚拟 DOM，然后通过称为协调的过程更新真实 DOM。
+- en: Understanding Reconciliation
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解协调过程
+- en: As a quick recap, React’s virtual DOM is a blueprint of our desired UI state.
+    React takes this blueprint and, through a process called *reconciliation*, makes
+    it a reality in a given host environment; usually a web browser, but possibly
+    other environments like shells, native platforms like iOS and Android, and more.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简而言之，React 的虚拟 DOM 是我们期望的 UI 状态的蓝图。React 接受这个蓝图，并通过一种称为 *协调* 的过程，在给定的主机环境（通常是
+    Web 浏览器，但也可能是其他环境，如 shell、iOS 和 Android 等）中将其变为现实。
+- en: 'Consider the following code snippet:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑以下代码片段：
+- en: '[PRE0]'
+  id: totrans-5
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'This code snippet contains a declarative description of what we want our UI
+    state to be: a tree of elements. Both our teammates *and* React can read this
+    and understand we’re trying to create a counter app with an increment button that
+    increments the counter. To understand reconciliation, let’s understand what React
+    does on the inside when faced with a component like this.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下代码片段包含了我们想要的 UI 状态的声明性描述：一个元素树。我们的团队成员和 React 都可以阅读并理解，我们试图创建一个带有增量按钮的计数器应用程序。为了理解协调，让我们了解当
+    React 面对这样一个组件时内部做了什么。
+- en: 'First, the JSX becomes a tree of React elements. This is what we saw in [Chapter 3](ch03.html#ch03).
+    When invoked, the `App` component returns a React element whose children are further
+    React elements. React elements are immutable (to us) and represent the desired
+    state of the UI. They are not the actual UI state. React elements are created
+    by `React.createElement` or the JSX `<` symbol, so this would be transpiled into:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，JSX 变成了一棵 React 元素树。这就是我们在[第三章](ch03.html#ch03)中看到的。当调用时，`App` 组件返回一个 React
+    元素，其子元素是进一步的 React 元素。对我们来说，React 元素是不可变的，表示 UI 的期望状态。它们不是实际的 UI 状态。React 元素是由
+    `React.createElement` 或 JSX `<` 符号创建的，因此这将被转译为：
+- en: '[PRE1]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'This would give us a tree of created React elements that looks something like
+    this:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将给我们提供一个创建的 React 元素树，看起来像这样：
+- en: '[PRE2]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This snippet represents the virtual DOM that comes from our `Counter` component.
+    Since this is the first render, this tree is now committed to the browser using
+    minimal calls to imperative DOM APIs. How does React ensure minimal calls to imperative
+    DOM APIs? It does so by batching vDOM updates into one real DOM update, and touching
+    the DOM as little as possible for reasons discussed in earlier chapters. Let’s
+    dive into this in some more detail to fully understand batching.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个片段代表了来自我们 `Counter` 组件的虚拟 DOM。由于这是第一次渲染，此树现在使用最少的调用到命令式 DOM API 提交给浏览器。React
+    如何确保最少的调用到命令式 DOM API？通过将 vDOM 更新批处理为一个真实 DOM 更新，并尽可能少地触及 DOM，这是前几章讨论的原因。让我们深入探讨一些细节，以完全理解批处理的工作方式。
+- en: Batching
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 批处理
+- en: 'In [Chapter 3](ch03.html#ch03), we discussed document fragments in browsers
+    as part of the DOM’s built-in APIs: lightweight containers that hold collections
+    of DOM nodes that act like a temporary staging area where you can make multiple
+    changes without affecting the main DOM until you finally append the document fragment
+    to the DOM, triggering a single reflow and repaint.'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第三章](ch03.html#ch03)中，我们讨论了浏览器中的文档片段作为 DOM 内置 API 的一部分：轻量级容器，保存像临时暂存区域一样的
+    DOM 节点集合，允许您进行多个更改，而不影响主 DOM，直到最后将文档片段附加到 DOM，触发单一回流和重绘。
+- en: In a similar vein, React batches updates to the real DOM during reconciliation,
+    combining multiple vDOM updates into a single DOM update. This reduces the number
+    of times the real DOM has to be updated and therefore lends itself to better performance
+    for web applications.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以类似的方式，React 在协调过程中批量更新真实 DOM，将多个虚拟 DOM 更新合并为单个 DOM 更新。这样做减少了真实 DOM 需要更新的次数，因此有助于提升
+    Web 应用的性能。
+- en: 'To understand this, let’s consider a component that updates its state multiple
+    times in quick succession:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解这一点，让我们考虑一个组件，在快速连续更新其状态多次：
+- en: '[PRE3]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: In this example, the `handleClick` function calls `setCount` three times in
+    quick succession. Without batching, React would update the real DOM three separate
+    times, even though the value of `count` only changed once. This would be wasteful
+    and slow.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，`handleClick`函数快速连续调用`setCount`三次。如果没有批处理，React将分别三次更新实际DOM，尽管`count`的值只改变了一次。这将是低效且慢。
+- en: However, because React batches updates, it makes *one* update to the DOM with
+    `count + 3` instead of three updates to the DOM with `count + 1` each time.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，由于React批处理更新，它使得*一次*更新DOM为`count + 3`而不是每次为`count + 1`分别更新三次。
+- en: 'To calculate the most efficient batched update to the DOM, React will create
+    a new vDOM tree as a fork of the current vDOM tree with the updated values, where
+    `count` is `3`. This tree will need to be *reconciled* with what is currently
+    in the browser, effectively turning `0` into `3`. React will then calculate that
+    just one update is required to the DOM using the new vDOM value `3` instead of
+    manually updating the DOM three times. This is how batching fits into the picture,
+    and it is a part of the broader topic we’re about to dive into: reconciliation,
+    or the process of reconciling the next expected DOM state with the current DOM.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了计算对DOM的最高效批量更新，React将创建一个新的vDOM树，作为当前vDOM树的一个分支，带有更新后的值，其中`count`是`3`。这棵树将需要与当前在浏览器中的内容进行*调和*，有效地将`0`变为`3`。然后React将计算出仅需一次更新DOM，使用新的vDOM值`3`而不是手动三次更新DOM。这就是批处理如何适应图片的一部分，这也是我们即将深入探讨的更广泛主题：调和，或者调和下一个预期DOM状态与当前DOM的过程。
+- en: Before we understand what modern-day React does under the hood, let’s explore
+    how React used to perform reconciliation before version 16, with the legacy “stack”
+    reconciler. This will help us understand the need for today’s popular Fiber reconciler.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们了解现代React在内部执行之前，让我们探讨React在16版本之前使用的遗留“栈”调和器进行调和的方式。这将帮助我们理解今天流行的Fiber调和器的必要性。
+- en: Note
+  id: totrans-21
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: At this point, it’s worth mentioning that all of the topics we’re about to discuss
+    are implementation details in React that can and likely will change over time.
+    Here, we are isolating the mechanism of how React works from actual practical
+    usage of React. The goal is that by understanding React’s internal mechanisms,
+    we’ll have a better understanding of how to use React effectively in applications.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，值得一提的是，我们即将讨论的所有主题都是React的实现细节，随着时间的推移可能会发生变化。在这里，我们将React的工作机制与React的实际应用隔离开来。我们的目标是通过理解React的内部机制，更有效地在应用程序中使用React。
+- en: Prior Art
+  id: totrans-23
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 先前的艺术
+- en: Previously, React used a stack data structure for rendering. To make sure we’re
+    on the same page, let’s briefly discuss the stack data structure.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 早期，React使用栈数据结构进行渲染。为了确保我们理解一致，让我们简要讨论栈数据结构。
+- en: Stack Reconciler (Legacy)
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 栈调和器（遗留）
+- en: In computer science, a stack is a linear data structure that follows the last
+    in, first out (LIFO) principle. This means that the last element added to the
+    stack will be the first one to be removed. A stack has two fundamental operations,
+    push and pop, that allow elements to be added and removed from the top of the
+    stack, respectively.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在计算机科学中，栈是一种遵循后进先出（LIFO）原则的线性数据结构。这意味着最后添加到栈中的元素将是第一个被移除的。栈具有两个基本操作，push和pop，分别允许从栈顶添加和移除元素。
+- en: 'A stack can be visualized as a collection of elements that are arranged vertically,
+    with the topmost element being the most recently added one. Here’s an ASCII illustration
+    of a stack with three elements:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 栈可以被视为一组垂直排列的元素，其中最顶部的元素是最近添加的元素。这里有一个栈的ASCII示例，包含三个元素：
+- en: '[PRE4]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: In this example, the most recently added element is `3`, which is at the top
+    of the stack. The element `1`, which was added first, is at the bottom of the
+    stack.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，最近添加的元素是`3`，位于栈顶。第一个添加的元素`1`位于栈底。
+- en: 'In this stack, the push operation adds an element to the top of the stack.
+    In code, this can be executed in JavaScript using an array and the `push` method,
+    like this:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个栈中，push操作将一个元素添加到栈顶。在代码中，这可以使用JavaScript中的数组和`push`方法执行，如下所示：
+- en: '[PRE5]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The pop operation removes the top element from the stack. In code, this can
+    be executed in JavaScript using an array and the `pop` method, like this:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`pop` 操作从栈中移除顶部元素。在代码中，可以使用数组和 `pop` 方法来执行 JavaScript 中的这个操作，如下所示：'
+- en: '[PRE6]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: In this example, the `pop` method removes the top element (`3`) from the stack
+    and returns it. The stack array now contains the remaining elements (`1` and `2`).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`pop` 方法从栈中移除顶部元素（`3`）并返回它。现在栈数组中包含剩余的元素（`1` 和 `2`）。
+- en: React’s original reconciler was a stack-based algorithm that was used to compare
+    the old and new virtual trees and update the DOM accordingly. While the stack
+    reconciler worked well in simple cases, it presented a number of challenges as
+    applications grew in size and complexity.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的原始协调器是一种基于栈的算法，用于比较旧的和新的虚拟树，并相应地更新 DOM。虽然栈协调器在简单情况下工作良好，但随着应用程序规模和复杂性的增长，它带来了一些挑战。
+- en: 'Let’s take a quick look at why this was the case. To do so, we’ll consider
+    an example where we’ve got a list of updates to make:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们快速看一下为什么会这样。为此，我们将考虑一个需要进行更新的列表示例：
+- en: A nonessential computationally expensive component consumes CPU and renders.
+  id: totrans-37
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 一个非必要的计算昂贵的组件会消耗 CPU 并进行渲染。
+- en: A user types into an `input` element.
+  id: totrans-38
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户在 `input` 元素中键入。
+- en: '`Button` becomes enabled if the input is valid.'
+  id: totrans-39
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`Button` 如果输入有效则变为可用。'
+- en: A containing `Form` component holds the state, so it rerenders.
+  id: totrans-40
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 包含 `Form` 组件持有状态，因此会重新渲染。
+- en: 'In code, we’d express this like so:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代码中，我们会这样表达：
+- en: '[PRE7]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: In this case, the stack reconciler would render the updates sequentially without
+    being able to pause or defer work. If the computationally expensive component
+    blocks rendering, user input will appear on screen with an observable lag. This
+    leads to poor user experience, since the text field would be unresponsive. Instead,
+    it would be far more pleasant to be able to recognize the user input as a higher-priority
+    update than rendering the nonessential expensive component, and update the screen
+    to reflect the input, deferring rendering the computationally expensive component.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此情况下，栈协调器会按顺序渲染更新而无法暂停或延迟工作。如果计算昂贵的组件阻塞渲染，则用户输入将在屏幕上显示出可观的延迟。这会导致糟糕的用户体验，因为文本字段将无响应。相反，能够识别用户输入作为高优先级更新，而不是渲染非必要的昂贵组件，并更新屏幕以反映输入，延迟渲染计算昂贵的组件，会更加愉快。
+- en: There is a need to be able to bail out of current rendering work if interrupted
+    by higher-priority rendering work, like user input. To do this, React needs to
+    have a sense of priority for certain types of rendering operations over others.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果被用户输入等高优先级渲染工作打断，则需要能够中止当前渲染工作。为了做到这一点，React 需要对某些类型的渲染操作有优先级的概念，以区分它们。
+- en: The stack reconciler did not prioritize updates, which meant that less important
+    updates could block more important updates. For example, a low-priority update
+    to a tooltip might block a high-priority update to a text input. Updates to the
+    virtual tree were executed in the order they were received.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 栈协调器未对更新进行优先级排序，这意味着较不重要的更新可能会阻塞更重要的更新。例如，对工具提示的低优先级更新可能会阻塞对文本输入的高优先级更新。虚拟树的更新按接收顺序执行。
+- en: In a React application, updates to the virtual tree can have different levels
+    of importance. For example, an update to a form input might be more important
+    than an update to an indicator showing the number of likes on a post, because
+    the user is directly interacting with the input and expects it to be responsive.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 应用中，虚拟树的更新可以有不同的重要性级别。例如，对表单输入的更新可能比更新显示帖子上点赞数的指示器更重要，因为用户直接与输入交互并期望它响应迅速。
+- en: In the stack reconciler, updates were executed in the order they were received,
+    which meant that less important updates could block more important updates. For
+    example, if a like counter update was received before a form input update, the
+    like counter update would be executed first and could block the form input update.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在栈协调器中，更新按接收顺序执行，这意味着较不重要的更新可能会阻塞更重要的更新。例如，如果点赞计数器更新在表单输入更新之前接收，点赞计数器更新将首先执行并可能阻塞表单输入更新。
+- en: If the like counter update takes a long time to execute (e.g., because it’s
+    performing an expensive computation), this could result in a noticeable delay
+    or jank in the user interface, especially if the user is interacting with the
+    application during the update.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果点赞计数器更新需要很长时间执行（例如，因为它正在执行昂贵的计算），这可能会导致用户界面中的明显延迟或卡顿，特别是如果用户在更新期间与应用程序交互。
+- en: Another challenge with the stack reconciler was that it did not allow updates
+    to be interrupted or cancelled. What this means is that even if the stack reconciler
+    had a sense of update priority, there were no guarantees that it could work well
+    with various priorities by bailing out of unimportant work when a high-priority
+    update was scheduled.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 栈协调器的另一个挑战是它不允许更新被中断或取消。这意味着即使栈协调器具有更新优先级的概念，也无法保证能够很好地处理各种优先级，因为在安排高优先级更新时无法放弃不重要的工作。
+- en: 'In any web application, not all updates are created equal: a random unexpected
+    notification appearing is not as important as responding to my click on a button
+    because the latter is a deliberate action that warrants an immediate reaction,
+    whereas the former isn’t even expected and may not even be welcome.'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在任何网络应用程序中，不是所有的更新都是平等的：一个随机意外出现的通知并不像响应我点击按钮那样重要，因为后者是一个有意的动作，需要立即反应，而前者甚至可能是不期望的，甚至可能不受欢迎。
+- en: In the stack reconciler, updates could not be interrupted or cancelled, which
+    meant that unnecessary updates, like showing a toast, were sometimes made at the
+    expense of user interactions. This could result in unnecessary work being performed
+    on the virtual tree and the DOM, which negatively impacted the performance of
+    the application.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在栈协调器中，更新无法被中断或取消，这意味着有时会以牺牲用户交互的方式进行不必要的更新，例如显示toast，这可能导致在虚拟树和DOM上执行不必要的工作，从而对应用程序的性能产生负面影响。
+- en: The stack reconciler presented a number of challenges as applications grew in
+    size and complexity. The main challenges were centered around jank and user interfaces
+    being slow to respond. To address these challenges, the React team developed a
+    new reconciler called the Fiber reconciler, which is based on a different data
+    structure called a Fiber tree. Let’s explore this data structure in the next section.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 栈协调器在应用程序增大并复杂化时提出了许多挑战。主要的挑战集中在卡顿和用户界面反应迟缓上。为了解决这些问题，React团队开发了一种新的协调器称为Fiber协调器，它基于一种称为Fiber树的不同数据结构。让我们在下一节中探讨这种数据结构。
+- en: The Fiber Reconciler
+  id: totrans-53
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Fiber协调器
+- en: The Fiber reconciler involves the use of a different data structure called a
+    “Fiber” that represents a single unit of work for the reconciler. Fibers are created
+    from React elements that we covered in [Chapter 3](ch03.html#ch03), with the key
+    difference being that they are stateful and long-lived, while React elements are
+    ephemeral and stateless.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fiber协调器涉及使用一种称为“Fiber”的不同数据结构，它表示协调器的单个工作单位。Fibers是从我们在[第三章](ch03.html#ch03)中涵盖的React元素创建的，其主要区别在于它们是有状态和长寿命的，而React元素是短暂的和无状态的。
+- en: 'Mark Erikson, the maintainer of Redux and a prominent React expert, describes
+    Fibers as “React’s internal data structure that represents the actual component
+    tree at a point in time.” Indeed, this is a good way to think about Fibers, and
+    it’s on-brand for Mark who, at the time of writing, works on time-travel debugging
+    React apps full time with Replay: a tool that allows you to rewind and replay
+    your app’s state for debugging. If you haven’t already, check out [Replay.io](https://www.replay.io)
+    for more information.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux的维护者、著名React专家Mark Erikson将Fibers描述为“React在某一时刻表示实际组件树的内部数据结构”。事实上，这是一个理解Fibers的好方法，这也符合Mark的品牌形象，因为他目前全职致力于使用Replay进行时间旅行调试React应用程序：这是一种工具，允许您回放和重现应用程序状态进行调试。如果您尚未了解，请访问[Replay.io](https://www.replay.io)获取更多信息。
+- en: Similar to how the vDOM is a tree of elements, React uses a Fiber tree in reconciliation
+    which, as the name suggests, is a tree of Fibers that is directly modeled after
+    the vDOM.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与vDOM是元素树类似，React在协调过程中使用Fiber树，正如其名称所示，它是一棵Fibers树，直接模拟vDOM。
+- en: Fiber as a Data Structure
+  id: totrans-57
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Fiber作为数据结构
+- en: The Fiber data structure in React is a key component of the Fiber reconciler.
+    The Fiber reconciler allows updates to be prioritized and executed concurrently,
+    which improves the performance and responsiveness of React applications. Let’s
+    explore the Fiber data structure in more detail.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React中的Fiber数据结构是Fiber协调器的关键组成部分。Fiber协调器允许优先级更新并行执行，从而改善React应用程序的性能和响应能力。让我们更详细地探讨Fiber数据结构。
+- en: At its core, the Fiber data structure is a representation of a component instance
+    and its state in a React application. As discussed, the Fiber data structure is
+    designed to be a mutable instance and can be updated and rearranged as needed
+    during the reconciliation process.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在其核心，Fiber 数据结构是 React 应用程序中组件实例及其状态的表示。如前所述，Fiber 数据结构被设计为可变实例，并且可以在协调过程中根据需要进行更新和重新排列。
+- en: Each instance of a Fiber node contains information about the component it represents,
+    including its props, state, and child components. The Fiber node also contains
+    information about its position in the component tree, as well as metadata that
+    is used by the Fiber reconciler to prioritize and execute updates.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个 Fiber 节点的实例都包含有关其所代表组件的信息，包括其 props、state 和子组件。Fiber 节点还包含其在组件树中的位置信息，以及由
+    Fiber 调节器使用的元数据，以优先和执行更新。
+- en: 'Here’s an example of a simple Fiber node:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个简单的 Fiber 节点示例：
+- en: '[PRE8]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'In this example, we have a Fiber node that represents a `ClassComponent` called
+    `App`. The Fiber node contains information about the component’s:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，我们有一个代表 `App` 的 `ClassComponent` 的 Fiber 节点。Fiber 节点包含有关组件以下信息：
+- en: '`tag`'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`tag`'
+- en: In this case it’s `3`, which React uses to identify class components. Each type
+    of component (class components, function components, Suspense and error boundaries,
+    fragments, etc.) has its own numerical ID as Fibers.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，它是 `3`，React 用它来识别类组件。每种类型的组件（类组件、函数组件、Suspense 和错误边界、片段等）都有自己的数字 ID
+    作为 Fiber。
+- en: '`type`'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`'
+- en: '`App` refers to the function or class component that this Fiber represents.'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`App` 指的是此 Fiber 所代表的功能或类组件。'
+- en: '`props`'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`props`'
+- en: '(`{name: "Tejas", age: 30}`) represent the input props to the component, or
+    input arguments to the function.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '(`{name: "Tejas", age: 30}`) 代表组件的输入 props 或函数的输入参数。'
+- en: '`stateNode`'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`stateNode`'
+- en: The instance of the `App` component that this Fiber represents.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 Fiber 所代表的 `App` 组件的实例。
+- en: 'Its position in the component tree: `return`, `child`, `sibling`, and `index`
+    each give the Fiber reconciler a way to “walk the tree,” identifying parents,
+    children, siblings, and the Fiber’s index.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在组件树中的位置：`return`、`child`、`sibling` 和 `index` 分别为 Fiber 调节器提供了一种“遍历树”的方式，识别父级、子级、兄弟节点和
+    Fiber 的索引。
+- en: Fiber reconciliation involves comparing the current Fiber tree with the next
+    Fiber tree and figuring out which nodes need to be updated, added, or removed.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fiber 调节涉及比较当前 Fiber 树和下一个 Fiber 树，并确定哪些节点需要更新、添加或移除。
+- en: 'During the reconciliation process, the Fiber reconciler creates a Fiber node
+    for each React element in the virtual DOM. There is a function called `createFiberFrom​Ty⁠peAndProps`
+    that does this. Of course, another way of saying “type and props” is by calling
+    them React elements. As we recall, a React element is this: type and props:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在协调过程中，Fiber 调节器为虚拟 DOM 中的每个 React 元素创建一个 Fiber 节点。有一个名为 `createFiberFrom​Ty⁠peAndProps`
+    的函数执行此操作。当然，另一种说“类型和 props”的方法是称其为 React 元素。正如我们所记得的，React 元素就是这样的：类型和 props：
+- en: '[PRE9]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'This function returns a Fiber derived from elements. Once the Fiber nodes have
+    been created, the Fiber reconciler uses a *work loop* to update the user interface.
+    The work loop starts at the root Fiber node and works its way down the component
+    tree, marking each Fiber node as “dirty” if it needs to be updated. Once it reaches
+    the end, it walks back up, creating a new DOM tree in memory, detached from the
+    browser, that will eventually be committed (flushed) to the screen. This is represented
+    by two functions: `beginWork` walks downward, marking components as “need to update,”
+    and `completeWork` walks back up, constructing a tree of real DOM elements detached
+    from the browser. This off-screen rendering process can be interrupted and thrown
+    away at any time, since the user doesn’t see it.'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此函数返回一个从元素派生的 Fiber。一旦创建了 Fiber 节点，Fiber 调节器使用一个 *工作循环* 更新用户界面。工作循环从根 Fiber
+    节点开始，沿着组件树向下工作，如果需要更新，则标记每个 Fiber 节点为“脏”。一旦到达末端，它会向上走，创建一个在内存中的新 DOM 树，与浏览器分离开来，最终会提交（刷新）到屏幕上。这由两个函数表示：`beginWork`
+    向下遍历，标记组件为“需要更新”，而 `completeWork` 向上遍历，构建一个与浏览器分离的真实 DOM 元素树。这种屏幕外渲染过程可以随时中断和丢弃，因为用户看不到它。
+- en: The Fiber architecture takes inspiration from a concept called “double buffering”
+    in the game world, where the next screen is prepared offscreen and then “flushed”
+    to the current screen. To better grasp the Fiber architecture, let’s understand
+    this concept in a little more detail before we move further.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fiber 架构受游戏世界中称为“双缓冲”的概念启发，在此概念中，下一个屏幕在屏幕外准备并然后“刷新”到当前屏幕。为了更好地理解 Fiber 架构，让我们在继续之前更详细地了解这个概念。
+- en: Double Buffering
+  id: totrans-78
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 双缓冲
+- en: Double buffering is a technique used in computer graphics and video processing
+    to reduce flicker and improve perceived performance. The technique involves creating
+    two buffers (or memory spaces) for storing images or frames, and switching between
+    them at regular intervals to display the final image or video.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 双缓冲是计算机图形和视频处理中用于减少闪烁和提高感知性能的技术。该技术涉及创建两个缓冲区（或内存空间）来存储图像或帧，并定期在它们之间切换以显示最终图像或视频。
+- en: 'Here’s how double buffering works in practice:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是双缓冲在实践中的工作方式：
+- en: The first buffer is filled with the initial image or frame.
+  id: totrans-81
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 第一个缓冲区填充了初始图像或帧。
+- en: While the first buffer is being displayed, the second buffer is updated with
+    new data or images.
+  id: totrans-82
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 当第一个缓冲区正在显示时，第二个缓冲区会更新新数据或图像。
+- en: When the second buffer is ready, it is switched with the first buffer and displayed
+    on the screen.
+  id: totrans-83
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 当第二个缓冲区准备好时，它将与第一个缓冲区交换并显示在屏幕上。
+- en: The process continues, with the first and second buffers being switched at regular
+    intervals to display the final image or video.
+  id: totrans-84
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 这个过程继续进行，第一个和第二个缓冲区定期交换以显示最终图像或视频。
+- en: By using double buffering, flicker and other visual artifacts can be reduced,
+    since the final image or video is displayed without interruptions or delays.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用双缓冲，可以减少闪烁和其他视觉伪影，因为最终图像或视频是连续显示而无中断或延迟。
+- en: Fiber reconciliation is similar to double buffering such that when updates happen,
+    the current Fiber tree is forked and updated to reflect the new state of a given
+    user interface. This is called *rendering*. Then, when the alternate tree is ready
+    and accurately reflects the state a user expects to see, it is swapped with the
+    current tree similarly to how video buffers are swapped in double buffering. This
+    is called the *commit phase* of reconciliation or a *commit*.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fiber 协调类似于双缓冲，当更新发生时，当前 Fiber 树被分叉并更新以反映给定用户界面的新状态。这称为*渲染*。然后，当备用树准备好并准确反映用户期望看到的状态时，它与当前树交换，类似于视频缓冲区在双缓冲中的交换。这称为协调的*提交阶段*或*提交*。
+- en: 'By using a work-in-progress tree, the Fiber reconciler presents a number of
+    benefits:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用工作中的树，Fiber 协调器提供了一些好处：
+- en: It can avoid making unnecessary updates to the real DOM, which can improve performance
+    and reduce flicker.
+  id: totrans-88
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它可以避免对真实 DOM 进行不必要的更新，从而提高性能并减少闪烁。
+- en: It can compute the new state of a UI off-screen, and throw it away if a newer
+    higher-priority update needs to happen.
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它可以在屏幕外计算 UI 的新状态，并且如果需要进行更新，则可以丢弃它。
+- en: Since reconciliation happens off-screen, it can even pause and resume without
+    messing up what the user currently sees.
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 由于协调是在屏幕外进行的，因此甚至可以在不影响用户当前看到的内容的情况下暂停和恢复。
+- en: 'With the Fiber reconciler, two trees are derived from a user-defined tree of
+    JSX elements: one tree containing “current” Fibers, and another tree containing
+    work-in-progress Fibers. Let’s explore these trees a little more.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 Fiber 协调器，从 JSX 元素的用户定义树派生出两棵树：一棵包含“当前” Fibers 的树，另一棵包含工作中的 Fibers。让我们更深入地探讨这些树。
+- en: Fiber Reconciliation
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Fiber 协调
+- en: 'Fiber reconciliation happens in two phases: the render phase and the commit
+    phase. This two-phase approach, shown in [Figure 4-1](#figure4-1), allows React
+    to do rendering work that can be disposed of at any time before committing it
+    to the DOM and showing a new state to users: it makes rendering interruptible.
+    To be a little bit more detailed, what makes rendering feel interruptible are
+    the heuristics employed by the React scheduler of yielding the execution back
+    to the main thread every 5 ms, which is smaller than a single frame even on 120
+    fps devices.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fiber 协调分为两个阶段：渲染阶段和提交阶段。这种两阶段的方法，如[图 4-1](#figure4-1)所示，允许 React 在提交到 DOM 并向用户显示新状态之前随时丢弃渲染工作：它使渲染变得可中断。稍微详细一点，使渲染感觉可中断的是
+    React 调度器每隔 5 毫秒将执行控制权归还给主线程的启发式方法，这比 120 帧每秒的设备上的单帧还要小。
+- en: '![Reconciliation Flow in the Fiber Reconciler](assets/frea_0401.png)'
+  id: totrans-94
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Fiber 协调器中的协调流程](assets/frea_0401.png)'
+- en: Figure 4-1\. Reconciliation flow in the Fiber reconciler
+  id: totrans-95
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-1\. Fiber 调和器中的调和流程
+- en: We’ll dive more into the details around the scheduler in [Chapter 7](ch07.html#ch07)
+    as we explore React’s concurrent features. For now, though, let’s walk through
+    these phases of reconciliation.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在[第7章](ch07.html#ch07)中更深入地探讨调度器的细节，因为我们将探索 React 的并发特性。但现在，让我们走过调和的这些阶段。
+- en: The render phase
+  id: totrans-97
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 渲染阶段
+- en: The *render phase* starts when a state-change event occurs in the `current`
+    tree. React does the work of making the changes *off-screen* in the `alternate`
+    tree by recursively stepping through each Fiber and setting flags that signal
+    updates are pending (see [Figure 4-2](#figure4-2)). As we alluded to earlier,
+    this happens in a function called `beginWork` internally in React.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*渲染阶段*在`current`树中发生状态更改事件时开始。React通过递归地遍历每个 Fiber 并设置标志来在`alternate`树中进行更改（请参见[图4-2](#figure4-2)）。正如我们之前提到的，这在
+    React 内部的一个名为`beginWork`的函数中发生。'
+- en: '![Call order of the Render Phase](assets/frea_0402.png)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_IMG
+  zh: '![渲染阶段的调用顺序](assets/frea_0402.png)'
+- en: Figure 4-2\. Call order of the render phase
+  id: totrans-100
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-2\. 渲染阶段的调用顺序
+- en: beginWork
+  id: totrans-101
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: beginWork
+- en: '`beginWork` is responsible for setting flags on Fiber nodes in the work-in-progress
+    tree about whether or not they should update. It sets a bunch of flags and then
+    recursively goes to the next Fiber node, doing the same thing until it reaches
+    the bottom of the tree. When it finishes, we start calling `completeWork` on the
+    Fiber nodes and walk back up.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beginWork`负责在工作中的树上设置有关 Fiber 节点是否应更新的标志。它设置了一堆标志，然后递归地转到下一个 Fiber 节点，做同样的事情，直到到达树的底部。当它完成时，我们开始在
+    Fiber 节点上调用`completeWork`并向上走。'
+- en: 'The signature of `beginWork` is as follows:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beginWork`的签名如下：'
+- en: '[PRE10]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'More on `completeWork` later. For now, let’s dive into `beginWork`. Its signature
+    includes the following arguments:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更多关于`completeWork`的内容稍后再说。现在，让我们深入研究`beginWork`。其签名包括以下参数：
+- en: '`current`'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`current`'
+- en: A reference to the Fiber node in the current tree that corresponds to the work-in-progress
+    node being updated. This is used to determine what has changed between the previous
+    version and the new version of the tree, and what needs to be updated. This is
+    *never* mutated and is only used for comparison.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与当前树中的 Fiber 节点对应的工作中进度节点的引用。这用于确定先前版本和树的新版本之间的变化，以及需要更新的内容。这个引用*永远不会*被改变，只用于比较。
+- en: '`workInProgress`'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`workInProgress`'
+- en: The Fiber node being updated in the work-in-progress tree. This is the node
+    that will be marked as “dirty” if updated and returned by the function.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正在更新的工作中树中的 Fiber 节点。如果更新并由函数返回，此节点将被标记为“脏”。
+- en: '`renderLanes`'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`renderLanes`'
+- en: Render lanes is a new concept in React’s Fiber reconciler that replaces the
+    older `renderExpirationTime`. It’s a bit more complex than the old `renderExpirationTime`
+    concept, but it allows React to better prioritize updates and make the update
+    process more efficient. Since `renderExpirationTime` is deprecated, we’ll focus
+    on `renderLanes` in this chapter.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染通道是 React 的 Fiber 调和器中的一个新概念，取代了旧的`renderExpirationTime`。它比旧的`renderExpirationTime`概念更复杂，但它可以让
+    React 更好地优先处理更新，并使更新过程更高效。由于`renderExpirationTime`已被弃用，我们将在本章重点关注`renderLanes`。
+- en: It is essentially a bitmask that represents “lanes” in which an update is being
+    processed. Lanes are a way of categorizing updates based on their priority and
+    other factors. When a change is made to a React component, it is assigned a lane
+    based on its priority and other characteristics. The higher the priority of the
+    change, the higher the lane it is assigned to.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它本质上是一个位掩码，表示正在处理更新的“通道”。通道是一种根据其优先级和其他因素对更新进行分类的方式。当对 React 组件进行更改时，根据其优先级和其他特征，为其分配一个通道。更改的优先级越高，分配给它的通道就越高。
+- en: The `renderLanes` value is passed to the `beginWork` function in order to ensure
+    that updates are processed in the correct order. Updates that are assigned to
+    higher-priority lanes are processed before updates that are assigned to lower-priority
+    lanes. This ensures that high-priority updates, such as updates that affect user
+    interaction or accessibility, are processed as quickly as possible.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`renderLanes`值被传递给`beginWork`函数，以确保更新按正确顺序处理。分配给优先级较高通道的更新在分配给优先级较低通道的更新之前处理。这确保了高优先级更新，例如影响用户交互或可访问性的更新，尽快得到处理。'
+- en: In addition to prioritizing updates, `renderLanes` also helps React better manage
+    concurrency. React uses a technique called “time slicing” to break up long-running
+    updates into smaller, more manageable chunks. `renderLanes` plays a key role in
+    this process, as it allows React to determine which updates should be processed
+    first, and which updates can be deferred until later.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了优先处理更新外，`renderLanes` 还帮助 React 更好地管理并发。React 使用一种称为“时间切片”的技术，将长时间运行的更新分解为更小、更易管理的块。`renderLanes`
+    在这个过程中发挥着关键作用，因为它允许 React 确定哪些更新应该首先处理，哪些更新可以推迟到以后。
+- en: After the render phase is complete, the `getLanesToRetrySynchronouslyOnError`
+    function is called to determine if any deferred updates were created during the
+    render phase. If there are deferred updates, the `updateComponent` function starts
+    a new work loop to handle them, using `beginWork` and `getNextLanes` to process
+    the updates and prioritize them based on their lanes.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染阶段完成后，将调用 `getLanesToRetrySynchronouslyOnError` 函数，以确定在渲染阶段是否创建了任何延迟更新。如果存在延迟更新，则
+    `updateComponent` 函数启动一个新的工作循环来处理它们，使用 `beginWork` 和 `getNextLanes` 处理更新，并根据它们的通道对其进行优先处理。
+- en: We dive much deeper into render lanes in [Chapter 7](ch07.html#ch07), the upcoming
+    chapter on concurrency. For now, let’s continue following the Fiber reconciliation
+    flow.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在[第 7 章](ch07.html#ch07)中深入探讨渲染通道，即关于并发的即将到来的章节。现在，让我们继续跟随 Fiber 协调流程。
+- en: completeWork
+  id: totrans-117
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: completeWork
+- en: The `completeWork` function applies updates to the work-in-progress Fiber node
+    and constructs a new real DOM tree that represents the updated state of the application.
+    It constructs this tree detached from the DOM out of the plane of browser visibility.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`completeWork` 函数将更新应用于工作中的 Fiber 节点，并构建一个表示应用程序更新状态的新实际 DOM 树。它在浏览器可见性平面之外构建这棵树。'
+- en: 'If the host environment is a browser, this means doing things like `document.​crea⁠teElement`
+    or `newElement.appendChild`. Keep in mind, this tree of elements is not yet attached
+    to the in-browser document: React is just creating the next version of the UI
+    off-screen. Doing this work off-screen makes it interruptible: whatever next state
+    React is computing is not yet painted to the screen, so it can be thrown away
+    in case some higher-priority update gets scheduled. This is the whole point of
+    the Fiber reconciler.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果宿主环境是浏览器，这意味着执行诸如 `document.​crea⁠teElement` 或 `newElement.appendChild` 之类的操作。请记住，这些元素树尚未附加到浏览器文档中：React
+    只是在屏幕外创建 UI 的下一个版本。在屏幕外进行这项工作使其可中断：React 正在计算的下一个状态尚未绘制到屏幕上，因此可以在安排了一些更高优先级的更新时丢弃它。这就是
+    Fiber 协调器的全部目的。
+- en: 'The signature of `completeWork` is as follows:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`completeWork` 的签名如下：'
+- en: '[PRE11]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Here, the signature is the same signature as `beginWork`.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，签名与 `beginWork` 的签名相同。
+- en: The `completeWork` function is closely related to the `beginWork` function.
+    While `beginWork` is responsible for setting flags about “should update” state
+    on a Fiber node, `completeWork` is responsible for constructing a new tree to
+    be committed to the host environment. When `completeWork` reaches the top and
+    has constructed the new DOM tree, we say that “the render phase is completed.”
+    Now, React moves on to the commit phase.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`completeWork` 函数与 `beginWork` 函数密切相关。虽然 `beginWork` 负责在 Fiber 节点上设置关于“应该更新”状态的标志，`completeWork`
+    负责构建一个新的树以提交到宿主环境。当 `completeWork` 达到顶部并构建了新的 DOM 树时，我们说“渲染阶段完成了”。现在，React 进入提交阶段。'
+- en: The commit phase
+  id: totrans-124
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 提交阶段
+- en: 'The *commit phase* (see [Figure 4-3](#figure4-3)) is responsible for updating
+    the actual DOM with the changes that were made to the virtual DOM during the render
+    phase. During the commit phase, the new virtual DOM tree is committed to the host
+    environment, and the work-in-progress tree is replaced with the current tree.
+    It’s in this phase that all effects are also run. The commit phase is divided
+    into two parts: the mutation phase and the layout phase.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*提交阶段*（见[图 4-3](#figure4-3)）负责使用在渲染阶段对虚拟 DOM 所做的更改来更新实际 DOM。在提交阶段，新的虚拟 DOM
+    树被提交到宿主环境，工作中的树被当前树替换。在这个阶段，也会运行所有的效果。提交阶段分为两部分：变异阶段和布局阶段。'
+- en: '![The Commit Phase with FiberRootNode](assets/frea_0403.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有 FiberRootNode 的提交阶段](assets/frea_0403.png)'
+- en: Figure 4-3\. The commit phase with `FiberRootNode`
+  id: totrans-127
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-3\. 带有 `FiberRootNode` 的提交阶段
+- en: The mutation phase
+  id: totrans-128
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 变异阶段
+- en: The mutation phase is the first part of the commit phase, and it is responsible
+    for updating the actual DOM with the changes that were made to the virtual DOM.
+    During this phase, React identifies updates that need to be made and calls a special
+    function called `commitMutationEffects`. This function applies the updates that
+    were made to Fiber nodes in the alternate tree during the render phase to the
+    actual DOM.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 突变阶段是提交阶段的第一部分，负责使用对虚拟 DOM 所做更改来更新实际 DOM。在此阶段，React 识别需要进行的更新，并调用名为 `commitMutationEffects`
+    的特殊函数。该函数将在渲染阶段对备用树中的 Fiber 节点所做的更新应用到实际 DOM 中。
+- en: 'Here’s an full-pseudocode example of how `commitMutationEffects` might be implemented:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 `commitMutationEffects` 可能实现的完整伪代码示例：
+- en: '[PRE12]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: During the mutation phase, React also calls other special functions, such as
+    `commit​Un⁠mount` and `commitDeletion`, to remove nodes from the DOM that are
+    no longer needed.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在变异阶段，React 还调用其他特殊函数，例如 `commitUn​mount` 和 `commitDeletion`，以移除不再需要的 DOM 节点。
+- en: The layout phase
+  id: totrans-133
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 布局阶段
+- en: The layout phase is the second part of the commit phase, and it is responsible
+    for calculating the new layout of the updated nodes in the DOM. During this phase,
+    React calls a special function called `commitLayoutEffects`. This function calculates
+    the new layout of the updated nodes in the DOM.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 布局阶段是提交阶段的第二部分，负责计算 DOM 中更新节点的新布局。在此阶段，React 调用名为 `commitLayoutEffects` 的特殊函数。该函数计算
+    DOM 中更新节点的新布局。
+- en: Like `commitMutationEffects`, `commitLayoutEffects` is also a massive switch
+    statement that calls different functions, depending on the type of node being
+    updated.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 `commitMutationEffects`，`commitLayoutEffects` 也是一个巨大的 switch 语句，根据正在更新的节点类型调用不同的函数。
+- en: Once the layout phase is complete, React has successfully updated the actual
+    DOM to reflect the changes that were made to the virtual DOM during the render
+    phase.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦布局阶段完成，React 就成功更新了实际 DOM，以反映在渲染阶段对虚拟 DOM 所做的更改。
+- en: By dividing the commit phase into two parts (mutation and layout), React is
+    able to apply updates to the DOM in an efficient manner. By working in concert
+    with other key functions in the reconciler, the commit phase helps to ensure that
+    React applications are fast, responsive, and reliable, even as they become more
+    complex and handle larger amounts of data.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过将提交阶段分为两部分（突变和布局），React 能够以高效的方式将更新应用于 DOM。通过与协调器中的其他关键函数协作，提交阶段有助于确保 React
+    应用程序在变得更复杂并处理更多数据时仍然快速、响应迅速且可靠。
+- en: Effects
+  id: totrans-138
+  prefs:
+  - PREF_H4
+  type: TYPE_NORMAL
+  zh: 效果
+- en: 'During the commit phase of React’s reconciliation process, side effects are
+    performed in a specific order, depending on the type of effect. There are several
+    types of effects that can occur during the commit phase, including:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 协调过程的提交阶段，副作用按特定顺序执行，具体取决于效果类型。提交阶段可能会发生多种类型的效果，包括：
+- en: Placement effects
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 放置效果
+- en: These effects occur when a new component is added to the DOM. For example, if
+    a new button is added to a form, a placement effect will occur to add the button
+    to the DOM.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些效果发生在将新组件添加到 DOM 时。例如，如果向表单添加新按钮，则会发生放置效果，将按钮添加到 DOM 中。
+- en: Update effects
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新效果
+- en: These effects occur when a component is updated with new props or state. For
+    example, if the text of a button changes, an update effect will occur to update
+    the text in the DOM.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些效果发生在使用新属性或状态更新组件时。例如，如果按钮的文本更改，则会发生更新效果，以更新 DOM 中的文本。
+- en: Deletion effects
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 删除效果
+- en: These effects occur when a component is removed from the DOM. For example, if
+    a button is removed from a form, a deletion effect will occur to remove the button
+    from the DOM.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些效果发生在组件从 DOM 中移除时。例如，如果从表单中移除按钮，则会发生删除效果，将按钮从 DOM 中移除。
+- en: Layout effects
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 布局效果
+- en: These effects occur before the browser has a chance to paint, and are used to
+    update the layout of the page. Layout effects are managed using the `useLayoutEffect`
+    hook in function components and the `componentDidUpdate` lifecycle method in class
+    components.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些效果发生在浏览器有机会绘制之前，用于更新页面的布局。布局效果通过函数组件中的 `useLayoutEffect` 钩子和类组件中的 `componentDidUpdate`
+    生命周期方法管理。
+- en: In contrast to these commit-phase effects, passive effects are user-defined
+    effects that are scheduled to run after the browser has had a chance to paint.
+    Passive effects are managed using the `useEffect` hook.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与这些提交阶段效果相反，被动效果是用户定义的效果，计划在浏览器完成绘制后运行。被动效果使用 `useEffect` 钩子管理。
+- en: Passive effects are useful for performing actions that are not critical to the
+    initial rendering of the page, such as fetching data from an API or performing
+    analytics tracking. Because passive effects are not performed during the render
+    phase, they do not affect the time required to compute a minimal set of updates
+    required to bring a user interface into the developer’s desired state.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 被动效应非常适合执行对页面初始渲染不关键的操作，例如从 API 获取数据或执行分析跟踪。由于被动效应不会在渲染阶段执行，因此不会影响计算将用户界面带入开发者所需状态所需的最小更新时间。
+- en: Putting everything on the screen
+  id: totrans-150
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 把所有内容显示在屏幕上
+- en: 'React maintains a `FiberRootNode` atop both trees that points to one of the
+    two trees: the `current` or the `workInProgress` tree. The `FiberRootNode` is
+    a key data structure that is responsible for managing the commit phase of the
+    reconciliation process.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 在两棵树之上维护一个名为`FiberRootNode`的数据结构，指向其中一棵树：`current` 或 `workInProgress`。`FiberRootNode`
+    是一个关键数据结构，负责管理协调过程的提交阶段。
+- en: When updates are made to the virtual DOM, React updates the `workInProgress`
+    tree, while leaving the current tree unchanged. This allows React to continue
+    rendering and updating the virtual DOM, while also preserving the current state
+    of the application.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当对虚拟 DOM 进行更新时，React 更新`workInProgress`树，同时保持当前树不变。这使得 React 能够继续渲染和更新虚拟 DOM，同时保持应用程序的当前状态。
+- en: When the rendering process is complete, React calls a function called `commitRoot`,
+    which is responsible for committing the changes made to the `workInProgress` tree
+    to the actual DOM. `commitRoot` switches the pointer of the `FiberRootNode` from
+    the current tree to the `workInProgress` tree, making the `workInProgress` tree
+    the new current tree.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当渲染过程完成时，React 调用一个名为`commitRoot`的函数，负责将对`workInProgress`树所做的更改提交到实际的 DOM。`commitRoot`将`FiberRootNode`的指针从当前树切换到`workInProgress`树，使`workInProgress`树成为新的当前树。
+- en: From this point on, any future updates are based on the new current tree. This
+    process ensures that the application remains in a consistent state, and that updates
+    are applied correctly and efficiently.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从此刻起，任何未来的更新都基于新的当前树。这个过程确保应用程序保持一致的状态，并且更新被正确高效地应用。
+- en: All of this appears to happen instantly in the browser. This is the work of
+    reconciliation.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些看起来在浏览器中瞬间发生。这是协调的工作。
+- en: Chapter Review
+  id: totrans-156
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 章节复习
+- en: 'In this chapter, we explored the concept of React reconciliation and learned
+    about the Fiber reconciler. We also learned about Fibers, which enable efficient
+    and interruptible rendering in concert with a powerful scheduler. We also learned
+    about the render phase and the commit phase, which are the two main phases of
+    the reconciliation process. Finally, we learned about the `FiberRootNode`: a key
+    data structure responsible for managing the commit phase of the reconciliation
+    process.'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们探讨了 React 协调的概念，并了解了 Fiber 协调器。我们还学习了有关 Fibers 的知识，它们与强大的调度程序一起实现了高效和可中断的渲染。我们还学习了渲染阶段和提交阶段，这是协调过程的两个主要阶段。最后，我们了解了`FiberRootNode`：负责管理协调过程提交阶段的关键数据结构。
+- en: Review Questions
+  id: totrans-158
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 复习问题
+- en: 'Let’s ask ourselves a few questions to test our understanding of the concepts
+    in this chapter:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们自问几个问题，以测试我们对本章概念的理解：
+- en: What is React reconciliation?
+  id: totrans-160
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 什么是 React 协调？
+- en: What’s the role of the Fiber data structure?
+  id: totrans-161
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: Fiber 数据结构的作用是什么？
+- en: Why do we need two trees?
+  id: totrans-162
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 为什么我们需要两棵树？
+- en: What happens when an application updates?
+  id: totrans-163
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 当应用程序更新时会发生什么？
+- en: If we can answer these questions, we should be well on our way to understanding
+    the Fiber reconciler and the reconciliation process in React.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们能回答这些问题，我们就能更好地理解 Fiber 协调器和 React 中的协调过程。
+- en: Up Next
+  id: totrans-165
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 接下来
+- en: In [Chapter 5](ch05.html#ch05), we’ll look at common questions in React and
+    explore some advanced patterns. We’ll answer questions around how often to use
+    `useMemo` and when to use `React.lazy`. We’ll also explore how to use `useReducer`
+    and `useContext` to manage state in React applications.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第5章](ch05.html#ch05)中，我们将探讨 React 中的常见问题并探索一些高级模式。我们将回答关于何时使用`useMemo`和何时使用`React.lazy`的问题。我们还将探讨如何使用`useReducer`和`useContext`来管理
+    React 应用程序中的状态。
+- en: See you there!
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们到那里见！

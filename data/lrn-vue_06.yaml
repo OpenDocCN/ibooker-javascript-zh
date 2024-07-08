@@ -1,0 +1,819 @@
+- en: Chapter 6\. Incorporating External Data
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第六章：整合外部数据
+- en: The previous chapters prepared you for the essentials of working with components,
+    including passing data between components and handling data changes and events
+    within components. You are now ready to use Vue components to incorporate and
+    represent your application’s data on the screen to your users.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前面的章节为你提供了与组件工作的基本要点，包括在组件之间传递数据以及处理组件内的数据变化和事件。现在你可以使用 Vue 组件将应用程序的数据展示在屏幕上，供用户使用了。
+- en: 'In most cases, an application will not have data available within the application
+    itself. Instead, we usually request the data from an external server or database,
+    then populate the proper UI with the received data for our application. This chapter
+    covers this aspect of developing a robust Vue application: how to communicate
+    and handle external data from an external resource using Axios as the HTTP request
+    tool.'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数情况下，一个应用程序不会在其内部拥有所需的数据。相反，我们通常从外部服务器或数据库请求数据，然后将接收到的数据填充到我们应用程序的合适界面中。本章涵盖了开发强大的
+    Vue 应用程序的这一方面：如何使用 Axios 作为 HTTP 请求工具，与外部资源通信和处理外部数据。
+- en: What Is Axios?
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Axios 是什么？
+- en: For making HTTP requests to external resources, various options are available
+    for Vue developers, including the built-in `fetch` method, the classic `XMLHttpRequest`,
+    and third-party libraries such as Axios. While the built-in `fetch` is a good
+    option for making HTTP requests for fetching data only, Axios, in the long term,
+    provides extra functionalities that come in handy when working with more complex
+    external resources’ API handling.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于向外部资源发出 HTTP 请求，Vue 开发者有多种选择，包括内置的 `fetch` 方法、经典的 `XMLHttpRequest` 和第三方库如
+    Axios。虽然内置的 `fetch` 适合仅用于获取数据的 HTTP 请求，但 Axios 在长期使用中提供了额外的功能，特别是在处理更复杂的外部资源 API
+    时非常实用。
+- en: Axios is a JavaScript open source lightweight library for making HTTP requests.
+    Like `fetch`, it is a promise-based HTTP client and isomorphic, supporting both
+    node (server-side) and browser side.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Axios 是一个 JavaScript 开源轻量级库，用于发起 HTTP 请求。与 `fetch` 类似，它是基于 Promise 的 HTTP 客户端，在服务器端和浏览器端都能使用。
+- en: Some significant advantages of using Axios are the ability to intercept and
+    cancel HTTP requests and its built-in cross-site request forgery protection for
+    the client side. Another advantage of Axios is that it automatically transforms
+    the response data to JSON format, giving you a better developer experience in
+    working with the data than using the built-in `fetch`.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 Axios 的一些显著优势包括能拦截和取消 HTTP 请求以及在客户端提供内置的跨站请求伪造保护。另一个 Axios 的优点是它自动将响应数据转换为
+    JSON 格式，使你在处理数据时比使用内置的 `fetch` 更具开发者体验。
+- en: The [official website for Axios](https://oreil.ly/WxSN3) includes API documentation,
+    installation, and primary use cases for reference ([Figure 6-1](#figure_06_01)).
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Axios 官方网站](https://oreil.ly/WxSN3) 提供了 API 文档、安装说明以及主要用例参考（[图 6-1](#figure_06_01)）。'
+- en: '![Screenshot of Axios Official Website](assets/lvue_0601.png)'
+  id: totrans-8
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Axios 官方网站截图](assets/lvue_0601.png)'
+- en: Figure 6-1\. Axios official website
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-1：Axios 官方网站
+- en: Installing Axios
+  id: totrans-10
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 安装 Axios
+- en: 'To add Axios to your Vue project within your project’s root directory, use
+    the following command in your terminal:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要将 Axios 添加到你的 Vue 项目中，在项目的根目录下，可以使用以下命令：
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Once Axios is installed, you can import the Axios library into your component
+    where needed with the following code:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完 Axios 后，你可以在需要的组件中引入 Axios 库，使用以下代码：
+- en: '[PRE1]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: You then can use `axios` to start querying for your application’s data. Let’s
+    explore how to combine Axios with lifecycle hooks to load and display data.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，你可以使用 `axios` 开始查询应用程序的数据。让我们探讨如何结合 Axios 和生命周期钩子来加载和显示数据。
+- en: Load Data with Lifecycle Hooks and Axios
+  id: totrans-16
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用生命周期钩子和 Axios 加载数据
+- en: As you learned in [Chapter 3](ch03.html#unique_chapter_id_03), you can use the
+    `beforeCreate`, `created`, and `beforeMounted` lifecycle hooks to perform side
+    calls such as data fetching. However, in a scenario where you need to load external
+    data and use it within the component and use Options API, `beforeCreate` is not
+    an option. Vue ignores any data assignment using `beforeCreate` since it hasn’t
+    initialized any reactive data yet. Using `created` and `beforeMounted` is a better
+    choice in this case. However, `beforeMounted` is not available in server-side
+    rendering, and if we want to use the Composition API (covered in [Chapter 5](ch05.html#unique_chapter_id_06)),
+    there is no equivalent lifecycle function in Composition API to the `created`
+    hook.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您在[第 3 章](ch03.html#unique_chapter_id_03)中学到的那样，您可以使用`beforeCreate`、`created`和`beforeMounted`生命周期钩子执行诸如数据获取之类的副作用调用。然而，在需要加载外部数据并在组件内部使用且使用选项
+    API 的情况下，`beforeCreate`不是一个选择。Vue 在使用`beforeCreate`时会忽略任何数据赋值，因为它尚未初始化任何响应式数据。在这种情况下，使用`created`和`beforeMounted`更为合适。但是，`beforeMounted`在服务器端渲染中不可用，如果我们想使用组合
+    API（在[第 5 章](ch05.html#unique_chapter_id_06)中介绍），则组合 API 中没有等效的生命周期函数来替代`created`钩子。
+- en: A better option for loading external data is to use `setup()` or `<script setup>`
+    with the respective reactive composition functions.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 加载外部数据的更好选项是使用相关的响应式组合函数`setup()`或`<script setup>`。
+- en: 'Let’s make an asynchronous GET request to get the public information about
+    my GitHub profile through the URL *[*https://api.github.com/users/mayashavin*](https://api.github.com/users/mayashavin)*
+    by using the `axios.get()` method, as seen in the following code:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过使用`axios.get()`方法向以下 URL 发出异步 GET 请求来获取有关我的 GitHub 公开信息：[*https://api.github.com/users/mayashavin*](https://api.github.com/users/mayashavin)，如下面的代码所示：
+- en: '[PRE2]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: '`axios.get()` returns a promise, which can use the promise chaining method
+    `then()` to handle the response data when it resolves. Axios automatically parses
+    the response data from the HTTP response body into the appropriate JSON format.
+    In this example, we assign the received data to the `user` data property of the
+    component. We can also rewrite this code to use `await/async` syntax:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`axios.get()`返回一个 promise，可以使用 promise 链式方法`then()`来处理响应数据的解析。Axios 自动将 HTTP
+    响应体中的响应数据解析为适当的 JSON 格式。在这个例子中，我们将接收到的数据分配给组件的`user`数据属性。我们还可以重写此代码以使用`await/async`语法：'
+- en: '[PRE3]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'We also should wrap the code in a `try/catch` block to handle any errors that
+    may occur during the request. Hence, our code becomes:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还应该将代码包装在`try/catch`块中，以处理可能在请求期间发生的任何错误。因此，我们的代码变成：
+- en: '[PRE4]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: '[![1](assets/1.png)](#co_incorporating_external_data_CO1-1)'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_incorporating_external_data_CO1-1)'
+- en: Add an `error` data property to store any error received from the request.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加一个`error`数据属性来存储从请求中接收到的任何错误。
+- en: '[![2](assets/2.png)](#co_incorporating_external_data_CO1-2)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_incorporating_external_data_CO1-2)'
+- en: Wrap the code in a `try/catch` block to handle any errors that occur during
+    the request.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将代码包装在`try/catch`块中，以处理请求期间发生的任何错误。
+- en: '[![3](assets/3.png)](#co_incorporating_external_data_CO1-3)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_incorporating_external_data_CO1-3)'
+- en: Assign the error to the `error` data property, for displaying an error message
+    to the user in the browser.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将错误分配给`error`数据属性，以便在浏览器中向用户显示错误消息。
+- en: GitHub responds to our request with a JSON object containing the primary fields
+    shown in [Example 6-1](#user_profile_type_05).
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GitHub 通过一个包含在[示例 6-1](#user_profile_type_05)中显示的主要字段的 JSON 对象响应我们的请求。
+- en: Example 6-1\. `UserProfile` type
+  id: totrans-32
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-1\. `UserProfile` 类型
+- en: '[PRE5]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'With this response data, we now have the necessary information to display the
+    user’s profile on the screen. Let’s add the following code to our component’s
+    `template` section:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这些响应数据，我们现在有了在屏幕上显示用户个人资料所需的必要信息。让我们将以下代码添加到我们组件的`template`部分：
+- en: '[PRE6]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Note here we add `v-if="user"` to ensure the Vue renders the user profile only
+    when `user` is available.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，这里添加了`v-if="user"`以确保 Vue 仅在`user`可用时渲染用户资料。
+- en: Finally, as in [Example 6-2](#example_user_profile), we need to add some modifications
+    to our component’s `script` section to make the code fully TypeScript compatible,
+    including mapping the response data to be the `User` data type before assigning
+    it to the `user` property, as well as the `error`.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，在[示例 6-2](#example_user_profile)中，我们需要对组件的`script`部分进行一些修改，使代码完全兼容 TypeScript，包括将响应数据映射为`User`数据类型，然后将其分配给`user`属性，以及`error`。
+- en: Example 6-2\. UserProfile component
+  id: totrans-38
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-2\. 用户资料组件
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: '[![1](assets/1.png)](#co_incorporating_external_data_CO2-1)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_incorporating_external_data_CO2-1)'
+- en: Add the `User` type declaration to the `user`.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向`user`添加`User`类型声明。
+- en: '[![2](assets/2.png)](#co_incorporating_external_data_CO2-2)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_incorporating_external_data_CO2-2)'
+- en: Assign the response data to the `user` property.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将响应数据分配给`user`属性。
+- en: '[![3](assets/3.png)](#co_incorporating_external_data_CO2-3)'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_incorporating_external_data_CO2-3)'
+- en: Cast the error to be `Error` type before assigning it to the `error` property.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在分配给`error`属性之前将错误转换为`Error`类型。
+- en: When the request is successfully resolved, you will see my GitHub profile information
+    displayed on the screen, as shown in [Figure 6-2](#figure_05_02).
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当请求成功解析时，您将看到我的GitHub个人资料信息显示在屏幕上，如图[6-2](#figure_05_02)所示。
+- en: '![A screenshot displaying a photo of Maya Shavin with her name, job title,
+    twitter handler and blog address.](assets/lvue_0602.png)'
+  id: totrans-47
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示Maya Shavin的照片以及她的姓名、职位、Twitter账号和博客地址的截图。](assets/lvue_0602.png)'
+- en: Figure 6-2\. Sample output for a successful GitHub profile information request
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-2\. 成功获取GitHub个人资料请求的示例输出
+- en: 'Similarly, you can also add a section with `v-else-if="error"` condition to
+    display an error message to the user when the request fails:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，您还可以添加一个带有`v-else-if="error"`条件的部分，以在请求失败时向用户显示错误消息：
+- en: '[PRE8]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: At this point, you may wonder what happens behind the scenes when we perform
+    an asynchronous request while the component is in the middle of creation. The
+    component’s lifecycle operates synchronously, meaning Vue still proceeds in creating
+    the component despite the status of the asynchronous request. That brings us to
+    the challenge of handling different data requests in various components during
+    run-time, which we will explore next.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，当组件在创建过程中执行异步请求时，您可能想知道背后的实际操作。组件的生命周期操作是同步的，这意味着Vue仍然会继续创建组件，而不管异步请求的状态如何。这就带来了在运行时处理不同组件中的不同数据请求的挑战，我们将在接下来进行探讨。
+- en: 'Async Data Requests in Run-Time: the Challenge'
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 运行时异步数据请求：挑战
+- en: Similar to how the JavaScript engine works, Vue also works synchronously. If
+    there is any asynchronous request along the way, Vue will not wait for the request
+    to complete before proceeding to the next step. Instead, Vue finishes the component’s
+    creation process, then returns to handle the asynchronous request when it resolves/rejects
+    according to the execution order.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 JavaScript 引擎的工作方式，Vue 也是同步工作的。如果在途中有任何异步请求，Vue 不会等待请求完成再继续下一步骤。相反，Vue 完成组件的创建过程，然后根据执行顺序处理异步请求的解析或拒绝。
+- en: 'Let’s take a step back, add some console logs to the `onBeforeMounted`, `onMounted`,
+    and `onUpdated` hooks in our component and see the order of execution:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们退一步，在我们的组件中的`onBeforeMounted`、`onMounted`和`onUpdated`钩子中添加一些控制台日志，并查看执行顺序：
+- en: '[PRE9]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '[![1](assets/1.png)](#co_incorporating_external_data_CO3-1)'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_incorporating_external_data_CO3-1)'
+- en: Log the details of `user` when finished fetching to the console.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记录`user`完成获取后的详细信息到控制台。
+- en: '[![2](assets/2.png)](#co_incorporating_external_data_CO3-2)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_incorporating_external_data_CO3-2)'
+- en: 'Log the lifecycle state: before mounting'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记录生命周期状态：挂载前
+- en: '[![3](assets/3.png)](#co_incorporating_external_data_CO3-3)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_incorporating_external_data_CO3-3)'
+- en: 'Log the lifecycle state: mounted'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记录生命周期状态：已挂载
+- en: '[![4](assets/4.png)](#co_incorporating_external_data_CO3-4)'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_incorporating_external_data_CO3-4)'
+- en: 'Log the lifecycle state: component is updated'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记录生命周期状态：组件已更新
+- en: Looking at the browser’s console log, we see the order displayed as in [Figure 6-3](#figure_05_03).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查看浏览器控制台日志，我们看到显示的顺序如图[6-3](#figure_05_03)中所示。
+- en: '![A screenshot showing the execution order when there is an asynchronous request.](assets/lvue_0603.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示异步请求时执行顺序的截图。](assets/lvue_0603.png)'
+- en: Figure 6-3\. Order of execution with an asynchronous request
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-3\. 异步请求的执行顺序
+- en: Once the asynchronous request is resolved/rejected and there are component data
+    changes, the Vue renderer will trigger the update process for the component. The
+    component is not yet with the response data when Vue mounts it to the DOM. Thus,
+    we still need to handle the component’s loading state before receiving the server’s
+    data.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦异步请求解析或拒绝，并且有组件数据更改，Vue 渲染器将触发组件的更新过程。Vue 在将组件挂载到DOM之前，组件还未获取响应数据。因此，我们仍然需要处理组件在接收服务器数据之前的加载状态。
+- en: To do so, we can add another `loading` property to the component’s data and
+    disable the loading state after the request is resolved/rejected, as in [Example 6-3](#example_user_profile_loading_05).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此，我们可以向组件的数据添加另一个`loading`属性，并在请求解析/拒绝后禁用加载状态，如[示例 6-3](#example_user_profile_loading_05)。
+- en: Example 6-3\. UserProfile component with loading state and error state
+  id: totrans-69
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-3\. 带有加载状态和错误状态的用户配置文件组件
+- en: '[PRE10]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '[![1](assets/1.png)](#co_incorporating_external_data_CO4-1)'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_incorporating_external_data_CO4-1)'
+- en: Create a reactive `loading` variable.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个响应式的`loading`变量。
+- en: '[![2](assets/2.png)](#co_incorporating_external_data_CO4-2)'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_incorporating_external_data_CO4-2)'
+- en: Set `loading` to `true` before fetching the data.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在获取数据之前将`loading`设置为`true`。
+- en: '[![3](assets/3.png)](#co_incorporating_external_data_CO4-3)'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_incorporating_external_data_CO4-3)'
+- en: Set `loading` to `false` after the request is resolved/rejected.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在请求解析/拒绝后将`loading`设置为`false`。
+- en: And then add a `v-if="loading"` condition to the component’s `template` section
+    for a loading message, as in [Example 6-4](#example_user_profile_loading_UI_05).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在组件的`template`部分添加`v-if="loading"`条件以显示加载消息，如[示例 6-4](#example_user_profile_loading_UI_05)。
+- en: Example 6-4\. UserProfile component template with loading state and error state
+  id: totrans-78
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-4\. 带有加载状态和错误状态的用户配置文件组件模板
+- en: '[PRE11]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This code renders a loading message while the asynchronous request is in progress
+    and displays the user’s profile information when the request resolves or otherwise
+    sends an error message.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码在异步请求进行时呈现加载消息，并在请求解析时显示用户的配置文件信息或发送错误消息。
+- en: You can also create your reusable wrapper component to handle different states
+    for components with the asynchronous data request, such as a skeleton placeholder
+    component when a list of components is loading ([Figure 6-4](#figure_05_04)) or
+    a fetch component (covered next).
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以创建可重用的包装组件来处理组件的不同状态，例如在加载一组组件时使用骨架占位符组件（[图 6-4](#figure_05_04)）或者一个获取组件（接下来介绍）。
+- en: '![A screenshot showing a skeleton component for loading state.](assets/lvue_0604.png)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示加载状态的骨架组件的截图。](assets/lvue_0604.png)'
+- en: Figure 6-4\. Skeleton component for loading state
+  id: totrans-83
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-4\. 用于加载状态的骨架组件
+- en: Creating Your Reusable Fetch Component
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建您的可重用获取组件
+- en: 'Handling states in a Vue component for its asynchronous data request is a common
+    challenge. The UI for these states usually follows the same pattern: a spinner
+    or loading message for the loading state, an error message, or a more stylish
+    error component when a data request rejects. Thus, we can create one common component
+    for handling such cases, which we call `FetchComponent`.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理Vue组件的异步数据请求状态是一种常见的挑战。这些状态的UI通常遵循相同的模式：在加载状态下显示旋转器或加载消息，在出现错误时显示错误消息或更时尚的错误组件。因此，我们可以创建一个处理这些情况的通用组件，我们称之为`FetchComponent`。
+- en: '`FetchComponent` has a `template` section divided into three main areas using
+    `slot` and `v-if`:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`FetchComponent`的`template`部分使用`slot`和`v-if`划分为三个主要区域：'
+- en: '`#loading` slot for displaying a loading message'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`#loading` slot 用于显示加载消息'
+- en: The condition for this slot to render is if the component is in the `isLoading`
+    state.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此slot的渲染条件是组件处于`isLoading`状态。
+- en: '`#error` slot for displaying an error message'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`#error` slot 用于显示错误消息'
+- en: We also pass the `error` object as the slot props for customization if needed
+    while ensuring Vue renders this slot only if `error` is available.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将`error`对象作为slot props传递，以便根据需要进行自定义，同时确保Vue仅在`error`可用时渲染此slot。
+- en: '`#default` slot for displaying the component’s content, when there is `data`
+    received'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`#default` slot 用于在接收到`data`时显示组件的内容'
+- en: We also pass the `data` to the slot as props.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将`data`作为props传递给slot。
+- en: 'We also use a named `slot` to allow customizing the error and loading the component
+    instead of the default messages:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还使用命名的`slot`来允许自定义错误和加载组件，而不是使用默认消息：
+- en: '[PRE12]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'In our `script setup` section, we need to declare our data type `FetchComponentData`
+    for the component to contain the `isLoading`, `error`, and `data` properties of
+    type generics `Object`:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的`script setup`部分，我们需要声明我们的数据类型`FetchComponentData`，以便组件包含类型为泛型`Object`的`isLoading`、`error`和`data`属性：
+- en: '[PRE13]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The component receives two props: a `url` for the request URL and a `method`
+    for the request method with the default value of `GET`:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件接收两个props：`url`用于请求URL，`method`用于请求方法，默认为`GET`：
+- en: '[PRE14]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Finally, we make the asynchronous request and update the component’s state
+    when Vue creates the component:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，当Vue创建组件时，我们进行异步请求并更新组件的状态：
+- en: '[PRE15]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Note
+  id: totrans-101
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you know the types of `data` in advance, you should use them instead of `any`
+    or `Object` to ensure full TypeScript type check coverage. Don’t use `any` unless
+    there is no other way.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你提前知道`data`的类型，应该使用它们而不是`any`或`Object`来确保完整的TypeScript类型检查覆盖。除非没有其他方法，不要使用`any`。
+- en: Now we can rewrite [Example 6-2](#example_user_profile) to use the new `FetchComponent`
+    component as in [Example 6-5](#example_user_profile_fetch_component_01).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以重写[示例 6-2](#example_user_profile)以使用新的`FetchComponent`组件，就像在[示例 6-5](#example_user_profile_fetch_component_01)中一样。
+- en: Example 6-5\. UserProfile component using the `FetchComponent`
+  id: totrans-104
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-5\. 使用`FetchComponent`的UserProfile组件
+- en: '[PRE16]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[![1](assets/1.png)](#co_incorporating_external_data_CO5-1)'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_incorporating_external_data_CO5-1)'
+- en: Use the `FetchComponent` component and pass the `url` prop as the target URL
+    for the request (*[*https://api.github.com/users/mayashavin*](https://api.github.com/users/mayashavin)*).
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`FetchComponent`组件，并将`url`属性作为请求的目标URL传递给它（[*https://api.github.com/users/mayashavin*](https://api.github.com/users/mayashavin)）。
+- en: '[![2](assets/2.png)](#co_incorporating_external_data_CO5-2)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_incorporating_external_data_CO5-2)'
+- en: Wrap the main content of the component inside the `template` for the main slot,
+    `#default`. We also bind the props this slot receives to the `defaultProps` object.
+    Since `defaultProps.data` is of `Object` type, we cast it to `User` to pass TypeScript
+    validation.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将组件的主要内容包装在`template`的主插槽`#default`中。我们还将此插槽接收的props绑定到`defaultProps`对象。由于`defaultProps.data`是`Object`类型，我们将其转换为`User`以通过TypeScript验证。
+- en: '[![3](assets/3.png)](#co_incorporating_external_data_CO5-3)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_incorporating_external_data_CO5-3)'
+- en: Use the `defaultProps.data` to access the data received from the request and
+    display it on the UI.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`defaultProps.data`来访问从请求接收到的数据并在UI上显示它。
+- en: '[![4](assets/4.png)](#co_incorporating_external_data_CO5-4)'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_incorporating_external_data_CO5-4)'
+- en: Remove all the related original logic code for fetching.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 移除所有相关的原始逻辑代码以进行获取。
+- en: Here we pass `data` to this slot from our `FetchComponent` implementation, which
+    in our case stands for our original `user` property. Thus, we replace the occurrences
+    of `user` from the previous implementation with `defaultProps.data`. The output
+    remains the same.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们从我们的`FetchComponent`实现将`data`传递到这个插槽，这在我们的原始`user`属性的情况下代表我们。因此，我们用`defaultProps.data`替换了以前实现中的`user`出现。输出保持不变。
+- en: Implementing FetchComponent with Composition API
+  id: totrans-115
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Composition API实现FetchComponent
+- en: You can rewrite the `FetchComponent` with `useFetch()` (see [Example 5-20](ch05.html#example_22_06))
+    in `setup()` function (or `<script setup>` tag) instead.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以在`setup()`函数（或`<script setup>`标签）中使用`useFetch()`重写`FetchComponent`（参见[示例 5-20](ch05.html#example_22_06))。
+- en: Now you understand how to create a simple `FetchComponent` to fetch and handle
+    data request states on the UI for your Vue components. You may want to extend
+    it to handle more complex data requests, such as POST requests. By isolating the
+    data request and controlling logic in a single place, you can reduce the complexity
+    and reuse it in other components more quickly.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你理解如何创建一个简单的`FetchComponent`来在Vue组件的UI上获取和处理数据请求状态。你可能希望扩展它以处理更复杂的数据请求，如POST请求。通过在一个地方隔离数据请求和控制逻辑，你可以更快地减少复杂性并在其他组件中重用它。
+- en: Connect Your Application with an External Database
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将你的应用程序连接到外部数据库
+- en: At this point, you can handle external data requests and errors on the UI of
+    your Vue components. However, fetching data every time Vue creates a component
+    may not be the best practice, especially if the component’s data is not likely
+    to change frequently.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，你可以在Vue组件的UI上处理外部数据请求和错误。然而，每次Vue创建组件时获取数据可能不是最佳实践，特别是如果组件的数据不太可能经常更改。
+- en: A perfect illustration is switching between pages in a web application, where
+    we need to fetch the page’s data only once when loading the view for the first
+    time. In this case, we can cache the data using the browser’s local storage as
+    an external local database or using a state management service such as Vuex and
+    Pinia (more in [Chapter 9](ch09.html#unique_chapter_id_08)).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Web应用程序中切换页面是一个完美的例子，我们只需要在首次加载视图时获取页面数据一次。在这种情况下，我们可以使用浏览器的本地存储作为外部本地数据库进行缓存数据，或者使用诸如Vuex和Pinia等状态管理服务（详见[第 9
+    章](ch09.html#unique_chapter_id_08)）。
+- en: 'To use local storage, we can use the built-in browser `localStorage` API. For
+    example, to save the user’s GitHub profile data to local storage, we can write:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用本地存储，我们可以使用内置的浏览器`localStorage`API。例如，要将用户的GitHub配置文件数据保存到本地存储中，我们可以编写：
+- en: '[PRE17]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Note the browser’s `localStorage` saves the item as a string, so we need to
+    convert the object to a string before saving it. When we need it, we can use this
+    code:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意浏览器的 `localStorage` 将项目保存为字符串，因此在保存之前需要将对象转换为字符串。需要时，我们可以使用以下代码：
+- en: '[PRE18]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'You can add the previous code to your `UserProfile` component ([Example 6-2](#example_user_profile))
+    as follows:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将上述代码添加到您的 `UserProfile` 组件中（[示例 6-2](#example_user_profile)），如下所示：
+- en: '[PRE19]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: It will trigger the asynchronous call only when loading the page for the first
+    time. When the page is loaded again, if we have saved the data successfully, it
+    will load directly from local storage.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它将仅在第一次加载页面时触发异步调用。当再次加载页面时，如果我们已成功保存了数据，它将直接从本地存储中加载。
+- en: Using localStorage in Real-World Application
+  id: totrans-128
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在实际应用中使用 `localStorage`
+- en: I don’t recommend this approach for a real-world application. It has several
+    limitations, such as your browser will reset any local storage data for private/incognito
+    sessions, or users can disable the use of local stage on their end. The better
+    approach is to use state management tools like Vuex or Pinia (see [Chapter 9](ch09.html#unique_chapter_id_08)).
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我不建议在实际应用中采用这种方法。它有几个限制，例如，浏览器会在私密/无痕会话中重置任何本地存储数据，或者用户可以禁用他们端上的本地存储。更好的方法是使用像
+    Vuex 或 Pinia 这样的状态管理工具（见 [第 9 章](ch09.html#unique_chapter_id_08)）。
+- en: Summary
+  id: totrans-130
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: This chapter introduced techniques for handling asynchronous data in a Vue component,
+    with the help of the Axios library and Composition API. We learned how to create
+    a reusable component to fetch and handle data request states on the UI for your
+    Vue applications while keeping the code clean and readable. We also explored connecting
+    your application to an external database service such as local storage.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了在 Vue 组件中处理异步数据的技术，借助 Axios 库和 Composition API 的帮助。我们学习了如何创建可重用的组件来获取和处理
+    UI 上的数据请求状态，以保持代码的整洁和可读性。我们还探讨了将应用连接到像本地存储这样的外部数据库服务。
+- en: The next chapter will introduce more advanced rendering concepts of Vue, including
+    using functional components, registering custom plugins globally in your Vue application,
+    and using dynamic rendering to compose layouts conditionally and dynamically.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一章将介绍 Vue 的更高级渲染概念，包括使用函数式组件，在 Vue 应用程序中全局注册自定义插件，以及使用动态渲染条件和动态组合布局。

@@ -1,0 +1,724 @@
+- en: Chapter 7\. User Accounts and Authentication
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第七章. 用户账号和认证
+- en: Picture yourself walking down a dark alley. You are on your way to join the
+    “Secret Club for Super Cool People” (if you’re reading this, you are a well-deserving
+    member). As you enter the hidden door to the club, you are greeted by a receptionist
+    who hands you a form to complete. On the form, you must enter your name and a
+    password, which will be known only by you and the receptionist.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象自己走在一条黑暗的小巷里。你正前往加入“超酷人士秘密俱乐部”（如果你正在阅读这个，你绝对是一个值得加入的成员）。当你进入俱乐部的隐秘门时，接待员迎接你，并递给你一张表格填写。在表格上，你必须输入你的名字和一个只有你和接待员知道的密码。
+- en: Once you have completed the form, you hand it back to the receptionist, who
+    goes to the back room of the club. In the back room, the receptionist uses a secret
+    key to encrypt your password and then stores the encrypted password in a locked
+    file vault. The receptionist then stamps a coin, on which is pressed your unique
+    membership ID. Upon returning to the front room, the receptionist hands you the
+    coin, which you tuck away in your pocket. Now each time you return to the club,
+    you need only show your coin to gain entrance.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 填写完表格后，你将其交给接待员，接待员走向俱乐部的后房。在后房，接待员使用一个秘密钥匙加密你的密码，然后将加密后的密码存储在一个锁定的文件保险箱里。接待员然后给你盖上了一个你独特的会员
+    ID 的硬币。当返回前厅时，接待员把硬币递给你，你将它收藏在口袋里。现在每次你回到俱乐部，只需展示你的硬币就可以进入了。
+- en: This interaction may sound like something out of a low-budget spy movie, but
+    it’s nearly identical to the process that is followed each time we sign up for
+    a web application. In this chapter, we’ll learn how to build GraphQL mutations
+    that will allow a user to create an account and sign in to our application. We’ll
+    also learn how to encrypt the user’s password and return a token to the user,
+    which they can use to verify their identity when they interact with our application.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种交互听起来像是低成本间谍电影中的情节，但几乎与我们每次注册 Web 应用程序时遵循的过程几乎完全相同。在本章中，我们将学习如何构建 GraphQL
+    mutations，允许用户创建账号并登录到我们的应用程序。我们还将学习如何加密用户的密码并向用户返回一个令牌，用户可以在与我们的应用程序交互时用来验证他们的身份。
+- en: Application Authentication Flow
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 应用程序认证流程
+- en: 'Before we get started, let’s step back and map out the flow users will follow
+    when they sign up for an account and log in to an existing account. If you don’t
+    yet understand all of the concepts covered here, don’t worry: we will approach
+    them bit by bit. First, let’s review the account creation flow:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们开始之前，让我们退后一步，为用户注册账号和登录现有账号时将要遵循的流程进行规划。如果你还没有完全理解这里涵盖的所有概念，别担心：我们会逐步来讲解。首先，让我们回顾一下账号创建流程：
+- en: A user enters their intended email, username, and password into a field in a
+    user interface (UI), such as the GraphQL Playground, a web application, or a mobile
+    application.
+  id: totrans-6
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户在用户界面（UI）的一个字段中输入他们的预期电子邮件、用户名和密码，例如 GraphQL Playground、Web 应用程序或移动应用程序。
+- en: The UI sends a GraphQL mutation to our server with the user’s information.
+  id: totrans-7
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: UI 向服务器发送一个带有用户信息的 GraphQL mutation。
+- en: The server encrypts the password and stores the user’s information in the database.
+  id: totrans-8
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器加密密码并将用户信息存储在数据库中。
+- en: The server returns a token to the UI, which contains the user’s ID.
+  id: totrans-9
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器将向 UI 返回一个包含用户 ID 的令牌。
+- en: The UI stores this token, for a specified period of time, and sends it with
+    every request to the server to verify the user.
+  id: totrans-10
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: UI 存储此令牌，一段指定的时间，并将其与每个请求一起发送到服务器以验证用户。
+- en: 'Now let’s look at the user sign-in flow:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们看看用户登录流程：
+- en: A user enters their email or username and password into a field in a UI.
+  id: totrans-12
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户在 UI 的一个字段中输入他们的电子邮件或用户名和密码。
+- en: The UI sends a GraphQL mutation to our server with this information.
+  id: totrans-13
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: UI 向服务器发送一个带有此信息的 GraphQL mutation。
+- en: The server decrypts the password stored in the database and compares it with
+    the one the user entered.
+  id: totrans-14
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 服务器解密存储在数据库中的密码并将其与用户输入的密码进行比较。
+- en: If the passwords match, the server returns a token to the UI, which contains
+    the user’s ID.
+  id: totrans-15
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如果密码匹配，服务器将向 UI 返回一个包含用户 ID 的令牌。
+- en: The UI stores this token, for a specified period of time, and sends it with
+    every request to the server.
+  id: totrans-16
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: UI 存储此令牌，一段指定的时间，并将其与每个请求一起发送到服务器。
+- en: As you can see, these flows are very similar to our “secret club” flow. In this
+    chapter we’ll focus on implementing the API portions of these interactions.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你所见，这些流程与我们的“秘密俱乐部”流程非常相似。在本章中，我们将专注于实现这些交互的 API 部分。
+- en: Password Reset Flow
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 密码重置流程
+- en: You’ll notice that our application does not allow users to change their password.
+    We could allow users to reset their password with a single mutation resolver,
+    but it is much more secure to verify the reset request via email first. For brevity’s
+    sake we won’t be implementing password reset functionality in this book, but if
+    you are interested in examples and resources for creating a password reset flow,
+    please visit the [JavaScript Everywhere Spectrum community](https://spectrum.chat/jseverywhere).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您会注意到我们的应用程序不允许用户更改密码。我们可以允许用户通过单个变异解析器重置密码，但通过电子邮件验证重置请求会更安全。为了简洁起见，我们不会在本书中实现密码重置功能，但如果您对创建密码重置流程的示例和资源感兴趣，请访问[JavaScript
+    Everywhere Spectrum community](https://spectrum.chat/jseverywhere)。
+- en: Encryption and Tokens
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 加密和令牌
+- en: In our exploration of the user authentication flow, I mentioned encryption and
+    tokens. These sound like mythological dark arts, so let’s take a moment to look
+    at each of these in more detail.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们探索用户认证流程时，我提到了加密和令牌。这些听起来像是神话般的黑暗艺术，所以让我们花点时间更详细地看看它们吧。
+- en: Encrypting Passwords
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 加密密码
+- en: To effectively encrypt user passwords, we should use a combination of hashing
+    and salting. *Hashing* is the act of obscuring a string of text by turning it
+    into a seemingly random string. Hashing functions are “one way,” meaning that
+    once the text is hashed it cannot be reverted to the original string. When a password
+    is hashed, the plain text of the password is never stored in our database. *Salting*
+    is the act of generating a random string of data that will be used in addition
+    to the hashed password. This ensures that even if two user passwords are the same,
+    the hashed and salted versions will be unique.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了有效地加密用户密码，我们应该使用哈希和加盐的组合。*哈希* 是将文本字符串转换为看似随机的字符串来模糊化文本的行为。哈希函数是“单向”的，这意味着一旦文本被哈希化，就无法恢复到原始字符串。当密码被哈希化时，明文密码永远不会存储在我们的数据库中。*加盐*
+    是生成一段随机数据字符串，它将被添加到哈希密码之外。这确保即使两个用户的密码相同，哈希和加盐的版本也将是唯一的。
+- en: '`bcrypt` is a popular hashing function based on the [blowfish cipher](https://oreil.ly/4VjII)
+    and commonly used within a range of web frameworks. In Node.js development we
+    can use the [bcrypt module](https://oreil.ly/t2Ppc) to both salt and hash our
+    passwords.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`bcrypt`是基于[blowfish密码算法](https://oreil.ly/4VjII)的一种流行的哈希函数，在多种网络框架中被广泛使用。在Node.js开发中，我们可以使用[bcrypt模块](https://oreil.ly/t2Ppc)来对密码进行加盐和哈希。'
+- en: In our application code we would require the `bcrypt` module and write a function
+    to handle the salting and hashing.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用代码中，我们会需要`bcrypt`模块，并编写一个函数来处理加盐和哈希过程。
+- en: Salting and Hashing Examples
+  id: totrans-26
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 加盐和哈希示例
+- en: The following example is for illustrative purposes. We will integrate password
+    salting and hashing with `bcrypt` later in the chapter.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的例子仅供参考。我们将在本章后面集成`bcrypt`的密码加盐和哈希功能。
+- en: '[PRE0]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: In this example, I could pass a password of `PizzaP@rty99`, which generates
+    a salt of `$2a$10$HF2rs.iYSvX1l5FPrX697O` and the hashed and salted password of
+    `$2a$10$HF2rs.iYSvX1l5FPrX697O9dYF/O2kwHuKdQTdy.7oaMwVga54bWG` (which is the salt
+    plus an encrypted password string).
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我可以传递一个密码`PizzaP@rty99`，它生成一个盐值`$2a$10$HF2rs.iYSvX1l5FPrX697O`以及哈希和盐化密码`$2a$10$HF2rs.iYSvX1l5FPrX697O9dYF/O2kwHuKdQTdy.7oaMwVga54bWG`（这是盐值加上一个加密密码字符串）。
+- en: 'Now when checking a user’s password against the hashed and salted password,
+    we will use the `bcrypt`’s `compare` method:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当检查用户密码是否与经过哈希和加盐的密码匹配时，我们将使用`bcrypt`的`compare`方法：
+- en: '[PRE1]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: With the user passwords encrypted, we are able to safely store them in a database.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过对用户密码进行加密，我们能够安全地将其存储在数据库中。
+- en: JSON Web Tokens
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: JSON Web Tokens
+- en: As a user it would be extremely frustrating if we needed to enter our username
+    and password each time we wanted to access a single protected page of a site or
+    application. Instead, we can securely store a user’s ID on their device within
+    a [JSON Web Token](https://jwt.io). With each request the user makes from the
+    client, they can send that token, which the server will use to identify the user.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为用户，如果我们每次想要访问站点或应用程序的单个受保护页面时都需要输入用户名和密码，那将会非常令人沮丧。相反，我们可以安全地将用户的ID存储在其设备上的[JSON
+    Web Token](https://jwt.io)中。每次用户从客户端发出请求时，他们都可以发送该令牌，服务器将使用它来识别用户。
+- en: 'A JSON Web Token (JWT) consists of three parts:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JSON Web Token (JWT)由三部分组成：
+- en: Header
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 头部
+- en: General information about the token and type of signing algorithm that is being
+    used
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于令牌的一般信息以及正在使用的签名算法类型
+- en: Payload
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 负载
+- en: The information that we’ve intentionally stored within the token (such as the
+    username or ID)
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们故意存储在令牌中的信息（例如用户名或 ID）
+- en: Signature
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 签名
+- en: A means to verify the token
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 验证令牌的方法
+- en: 'If we were to look at the token, it would appear to be made up of random characters
+    with each part separated by a period: `xx-header-xx.yy-payload-yy.zz-signature-zz`.'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们查看令牌，它将看起来由随机字符组成，每个部分由句点分隔：`xx-header-xx.yy-payload-yy.zz-signature-zz`。
+- en: In our application code we can use the [`jsonwebtoken` module](https://oreil.ly/IYxkH)
+    to generate and validate our tokens. To do this we pass in the information we
+    wish to store, along with a secret password, which would typically be stored within
+    our *.env* file.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用程序代码中，我们可以使用[`jsonwebtoken`模块](https://oreil.ly/IYxkH)来生成和验证我们的令牌。为此，我们传入我们希望存储的信息，以及一个秘密密码，通常存储在我们的
+    *.env* 文件中。
+- en: '[PRE2]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: JWTs Versus Sessions
+  id: totrans-45
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JWT 与 sessions 的比较
+- en: If you’ve worked with user authentication in web applications before, you’ve
+    likely come across user *sessions*. Session information is stored locally, typically
+    in a cookie, and verified against an in-memory data store (such as [Redis](https://redis.io),
+    though [traditional databases](https://oreil.ly/Ds-ba) can be used as well). There
+    is much debate about which is better, JWTs or sessions, but I’ve found that JWTs
+    offer the most flexibility, particularly when integrating with nonweb environments
+    such as native mobile applications. Though sessions work well with GraphQL, JWTs
+    are also the recommended approach in the [GraphQL Foundation](https://oreil.ly/OAcJ_)
+    and [Apollo Server](https://oreil.ly/27iIm) documentation.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您之前在 web 应用程序中使用过用户身份验证，您可能已经遇到过用户 *sessions*。会话信息通常存储在本地，通常是在 cookie 中，并根据内存中的数据存储（例如
+    [Redis](https://redis.io)，虽然也可以使用 [传统数据库](https://oreil.ly/Ds-ba)）。关于哪种更好，JWT
+    还是 sessions，存在很多争论，但我发现 JWT 在灵活性方面提供了最多的选择，特别是在集成非 web 环境（如原生移动应用程序）时。虽然 sessions
+    在 GraphQL 中表现良好，但在 [GraphQL Foundation](https://oreil.ly/OAcJ_) 和 [Apollo Server](https://oreil.ly/27iIm)
+    的文档中，JWT 也是推荐的方法。
+- en: By using JWTs, we can securely return and store a user’s ID with the client
+    application.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用 JWT，我们可以安全地返回和存储用户的 ID 给客户端应用程序。
+- en: Integrating Authentication into Our API
+  id: totrans-48
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将身份验证集成到我们的 API 中
+- en: Now that you have a solid understanding of the components of user authentication,
+    we’ll implement the ability for users to sign up and sign in to our application.
+    To do this we’ll be updating both our GraphQL and Mongoose schemas, writing `signUp`
+    and `signIn` mutation resolvers that generate a user token, and validating the
+    token on each request to the server.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经对用户身份验证的组件有了扎实的理解，我们将实现用户在我们的应用程序中注册和登录的能力。为此，我们将更新我们的 GraphQL 和 Mongoose
+    模式，编写 `signUp` 和 `signIn` mutation 解析器，生成用户令牌，并在每个请求到服务器时验证令牌。
+- en: User Schemas
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 用户模式
+- en: 'To begin we will update our GraphQL schema by adding a `User` type and updating
+    the `Note` type’s `author` field to reference the `User`. To do so, update the
+    *src/schema.js* file as follows:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将通过添加 `User` 类型并更新 `Note` 类型的 `author` 字段来更新我们的 GraphQL 模式，以引用 `User`。为此，请按以下方式更新
+    *src/schema.js* 文件：
+- en: '[PRE3]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'When a user signs up for our application, they will submit a username, email
+    address, and password. When a user signs in to our application, they will send
+    a mutation containing their username or email address along with a password. If
+    a sign-up or sign-in mutation is successful, the API will return a token as a
+    string. To accomplish this in our schema, we will need to add two new mutations
+    to our *src/schema.js* file, each of which will return a `String`, which will
+    be our JWT:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户注册我们的应用程序时，他们将提交用户名、电子邮件地址和密码。当用户登录我们的应用程序时，他们将发送一个包含他们的用户名或电子邮件地址以及密码的 mutation。如果注册或登录
+    mutation 成功，API 将返回一个字符串作为令牌。为了在我们的模式中实现这一点，我们需要在 *src/schema.js* 文件中添加两个新的 mutations，每个
+    mutation 将返回一个 `String`，这将是我们的 JWT：
+- en: '[PRE4]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Now that our GraphQL schema has been updated, we also need to update our database
+    models. To do this we’ll create a Mongoose schema file in *src/models/user.js*.
+    This file will be set up similarly to our `note` model file, with fields for username,
+    email, password, and avatar. We will also require the username and email fields
+    to be unique in our database by setting `index: { unique: true }`.'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '现在我们的 GraphQL 模式已经更新，我们还需要更新我们的数据库模型。为此，我们将在 *src/models/user.js* 中创建一个 Mongoose
+    模式文件。该文件将与我们的 `note` 模型文件类似地设置，包含用户名、电子邮件、密码和头像字段。我们还将要求数据库中的用户名和电子邮件字段是唯一的，通过设置
+    `index: { unique: true }`。'
+- en: 'To create the user database model, enter the following in your *src/models/user.js*
+    file:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建用户数据库模型，请在您的 *src/models/user.js* 文件中输入以下内容：
+- en: '[PRE5]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'With our user model file in place, we now must update the *src/models/index.js*
+    to export the model:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将用户模型文件放置好后，我们现在必须更新*src/models/index.js*以导出该模型：
+- en: '[PRE6]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Authentication Resolvers
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 认证解析器
+- en: With our GraphQL and Mongoose schemas written, we can implement the resolvers
+    that will allow a user to sign up and sign in to our application.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们编写了GraphQL和Mongoose模式后，我们可以实现解析器，允许用户注册并登录到我们的应用程序。
+- en: First, we need to add a value to the `JWT_SECRET` variable in our *.env* file.
+    This value should be a string without spaces. It will be used to sign our JWT,
+    which allows us to verify them when they are decoded.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们需要在*.env*文件中的`JWT_SECRET`变量中添加一个值。这个值应该是一个没有空格的字符串。它将用于签署我们的JWT，在解码时用于验证它们。
+- en: '[PRE7]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Once we have created this variable, we can import the required packages within
+    our *mutation.js* file. We will utilize the third-party `bcrypt`, `jsonwebtoken`,
+    `mongoose`, and `dotenv` packages as well as importing Apollo Server’s `AuthenticationError`
+    and `ForbiddenError` utilities. Additionally, we’ll import the `gravatar` utility
+    function, which I’ve included with the project. This will generate a [Gravatar
+    image URL](https://en.gravatar.com) from a user’s email address.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们创建了这个变量，我们可以在*mutation.js*文件中导入所需的包。我们将使用第三方的`bcrypt`、`jsonwebtoken`、`mongoose`和`dotenv`包，并导入Apollo
+    Server的`AuthenticationError`和`ForbiddenError`实用程序。此外，我们还将导入`gravatar`实用函数，我已经包含在项目中。这将根据用户的电子邮件地址生成一个[Gravatar图像URL](https://en.gravatar.com)。
+- en: 'In *src/resolvers/mutation.js*, enter the following:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/resolvers/mutation.js*中输入以下内容：
+- en: '[PRE8]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Now we can write our `signUp` mutation. This mutation will accept a username,
+    email address, and password as parameters. We will normalize the email address
+    and username by trimming any whitespace and converting it to all lowercase. Next,
+    we will encrypt the user’s password using the `bcrypt` module. We will also generate
+    a Gravatar image URL for user avatars by using our helper library. Once we have
+    performed these actions, we will store the user in the database and return a token
+    to the user. We can set this all up within a `try`/`catch` block, so that our
+    resolver returns an intentionally vague error to the client if there are any issues
+    with the sign-up process.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以编写我们的`signUp`变更。这个变更将接受用户名、电子邮件地址和密码作为参数。我们将通过修剪任何空白字符并将其转换为小写来规范化电子邮件地址和用户名。接下来，我们将使用`bcrypt`模块加密用户的密码。我们还将使用我们的辅助库为用户头像生成Gravatar图像URL。完成这些操作后，我们将用户存储在数据库中，并向用户返回一个令牌。我们可以在`try`/`catch`块中设置所有这些，以便如果注册过程中出现任何问题，我们的解析器向客户端返回一个故意模糊的错误。
+- en: 'To accomplish all of this, write the `signUp` mutation as follows within the
+    *src/**resolvers**/mutation.js* file:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了完成所有这些，将`signUp`变更如下编写在*src/**resolvers**/mutation.js*文件中：
+- en: '[PRE9]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Now, if we switch over to the GraphQL Playground in our browser, we can try
+    out our `signUp` mutation. To do so we’ll write a GraphQL mutation with username,
+    email, and password values:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们切换到浏览器中的GraphQL Playground，我们可以尝试我们的`signUp`变更。为此，我们将编写一个GraphQL变更，带有用户名、电子邮件和密码值：
+- en: '[PRE10]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'When we run the mutation, our server will return a token like this ([Figure 7-1](#signup_mutation)):'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们运行这个变更时，服务器将返回一个像这样的令牌（[图 7-1](#signup_mutation)）：
+- en: '[PRE11]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '![A screenshot of the signUp mutation in the GraphQL Playground](assets/jsev_0701.png)'
+  id: totrans-74
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在GraphQL Playground中的signUp变更的屏幕截图](assets/jsev_0701.png)'
+- en: Figure 7-1\. The signUp mutation in the GraphQL Playground
+  id: totrans-75
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. GraphQL Playground中的signUp变更
+- en: The next step will be to write our `signIn` mutation. This mutation will accept
+    the user’s username, email, and password. It will then find the user in the database,
+    based on the username or email address. Once the user is located, it will decrypt
+    the password stored in the database and compare it with the one the user has entered.
+    If the user and password match, our application will return a token to the user.
+    If they don’t match, we’ll want to throw an error.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一步将是编写我们的`signIn`变更。这个变更将接受用户的用户名、电子邮件和密码。然后，它将根据用户名或电子邮件地址在数据库中查找用户。一旦定位到用户，它将解密存储在数据库中的密码，并将其与用户输入的密码进行比较。如果用户和密码匹配，我们的应用程序将向用户返回一个令牌。如果它们不匹配，我们将希望抛出一个错误。
+- en: 'Write this mutation as follows in the *src/resolvers/mutation.js* file:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/resolvers/mutation.js*文件中编写如下变更：
+- en: '[PRE12]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'We can now visit the GraphQL Playground in our browser and try out the `signIn`
+    mutation, using the account we created with our `signUp` mutation:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在浏览器中访问GraphQL Playground，并尝试`signIn`变更，使用我们使用`signUp`变更创建的帐户：
+- en: '[PRE13]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Again, if successful, our mutation should resolve with a JWT ([Figure 7-2](#signin_mutation)):'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，如果成功，我们的变更应该以JWT的形式解析（[图 7-2](#signin_mutation)）：
+- en: '[PRE14]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '![A screenshot of the signIn mutation in the GraphQL Playground](assets/jsev_0702.png)'
+  id: totrans-83
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground中的signIn变更的截图](assets/jsev_0702.png)'
+- en: Figure 7-2\. The signIn mutation in the GraphQL Playground
+  id: totrans-84
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-2\. GraphQL Playground中的signIn变更
+- en: With these two resolvers in place, users will be able to both sign up for and
+    sign in to our application using JWTs. To experiment with this, try adding more
+    accounts and even intentionally entering incorrect information, such as passwords
+    that do not match, to see what the GraphQL API returns.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这两个解析器，用户可以使用JWT同时注册和登录我们的应用程序。要尝试这个功能，请尝试添加更多帐户，甚至故意输入不匹配的信息，如不匹配的密码，看看GraphQL
+    API返回的内容。
+- en: Adding the User to the Resolver Context
+  id: totrans-86
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将用户添加到解析器上下文
+- en: Now that a user can use a GraphQL mutation to receive a unique token, we’ll
+    need to verify that token on each request. Our expectation will be that our client,
+    whether it be web, mobile, or desktop, will send the token with the request in
+    an HTTP header named `Authorization`. We can then read the token from the HTTP
+    header, decode it using our `JWT_SECRET` variable, and pass along the user’s information
+    with the context to each GraphQL resolver. By doing this, we can determine if
+    a signed-in user is making a request, and if so, which user it is.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，用户可以使用GraphQL变更来接收唯一的令牌，我们需要在每个请求中验证该令牌。我们的期望是，无论是Web、移动还是桌面客户端，我们的客户端都将在HTTP头中以`Authorization`命名的HTTP头中发送令牌。然后，我们可以从HTTP头中读取令牌，使用我们的`JWT_SECRET`变量对其进行解码，并通过上下文将用户信息传递给每个GraphQL解析器。通过这样做，我们可以确定正在进行请求的已登录用户，并确定是哪个用户。
+- en: 'First, import the `jsonwebtoken` module into the *src/index.js* file:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，将`jsonwebtoken`模块导入到*src/index.js*文件中：
+- en: '[PRE15]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'With the module imported, we can add a function that will verify the validity
+    of the token:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导入了模块后，我们可以添加一个函数来验证令牌的有效性：
+- en: '[PRE16]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Now, within each GraphQL request we will grab the token from the header of the
+    request, attempt to verify the validity of the token, and add the user’s information
+    to the context. Once this is done, each GraphQL resolver will have access to the
+    user ID we stored in the token.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在每个GraphQL请求中，我们将从请求的头部中获取令牌，尝试验证令牌的有效性，并将用户信息添加到上下文中。完成这些操作后，每个GraphQL解析器都可以访问我们在令牌中存储的用户ID。
+- en: '[PRE17]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Though we’re not yet performing user interactions, we can test our user context
+    within the GraphQL Playground. In the lower-left corner of the GraphQL Playground
+    UI, there is a space labeled HTTP Headers. In that portion of the UI, we can add
+    a header that contains a JWT that was returned in either our `signUp` or `signIn`
+    mutation as follows ([Figure 7-3](#auth_header)):'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管我们尚未执行用户交互，但我们可以在GraphQL Playground中测试我们的用户上下文。在GraphQL Playground UI的左下角有一个标有HTTP
+    Headers的空间。在该部分UI中，我们可以添加一个包含JWT的头部，该JWT是在我们的`signUp`或`signIn`变更中返回的，如下所示（[图 7-3](#auth_header)）：
+- en: '[PRE18]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '![A screenshot of the authorization header in the GraphQL Playground](assets/jsev_0703.png)'
+  id: totrans-96
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground中授权头的截图](assets/jsev_0703.png)'
+- en: Figure 7-3\. The authorization header in the GraphQL Playground
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-3\. GraphQL Playground中的授权头
+- en: We can test this authorization header by passing it along with any query or
+    mutation in the GraphQL Playground. To do this, we’ll write a simple `notes` query
+    and include the `Authorization` header ([Figure 7-4](#auth_query)).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过将授权头与GraphQL Playground中的任何查询或变更一起传递来测试此授权头。为此，我们将编写一个简单的`notes`查询，并包含`Authorization`头部（[图 7-4](#auth_query)）。
+- en: '[PRE19]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '![A screenshot of the authorization header and a query in the GraphQL Playground](assets/jsev_0704.png)'
+  id: totrans-100
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GraphQL Playground中授权头和查询的截图](assets/jsev_0704.png)'
+- en: Figure 7-4\. The authorization header and query in the GraphQL Playground
+  id: totrans-101
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-4\. GraphQL Playground中的授权头和查询
+- en: If our authentication is successful, we should see an object containing the
+    user’s ID logged to our terminal application’s output, as shown in [Figure 7-5](#auth_console).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的身份验证成功，我们应该看到一个包含用户ID的对象被记录到我们终端应用程序的输出中，如[图 7-5](#auth_console)所示。
+- en: '![A screenshot of the user object in the development console](assets/jsev_0705.png)'
+  id: totrans-103
+  prefs: []
+  type: TYPE_IMG
+  zh: '![开发控制台中用户对象的截图](assets/jsev_0705.png)'
+- en: Figure 7-5\. The user object in our terminal’s console.log output
+  id: totrans-104
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-5\. 我们终端控制台中的用户对象的截图
+- en: With all of these pieces in place, we are now able to authenticate users in
+    our API.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了所有这些组件，我们现在可以在API中对用户进行身份验证。
+- en: Conclusion
+  id: totrans-106
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: User account creation and sign-in flows can feel mysterious and overwhelming,
+    but by taking it piece by piece, we can implement a stable and secure authentication
+    flow in our API. In this chapter, we created both sign-up and sign-in user flows.
+    These are a small fragment of the account management ecosystem, but will provide
+    us with a stable foundation on which to build. In the next chapter we’ll implement
+    user-specific interactions in our API, which will assign ownership to notes and
+    activities within the application.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户账号创建和登录流程可能会让人感到神秘和压力重重，但通过逐步实施，我们可以在API中实现稳定且安全的认证流程。在本章中，我们创建了注册和登录用户流程。这些只是账号管理生态系统的一小部分，但将为我们提供一个稳固的基础。在下一章中，我们将在API中实现用户特定的交互，这将为应用程序内的笔记和活动分配所有权。

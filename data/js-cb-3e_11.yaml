@@ -1,0 +1,1698 @@
+- en: Chapter 10\. Errors and Testing
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第10章 错误和测试
+- en: To write code is to write errors. Often, an error can be anticipated. Risky
+    activities include actions that interact with outside resources (like files, databases,
+    or web server APIs). Information that comes from outside your code—whether you’re
+    reading it from a web page form or receiving it from another library—may arrive
+    with errors, or in a different form than you expect. But to modify a well-worn
+    cliché, it’s not so much the error as what you do with it that matters.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写代码就是编写错误。经常情况下，可以预见到错误。风险活动包括与外部资源交互的操作（如文件、数据库或Web服务器API）。来自代码外部的信息——无论是从网页表单中读取还是从另一个库接收——可能会出现错误，或者以不同于预期的形式出现。但要修改一个老生常谈，问题不在于错误本身，而在于如何处理它。
+- en: What should we do with our errors, then? JavaScript’s default behavior is to
+    die at the point of the error, quietly logging a stack trace to the console. However,
+    better options are available. You can capture an error, react to it, modify it,
+    rethrow it, and even hide it if you choose. Compared to many other languages,
+    JavaScript’s error-handling features are relatively underdeveloped. But basic
+    error handling is still just as important, and many of the recipes in this chapter
+    focus on that task.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么我们应该如何处理我们的错误？JavaScript 的默认行为是在错误点死机，静默地将堆栈跟踪记录到控制台。然而，还有更好的选择。您可以捕获错误，对其做出反应，修改它，重新抛出它，甚至隐藏它，如果您选择的话。与许多其他语言相比，JavaScript
+    的错误处理功能相对不太完善。但基本的错误处理仍然同样重要，本章中的许多示例将专注于此任务。
+- en: Defending against errors is essential practice, but it’s equally important to
+    *prevent* them wherever possible. To that end, there are many testing frameworks
+    that work with JavaScript, including Jest, Mocha, Jasmine, and Karma. With their
+    help, you can write unit tests that guarantee your code is executing as expected.
+    You’ll take a quick look at Jest in this chapter.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 防范错误是必不可少的实践，但同样重要的是*预防*它们。为此，有许多适用于 JavaScript 的测试框架，包括 Jest、Mocha、Jasmine
+    和 Karma。借助它们，您可以编写确保代码按预期执行的单元测试。本章将简要介绍 Jest。
+- en: Catching and Neutralizing an Error
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 捕获和中和错误
+- en: Problem
+  id: totrans-5
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You are performing a task that may not succeed, and you don’t want an error
+    to interrupt your code or appear in the developer console.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在执行可能不会成功的任务，并且不希望错误中断您的代码或出现在开发者控制台中。
+- en: Solution
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Wrap the section of your code in a `try...catch` block, like this one:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将你的代码段放入`try...catch`块中，像这样：
+- en: '[PRE0]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'When the `decodeURI()` function fails and an error occurs, execution jumps
+    to the `catch` block. The catch block receives an error object (also known as
+    an *exception*), which provides the following properties:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`decodeURI()`函数失败并发生错误时，执行跳转到`catch`块。`catch`块接收一个错误对象（也称为*异常*），该对象提供以下属性：
+- en: '`name`'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`name`'
+- en: A string that usually reflects the error subtype (as in “URIError”), but it
+    may just be “Error.”
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常反映错误子类型的字符串（如“URIError”），但它可能只是“Error”。
+- en: '`message`'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`message`'
+- en: A string that gives you a human-language description of the problem, like “URI
+    malformed.”
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个提供问题人类语言描述的字符串，如“URI malformed”。
+- en: '`stack`'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`stack`'
+- en: A string that lists the currently open functions on the stack, in order, from
+    the most recent calls to the earlier ones. Depending on the browser, the `stack`
+    property may include information about the location of the function (such as line
+    number and filename) and the arguments the functions were called with.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个列出堆栈中当前打开函数的字符串，按照最近调用到更早调用的顺序排列。根据浏览器的不同，`stack` 属性可能包含有关函数位置（如行号和文件名）以及调用这些函数时使用的参数的信息。
+- en: Warning
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Be careful. There are a few other properties defined on the error object (like
+    `description` and `lineNumber`) that only work in specific browsers. Don’t rely
+    on these nonstandard properties when writing error-handling code, because they
+    won’t work on all browsers.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要小心。错误对象上还定义了几个其他属性（如`description`和`lineNumber`），但这些属性仅在特定浏览器中有效。在编写错误处理代码时不要依赖这些非标准属性，因为它们在所有浏览器上都不起作用。
+- en: 'If you pass the error object directly to the `console.log()` method (as in
+    this example), you’ll get the information extracted from all three of these properties.
+    It will look something like this, depending on the browser:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果直接将错误对象传递给`console.log()`方法（如此示例），将从这三个属性中提取信息。具体显示内容将根据浏览器而异：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Here, a piece of top-level code written in the developer console (represented
+    by the bottom `<anonymous>` in the call stack list) called a function named `runTest()`,
+    which then used the code shown above to call `decodeURI()` with a bad URI, triggering
+    the error that was then logged.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里，开发控制台中编写的一段顶层代码（在调用堆栈列表中由底部 `<anonymous>` 表示）调用了一个名为 `runTest()` 的函数，然后使用上述代码调用
+    `decodeURI()` 处理了一个错误的 URI，触发了随后记录的错误。
+- en: Solution
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Before you test your error-handling code, you need a routine that can cause
+    an error to occur. For this example, we don’t want to consider syntax errors or
+    any logical mistake that should realistically be caught when you’re writing your
+    code (perhaps using a linter, as described in [“Enforcing Code Standards with
+    a Linter”](ch01.html#using_eslint)). Instead, we want an operation that is *risky*
+    because it relies on an outside resource and could fail due to no fault of your
+    code.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在测试错误处理代码之前，您需要一个能够引发错误的例程。例如，我们不考虑语法错误或在编写代码时应该实际捕获的任何逻辑错误（例如使用 [“使用 ESLint
+    强制代码标准”](ch01.html#using_eslint) 中描述的 linter）。相反，我们需要执行一个依赖外部资源并且可能由于您的代码没有错误而失败的操作。
+- en: JavaScript is unusually tolerant of usage that would be considered an error
+    in many other programming languages. Attempting to access a property that doesn’t
+    exist gets an error-free value of `undefined`. The same is true if you go beyond
+    the bounds of an array. JavaScript’s error tolerance is particularly apparent
+    with math, where nonsensical calculations like multiplying a number by a string
+    returns an error-free value of `NaN` (not a number), and dividing by zero returns
+    the special value `Infinity`. Attempting to use the `decodeURI()` function is
+    an example of an operation that can fail, in this case with a `UriError`.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 对许多其他编程语言中会被视为错误的用法异常宽容。尝试访问不存在的属性会得到一个无错误的值 `undefined`。如果超出数组边界也是如此。JavaScript
+    的错误容忍在数学方面特别明显，例如，将数字乘以字符串会返回一个无错误的值 `NaN`（非数），而除以零则返回特殊值 `Infinity`。尝试使用 `decodeURI()`
+    函数就是一个可能失败的操作示例，在这种情况下会出现 `UriError`。
+- en: Note
+  id: totrans-25
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `decodeURI()` and `encodeURI()` methods are designed to replace characters
+    that aren’t allowed in web URLs with escape sequences that are acceptable, which
+    is an important technique if you’re storing arbitrary data in the *query string*
+    (the portion of the URL that follows the `?`). Attempting to reverse this encoding
+    on a string that has not been properly encoded can fail—for example, if it includes
+    a `%` character that should begin an escape sequence.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`decodeURI()` 和 `encodeURI()` 方法旨在使用可接受的转义序列替换 Web URL 中不允许的字符，如果在 *查询字符串*（跟在
+    `?` 后面的 URL 部分）中存储任意数据，则这是一种重要的技术。如果尝试对未经正确编码的字符串进行反向编码可能会失败，例如，如果它包含应该开始一个转义序列的
+    `%` 字符。'
+- en: The act of catching an error prevents it from being an unhandled error. This
+    means your code can continue (and in the case of a Node application, prevents
+    your application from ending altogether). However, you should only catch errors
+    that you understand and are prepared to deal with. You never use error-handling
+    simply to suppress and ignore potential problems. [“Detecting Unhandled Errors”](#unhandled_errors)
+    has more about the effect of unhandled errors.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 捕获错误的行为可以防止其成为未处理的错误。这意味着您的代码可以继续执行（在 Node 应用程序的情况下，防止应用程序完全结束）。但是，您应该只捕获您理解并准备处理的错误。永远不要仅仅使用错误处理来抑制和忽略潜在的问题。[“检测未处理的错误”](#unhandled_errors)
+    详细介绍了未处理错误的影响。
+- en: Although a `try...catch` block is the most common structure for error handling,
+    you can optional add a `finally` section to the end. The code in the `finally`
+    block always runs. It runs after the `try` block if no errors occurred, or after
+    the `catch` block if an error was caught. It’s most commonly used as a place to
+    put cleanup code that should run regardless of whether your code succeeded or
+    failed.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 `try...catch` 块是错误处理的最常见结构，但您可以选择在末尾添加一个 `finally` 部分。`finally` 块中的代码始终会运行。如果没有错误发生，则在
+    `try` 块之后运行；如果捕获了错误，则在 `catch` 块之后运行。它通常用作放置无论您的代码成功还是失败都应运行的清理代码的地方。
+- en: '[PRE2]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: See Also
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Catching Different Types of Errors”](#catching_error_subtypes) shows how
+    to selectively catch different error types. [“Catching Asynchronous Errors”](#catching_async_errors)
+    shows how to catch errors that happen during asynchronous operations.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“捕获不同类型的错误”](#catching_error_subtypes) 显示了如何有选择地捕获不同类型的错误。[“捕获异步错误”](#catching_async_errors)
+    显示了如何捕获在异步操作期间发生的错误。'
+- en: Catching Different Types of Errors
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 捕获不同类型的错误
+- en: Problem
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to distinguish between different types of errors and handle them differently,
+    or handle only specific types.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望区分不同类型的错误并采取不同的处理方式，或仅处理特定类型的错误。
+- en: Solution
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Unlike many languages, JavaScript does not allow you to catch errors by type.
+    Instead, you must catch all errors (as usual), and then investigate the error
+    with the `instanceof` operator:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不同于许多语言，JavaScript 不允许按类型捕获错误。相反，你必须像往常一样捕获所有错误，然后使用 `instanceof` 运算符调查错误：
+- en: '[PRE3]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Finally, if the error is not a type that you can handle, you should rethrow
+    the error.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，如果错误不是你可以处理的类型，应该重新抛出该错误。
+- en: Discussion
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: JavaScript has eight error types, which are represented by different error objects
+    (see [Table 10-1](#error_types)). You can check an error’s type to determine the
+    kind of problem that occurred. This may indicate what actions you should take,
+    or if you can carry out alternate code, retry an operation, or recover. It may
+    also provide more information about exactly what went wrong.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 有八种错误类型，由不同的错误对象表示（参见[表 10-1](#error_types)）。你可以检查错误的类型以确定发生的问题类型。这可能指示你应该采取哪些措施，或者是否可以执行备用代码、重试操作或恢复。它还可能提供有关出现问题的详细信息。
+- en: Table 10-1\. Error objects
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10-1\. 错误对象
+- en: '| Error Type | Description |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| 错误类型 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `RangeError` | Occurs when a numeric value is outside of its allowed range.
+    |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| `RangeError` | 当数值超出其允许范围时发生。 |'
+- en: '| `ReferenceError` | Occurs when trying to assign a nonexistent object to a
+    variable. |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| `ReferenceError` | 尝试将不存在的对象赋给变量时发生。 |'
+- en: '| `SyntaxError` | Occurs when code has a clear syntactical error, like an extra
+    `(` or missing `}`. |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| `SyntaxError` | 当代码存在明显的语法错误，如多余的 `(` 或缺少 `}` 时发生。 |'
+- en: '| `TypeError` | Occurs when a value is not the right data type for a given
+    operation. |'
+  id: totrans-47
+  prefs: []
+  type: TYPE_TB
+  zh: '| `TypeError` | 当值不适合特定操作的数据类型时发生。 |'
+- en: '| `URIError` | Raised by problems escaping URLs with `decodeURI()` and other
+    related functions. |'
+  id: totrans-48
+  prefs: []
+  type: TYPE_TB
+  zh: '| `URIError` | 在使用 `decodeURI()` 和其他相关函数转义 URL 时发生。 |'
+- en: '| `AggregateError` | Is a wrapper for multiple errors, which is useful for
+    errors that occur asynchronously. An array of error objects is provided in the
+    `errors` property. |'
+  id: totrans-49
+  prefs: []
+  type: TYPE_TB
+  zh: '| `AggregateError` | 是多个错误的包装器，对于异步发生的错误非常有用。`errors` 属性中提供了错误对象数组。 |'
+- en: '| `EvalError` | Meant to represent problems that occur with the built-in `eval()`,
+    but it’s no longer used. Now, using `eval()` on syntactically invalid code will
+    cause a `SyntaxError` to be thrown. |'
+  id: totrans-50
+  prefs: []
+  type: TYPE_TB
+  zh: '| `EvalError` | 用于表示与内置的 `eval()` 发生的问题，但现在已不再使用。现在，对语法无效的代码使用 `eval()` 将引发
+    `SyntaxError`。 |'
+- en: '| `InternalError` | Occurs for a variety of nonstandard cases, and is browser
+    specific. For example, on Firefox an `InternalError` occurs if you exceed the
+    recursion limit (by having a function call itself over and over again), while
+    in Chrome the same condition is represented by a `RangeError`. |'
+  id: totrans-51
+  prefs: []
+  type: TYPE_TB
+  zh: '| `InternalError` | 发生于各种非标准情况，具体取决于浏览器。例如，在 Firefox 中，如果超过递归限制（函数反复调用自身），则会发生
+    `InternalError`，而在 Chrome 中，同样的情况则表示为 `RangeError`。 |'
+- en: In addition to these error types, you can also throw and catch your own custom
+    error objects, as described in [“Throwing a Custom Error”](#throwing_custom_errors).
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了这些错误类型外，你还可以抛出和捕获自定义的错误对象，详见[“抛出自定义错误”](#throwing_custom_errors)。
+- en: JavaScript only allows one `catch` block for every `try` block, which prevents
+    you from catching errors by type. However, you can catch the standard `Error`
+    object, examine its type with `instanceof`, and write conditional code to deal
+    with it accordingly. When you use this approach, you must be careful not to accidentally
+    suppress errors you can’t deal with.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 仅允许每个 `try` 块有一个 `catch` 块，这会阻止你按类型捕获错误。但是，你可以捕获标准的 `Error` 对象，用
+    `instanceof` 检查其类型，并编写条件代码进行相应处理。使用这种方法时，一定要小心，不要意外地忽略无法处理的错误。
+- en: In the current example, the code explicitly handles the `RangeError` and `TypeError`
+    type. If the error is something else, we assume there’s nothing practical we can
+    do to resolve the problem. The error is then rethrown with the `throw` statement.
+    When you use `throw`, it’s as if the same error occurred again. If your code is
+    in a function, this allows the error to continue to bubble up the stack until
+    it reaches some error-handling code that can deal with it appropriately. If there
+    is no other error-handling that catches this error, it becomes an unhandled error,
+    just as it would have if you hadn’t caught it in the first place. (See [“Detecting
+    Unhandled Errors”](#unhandled_errors) for more about that.)
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在当前示例中，代码明确处理 `RangeError` 和 `TypeError` 类型。如果错误是其他类型，则假定我们无法实际解决问题。然后使用 `throw`
+    语句重新抛出错误。当你使用 `throw` 时，就好像再次发生了同样的错误。如果你的代码在一个函数中，这允许错误继续向上冒泡，直到它到达一些可以适当处理它的错误处理代码。如果没有其他捕获此错误的错误处理，则它变成未处理的错误，就像你一开始没有捕获它一样。
+    （有关详细信息，请参阅 [“检测未处理错误”](#unhandled_errors)。）
+- en: In other words, rethrowing unknown errors gives you the same behavior you would
+    have if you caught only specific exception types—which is the approach you would
+    probably take if the JavaScript language supported it.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，重新抛出未知错误会给你带来仅捕获特定异常类型时的相同行为，这是你在 JavaScript 语言支持时可能采取的方法。
+- en: See Also
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Throwing a Custom Error”](#throwing_custom_errors) shows how to create your
+    own error class to indicate a custom error condition and pass along extra information
+    about the error.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“抛出自定义错误”](#throwing_custom_errors) 展示了如何创建自定义错误类来指示自定义错误条件，并传递关于错误的额外信息。'
+- en: Catching Asynchronous Errors
+  id: totrans-58
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 捕获异步错误
+- en: Problem
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to add error handling but the risky operation is performed on a background
+    thread.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要添加错误处理，但是风险操作是在后台线程执行的。
+- en: Solution
+  id: totrans-61
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: JavaScript APIs have more than one model of asynchronicity, and the way you
+    handle errors depends on the function you’re using.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 的 API 有多种异步模型，处理错误的方式取决于你使用的函数。
+- en: 'If you’re using an older API, you may need to supply a callback function that
+    will be called in the event of an error, or attach an event handler. The `XMLHttpRequest`
+    object provides an `error` event to notify you about failed requests, for example:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用较旧的 API，可能需要提供一个回调函数，在发生错误时调用它，或者附加一个事件处理程序。例如，`XMLHttpRequest` 对象提供了一个
+    `error` 事件来通知你有关失败请求的信息：
+- en: '[PRE4]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Here the call to `send()` triggers the asynchronous operation that leads to
+    the error, but the actual error occurs on a separate thread. Adding a `try...catch`
+    block around this statement won’t catch the problem. The best you can do is receive
+    a notification through the `error` event.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里对 `send()` 的调用触发了导致错误的异步操作，但实际错误发生在单独的线程上。在此语句周围添加 `try...catch` 块不会捕获问题。你最好能通过
+    `error` 事件接收到通知。
+- en: 'If you’re using a promise-based API, you attach your error-handling function
+    by calling `Promise.catch()`. Here’s an example with the Fetch API:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用基于 promise 的 API，你可以通过调用 `Promise.catch()` 来附加你的错误处理函数。以下是使用 Fetch API
+    的示例：
+- en: '[PRE5]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: The code you write here will be triggered in the event of an unhandled error
+    or a rejected promise. If you don’t catch an error that occurs in a promise, it
+    will bubble up to your main application thread and trigger the `window.unhandledrejection`
+    event, which is the promise-based equivalent to the `window.error` event (see
+    [“Detecting Unhandled Errors”](#unhandled_errors)).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此处编写的代码将在未处理的错误或被拒绝的 promise 的事件中触发。如果你没有捕获 promise 中发生的错误，它将冒泡到你的主应用程序线程，并触发
+    `window.unhandledrejection` 事件，这是基于 promise 的等效于 `window.error` 事件（见 [“检测未处理错误”](#unhandled_errors)）。
+- en: 'Finally, if you’re using promises with the higher-level `async` and `await`
+    model, you can use a traditional error-handling block. The `catch` section will
+    be attached to the promise automatically with `Promise.catch()`. Here’s an example:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，如果你使用带有更高级别的 `async` 和 `await` 模型的 promises，你可以使用传统的错误处理块。`catch` 部分将自动附加到
+    promise 上，通过 `Promise.catch()`。以下是一个示例：
+- en: '[PRE6]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Discussion
+  id: totrans-71
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Putting error-handling code in the wrong place is a common mistake. Unfortunately,
+    it’s not always obvious that your error-handling code is ineffective or will never
+    run, although a linting tool ([“Enforcing Code Standards with a Linter”](ch01.html#using_eslint))
+    may alert you to the problem. The best solution is to test actual error conditions
+    in your application, and verify that your error-handling code runs and mitigates
+    them.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将错误处理代码放在错误的位置是一个常见的错误。不幸的是，您的错误处理代码是否无效或永远不会运行并不总是显而易见，尽管 linting 工具（[“使用 eslint
+    强制代码标准”](ch01.html#using_eslint)）可能会提醒您存在问题。最好的解决方案是在应用程序中测试实际的错误条件，并验证您的错误处理代码是否运行并减少了它们的影响。
+- en: See Also
+  id: totrans-73
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Using a Function That Returns a Promise”](ch09.html#async_call_with_promise)
+    shows a complete example with the Fetch API and promise-based error handling.
+    [“Waiting for a Promise to Finish with Await and Async”](ch09.html#using_await)
+    shows a complete example with the Fetch API and `async` and `await` error handling.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“使用返回 Promise 的函数”](ch09.html#async_call_with_promise) 展示了一个完整的示例，其中包含 Fetch
+    API 和基于 Promise 的错误处理。[“使用 Await 和 Async 等待 Promise 结束”](ch09.html#using_await)
+    展示了一个完整的示例，其中包含 Fetch API 和 `async` 和 `await` 错误处理。'
+- en: Detecting Unhandled Errors
+  id: totrans-75
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检测未处理的错误
+- en: Problem
+  id: totrans-76
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to catch errors that have not been handled in your code, possibly to
+    create a diagnostic log.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望捕获代码中未处理的错误，可能是为了创建诊断日志。
+- en: Solution
+  id: totrans-78
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Handle the `window.error` event. Your event-handling function receives five
+    parameters with error information. Along with an error object that represents
+    the actual error, you also get a separate `message` parameter and location information
+    (`source` with the URL of the script file, `lineno` with the line number where
+    the error occurred, and `colno` with the column number).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理 `window.error` 事件。您的事件处理函数会接收到五个带有错误信息的参数。除了代表实际错误的错误对象外，还会得到单独的 `message`
+    参数和位置信息（`source` 表示脚本文件的 URL，`lineno` 表示发生错误的行号，`colno` 表示列号）。
+- en: 'Here’s an example that tests this event:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个测试此事件的示例：
+- en: '[PRE7]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Note that to test this example, you need to use a sample test page. You can’t
+    attach a function to the `window.error` event handler using the developer console.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，要测试此示例，您需要使用一个示例测试页面。您不能使用开发者控制台将函数附加到 `window.error` 事件处理程序上。
+- en: Note
+  id: totrans-83
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In some cases, the browser’s cross-origin security policy will prevent your
+    JavaScript code from having access to the error details. One example is if you’re
+    running your test page from the local filesystem instead of using a test server.
+    In this situation, the `message` parameter will have the generic text “Script
+    error,” and the `url`, `lineNo`, `columnNo`, and `error` properties will be blank.
+    For more information, see [the `onerror` notes](https://oreil.ly/9MbGP).
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些情况下，浏览器的跨源安全策略会阻止您的 JavaScript 代码访问错误详情。例如，如果您从本地文件系统而不是使用测试服务器运行测试页面，则会出现这种情况，此时
+    `message` 参数将显示通用文本“Script error”，而 `url`、`lineNo`、`columnNo` 和 `error` 属性将为空白。有关更多信息，请参见[《onerror
+    注释》](https://oreil.ly/9MbGP)。
+- en: Discussion
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Unhandled errors that occur on the main thread of your application bubble up
+    the stack until they reach the top level of your code and—if it’s not handled
+    there—trigger the `window.error` event in the browser.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您应用程序的主线程上发生的未处理错误会一直向上传递，直到达到代码的顶层，如果在那里未处理，则会触发浏览器中的 `window.error` 事件。
+- en: The `window.error` event is unusual in that it allows you to *cancel* the error,
+    effectively suppressing it. To do that, you return `true` from the event-handling
+    function. If you don’t suppress an error, the browser’s default error-handler
+    springs into action. It displays the error information in the developer console
+    in bright red lettering, just as when you log it with the `console.error()` method.
+    But if you return `true` from `window.error`, the error vanishes, and no trace
+    of it will appear in the developer console.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`window.error` 事件不同寻常之处在于它允许您*取消*错误，有效地将其抑制。要做到这一点，您需要在事件处理函数中返回 `true`。如果不抑制错误，浏览器的默认错误处理程序会立即起作用。它将以鲜红色字体在开发者控制台中显示错误信息，就像使用
+    `console.error()` 方法记录一样。但是，如果从 `window.error` 返回 `true`，错误将消失，开发者控制台中也不会留下任何痕迹。'
+- en: Other than that, there’s no practical difference between suppressing or allowing
+    an error in your `window.error` event handler. By the time an error has triggered
+    the `window.error` event, your code has already been halted and the stack has
+    been unwound. However, this doesn’t stop your web page from working. As soon as
+    another event occurs (for example, you click a button), JavaScript begins executing
+    your code again.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除此之外，在您的 `window.error` 事件处理程序中抑制或允许错误没有实际区别。当错误触发 `window.error` 事件时，您的代码已经停止执行，并且调用栈已经展开。然而，这并不会阻止您的网页工作。一旦发生另一个事件（例如，单击按钮），JavaScript
+    就会再次执行您的代码。
+- en: Note
+  id: totrans-89
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Modern practice discourages us from hiding errors, even from the developer console,
+    unless there’s a very good reason. One possibility might be you’re replacing the
+    default error display with something that’s fine-tuned to your application, and
+    provides more useful information or removes information you don’t want to make
+    visible to users.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代实践不鼓励我们隐藏错误，即使是从开发者控制台。除非有非常好的理由。一种可能性是您正在用某种调整后的错误显示替换默认错误显示，这种替换适应您的应用程序，并提供更有用的信息或者移除您不想向用户显示的信息。
+- en: You can use your `window.error` event handler to execute any type of JavaScript
+    code. For example, you could log the error to a local data store or even send
+    it to a web server using the Fetch API. If an error occurs *during* the `window.error`
+    event handler, the event handler won’t be triggered again. It will simply pass
+    straight to the browser’s default error handler and show up in the developer console.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用您的 `window.error` 事件处理程序执行任何类型的 JavaScript 代码。例如，您可以将错误记录到本地数据存储，甚至使用 Fetch
+    API 将其发送到 Web 服务器。如果在 `window.error` 事件处理程序期间发生错误，则不会再次触发事件处理程序。它将直接传递给浏览器的默认错误处理程序，并显示在开发者控制台中。
+- en: 'For asynchronous code, errors are handled differently. For older callback-based
+    APIs, there usually are no errors. Instead, these APIs use callbacks to notify
+    your code about error conditions (see [“Catching Asynchronous Errors”](#catching_async_errors)).
+    But for promise-based APIs, unhandled errors bubble up and will trigger the `window.unhandledrejection`
+    event:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于异步代码，错误处理方式有所不同。对于较旧的基于回调的 API，通常不会出现错误。相反，这些 API 使用回调通知您的代码有关错误条件（参见 [“捕获异步错误”](#catching_async_errors)）。但对于基于
+    promise 的 API，未处理的错误会冒泡并触发 `window.unhandledrejection` 事件：
+- en: '[PRE8]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The `unhandledrejection` event passes a single object with event properties
+    to your event handler. The `reason` property (used in the example above) has the
+    unhandled error object, or whatever object was passed to `Promise.reject()` if
+    the promise was manually rejected. You can also get the underlying `Promise` object
+    from the `promise` property.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`unhandledrejection` 事件会将一个带有事件属性的对象传递给您的事件处理程序。上面的示例中使用的 `reason` 属性包含未处理的错误对象，或者如果手动拒绝了
+    promise，则包含传递给 `Promise.reject()` 的对象。您还可以从 `promise` 属性获取底层的 `Promise` 对象。'
+- en: 'Like `window.error`, `window.unhandledrejection` is a cancellable event. However,
+    it uses a different, more modern convention for cancellation. Instead of returning
+    `true`, you can use the `preventDefault()` method of the object with the event
+    arguments. Here’s an example that shows a message when an unhanded promise error
+    occurs, but hides the automatic error logging:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与 `window.error` 类似，`window.unhandledrejection` 是一个可取消的事件。然而，它使用了一种不同的、更现代的取消约定。您可以使用带有事件参数的对象的
+    `preventDefault()` 方法，而不是返回 `true`。以下是一个示例，显示当发生未处理的 promise 错误时显示消息，但隐藏自动错误日志记录：
+- en: '[PRE9]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Tip
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: You might think that the unhandled exception events are a good place to put
+    your logging code. Sometimes they are. But usually, you’ll want to catch errors
+    closer to where they occur, log them there, and rethrow them if necessary. However,
+    the unhandled exception events are always a good way to find risky bits of code
+    that need exception-handling logic but don’t have it.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能认为未处理的异常事件是放置日志记录代码的好地方。有时确实如此。但通常情况下，您会希望在错误发生的地方更接近地捕获它们，并在那里记录它们，必要时重新抛出它们。然而，未处理的异常事件始终是查找需要异常处理逻辑但却没有的风险代码块的好方法。
+- en: 'Extra: Logging Tools'
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 额外信息：日志工具
+- en: 'Broadly speaking, there are two times you catch errors: when you’re testing
+    your code and you’re able to fix them, and when your application is in production
+    and you want to know what went wrong. In the first case, logging is simple—your
+    goal is to detect the problem and fix it. Often your logging simply involves calling
+    `console.log()`. In the latter case, you need to investigate a problem that may
+    be occurring sporadically, in a specific environment, and in front of an end user.
+    Now you need a way to detect the problem and report the details back to you.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 广义上讲，有两种情况下你会捕获错误：在测试代码并且可以修复它们的时候，以及在生产环境中你想知道出了什么问题的时候。在第一种情况下，日志记录很简单 ——
+    你的目标是检测问题并修复它。通常你的日志记录只涉及调用 `console.log()`。在后一种情况下，你需要调查可能在特定环境和最终用户面前偶发发生的问题。现在你需要一种方法来检测问题并将详细信息报告给你。
+- en: You could handle the `window.error` and `window.unhandledrejection` events,
+    and then write the details to some sort of storage. For example, you could save
+    error information in the `localStorage` object so it persists for longer than
+    the current browser session. You could use `fetch()` to send the details to a
+    web API on your server. If you’re building a Node application, you could write
+    the details to a file or database on the server. You could add extra contextual
+    information, like system details, a priority level, and a timestamp. But as your
+    logging needs grow, you may want to consider using an open source logging tool
+    rather than roll your own solution.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以处理 `window.error` 和 `window.unhandledrejection` 事件，然后将详细信息写入某种存储介质。例如，你可以将错误信息保存在
+    `localStorage` 对象中，以便它在当前浏览器会话之外持久存在。你可以使用 `fetch()` 将详细信息发送到服务器上的 Web API。如果你正在构建一个
+    Node 应用程序，你可以将详细信息写入服务器上的文件或数据库。你可以添加额外的上下文信息，比如系统详情、优先级和时间戳。但随着日志记录需求的增长，你可能想考虑使用开源日志记录工具，而不是自己开发解决方案。
+- en: A good logging tool gives you an *abstraction layer* over your logging. That
+    means you’ll log messages (in much the same way you call the usual `console.log()`
+    method), without thinking about where that log is or how it’s implemented. While
+    you’re testing, the logging layer might just output your messages to the console.
+    But when your application is deployed, the logging layer might ignore low-level
+    messages entirely while sending the important ones somewhere else, such as to
+    a remote web server. The logging tool can implement advanced features, like batching,
+    which improves performance when multiple messages are logged to a remote site
+    in quick succession.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个好的日志工具为你的日志提供了一个 *抽象层*。这意味着你可以记录消息（就像调用通常的 `console.log()` 方法一样），而不用考虑日志存储在哪里或者它是如何实现的。在测试期间，日志层可能只是将你的消息输出到控制台。但当你的应用部署时，日志层可能会忽略低级消息，将重要的消息发送到其他地方，比如远程
+    Web 服务器。日志工具还可以实现高级功能，如批处理，在快速连续记录多条消息到远程站点时提高性能。
+- en: There’s a dizzying array of logging libraries for JavaScript applications, including
+    Winston, Bunyan, Log4js, Loglevel, Debug, Pino, and many more. Some are designed
+    specifically for Node applications, but many can also work with web page code
+    in a browser.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 应用程序中有多种日志记录库，包括 Winston、Bunyan、Log4js、Loglevel、Debug、Pino 等等。有些专门设计用于
+    Node 应用程序，但也有许多可以在浏览器中的网页代码中使用。
+- en: Throwing a Standard Error
+  id: totrans-104
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 抛出标准错误
+- en: Problem
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to indicate an error condition by throwing an error object.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过抛出错误对象来指示错误条件。
+- en: Solution
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Create an instance of the `Error` object, passing a short description of the
+    problem to the constructor, which is used for the `message` property. Throw the
+    `Error` object with the `throw` statement. Your code can then catch this `Error`
+    object just like it catches any other type of JavaScript error:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个 `Error` 对象的实例，将问题的简短描述传递给构造函数，用于 `message` 属性。使用 `throw` 语句抛出 `Error` 对象。然后你的代码可以像捕获其他类型的
+    JavaScript 错误一样捕获这个 `Error` 对象：
+- en: '[PRE10]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Discussion
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'There are two ways to create an `Error` object. You can use the `new` keyword
+    to create it, as in the solution. Or (less commonly), you can call `Error()` like
+    a function, which has the same result:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建 `Error` 对象有两种方式。你可以使用 `new` 关键字创建它，就像解决方案中一样。或者（不常见），你可以像调用函数一样调用 `Error()`，它的结果相同：
+- en: '[PRE11]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The `Error` object has the standard error properties, including the `message`
+    you set, a `name` (unhelpfully set to “Error”), and `stack` (the stack trace that
+    pinpoints where the error occurred).
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Error` 对象具有标准的错误属性，包括你设置的 `message`，一个 `name`（默认为“Error”），和一个 `stack`（指出错误发生位置的堆栈跟踪）。'
+- en: Warning
+  id: totrans-114
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: JavaScript also allows code to use `throw` with nonerror objects (like strings).
+    This usage is nonstandard and can cause problems in exception-handling code that
+    expects properties like `name` and `message`. As a rule of thumb, do not throw
+    nonexception objects.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript还允许代码使用`throw`与非错误对象（如字符串）。这种用法非标准，可能会导致期望具有`name`和`message`等属性的异常处理代码出现问题。作为经验法则，请不要抛出非异常对象。
+- en: 'Sometimes, you may be able to repurpose a more specific error subtype. Most
+    of JavaScript’s built-in error types (listed in [Table 10-1](#error_types)) are
+    for specialized cases and are not suitable for custom code. But a couple are potentially
+    useful. You can use `RangeError` if a function receives a value that falls outside
+    of the acceptable numeric range. Make sure to include an informative error message
+    that includes the given value and the expected range:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，您可以重新利用更具体的错误子类型。大多数JavaScript内置的错误类型（列在[表 10-1](#error_types)中）是为特殊情况设计的，并不适合自定义代码。但有几种可能会有用。例如，如果函数接收到超出可接受数值范围的值，可以使用`RangeError`。请确保包含一个包含给定值和预期范围的信息丰富的错误消息：
+- en: '[PRE12]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '`RangeError` is specifically intended for numeric values. However, you might
+    use `TypeError` to indicate errors where the supplied value was of the wrong type.
+    It’s up to you to decide what constitutes a “wrong” type; perhaps a string when
+    you expect a number (test that with `typeof`), or the wrong sort of object (test
+    that with `instanceof`).'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`RangeError` 特别用于数值。但是，您可以使用`TypeError`来指示提供的值类型错误的情况。您可以自行决定何为“错误”类型；例如，当您期望一个数字而得到一个字符串时（可以用`typeof`进行测试），或者当您得到错误类型的对象时（可以用`instanceof`进行测试）。'
+- en: '[PRE13]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Less useful error subtypes that you might consider include `ReferenceError`
+    (if you receive a `null` reference or `undefined` value when you expect an object)
+    or `SyntaxError` (for instance, if you’re parsing some type of string content
+    that doesn’t follow the rules you’ve established). To get more specific about
+    other error conditions, consider making your own error class ([“Throwing a Custom
+    Error”](#throwing_custom_errors)).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会考虑一些较少使用的错误子类型，如`ReferenceError`（当您期望对象而收到`null`引用或`undefined`值时）或`SyntaxError`（例如，如果您解析某种类型的字符串内容，而该内容不符合您设定的规则）。要更具体地处理其他错误条件，请考虑创建您自己的错误类（参见[“抛出自定义错误”](#throwing_custom_errors)）。
+- en: Compared to many stricter languages, JavaScript uses errors sparingly. When
+    designing your own libraries, it’s usually best to follow that convention. Don’t
+    use exceptions for cases that JavaScript would ordinarily tolerate (like implicit
+    type conversions). Don’t use errors to notify the calling code about nonexceptional
+    cases—in other words, things that are likely to happen during normal operation,
+    like invalid user input. *Do* use exceptions to prevent code from continuing with
+    an operation that will fail because something hasn’t been initialized correctly.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与许多更严格的语言相比，JavaScript较少使用错误。在设计自己的库时，通常最好遵循这一惯例。不要为JavaScript通常会容忍的情况（如隐式类型转换）使用异常。不要使用错误来通知调用代码有关非异常情况的信息，换句话说，像无效用户输入这样在正常操作期间可能发生的事情。*要*使用异常来防止代码由于未正确初始化某些内容而继续执行操作失败。
+- en: See Also
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Throwing a Custom Error”](#throwing_custom_errors) explains how to create
+    your own error object.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“抛出自定义错误”](#throwing_custom_errors)解释了如何创建自己的错误对象。'
+- en: Throwing a Custom Error
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 抛出自定义错误
+- en: Problem
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to indicate a specific error condition by throwing a custom error object.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您希望通过抛出自定义错误对象来指示特定的错误条件时。
+- en: Solution
+  id: totrans-127
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Create a class that inherits from the standard `Error` class. The constructor
+    should accept the descriptive text for the `message` property, and use `super()`
+    to call the base `Error` class constructor with the message. Here’s a bare minimum
+    custom error, with the code that throws it:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个从标准`Error`类继承的类。构造函数应接受`message`属性的描述文本，并使用`super()`调用基础`Error`类构造函数以传递消息。以下是一个最简自定义错误的示例，包含抛出它的代码：
+- en: '[PRE14]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: There’s one more recommended, but optional, refinement. You can use the static
+    `Error.captureStackTrace()` method to clean up the stack trace slightly. (Technically,
+    `captureStackTrace()` ensures that the call to the error constructor doesn’t appear
+    in the stack trace that’s stored in the `Error.stack` property.)
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一个推荐但可选的改进。您可以使用静态方法`Error.captureStackTrace()`来稍微清理堆栈跟踪。（技术上，`captureStackTrace()`确保错误构造函数的调用不会出现在存储在`Error.stack`属性中的堆栈跟踪中。）
+- en: 'You can also add custom properties to pass extra information about the error
+    condition. Here’s an example that stores a `productID` after a failed lookup:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以添加自定义属性来传递有关错误条件的额外信息。这里有一个示例，在查找失败后存储一个`productID`：
+- en: '[PRE15]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Discussion
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'When creating custom `Error` classes, we should keep in mind two possibly competing
+    concerns: staying within the bounds of a typical JavaScript error, and expressing
+    enough information for our customized error condition. In the former case, do
+    not attempt to recreate the errors or exceptions of your second favorite language.
+    Do not overextend JavaScript’s `Error` type with unnecessary methods and extra
+    functionality.'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建自定义`Error`类时，我们应该牢记两个可能相互竞争的考虑因素：保持在典型JavaScript错误范围内，并表达足够的信息以满足我们定制的错误条件。在前一种情况下，不要试图重新创建你第二喜欢的语言的错误或异常。不要通过不必要的方法和额外功能过度扩展JavaScript的`Error`类型。
+- en: 'When you create a custom error, there are a few conventions to keep in mind:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你创建自定义错误时，有一些惯例需要牢记：
+- en: Use the class name to indicate the error type, and set the `name` property to
+    match. This is important if any code checks the `name` to determine the type of
+    error (rather than using `instanceof`). It also persists even if the error object
+    is serialized to JSON, and it appears in the error’s default string representation
+    and the developer console.
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用类名来指示错误类型，并设置`name`属性以匹配。如果任何代码检查`name`来确定错误类型（而不是使用`instanceof`），这一点很重要。即使错误对象被序列化为JSON，它也会持久存在，并出现在错误的默认字符串表示和开发者控制台中。
+- en: In the constructor, put your custom properties first in the parameter list.
+    If you include a `message` parameter, it should be the last parameter.
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在构造函数中，将你的自定义属性放在参数列表的最前面。如果包括一个`message`参数，它应该是最后一个参数。
+- en: In the constructor, call `super()` and pass the `message` to the base class
+    constructor.
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在构造函数中，调用`super()`并将`message`传递给基类构造函数。
+- en: As a nicety, properly set the stack trace. Check for the `captureStackTrace()`
+    method, and, if present, call it, passing a reference to the current instance
+    (as `this`) and your custom error class.
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 作为一种礼貌，正确设置堆栈跟踪。检查`captureStackTrace()`方法，如果存在，调用它，传递对当前实例（作为`this`）和你的自定义错误类的引用。
+- en: See Also
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: To learn more about inheritance and the `extends` keyword, see [“Inheriting
+    Functionality from Another Class”](ch08.html#custom_class_inheritance).
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解更多关于继承和`extends`关键字的知识，请参见[“从另一个类继承功能”](ch08.html#custom_class_inheritance)。
+- en: Writing Unit Tests for Your Code
+  id: totrans-142
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为你的代码编写单元测试
+- en: Problem
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to use automated tests to ensure your code matches your design criteria
+    now and in the future.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要使用自动化测试来确保你的代码现在和将来符合设计标准。
+- en: Solution
+  id: totrans-145
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use a tool like Jest to write unit tests for your code at the earliest possible
+    stage.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用类似Jest的工具尽早为你的代码编写单元测试。
+- en: 'The easiest way to install Jest is with npm ([“Downloading a Package with npm”](ch01.html#installing_npm_package)).
+    Open a terminal window in your project folder, and create the *package.json* configuration
+    file if you don’t already have it with `npm init`:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装Jest最简单的方法是使用npm（[“使用npm下载包”](ch01.html#installing_npm_package)）。在你的项目文件夹中打开一个终端窗口，并使用`npm
+    init`创建*package.json*配置文件（如果你还没有）：
+- en: '[PRE16]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Next, install Jest using the `--save-dev` parameter so that it’s only included
+    in development builds:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，使用`--save-dev`参数安装Jest，这样它只会包含在开发构建中：
+- en: '[PRE17]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now you need to find some code to test. Let’s say you have a file named *factorialize.js*,
+    with the `factorialize()` function shown here:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你需要找一些代码来测试。假设你有一个名为*factorialize.js*的文件，其中包含如下所示的`factorialize()`函数：
+- en: '[PRE18]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'To make this function accessible to Jest, you need to export the `factorialze()`
+    function by adding this line to the end of the file:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了使这个函数对Jest可访问，你需要通过在文件末尾添加这行来导出`factorialze()`函数：
+- en: '[PRE19]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Note
+  id: totrans-155
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Jest assumes you’re using the Node module standard (CommonJS). If you’re already
+    using the newer ES6 module standard, you need to use Babel, a JavaScript transpilation
+    tool, to convert your module references before Jest processes your code. This
+    sounds complicated, but the `plugin-transform-modules-commonjs` module will take
+    care of most of the work. To see the completely configured solution both ways
+    (with CommonJS modules or ES6 modules), refer to the sample code. For more about
+    CommonJS modules, see [“Converting Your Library into a Node Module”](ch18.html#converting_library_node_module).
+    For more about ES6 modules, see [“Organizing Your JavaScript Classes with Modules”](ch08.html#using_es6_modules).
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest 假设你正在使用 Node 模块标准（CommonJS）。如果你已经在使用更新的 ES6 模块标准，你需要使用 Babel，一个 JavaScript
+    转译工具，将你的模块引用转换为 Jest 处理你的代码之前。这听起来很复杂，但 `plugin-transform-modules-commonjs` 模块会处理大部分工作。要查看完全配置的解决方案（使用
+    CommonJS 模块或 ES6 模块），请参考示例代码。关于 CommonJS 模块的更多信息，请参阅 [“将你的库转换为 Node 模块”](ch18.html#converting_library_node_module)。关于
+    ES6 模块的更多信息，请参阅 [“使用模块组织你的 JavaScript 类”](ch08.html#using_es6_modules)。
+- en: 'Now you need to create your test file. In Jest, test files have the extension
+    *.test.js*. In this case, that means you need to create a new file named *factorialize.test.js*.
+    This file then imports the function you want to test:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你需要创建你的测试文件。在 Jest 中，测试文件的扩展名为 *.test.js*。在这种情况下，这意味着你需要创建一个名为 *factorialize.test.js*
+    的新文件。然后这个文件导入你想要测试的函数：
+- en: '[PRE20]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'The rest of your test file defines the test you want to run. The simplest approach
+    to testing is to start by verifying that your function works the way you expect.
+    For example, you can write a Jest test that verifies that `factorialize()` returns
+    the correct information for a few representative cases. Here’s an example that
+    checks that 10! is 3,628,800:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你的测试文件的其余部分定义了你想要运行的测试。测试的最简单方法是首先验证你的函数是否按照你的预期工作。例如，你可以编写一个 Jest 测试，验证 `factorialize()`
+    对几个代表性案例返回正确的信息。这里有一个检查 10! 是否为 3,628,800 的示例：
+- en: '[PRE21]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Jest’s `test()` function creates a named test. The name allows you to identify
+    tests in the test report, so you know exactly which tests succeeded and which
+    ones failed. The test in this example uses Jest’s `expect()` function, which calls
+    your code (in this case, the `factorialize()` function) and then evaluates the
+    result with `toBe()`. Technically, `toBe()` is one of several Jest *matcher functions*.
+    It determines whether the code passes or fails the test.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Jest 的 `test()` 函数创建了一个命名测试。这个名称允许你在测试报告中识别测试，这样你就可以准确知道哪些测试成功了，哪些失败了。这个示例中的测试使用了
+    Jest 的 `expect()` 函数，它调用你的代码（在这种情况下是 `factorialize()` 函数），然后用 `toBe()` 评估结果。技术上，`toBe()`
+    是 Jest 的几个 *匹配器函数* 之一。它确定代码是否通过了测试。
+- en: 'To run this test, you need to use Jest. You can run it from the command line,
+    with your test file and the help of npm’s package runner, npx. In this example,
+    you would use this command in the terminal:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行这个测试，你需要使用 Jest。你可以从命令行运行它，使用你的测试文件和 npm 的包运行器 npx 的帮助。在这个例子中，你会在终端中使用这个命令：
+- en: '[PRE22]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'which runs the single test you’ve written and generates a report like this:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行你编写的单个测试，并生成如下报告：
+- en: '[PRE23]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'More commonly, you’ll add Jest to the `scripts` section of your *package.json*
+    file so it can run all your tests automatically:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更常见的是，你会将 Jest 添加到你的 *package.json* 文件的 `scripts` 部分，这样它可以自动运行所有你的测试：
+- en: '[PRE24]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Now you can ask Jest to run all the tests (the *.test.js* files) in your project
+    folder.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以要求 Jest 运行项目文件夹中的所有测试（*.test.js* 文件）。
+- en: Discussion
+  id: totrans-169
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: There are multiple types of tests, such as tests for security, usability, and
+    performance, but the most basic form of testing is *unit testing*. Unit testing
+    consists of performing tests of discrete source code units, and verifying that
+    those units behave as expected. In JavaScript, the most common unit for unit testing
+    is a function.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有多种类型的测试，比如安全性、可用性和性能测试，但最基本的测试形式是 *单元测试*。单元测试包括对离散源代码单元进行测试，并验证这些单元的行为是否符合预期。在
+    JavaScript 中，最常见的单元测试单元是函数。
+- en: 'Although there are many possible testing frameworks (Jest, Mocha, Jasmine,
+    Karma, and more), most of them use a similar syntax. In Jest, everything revolves
+    around a `test()` function that takes two arguments. The first argument is a label
+    for the test, which appears in the test report. The second argument is a function
+    that includes one or more test assertions—claims that will either be successfully
+    proved true (a pass) or false (a fail):'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管有许多可能的测试框架（如Jest、Mocha、Jasmine、Karma等），它们大多数使用相似的语法。在Jest中，一切都围绕着一个`test()`函数展开，它接受两个参数。第一个参数是测试的标签，在测试报告中显示。第二个参数是一个包含一个或多个测试断言的函数，这些断言要么成功证明为真（通过），要么为假（失败）：
+- en: '[PRE25]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'To create test assertions, you use the `expect()` function, which is the lynchpin
+    of Jest. It works in conjunction with a matching function like `toBe()` that evaluates
+    the results from your test call:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建测试断言，你使用`expect()`函数，它是Jest的关键。它与像`toBe()`这样的匹配函数配合使用，用于评估测试调用的结果：
+- en: '[PRE26]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: This example demonstrates a single test of the `factorialize()` function. But
+    the goal of the test writer is broader. You need to choose a representative group
+    of tests—ones that check multiple values and capture boundary conditions where
+    possible. For example, with the `factorialize()` function test, it makes sense
+    to test how the function deals with nonnumeric input, negative values, 0, very
+    large values, and so on.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例演示了`factorialize()`函数的单个测试。但测试编写者的目标更广泛。你需要选择一组代表性的测试，这些测试检查多个值，并捕捉可能的边界条件。例如，对于`factorialize()`函数的测试，测试如何处理非数值输入、负值、0、非常大的值等是有意义的。
+- en: 'The following code shows a more complete test suite. It checks the results
+    of five different calls to `factorialize()`. These calls are all grouped into
+    one test suite using `describe()`. The `describe()` function simply lets you label
+    a collection of related test calls. In this example, `describe()` is grouping
+    calls to the same function, but you might also use it to group calls that use
+    the same set of sample data:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下代码展示了一个更完整的测试套件。它检查了对`factorialize()`的五个不同调用的结果。这些调用都使用`describe()`进行了分组，`describe()`函数简单地让你标记一组相关的测试调用。在这个例子中，`describe()`将调用同一函数分组，但你也可以用它来分组使用相同样本数据的调用：
+- en: '[PRE27]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'When you run this test, you’ll find that the final test fails. It expects the
+    call `factorialize(NaN)` to return `0`, but it actually throws an error, as the
+    test log makes clear:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你运行这个测试时，你会发现最终的测试失败了。它期望调用`factorialize(NaN)`返回`0`，但实际上抛出了一个错误，测试日志清楚地表明：
+- en: '[PRE28]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Right now, every test you’ve seen uses the `toBe()` matching function to check
+    for an exact value. But Jest, like all testing frameworks, lets you use different
+    types of rules. For example, you could check that a number falls in a specific
+    range, that text matches a certain pattern, or that a value isn’t null. [Table 10-2](#jest_matchers)
+    outlines some of the most useful matching functions you can use with `expect()`.
+    For a comprehensive list, consult the Jest documentation for the [`expect()` method](https://oreil.ly/hnbiy).
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，你看到的每个测试都使用`toBe()`匹配函数来检查精确值。但是，像所有测试框架一样，Jest允许你使用不同类型的规则。例如，你可以检查一个数字是否落在特定范围内，文本是否匹配某种模式，或者值是否不为空。[表 10-2](#jest_matchers)概述了一些可用于`expect()`的最有用的匹配函数。要查看全面的列表，请参阅Jest文档中的[`expect()`方法](https://oreil.ly/hnbiy)。
+- en: Table 10-2\. Jest matchers
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10-2\. Jest匹配器
+- en: '| Function | Description |'
+  id: totrans-182
+  prefs: []
+  type: TYPE_TB
+  zh: '| 函数 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-183
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `arrayContaining()` | Searches an array for a given value. |'
+  id: totrans-184
+  prefs: []
+  type: TYPE_TB
+  zh: '| `arrayContaining()` | 在数组中搜索给定值。 |'
+- en: '| `not()` | Allows you to reverse any condition. For example, using `` expect(...).not.toBe(5)`
+    `` passes if the value is *not* 5. |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| `not()` | 允许你反转任何条件。例如，使用`` expect(...).not.toBe(5) ``，如果值*不是*5，则测试通过。 |'
+- en: '| `stringContaining()` | Searches a string for a substring. |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| `stringContaining()` | 在字符串中搜索子字符串。 |'
+- en: '| `stringMatching()` | Attempts to match a string to a regular expression.
+    |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| `stringMatching()` | 尝试将字符串与正则表达式匹配。 |'
+- en: '| `toBe()` | Tests for standard JavaScript equality, just as if you used the
+    `==` operator. |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBe()` | 测试标准的JavaScript相等性，就像使用`==`运算符一样。 |'
+- en: '| `toBeCloseTo()` | Tests that two numbers are equal or *very* close. Intended
+    to avoid minute rounding errors with floating-point numbers (an issue detailed
+    in [“Preserving Accuracy in Decimal Values”](ch03.html#preserving_decimal_accuracy)).
+    |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBeCloseTo()` | 测试两个数字是否相等或*非常*接近。旨在避免浮点数的微小舍入误差（详见[“保留十进制数值精度”](ch03.html#preserving_decimal_accuracy)）。
+    |'
+- en: '| `toBeGreaterThan()` | Checks if a numeric value is greater than the value
+    you specify. There’s a small set of similar matchers for different comparisons,
+    including `toBeGreaterThanOrEqual()`, `toBeLessThan()`, and `toBeLessThanOrEqual()`.
+    |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBeGreaterThan()` | 检查数值是否大于指定的值。还有一小组类似的比较器，包括`toBeGreaterThanOrEqual()`、`toBeLessThan()`和`toBeLessThanOrEqual()`。
+    |'
+- en: '| `toBeInstanceOf()` | Checks if a returned object is an instance of a specified
+    class, just as if you used the `instanceof` operator. |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBeInstanceOf()` | 检查返回的对象是否是指定类的实例，就像使用`instanceof`操作符一样。 |'
+- en: '| `toBeNull()` | Checks if a value is `null`. You can also test for `NaN` values
+    with `toBeNaN()` and undefined values with `toBeUndefined()`. |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBeNull()` | 检查值是否为`null`。您还可以使用`toBeNaN()`测试`NaN`值，并使用`toBeUndefined()`测试未定义的值。
+    |'
+- en: '| `toBeTruthy()` | Tests if a number is *truthy*, which means it will be coerced
+    to `true` in an `if` statement. In JavaScript, everything is truthy except `null`,
+    `undefined`, empty strings, `NaN`, `0`, and `false`. |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toBeTruthy()` | 检查一个数字是否*真值*，这意味着它在`if`语句中将被强制转换为`true`。在JavaScript中，除了`null`、`undefined`、空字符串、`NaN`、`0`和`false`之外的所有内容都是真值。
+    |'
+- en: '| `toEqual()` | Performs a *deep comparison* that checks if one object has
+    the same content as another. This is in contrast to `toBe()`, which tests reference
+    equality for objects. As a general rule of thumb, `toBe()` works for primitive
+    types, but `toEqual()` is what you need to compare object instances. ([“Making
+    a Deep Copy of an Object”](ch07.html#deep_clone_an_object) explains more about
+    object equality in JavaScript.) |'
+  id: totrans-194
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toEqual()` | 执行*深度比较*，检查一个对象是否与另一个对象具有相同的内容。这与`toBe()`形成对比，后者用于测试对象的引用相等性。作为一个基本的规则，对于原始类型，`toBe()`有效，但是对于比较对象实例，您需要使用`toEqual()`。([“Making
+    a Deep Copy of an Object”](ch07.html#deep_clone_an_object)更详细地解释了JavaScript中对象相等性的问题。)
+    |'
+- en: '| `toHaveProperty()` | Checks if a returned object has a specific property
+    and (optionally) if that property matches a certain value. |'
+  id: totrans-195
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toHaveProperty()` | 检查返回的对象是否具有特定属性，并（可选）检查该属性是否匹配特定值。 |'
+- en: '| `toStrictEqual()` | Similar to `toEqual()` but requires the objects to match
+    exactly. For example, objects with the same properties and property values won’t
+    match if they are instances of different classes, or if one is a class instance
+    and the other an object literal. |'
+  id: totrans-196
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toStrictEqual()` | 类似于`toEqual()`，但要求对象完全匹配。例如，具有相同属性和属性值的对象，如果它们是不同类的实例，或者其中一个是类实例，另一个是对象字面量，则不匹配。
+    |'
+- en: '| `toThrow` | Tests if the function throws an exception. You can optionally
+    require the exception to be a specific error object. |'
+  id: totrans-197
+  prefs: []
+  type: TYPE_TB
+  zh: '| `toThrow` | 测试函数是否抛出异常。您可以选择要求异常是特定的错误对象。 |'
+- en: 'To fix the current example, you can indicate that you expect a value of `NaN`
+    to throw an exception with the `toThrow()` matcher. However, `toThrow()` requires
+    an extra step. You need to wrap the code inside `expect()` inside *another* anonymous
+    function. Otherwise, the exception won’t be caught and the test will still fail.
+    Here’s the correct code:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要修复当前示例，您可以指示您期望值为`NaN`时抛出异常，并使用`toThrow()`匹配器。但是，`toThrow()`需要额外的步骤。您需要将`expect()`内部的代码包装在*另一个*匿名函数中。否则，异常不会被捕获，测试仍将失败。以下是正确的代码：
+- en: '[PRE29]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: See Also
+  id: totrans-200
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: This example gives a good overview of Jest’s core functionality, but there are
+    many additional features you may want to consider. For example, Jest has additional
+    support for using mock data, handling asynchronous results from promises, simulating
+    timers, and snapshot testing (which verifies that the UI of a page hasn’t changed).
+    For more information about all these features, refer to the [Jest documentation](https://oreil.ly/aeu1l).
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例很好地概述了Jest的核心功能，但还有许多其他功能可能会被考虑。例如，Jest还支持使用模拟数据、处理来自Promise的异步结果、模拟计时器以及快照测试（用于验证页面UI未更改）。有关所有这些功能的更多信息，请参阅[Jest文档](https://oreil.ly/aeu1l)。
+- en: 'Extra: Writing Tests First'
+  id: totrans-202
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 'Extra: 首先编写测试'
+- en: Modern development practices have embraced the idea of writing the tests before
+    much of the functionality for the application (and libraries) is written. This
+    test-driven development (TDD) is a component of the Agile development paradigm.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代开发实践已经接受了在应用程序（和库）的大部分功能写入之前编写测试的想法。这种测试驱动的开发（TDD）是敏捷开发范 paradigm 的一部分。
+- en: 'TDD takes some getting used to. Rather than a more formal *structured programming*
+    or *waterfall* project design, which delays testing until you have reasonably
+    complete code, TDD mandates that you write tests before your write anything else.
+    Here’s how it unfolds:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TDD需要一些适应。与更加正式的*结构化编程*或*瀑布式*项目设计不同，后者推迟测试直到您拥有相当完整的代码，TDD要求您在编写任何其他内容之前编写测试。以下是其步骤：
+- en: '*Define the tests.* For example, if you were planning to write the `factorialize()`
+    function shown in the previous example, you would begin by defining a representative
+    set of tests that capture its expected inputs: for example, the largest number
+    it can factorialize, boundary values like 0, and potential edge cases (like an
+    implicitly coerced string or `BigInt` value). You would also write tests to check
+    that failure cases are treated appropriately—in this case, by throwing the expected
+    error.'
+  id: totrans-205
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '*定义测试。* 例如，如果您计划编写上一个示例中显示的`factorialize()`函数，则首先需要定义一组能够捕捉其预期输入的代表性测试，例如，它可以计算的最大数值、边界值如0，以及可能的边缘情况（如隐式强制转换的字符串或`BigInt`值）。您还需要编写测试来验证失败情况是否得到适当处理——在这种情况下，即抛出预期的错误。'
+- en: '*Make it fail.* Once you’ve written your tests, you write the code. Some TDD
+    practitioners suggest that the first step is to make your code compile and your
+    tests fail. By achieving this step, you ensure that your tests are running, your
+    test requirements are meaningful, and you aren’t accidentally passing code before
+    it’s complete.'
+  id: totrans-206
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '*使其失败。* 完成测试编写后，接下来编写代码。一些TDD实践者建议，第一步是使您的代码编译失败，测试失败。通过完成此步骤，您确保测试正在运行，测试需求是有意义的，并且在代码完全编写之前不会意外通过代码。'
+- en: '*Make it pass.* The next step is sometimes described as “make the tests pass
+    any way possible.” In other words, you don’t worry about creating the best possible
+    solution, but simply making all the tests pass. Do not write more code than dictated
+    by the test requirements.'
+  id: totrans-207
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '*使其通过。* 下一步有时被描述为“以任何可能的方式使测试通过”。换句话说，您不必担心创建最佳解决方案，而只需使所有测试通过。不要编写超出测试需求的代码。'
+- en: '*Refactor.* After you successfully pass your tests, you start the work of refining
+    the code. This is the time when you refactor, remove duplicate code, and introduce
+    improvements, repeating your tests all the while to make sure they continue to
+    pass. You’ll probably also discover cases you haven’t covered, and end up writing
+    more tests.'
+  id: totrans-208
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '*重构。* 成功通过测试后，您开始改进代码。这是重构的时机，删除重复代码并引入改进，同时反复运行测试以确保它们继续通过。您可能还会发现一些未覆盖的情况，并需要编写更多的测试。'
+- en: One obvious advantage in TDD is that it makes you focus on the problem at hand.
+    You don’t need to interpret design requirements to decide how you should code
+    a solution. Instead, you code to the exacting specifications that are formalized
+    in tests. But TDD development also helps as an application evolves, because it
+    diminishes the fear of change. As long as your code continues to pass the tests
+    you’ve set out, and as long as your tests are truly representative (a bigger “if”),
+    it’s safe to commit new revisions to your codebase.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TDD的一个明显优势是它让您专注于手头的问题。您不需要解释设计要求来决定如何编写解决方案。相反，您根据测试中明确的规格编写代码。但TDD开发也有助于应用程序的演变，因为它减少了对变更的恐惧。只要您的代码继续通过您设定的测试，并且您的测试是真正代表性的（一个更大的“如果”），提交新的代码修订是安全的。
+- en: The cost for this protection is that creating proper tests takes significantly
+    more time to complete and significant experience to get right. One metric that
+    can help you evaluate your testing regimen is *test code coverage* ([“Tracking
+    Test Code Coverage”](#unit_testing_coverage)).
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为此保护付出的代价是，编写适当的测试需要更多的时间和显著的经验才能完成。一个可以帮助您评估测试方案的度量标准是*测试代码覆盖率*（[“追踪测试代码覆盖率”](#unit_testing_coverage)）。
+- en: Tracking Test Code Coverage
+  id: totrans-211
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 追踪测试代码覆盖率
+- en: Problem
+  id: totrans-212
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to assess how well your test cases cover all the possibilities in your
+    code.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望评估您的测试案例在代码中涵盖所有可能性的程度。
+- en: Solution
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Get a code coverage report from your testing tool. In Jest, you use the `--collect-coverage`
+    option:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从您的测试工具获取代码覆盖率报告。在Jest中，您可以使用`--collect-coverage`选项：
+- en: '[PRE30]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Now Jest will run all the tests in all the *test.js* files (as usual), followed
+    by a more detailed report that analyzes the code coverage of your tests. Here’s
+    the report with the tests for the `factorialize()` function shown in [“Writing
+    Unit Tests for Your Code”](#unit_testing):'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在 Jest 将运行所有*test.js*文件中的所有测试（像往常一样），然后生成一个更详细的报告，分析您测试的代码覆盖率。以下是测试`factorialize()`函数的报告，来自[“为您的代码编写单元测试”](#unit_testing)：
+- en: '[PRE31]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Discussion
+  id: totrans-219
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Determining test code coverage requires a multifaceted approach. To be successful,
+    it should include techniques such as code reviews and walkthroughs with peers.
+    However, all testing tools also include automated code analysis features that
+    can help you size up how successful your tests are at evaluating your code.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确定测试代码覆盖率需要一个多方面的方法。要成功，它应包括诸如与同行进行代码审查和演练之类的技术。然而，所有测试工具也包括可以帮助您评估测试在评估代码时的成功程度的自动化代码分析功能。
+- en: In Jest, the `--collect-coverage` parameter triggers this analysis. You can
+    use this parameter at the command line or add it to the `jest` command in the
+    *package.json* configuration file for your application.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Jest 中，`--collect-coverage`参数触发此分析。您可以在命令行中使用此参数，或将其添加到应用程序的*package.json*配置文件中的`jest`命令中。
+- en: 'The code coverage report assesses how much of your code is tested using several
+    percentages, which appear in separate columns:'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码覆盖率报告通过几个百分比评估您的代码测试覆盖多少，这些百分比显示在单独的列中：
+- en: Functions
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数
+- en: Shows how many of your functions are tested. This is a good starting point for
+    evaluating your test coverage, but it’s also the least fine-grained statistic.
+    In the `factorialize()` test, all the functions are tested. That doesn’t mean
+    that all the code in these functions is executed!
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示已测试的函数数量。这是评估测试覆盖率的良好起点，但也是最粗粒度的统计数据。在`factorialize()`测试中，所有函数都已测试。但这并不意味着这些函数中的所有代码都被执行！
+- en: Statements
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 语句
+- en: Shows the percentage of code statements that are executed during your tests.
+    In the `factorialize()` test, roughly 83% of all the code written is covered by
+    at least one test.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示在您的测试中执行的代码语句的百分比。在`factorialize()`测试中，大约83%的代码都至少被一个测试覆盖。
+- en: Branch
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分支
+- en: Shows how many different branches (through conditional logic, like `if` statements)
+    are reached. In the `factorialize()` test, the tests travel down 67% of the separate
+    conditional branches.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示已达到多少不同分支（通过条件逻辑，如`if`语句）。在`factorialize()`测试中，测试涉及到67%的独立条件分支。
+- en: Additionally, the code report can point you to lines that don’t have code coverage.
+    For example, the `factorialize()` example highlights lines 3–4 in your source
+    code file, which rejects negative numbers, and lines 6–7, which rejects noninteger
+    numbers. To improve your test code coverage, you could write a test assertion
+    that uses `toThrow()` to ensure that both these cases are rejected properly.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，代码报告还可以指出没有代码覆盖的行。例如，`factorialize()`示例突出显示了源代码文件中的第3至4行，用于拒绝负数，以及第6至7行，用于拒绝非整数数字。要提高测试代码的覆盖率，您可以编写一个使用`toThrow()`的测试断言，以确保这两种情况都被正确拒绝。
+- en: 'The command-line report gives you a quick review of your coverage, but Jest
+    also generates a more comprehensive HTML-formatted report, which it stores in
+    the *coverage* folder. Open *index.html* to see a list of all the tested files
+    with the top-line statistics in slightly more detail (see [Figure 10-1](#test_report_1)).
+    For example, rather than just giving you percentages, the report tells you the
+    exact number of statements, branches, and functions. Click on any file in the
+    list to go to another page that shows the code, with a twist: uncovered statements
+    are highlighted for quick reference (see [Figure 10-2](#test_report_2)).'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命令行报告让您快速查看覆盖率，但 Jest 还会生成一个更全面的 HTML 格式报告，并将其存储在*coverage*文件夹中。打开*index.html*，您可以看到所有测试文件的列表，并稍微详细说明了顶级统计数据（参见[图10-1](#test_report_1)）。例如，报告不仅仅提供百分比，还告诉您确切的语句数、分支数和函数数。点击列表中的任何文件，将跳转到另一页显示代码，未覆盖的语句会被高亮显示，以便快速参考（参见[图10-2](#test_report_2)）。
+- en: '![jsc3 1001](assets/jsc3_1001.png)'
+  id: totrans-231
+  prefs: []
+  type: TYPE_IMG
+  zh: '![jsc3 1001](assets/jsc3_1001.png)'
+- en: Figure 10-1\. Code coverage report
+  id: totrans-232
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图10-1\. 代码覆盖率报告
+- en: '![jsc3 1002](assets/jsc3_1002.png)'
+  id: totrans-233
+  prefs: []
+  type: TYPE_IMG
+  zh: '![jsc3 1002](assets/jsc3_1002.png)'
+- en: Figure 10-2\. Highlighted code without test coverage
+  id: totrans-234
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图10-2\. 未测试覆盖的代码高亮显示
+- en: Note
+  id: totrans-235
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The appropriate test coverage goal is much-debated. Some developers advocate
+    for getting as close to 100% as possible, while others argue that 70%–80% is more
+    practical and achieves the best return for your test-writing investment. However,
+    the honest answer is that test coverage is not a definitive metric. Not only does
+    the percentage differ based on how you measure it (functions, statements, or branches),
+    but testing tools have no way to identify the riskiest or most vulnerable paths
+    in your codebase.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 适当的测试覆盖率目标备受争议。一些开发者主张尽可能接近100%，而另一些则认为70%至80%更为实际，并且能够在你的测试编写投资中获得最佳回报。然而，诚实的答案是测试覆盖率并非一个确定的指标。不仅百分比因测量方式不同而异（函数、语句或分支），而且测试工具无法识别代码库中最危险或最脆弱的路径。

@@ -1,0 +1,2767 @@
+- en: Chapter 3\. Composing Components
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第3章\. 组合组件
+- en: 'In the previous chapter, you learned the fundamentals of Vue and how to write
+    a Vue component with common directives using Options API. You are now ready to
+    deep dive into the next level: composing more complex Vue components with reactivity
+    and hooks.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一章中，您已经学习了Vue的基础知识，并使用Options API编写了具有常见指令的Vue组件。现在，您已经准备好深入探讨下一个层次：使用响应式和钩子组合更复杂的Vue组件。
+- en: This chapter introduces the Vue Single File Component (SFC) standard, component
+    lifecycle hooks, and other advanced reactive features such as computed properties,
+    watchers, methods, and refs. You will also learn to use slots to dynamically render
+    different parts of the component while maintaining the component’s structure with
+    styles. By the end of this chapter, you will be able to write complex Vue components
+    in your application.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了Vue单文件组件（SFC）标准、组件生命周期钩子，以及其他高级响应式特性，如计算属性、监听器、方法和引用。您还将学习如何使用插槽来动态渲染组件的不同部分，并保持样式结构。通过本章的学习，您将能够在应用程序中编写复杂的Vue组件。
+- en: Vue Single File Component Structure
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Vue单文件组件结构
+- en: 'Vue introduces a new file format standard, Vue SFC, denoted by the `.vue` extension.
+    With SFC, you can write the HTML template code, the JavaScript logic, and the
+    CSS stylings for a component in the same file, each in its dedicated code section.
+    A Vue SFC contains three essential code sections:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue引入了一种新的文件格式标准，Vue SFC，以`.vue`扩展名表示。使用SFC，您可以在同一文件中为组件编写HTML模板代码、JavaScript逻辑和CSS样式，每个部分都有专门的代码区域。Vue
+    SFC包含三个必要的代码部分：
+- en: Template
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模板
+- en: This HTML code block renders the UI view of the component. It should only appear
+    *once* per component at the highest level element.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此HTML代码块渲染了组件的UI视图。它应该只在每个组件的最高级元素*一次*出现。
+- en: Script
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 脚本
+- en: This JavaScript code block contains the component’s main logic and only appears
+    *a maximum of once* per component file.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此JavaScript代码块包含组件的主要逻辑，每个组件文件最多出现*一次*。
+- en: Style
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 样式
+- en: This CSS code block contains the stylings for the component. It is optional
+    and can appear as *many times* as required per component file.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此CSS代码块包含组件的样式设置。它是可选的，可以根据需要出现*多次*。
+- en: '[Example 3-1](#example_03_01) is an example of an SFC file structure for a
+    Vue component named `MyFirstComponent`.'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-1](#example_03_01) 是名为`MyFirstComponent`的Vue组件的SFC文件结构示例。'
+- en: Example 3-1\. SFC structure of `MyFirstComponent` component
+  id: totrans-12
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-1\. `MyFirstComponent` 组件的SFC结构
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: We can also refactor a non-SFC component code into SFC, as shown in [Figure 3-1](#figure_03_01).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以将非SFC组件代码重构为SFC，如[图 3-1](#figure_03_01)所示。
+- en: '![Example of a Vue component created with single file component concept](assets/lvue_0301.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用单文件组件概念创建的Vue组件示例](assets/lvue_0301.png)'
+- en: Figure 3-1\. Refactoring the component from non-SFC format to SFC format
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-1\. 从非SFC格式重构为SFC格式的组件
+- en: 'As [Figure 3-1](#figure_03_01) shows, we perform the following refactoring:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如[图 3-1](#figure_03_01)所示，我们进行了以下重构：
+- en: Move the HTML code presented as the string value of the `template` field into
+    the `<template>` section of the Single File Component.
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将HTML代码作为`template`字段的字符串值移至单文件组件的`<template>`部分。
+- en: Move the rest of `MyFirstComponent` logic into the `<script>` section of the
+    Single File Component, as part of the `export default {}` object.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将`MyFirstComponent`的其余逻辑移至单文件组件的`<script>`部分，作为`export default {}`对象的一部分。
+- en: Tip for Using TypeScript
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用TypeScript的提示
+- en: You should add the attribute `lang="ts"` for TypeScript to the `<script>` syntax,
+    as `<script lang="ts">` , so the Vue engine knows to handle the code format accordingly.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您应该为TypeScript在`<script>`语法中添加`lang="ts"`属性，如`<script lang="ts">`，以便Vue引擎知道如何处理代码格式。
+- en: Since the `.vue` file format is a unique extension standard, you need to use
+    a special build tool (compiler/transpiler) such as Webpack, Rollup, etc., to pre-compile
+    the relevant files into proper JavaScript and CSS for serving on the browser side.
+    When creating a new project with Vite, Vite already sets up these tools as part
+    of the scaffolding process. You then can import the component as an ES module
+    and declare it as internal `components` to use in other component files.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`.vue`文件格式是一种独特的扩展标准，您需要使用特殊的构建工具（编译器/转译器），如Webpack、Rollup等，将相关文件预编译为适合在浏览器端服务的JavaScript和CSS。在使用Vite创建新项目时，Vite已经将这些工具设置为脚手架过程的一部分。然后，您可以将组件作为ES模块导入，并声明为内部的`components`以在其他组件文件中使用。
+- en: 'Following is an example of importing `MyFirstComponent` located in the `components`
+    directory to use in the `App.vue` component:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是导入 `components` 目录中的 `MyFirstComponent` 并在 `App.vue` 组件中使用的示例：
+- en: '[PRE1]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'As [Example 3-2](#example_03_04) shows, you can use the imported component
+    by referring to its name, either by CamelCase or snake case, in the `template`
+    section:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如 [示例 3-2](#example_03_04) 所示，您可以通过在 `template` 部分引用其名称（无论是驼峰还是蛇形命名法），来使用导入的组件：
+- en: Example 3-2\. How to use the imported component
+  id: totrans-26
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-2\. 如何使用导入的组件
+- en: '[PRE2]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This code generates the `MyFirstComponent` component’s content twice, as shown
+    in [Figure 3-2](#figure_03_02).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码将 `MyFirstComponent` 组件的内容呈现两次，如 [图 3-2](#figure_03_02) 所示。
+- en: '![How the component is rendered with repetitive content from its nested components](assets/lvue_0302.png)'
+  id: totrans-29
+  prefs: []
+  type: TYPE_IMG
+  zh: '![组件如何通过其嵌套组件的重复内容进行渲染](assets/lvue_0302.png)'
+- en: Figure 3-2\. `MyFirstComponent` output
+  id: totrans-30
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-2\. `MyFirstComponent` 的输出
+- en: Note
+  id: totrans-31
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: A component’s `template` in [Example 3-2](#example_03_04) contains two root
+    elements. This fragmentation capability is available only in Vue 3.x onward.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 3-2](#example_03_04) 中的组件 `template` 包含两个根元素。此分割能力仅在 Vue 3.x 及更高版本中可用。
+- en: We learned how to create and use a Vue component using the SFC format. As you
+    have noticed, we define `lang="ts"` in the `script` tag to inform the Vue engine
+    about our usage of TypeScript. And thus, the Vue engine will apply stricter type
+    validation on any code or expressions presented in the `script` and `template`
+    sections of the component.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们学习了如何使用 SFC 格式创建和使用 Vue 组件。正如您所注意到的，我们在 `script` 标签中定义 `lang="ts"`，以告知 Vue
+    引擎我们使用了 TypeScript。因此，Vue 引擎将在组件的 `script` 和 `template` 部分对任何代码或表达式应用更严格的类型验证。
+- en: However, to fully enjoy TypeScript’s benefits in Vue, we need to use the `defineComponent()`
+    method when defining a component, which we will learn in the next section.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，为了充分享受 TypeScript 在 Vue 中的优势，我们需要在定义组件时使用 `defineComponent()` 方法，这将在下一节中学习。
+- en: Using defineComponent() for TypeScript Support
+  id: totrans-35
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 用于 TypeScript 支持的 `defineComponent()` 方法
+- en: The `defineComponent()` method is a wrapper function that accepts an object
+    of configurations and returns the same thing with type inference for defining
+    a component.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`defineComponent()` 方法是一个包装函数，接受一个配置对象并返回相同的东西，用于定义组件时进行类型推断。'
+- en: Note
+  id: totrans-37
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `defineComponent()` method is available only in Vue 3.x onward and relevant
+    only when TypeScript is required.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`defineComponent()` 方法仅在 Vue 3.x 及更高版本中可用，并且只有在需要 TypeScript 时才相关。'
+- en: '[Example 3-3](#example_03_03) illustrates using `defineComponent()` to define
+    a component.'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-3](#example_03_03) 演示了使用 `defineComponent()` 来定义一个组件。'
+- en: Example 3-3\. Defining a component with `defineComponent()`
+  id: totrans-40
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-3\. 使用 `defineComponent()` 定义组件
+- en: '[PRE3]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: If you use VSCode as your IDE, and have [Volar extension](https://oreil.ly/lmnvd)
+    installed, you will see the type of `message` as `string` when hovering on `message`
+    in the `template` section, as shown in [Figure 3-3](#figure_03_03).
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用 VSCode 作为您的 IDE，并安装了 [Volar 扩展](https://oreil.ly/lmnvd)，当在 `template`
+    部分的 `message` 上悬停时，您将看到 `message` 的类型为 `string`，如 [图 3-3](#figure_03_03) 所示。
+- en: '![Type of string generated for the message property of MyMessageComponent when
+    hovering on the message word inside the template section](assets/lvue_0303.png)'
+  id: totrans-43
+  prefs: []
+  type: TYPE_IMG
+  zh: '![悬停在模板部分的 `message` 单词上时生成的 `MyMessageComponent` 的 `message` 属性的字符串类型](assets/lvue_0303.png)'
+- en: Figure 3-3\. Generated type for `message` property of `MyMessageComponent` displayed
+    on hover
+  id: totrans-44
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-3\. 在悬停时显示的 `MyMessageComponent` 的 `message` 属性的生成类型
+- en: You should use `defineComponent()` for TypeScript support only in complex components
+    such as accessing a component’s properties through `this` instance. Otherwise,
+    you can use the standard method for defining an SFC component.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于复杂组件，如通过 `this` 实例访问组件属性时，应仅在需要 TypeScript 支持时使用 `defineComponent()`。否则，可以使用标准的
+    SFC 组件定义方法。
+- en: Note
+  id: totrans-46
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In this book, you will see a combination of the traditional component definition
+    approach and `defineComponent()` when suitable. You are free to decide which method
+    works best for you.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，您将看到传统组件定义方法与需要时使用 `defineComponent()` 方法的组合。您可以自由决定哪种方法更适合您。
+- en: Next, we will explore the lifecycle of a component and its hooks.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将探讨组件的生命周期及其钩子函数。
+- en: Component Lifecycle Hooks
+  id: totrans-49
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 组件生命周期钩子
+- en: The lifecycle of a Vue component starts when Vue instantiates the component
+    and ends when destroying the component instance (or unmounting).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 组件的生命周期从 Vue 实例化组件开始，到销毁组件实例（或卸载）结束。
+- en: Vue divides the component’s lifecycle into the phases ([Figure 3-4](#figure_03_33)).
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 将组件的生命周期划分为不同阶段（[图 3-4](#figure_03_33)）。
+- en: '![A diagram flowchart of the lifecycle of a Vue component](assets/lvue_0304.png)'
+  id: totrans-52
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue 组件生命周期的流程图](assets/lvue_0304.png)'
+- en: Figure 3-4\. Flow graph of a Vue component lifecycle
+  id: totrans-53
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-4\. Vue 组件生命周期流程图
+- en: Initialize phase
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初始化阶段
+- en: The Vue renderer loads the component’s option configurations and prepares for
+    the component instance creation.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 渲染器加载组件的选项配置，并准备创建组件实例。
+- en: Creating phase
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建阶段
+- en: The Vue renderer creates the component instance. If the template requires compiling,
+    there will be an additional step to compile it before moving forward to the next
+    phase.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 渲染器创建组件实例。如果模板需要编译，将在继续下一个阶段之前进行额外的编译步骤。
+- en: First render phase
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一次渲染阶段
+- en: The Vue renderer creates and inserts the DOM nodes for the component in its
+    DOM tree.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 渲染器在组件的 DOM 树中创建并插入组件的 DOM 节点。
+- en: Mounting phase
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 挂载阶段
+- en: The component’s nested elements are already mounted and attached to the component’s
+    DOM tree, as seen in [Figure 3-5](#figure_03_04). The Vue renderer then attaches
+    the component to its parent container. From this phase onward, you have access
+    to the component’s `$el` property, representing its DOM node.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件的嵌套元素已经挂载并附加到组件的 DOM 树中，如[图3-5](#figure_03_04)所示。然后 Vue 渲染器将组件附加到其父容器中。从此阶段开始，你可以访问组件的
+    `$el` 属性，表示其 DOM 节点。
+- en: Updating phase
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新阶段
+- en: Only relevant if the component’s reactive data changes. Here the Vue renderer
+    re-renders the DOM nodes for the component with the new data and performs a patch
+    update. Similar to the mounting phase, the update process finishes with the child
+    elements first and then the component itself.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅当组件的响应式数据发生变化时才相关。在此阶段，Vue 渲染器使用新数据重新渲染组件的 DOM 节点，并执行修补更新。类似于挂载阶段，更新过程以子元素优先，然后是组件本身结束。
+- en: Unmounting phase
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 卸载阶段
+- en: The Vue renderer detaches the component from the DOM and destroys the instance
+    and all its reactive data effects. This phase is the last phase of the lifecycle,
+    happening when the component is no longer in use in the application. Similar to
+    the updating and mounting stages, a component can only unmount itself after all
+    its children are unmounted.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 渲染器从 DOM 中分离组件并销毁实例及其所有响应式数据效果。此阶段是生命周期的最后阶段，在应用程序中不再使用组件时发生。类似于更新和挂载阶段，组件只能在其所有子组件卸载后自行卸载。
+- en: '![A diagram showing how the mounting order of a component and its children,
+    noting from 1 to 3](assets/lvue_0305.png)'
+  id: totrans-66
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示组件及其子组件挂载顺序的图表，从1到3](assets/lvue_0305.png)'
+- en: Figure 3-5\. Mounting order for a component and its children
+  id: totrans-67
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-5\. 组件及其子组件的挂载顺序
+- en: Vue allows you to attach some events to specific transitions between these lifecycle
+    phases for better component flow control. We call these events lifecycle hooks.
+    The lifecycle hooks available in Vue are described in the following sections.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 允许你将一些事件附加到这些生命周期阶段之间的特定过渡，以更好地控制组件流程。我们称这些事件为生命周期钩子。Vue 中可用的生命周期钩子在以下章节中描述。
+- en: setup
+  id: totrans-69
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: setup
+- en: '`setup` is the first event hook before the component’s lifecycle starts. This
+    hook runs *once* before Vue instantiates the component. At this phase, no component
+    instance exists; hence *there is no access* to `this`:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setup` 是在组件生命周期开始前的第一个事件钩子。此钩子在 Vue 实例化组件之前运行 *一次*。在这个阶段，没有组件实例存在，因此 *无法访问*
+    `this`：'
+- en: '[PRE4]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Note
+  id: totrans-72
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: An alternative to the `setup` hook is adding the `setup` attribute to the `script`
+    tag section of the component (`<script setup>`).
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setup` 钩子的一个替代方案是将 `setup` 属性添加到组件的 `script` 标签部分（`<script setup>`）。'
+- en: 'The `setup` hook is mainly for use with the Composition API (we will learn
+    more in [Chapter 5](ch05.html#unique_chapter_id_06)). Its syntax is:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setup` 钩子主要用于组合 API（我们将在[第5章](ch05.html#unique_chapter_id_06)中详细学习）。其语法如下：'
+- en: '[PRE5]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '`setup()` takes two arguments:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setup()` 接受两个参数：'
+- en: '`props`'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`props`'
+- en: An object that contains all the props passed to the component, declared using
+    the `props` field of the component’s options object. Each of `props`’s properties
+    is reactive data. You don’t need to return `props` as part of the `setup()` return
+    object.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含传递给组件的所有 props 的对象，使用组件选项对象的 `props` 字段声明。每个 `props` 的属性都是响应式数据。你不需要在 `setup()`
+    返回对象的一部分中返回 `props`。
+- en: '`context`'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`context`'
+- en: A non-reactive object that contains the component’s context, such as `attrs`,
+    `slots`, `emit`, and `expose`.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包含组件上下文的非响应式对象，如 `attrs`、`slots`、`emit` 和 `expose`。
+- en: Note
+  id: totrans-81
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you use `<script setup>`, you need to use `defineProps()` to define and access
+    these props. See [“Declaring Props Using defineProps() and withDefaults()”](ch04.html#declaring-props-defineProps).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用 `<script setup>`，你需要使用 `defineProps()` 来定义和访问这些 props。参见 [“使用 defineProps()
+    和 withDefaults() 声明 Props”](ch04.html#declaring-props-defineProps)。
+- en: '`setup()` returns an object that contains all the references to the component’s
+    internal reactive state and methods and any static data. Suppose you use `<script
+    setup>`; you don’t need to return anything. In that case, Vue will automatically
+    translate all the variables and functions declared within this syntax into the
+    appropriate `setup()` return object during compilation. You then can access them
+    in the template or other parts of the component’s options object using the `this`
+    keyword.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setup()` 返回一个包含组件内部响应式状态、方法和任何静态数据引用的对象。如果你使用 `<script setup>`，则不需要显式返回任何内容。Vue
+    在编译期间将声明在此语法内的所有变量和函数自动转换为适当的 `setup()` 返回对象。然后，你可以在模板或组件选项对象的其他部分使用 `this` 关键字访问它们。'
+- en: '[Example 3-4](#example_03_37) shows using `setup()` hook to define a component
+    that prints out a static message.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-4](#example_03_37) 展示了使用 `setup()` 钩子来定义一个打印静态消息的组件。'
+- en: Example 3-4\. Defining a component with the `setup()` hook
+  id: totrans-85
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-4\. 使用 `setup()` 钩子定义组件
+- en: '[PRE6]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Note here that `message` is not reactive data. To make it reactive, you must
+    wrap it with the `ref()` function from the Composition API. We will learn more
+    about this in [“Handling Data with ref() and reactive()”](ch05.html#ref_function_06).
+    Also, we no longer need to define `message` as part of the `data()` object, reducing
+    the amount of undesired reactive data in a component.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里注意，`message` 不是响应式数据。要使其响应式，你必须使用 Composition API 中的 `ref()` 函数来包裹它。我们将在 [“使用
+    ref() 和 reactive() 处理数据”](ch05.html#ref_function_06) 中详细了解这一点。此外，我们也不再需要将 `message`
+    定义为 `data()` 对象的一部分，从而减少了组件中不必要的响应式数据量。
+- en: Alternatively, as [Example 3-5](#example_03_38) shows, you can write the previous
+    component using the `<script setup>` syntax.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，如同 [示例 3-5](#example_03_38) 所示，你也可以使用 `<script setup>` 语法来编写前述组件。
+- en: Example 3-5\. Defining a component with `<script setup>` syntax
+  id: totrans-89
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-5\. 使用 `<script setup>` 语法定义组件
+- en: '[PRE7]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: One great thing about using `<script setup>` instead of `setup()` is that it
+    has built-in TypeScript support. As a result, there is no need for `defineComponent()`,
+    and writing components takes less code.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `<script setup>` 而不是 `setup()` 的一个很大的优点是它具有内置的 TypeScript 支持。因此，不再需要 `defineComponent()`，编写组件所需的代码更少。
+- en: When using `setup()` hook, you can also combine with the `h()` render function
+    to return a renderer for the component based on the `props` and `context` arguments,
+    as [Example 3-6](#example_03_39) shows.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用 `setup()` 钩子时，你还可以结合 `h()` 渲染函数来根据 `props` 和 `context` 参数返回组件的渲染器，就像 [示例 3-6](#example_03_39)
+    所示的那样。
+- en: Example 3-6\. Defining a component with the `setup()` hook and `h()` render
+    function
+  id: totrans-93
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-6\. 使用 `setup()` 钩子和 `h()` 渲染函数定义组件
+- en: '[PRE8]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: It is helpful to use `setup()` with `h()` when you want to create a component
+    that renders a different static DOM structure based on the props passed to it
+    or a stateless functional component ([Figure 3-6](#figure_35_03) shows the output
+    of [Example 3-6](#example_03_39) in the Vue tab of Chrome Devtools).
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你想要创建一个基于传递给它的 props 或无状态函数组件渲染不同静态 DOM 结构的组件时，使用 `setup()` 和 `h()` 是非常有帮助的（[图 3-6](#figure_35_03)
+    展示了在 Chrome Devtools 的 Vue 标签页中 [示例 3-6](#example_03_39) 的输出）。
+- en: '![The output of the stateless component using h() render function](assets/lvue_0306.png)'
+  id: totrans-96
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用 h() 渲染函数输出无状态组件的结果](assets/lvue_0306.png)'
+- en: Figure 3-6\. How the stateless component using the `h()` render function looks
+    in Vue Devtools
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-6\. 使用 `h()` 渲染函数的无状态组件在 Vue Devtools 中的展示
+- en: Note
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: From this point on, we will use `<script setup> syntax` to demonstrate use cases
+    component’s `setup()` hook due to its simplicity, whenever applicable.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这一点开始，我们将使用 `<script setup>` 语法来展示组件的 `setup()` 钩子用法，因为它简单易用，在适用的情况下。
+- en: beforeCreate
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: beforeCreate
+- en: '`beforeCreate` runs *before* the Vue renderer creates the component instance.
+    Here the Vue engine has initialized the component but hasn’t yet triggered the
+    `data()` function or calculated any `computed` properties. Thus, there is no reactive
+    data available.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beforeCreate` 在 Vue 渲染器创建组件实例之前运行。在这里，Vue 引擎已经初始化了组件，但还没有触发 `data()` 函数或计算任何
+    `computed` 属性，因此没有可用的响应式数据。'
+- en: created
+  id: totrans-102
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 创建
+- en: This hook runs *after* the Vue engine creates the component instance. At this
+    stage, the component instance exists with reactive data, watchers, computed properties,
+    and defined methods. However, the Vue engine hasn’t yet mounted it to the DOM.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在Vue引擎创建组件实例之后运行。在这个阶段，组件实例存在具有响应式数据、观察者、计算属性和定义方法。但是，Vue引擎尚未将其挂载到DOM上。
+- en: The `created` hook runs *before the first render* of the component. It helps
+    perform any task that requires `this` to be available, such as loading data from
+    an external resource into the component.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`created`钩子在组件的第一次渲染之前运行。它有助于执行需要`this`可用的任何任务，比如从外部资源加载数据到组件中。'
+- en: beforeMount
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: beforeMount
+- en: This hook runs after `created`. Here the Vue render has created the component
+    instance and compiled its template for rendering before the first render of the
+    component.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在`created`之后运行。在这里，Vue渲染器已经创建了组件实例并编译了其模板以在组件的第一次渲染之前进行渲染。
+- en: mounted
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: mounted
+- en: This hook runs after the first render of the component. At this phase, the component’s
+    rendered DOM node is available for you to access through the ++ property. You
+    can use this hook to perform additional side-effect calculations with the component’s
+    DOM node.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在组件第一次渲染后运行。在这个阶段，组件渲染的DOM节点通过++属性可以访问。您可以使用这个钩子来执行与组件DOM节点相关的额外副作用计算。
+- en: beforeUpdate
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: beforeUpdate
+- en: The Vue renderer updates the component’s DOM tree when the local data state
+    changes. This hook runs *after* the update process starts, and you can still use
+    it to modify the component’s state internally.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当本地数据状态发生变化时，Vue渲染器会更新组件的DOM树。这个钩子在更新过程开始之后运行，并且您仍然可以使用它来在内部修改组件的状态。
+- en: updated
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: updated
+- en: This hook runs after the Vue renderer updates the component’s DOM tree.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在Vue渲染器更新组件的DOM树之后运行。
+- en: Note
+  id: totrans-113
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`updated`, `beforeUpdate`, `beforeMount` and `mounted` hooks are not available
+    in server-side rendering (SSR).'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`updated`、`beforeUpdate`、`beforeMount`和`mounted`钩子在服务器端渲染（SSR）中不可用。'
+- en: Use this hook with caution *since it runs after any DOM update occurs to the
+    component*.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 谨慎使用这个钩子，*因为它在组件发生任何DOM更新之后运行*。
+- en: Update local state inside updated hook
+  id: totrans-116
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在`updated`钩子中更新本地状态
+- en: You *must not* mutate the component’s local data state in this hook.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个钩子中*不能*改变组件的本地数据状态。
+- en: beforeUnmount
+  id: totrans-118
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: beforeUnmount
+- en: This hook runs before the Vue renderer starts unmounting the component. At this
+    point, the component’s DOM node `$el` is still available.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在Vue渲染器开始卸载组件之前运行。此时，组件的DOM节点`$el`仍然可用。
+- en: unmounted
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: unmounted
+- en: This hook runs after the unmounting process completes successfully and the component
+    instance is no longer available. This hook can clean up additional observers or
+    effects, such as DOM event listeners.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个钩子在卸载过程成功完成并且组件实例不再可用之后运行。这个钩子可以清理额外的观察者或效果，比如DOM事件监听器。
+- en: Note
+  id: totrans-122
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In Vue 2.x, you should use `beforeDestroy` and `destroyed` in place of `beforeUnmount`
+    and `mounted`, respectively.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Vue 2.x中，您应该分别使用`beforeDestroy`和`destroyed`来替代`beforeUnmount`和`mounted`。
+- en: '`beforeUnmounted` and `unmounted` hooks are not available in server-side rendering
+    (SSR).'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beforeUnmounted`和`unmounted`钩子在服务器端渲染（SSR）中不可用。'
+- en: In summary, we can redraw our component’s lifecycle diagram with the lifecycle
+    hooks, as in [Figure 3-7](#figure_03_05).
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，我们可以使用生命周期钩子重新绘制组件的生命周期图，就像[图3-7](#figure_03_05)中所示。
+- en: '![A diagram flowchart of the lifecycle of a Vue component with hooks](assets/lvue_0307.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue组件生命周期的钩子流程图](assets/lvue_0307.png)'
+- en: Figure 3-7\. Flowchart of a Vue component lifecycle with hooks
+  id: totrans-127
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-7\. Vue组件生命周期的流程图
+- en: We can experiment with the execution order for each lifecycle hook with the
+    component in [Example 3-7](#example_03_36).
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过[示例3-7](#example_03_36)中的组件来实验每个生命周期钩子的执行顺序。
+- en: Example 3-7\. Console log of lifecycle hooks
+  id: totrans-129
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例3-7\. 生命周期钩子的控制台日志
+- en: '[PRE9]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: When we run this code in the browser’s Inspector console, we will see the output
+    shown in [Figure 3-8](#figure_03_06).
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在浏览器的检查器控制台中运行此代码时，将会看到[图3-8](#figure_03_06)中显示的输出。
+- en: '![Console log output for the above component in the first render](assets/lvue_0308.png)'
+  id: totrans-132
+  prefs: []
+  type: TYPE_IMG
+  zh: '![上述组件在第一次渲染时的控制台日志输出](assets/lvue_0308.png)'
+- en: Figure 3-8\. Console log output hook order for `MyFirstComponent` in the first
+    render
+  id: totrans-133
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图3-8\. `MyFirstComponent`在第一次渲染时的控制台日志输出钩子顺序
+- en: When we change the value of the `message` property, the component re-renders,
+    and the console outputs as shown in [Figure 3-9](#figure_03_07).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们改变`message`属性的值时，组件将重新渲染，并且控制台输出如[图3-9](#figure_03_07)所示。
+- en: '![Console log output for the above component in the second render](assets/lvue_0309.png)'
+  id: totrans-135
+  prefs: []
+  type: TYPE_IMG
+  zh: '![上述组件第二次渲染的控制台输出](assets/lvue_0309.png)'
+- en: Figure 3-9\. Only `beforeUpdate` and updated hooks are triggered on the second
+    render
+  id: totrans-136
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-9\. 第二次渲染仅触发`beforeUpdate`和`updated`钩子
+- en: We can also review this lifecycle order in the Timeline tab—Performance section
+    of Vue Devtools, as in [Figure 3-10](#figure_03_08) for the first render.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以在Vue Devtools的Timeline标签页-性能部分中查看生命周期顺序，例如第一次渲染中的[图 3-10](#figure_03_08)。
+- en: '![Timeline for the above component in the first render](assets/lvue_0310.png)'
+  id: totrans-138
+  prefs: []
+  type: TYPE_IMG
+  zh: '![上述组件第一次渲染的时间轴](assets/lvue_0310.png)'
+- en: Figure 3-10\. Timeline for `MyFirstComponent` in the first render
+  id: totrans-139
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-10\. `MyFirstComponent`在第一次渲染中的时间轴
+- en: And when the component re-renders, the Vue Devtools tab displays the timeline
+    event records as in [Figure 3-11](#figure_03_09).
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当组件重新渲染时，Vue Devtools标签页显示时间轴事件记录，就像[图 3-11](#figure_03_09)中展示的那样。
+- en: '![Timeline for the above component in the second render](assets/lvue_0311.png)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_IMG
+  zh: '![上述组件第二次渲染的时间轴](assets/lvue_0311.png)'
+- en: Figure 3-11\. Timeline for `MyFirstComponent` in the second render
+  id: totrans-142
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-11\. `MyFirstComponent`在第二次渲染中的时间轴
+- en: Each of the previous lifecycle hooks can be beneficial. In [Table 3-1](#right_hook_for_the_right_table),
+    you will find the most common use cases per hook.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每一个之前的生命周期钩子都可以提供帮助。在[表 3-1](#right_hook_for_the_right_table)中，您将找到每个钩子的最常见用例。
+- en: Table 3-1\. Using the right hook for the right purpose
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-1\. 为合适的目的使用合适的钩子
+- en: '| Lifecycle hook | Use case |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 生命周期钩子 | 用例 |'
+- en: '| --- | --- |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `beforeCreate` | When you need to load external logic *without* modifying
+    the component’s data. |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| `beforeCreate` | 当需要加载外部逻辑而不修改组件数据时使用。 |'
+- en: '| `created` | When you need to load external data into the component. This
+    hook is preferable to the `mounted` one for reading or writing data from external
+    resources. |'
+  id: totrans-148
+  prefs: []
+  type: TYPE_TB
+  zh: '| `created` | 当需要将外部数据加载到组件中时使用。相较于`mounted`，这个钩子更适合从外部资源读取或写入数据。 |'
+- en: '| `mounted` | When you need to perform any DOM manipulation or access the component’s
+    DOM node `this.$el`. |'
+  id: totrans-149
+  prefs: []
+  type: TYPE_TB
+  zh: '| `mounted` | 当你需要执行任何DOM操作或者访问组件的DOM节点`this.$el`时。'
+- en: To this point, we have learned the component’s lifecycle order and its available
+    hooks. Next, we will look at how to create and organize common component logic
+    into methods with the `method` property.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经了解了组件的生命周期顺序及其可用的钩子。接下来，我们将看看如何将常见的组件逻辑创建和组织成具有`method`属性的方法。
+- en: Methods
+  id: totrans-151
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 方法
+- en: Methods are logic that does not depend on the component’s data, even though
+    we can access the component’s local state using a `this` instance within a method.
+    Components’ methods are functions defined within the `methods` property. As [Example 3-8](#example_03_13)
+    shows, we can define a method to reverse the `message` property.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法是不依赖于组件数据的逻辑，尽管我们可以在方法中使用`this`实例访问组件的局部状态。组件的方法是在`methods`属性内定义的函数。正如[示例 3-8](#example_03_13)所示，我们可以定义一个方法来反转`message`属性。
+- en: Example 3-8\. Defining a method to reverse the `message` property
+  id: totrans-153
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-8\. 定义一个方法来反转`message`属性
+- en: '[PRE10]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '[Example 3-9](#example_03_14) shows how we can use the `reverseMessage` method
+    in the component’s template.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-9](#example_03_14)展示了如何在组件的模板中使用`reverseMessage`方法。'
+- en: Example 3-9\. Output the reversed message on the template
+  id: totrans-156
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-9\. 在模板上输出反转的消息
+- en: '[PRE11]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: When a user inputs a message’s value in the browser, we see the output in [Figure 3-12](#figure_03_10).
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户在浏览器中输入消息的值时，我们在[图 3-12](#figure_03_10)中看到输出。
+- en: '![A screenshot displays a reversed message based on the Hello Vue message](assets/lvue_0312.png)'
+  id: totrans-159
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示基于Hello Vue消息的反转消息](assets/lvue_0312.png)'
+- en: Figure 3-12\. Reversed message based on the value of `message`
+  id: totrans-160
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-12\. 基于`message`值的反转消息
+- en: You can also modify the `reverseMessage` method to accept a string argument,
+    making it more reusable and less dependent on `this.message`, as in [Example 3-10](#example_03_15).
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以修改`reverseMessage`方法，使其接受一个字符串参数，这样可以更具重用性，并减少对`this.message`的依赖，就像[示例 3-10](#example_03_15)中所示。
+- en: Example 3-10\. Defining a method to reverse a string
+  id: totrans-162
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-10\. 定义一个反转字符串的方法
+- en: '[PRE12]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'And in the `template` section, we refactor [Example 3-9](#example_03_14) and
+    pass `message` as input parameter for the `reverseMessage` method:'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`template`部分，我们重构了[示例 3-9](#example_03_14)，并将`message`作为`reverseMessage`方法的输入参数传递：
+- en: '[PRE13]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: The output stays the same as in [Figure 3-12](#figure_03_10).
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出结果与[图 3-12](#figure_03_10)中一致。
+- en: 'Also, we can trigger a component’s method within its other properties or lifecycle
+    hooks using the `this` instance. For example, we can split `reverseMessage` into
+    two smaller methods, `reverse()` and `arrToString()`, as in the following code:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，我们可以在组件的其他属性或生命周期钩子中使用`this`实例触发组件的方法。例如，我们可以将`reverseMessage`拆分为两个更小的方法，`reverse()`和`arrToString()`，如下面的代码所示：
+- en: '[PRE14]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Methods are beneficial in keeping your component’s logic organized. Vue triggers
+    a method only when it is relevant (such as being called in the template as in
+    [Example 3-9](#example_03_14)), allowing us to compute a new data value from local
+    data dynamically. However, for methods, Vue does not cache the result of every
+    trigger, and it will always rerun the method whenever a re-render occurs. Thus,
+    in scenarios where you need to calculate new data, it is better to use computed
+    properties, which we will explore next.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 方法有助于保持组件逻辑的组织性。Vue仅在相关时触发方法（例如在模板中调用，如[示例 3-9](#example_03_14) 中所示），允许我们动态地从本地数据计算新的数据值。然而，对于方法，Vue不会缓存每次触发的结果，并且每次重新渲染时都会重新运行该方法。因此，在需要计算新数据的场景中，最好使用计算属性，接下来我们将进行探讨。
+- en: Computed Properties
+  id: totrans-170
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 计算属性
+- en: Computed properties are Vue’s unique features that allow you to calculate new
+    reactive data properties from any reactive data of a component. Each computed
+    property is a function that returns a value and resides within the `computed`
+    property field.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算属性是Vue的独特功能，允许您从组件的任何响应式数据中计算新的响应式数据属性。每个计算属性都是一个返回值的函数，并位于`computed`属性字段内。
+- en: '[Example 3-11](#example_03_05) shows how we define a newly computed property,
+    `reversedMessage`, which returns the component’s local data `message` in reversed
+    order.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-11](#example_03_05) 展示了我们如何定义一个新的计算属性`reversedMessage`，它以反向顺序返回组件的本地数据`message`。'
+- en: Example 3-11\. A computed property that returns the component’s local message
+    in reversed order
+  id: totrans-173
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-11\. 返回组件本地消息的计算属性，以反向顺序返回
+- en: '[PRE15]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You can access `reversedMessage` computed with the same approach as any component’s
+    local data. [Example 3-12](#example_03_02) shows how we can output the calculated
+    `reversed` `Message` based on the input value of `message`.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以像访问任何组件的本地数据一样访问`reversedMessage`计算属性。[示例 3-12](#example_03_02) 展示了如何基于`message`的输入值输出计算得到的`reversed`
+    `Message`。
+- en: Example 3-12\. Computed property example
+  id: totrans-176
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-12\. 计算属性示例
+- en: '[PRE16]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[Example 3-12](#example_03_02) has the same output as in [Figure 3-12](#figure_03_10).'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-12](#example_03_02) 的输出与[图 3-12](#figure_03_10) 相同。'
+- en: You can also track the computed property in the Components tab of the Vue Devtools
+    ([Figure 3-13](#figure_03_11)).
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以在Vue Devtools的组件选项卡中跟踪计算属性（[图 3-13](#figure_03_11)）。
+- en: '![A screenshot shows the computed properties in Components tab of the Vue Devtools](assets/lvue_0313.png)'
+  id: totrans-180
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示Vue Devtools中组件选项卡中的计算属性](assets/lvue_0313.png)'
+- en: Figure 3-13\. Computed properties `reversedMessage` in the Components tab
+  id: totrans-181
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-13\. 组件选项卡中的计算属性`reversedMessage`
+- en: Similarly, you can access a computed property’s value in the component’s logic
+    through the `this` instance as its local data property. You can also calculate
+    a new computed property based on the computed property’s value. As [Example 3-13](#example_06_03)
+    shows, we can add the length of the `reversedMessage` property value into a new
+    property, `reversedMessageLength`.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样地，您可以通过`this`实例在组件逻辑中访问计算属性的值作为其本地数据属性。您还可以基于计算属性的值计算新的计算属性。如[示例 3-13](#example_06_03)
+    所示，我们可以将`reversedMessage`属性值的长度添加到一个新的属性`reversedMessageLength`中。
+- en: Example 3-13\. Adding `reversedMessageLength` computed property
+  id: totrans-183
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-13\. 添加`reversedMessageLength`计算属性
+- en: '[PRE17]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The Vue engine automatically caches the value of computed properties and re-computes
+    the value only when related reactive data changes. As in [Example 3-12](#example_03_02),
+    Vue will update the value of `reversedMessage` computed property only when `message`
+    changes. If you want to display or reuse the `reversedMessage` value in another
+    location within the component, Vue will not need to recalculate its value.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue引擎自动缓存计算属性的值，并仅在相关的响应式数据更改时重新计算该值。如[示例 3-12](#example_03_02) 中所示，Vue仅在`message`更改时更新`reversedMessage`计算属性的值。如果您希望在组件的其他位置显示或重用`reversedMessage`值，则Vue无需重新计算其值。
+- en: Using computed properties helps organize complex data modification into reusable
+    data blocks. Thus, it reduces the amount of code required and keeps code clean
+    while improving your component’s performance. Using computed properties also allows
+    you to quickly set up an automatic watcher for any reactive data property, by
+    having them appear in the implementation logic of the computed property function.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用计算属性有助于将复杂数据修改组织为可重用的数据块。因此，它减少了所需的代码量并保持代码清晰，同时提高组件的性能。使用计算属性还允许您快速设置任何响应式数据属性的自动观察器，方法是将它们出现在计算属性函数的实现逻辑中。
+- en: However, in some scenarios, this automatic watcher mechanism can create overhead
+    to keep the component’s performance stable. In such cases, we can consider using
+    watchers through the `watch` property field of the component.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在某些情况下，此自动观察器机制可能会增加组件性能的开销。在这种情况下，我们可以考虑通过组件的`watch`属性字段使用观察器。
+- en: Watchers
+  id: totrans-188
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: '**观察者**'
+- en: 'Watchers allow you to programmatically watch for changes in any reactive data
+    property of a component and handle them. Each watcher is a function that receives
+    two arguments: the new value (`newValue`) and the current value (`oldValue`) of
+    the observed data. It then performs any logic based on these two input parameters.
+    We define a watcher for reactive data by adding it to the `watch` property field
+    of the component’s options, following this syntax:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 观察者允许您以编程方式监视组件中任何响应式数据属性的变化并处理它们。每个观察器是一个函数，接收两个参数：观察数据的新值(`newValue`)和当前值(`oldValue`)。然后基于这两个输入参数执行任何逻辑。我们通过将观察器添加到组件选项的`watch`属性字段来定义响应式数据的观察器，遵循以下语法：
+- en: '[PRE18]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: You need to replace the `reactiveDataPropertyName` with the name of the target
+    component’s data that we want to observe.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您需要用目标组件的数据名称`reactiveDataPropertyName`替换它，以便观察我们想要观察的目标组件数据。
+- en: '[Example 3-14](#example_03_07) shows how we define a new watcher to observe
+    for changes in the component’s local data `message`.'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-14](#example_03_07)展示了如何定义一个新的观察器来观察组件的本地数据`message`的变化。'
+- en: Example 3-14\. A watcher that observes for changes in the component’s local
+    message
+  id: totrans-193
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-14\. 一个观察器，观察组件的本地`message`的变化
+- en: '[PRE19]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: In this example, we have defined a `message` watcher that observes changes in
+    the `message` property. The Vue engine triggers the watcher whenever the value
+    of `message` changes. [Figure 3-14](#figure_03_12) shows the console log output
+    for this watcher.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，我们定义了一个`message`观察器，它观察`message`属性的变化。当`message`的值发生变化时，Vue引擎会触发该观察器。[图 3-14](#figure_03_12)展示了此观察器的控制台日志输出。
+- en: '![A screenshot shows the console log output whenever the message changes, with
+    new value first and old value second](assets/lvue_0314.png)'
+  id: totrans-196
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示每当`message`变化时的控制台日志输出，新值在前，旧值在后](assets/lvue_0314.png)'
+- en: Figure 3-14\. Console log output when the message changes
+  id: totrans-197
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-14\. 当`message`变化时的控制台日志输出
+- en: We can implement the `reservedMessage` in [Example 3-11](#example_03_05) using
+    a watcher on `message` and `data()` field instead of computed properties, as seen
+    in [Example 3-15](#example_03_08).
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用一个观察器在[示例 3-11](#example_03_05)中实现`reservedMessage`，观察`message`和`data()`字段，而不是使用计算属性，正如[示例 3-15](#example_03_08)中所见。
+- en: Example 3-15\. A watcher that observes for changes in the component’s local
+    message and updates the value of `reversedMessage`
+  id: totrans-199
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-15\. 一个观察器，观察组件的本地`message`的变化，并更新`reversedMessage`的值
+- en: '[PRE20]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The output remains the same as in [Figure 3-12](#figure_03_10). However, this
+    approach is not recommended in this specific case, as it is less efficient than
+    using computed properties.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出结果与[图 3-12](#figure_03_10)中的相同。然而，在这种特定情况下，不推荐使用此方法，因为它比使用计算属性效率低。
+- en: Note
+  id: totrans-202
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Side effects are any additional logic triggered by the watcher or within the
+    computed property. Side effects can impact the component’s performance; you should
+    handle them with caution.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 副作用是观察器或计算属性内触发的任何附加逻辑。副作用可能会影响组件的性能；您应谨慎处理它们。
+- en: You can assign the handler function directly to the watcher name. The Vue engine
+    will automatically call the handler with a set of default configurations for watchers.
+    However, you can also pass an object to the watcher’s name to customize the watcher’s
+    behavior, using the fields in [Table 3-2](#watcher_objects_fields_table).
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以直接将处理程序函数分配给观察器名称。Vue引擎将自动使用一组默认配置调用处理程序。但是，您也可以将对象传递给观察器的名称，以自定义观察器的行为，使用表 3-2中的字段。
+- en: Table 3-2\. The watcher object’s fields
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 3-2\. 观察器对象的字段
+- en: '| Watcher’s field | Description | Accepted type | Default value | Required?
+    |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Watcher''s field` | 描述 | 接受的类型 | 默认值 | 是否必需？ |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| `handler` | The callback function to trigger when the target data’s value
+    changes. | function | N/A | Yes |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| `handler` | 当目标数据的值变化时触发的回调函数。 | 函数 | N/A | 是 |'
+- en: '| `deep` | Indicates whether Vue should observe for changes in the nested properties
+    of the target data (if any). | boolean | `false` | No |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| `deep` | 表示 Vue 是否应该观察目标数据（如果有）的嵌套属性的变化。 | 布尔值 | `false` | 否 |'
+- en: '| `immediate` | Indicates whether to trigger the handler immediately after
+    mounting the component. | boolean | `false` | No |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| `immediate` | 指示是否在挂载组件后立即触发处理程序。 | 布尔值 | `false` | 否 |'
+- en: '| `flush` | Indicates the timing order of the handler’s execution. By default,
+    Vue triggers the handler before updating the Vue component. | pre, post | `pre`
+    | No |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| `flush` | 指示处理程序执行的时间顺序。默认情况下，Vue 在更新 Vue 组件之前触发处理程序。 | 预处理，后处理 | `pre` |
+    否 |'
+- en: Observing for Changes in Nested Properties
+  id: totrans-212
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 观察嵌套属性的变化
+- en: 'The `deep` option field allows you to observe changes in all nested properties.
+    Take a `user` object data in a `UserWatcherComponent` component with two nested
+    properties: `name` and `age`, for instance. We define a `user` watcher that observes
+    for changes in the `user` object’s nested properties using the `deep` option field,
+    as in [Example 3-16](#example_03_09).'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`deep`选项字段允许您观察所有嵌套属性的变化。例如，在一个`UserWatcherComponent`组件中有一个`user`对象数据，其中有两个嵌套属性：`name`和`age`。我们使用`deep`选项字段定义一个观察`user`对象嵌套属性变化的`user`观察器，如[示例 3-16](#example_03_09)所示。'
+- en: Example 3-16\. A watcher that observes for changes in the user object’s nested
+    properties
+  id: totrans-214
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-16\. 监视器观察用户对象嵌套属性的变化
+- en: '[PRE21]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: As [Example 3-17](#example_03_10) shows, in the template section of the `UserWatcherComponent`
+    component, we receive the input for the `user` object’s fields, `name` and `age`.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如[示例 3-17](#example_03_10)所示，在`UserWatcherComponent`组件的模板部分，我们接收`user`对象字段`name`和`age`的输入。
+- en: Example 3-17\. Template section for the `UserWatcherComponent`
+  id: totrans-217
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-17\. `UserWatcherComponent`的模板部分
+- en: '[PRE22]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: In this case, the Vue engine triggers the `user` watcher whenever the value
+    of `user.name` or `user.age` changes. [Figure 3-15](#figure_03_13) shows the console
+    log output for this watcher when we change the value of `user.name`.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，当`user.name`或`user.age`的值更改时，Vue 引擎会触发`user`观察器。[图 3-15](#figure_03_13)显示了当我们更改`user.name`的值时，此观察器的控制台日志输出。
+- en: '![A screenshot shows the console log output whenever the user object''s nested
+    properties change, with new value first and old value second](assets/lvue_0315.png)'
+  id: totrans-220
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示每当用户对象的嵌套属性更改时，控制台日志输出，新值在前，旧值在后](assets/lvue_0315.png)'
+- en: Figure 3-15\. Console log output when the user object’s nested properties change
+  id: totrans-221
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-15\. 当用户对象的嵌套属性更改时，控制台日志输出
+- en: '[Figure 3-15](#figure_03_13) shows the new and old value of `user` is identical.
+    This happens because the `user` object is still the same instance and only its
+    `name` field’s value changed.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 3-15](#figure_03_13)显示`user`的新值和旧值相同。这是因为`user`对象仍然是同一个实例，只有其`name`字段的值发生了变化。'
+- en: Also, once we turn on the `deep` flag, the Vue engine will traverse all the
+    properties of the `user` object and their nested properties, then observe for
+    changes in them. Thus, it may cause performance issues when the `user` object
+    structure contains a more complex internal data structure. In this case, it’s
+    better to specify which nested properties you wish to monitor, as shown in [Example 3-18](#example_03_11).
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，一旦打开`deep`标志，Vue 引擎将遍历`user`对象及其嵌套属性的所有属性，然后观察它们的变化。因此，当`user`对象结构包含更复杂的内部数据结构时，可能会导致性能问题。在这种情况下，最好指定您希望监视的哪些嵌套属性，如[示例 3-18](#example_03_11)所示。
+- en: Example 3-18\. A watcher that observes for changes in the user’s name
+  id: totrans-224
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-18\. 监视用户名称变化的观察器
+- en: '[PRE23]'
+  id: totrans-225
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Here we observe changes only in `user.name` property. [Figure 3-16](#figure_03_14)
+    shows the console log output for this watcher.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们仅观察`user.name`属性的变化。[图 3-16](#figure_03_14)显示了此观察器的控制台日志输出。
+- en: '![A screenshot shows the console log output whenever the user object''s name
+    changes, with new value first and old value second](assets/lvue_0316.png)'
+  id: totrans-227
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示每当用户对象的名称更改时，控制台日志输出，新值在前，旧值在后](assets/lvue_0316.png)'
+- en: Figure 3-16\. Console log outputs only when the user object’s name changes
+  id: totrans-228
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-16\. 仅当用户对象的名称更改时，控制台日志才会输出
+- en: 'You can use the dot-delimited path approach to enable watching a specific child
+    property, regardless of how deeply nested it is. For example, if the `user` has
+    this:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用点分隔路径方法，可以启用观察特定的子属性，无论其嵌套多深。例如，如果 `user` 有以下内容：
+- en: '[PRE24]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Suppose you need to watch for changes in `user.address.city`; you can do so
+    by using *“user.address.city”* as the watcher name, and so on. By taking this
+    approach, you can avoid undesired performance issues on deep watching and narrow
+    the scope of the watcher to only the properties you need.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设您需要观察 `user.address.city` 的更改；您可以通过使用 *“user.address.city”* 作为观察器名称来实现。通过采用这种方法，您可以避免深度观察带来的性能问题，并将观察器的范围缩小到仅限您需要的属性。
+- en: Using the this.$watch() Method
+  id: totrans-232
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `this.$watch()` 方法
+- en: In most cases, the `watch` option is enough to handle your watcher needs. However,
+    there are scenarios where you don’t want to enable certain watchers when not necessary.
+    For instance, you may want to enable the `user.address.city` watcher only when
+    the `user` object’s `address` property is not `null`. In this case, you can use
+    the `this.$watch()` method to create the watcher upon creating the component conditionally.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数情况下，`watch` 选项足以处理您的观察器需求。但是，有些情况下，当不必要时您不希望启用某些观察器。例如，您可能只想在 `user` 对象的
+    `address` 属性不为 `null` 时才启用 `user.address.city` 观察器。在这种情况下，您可以使用 `this.$watch()`
+    方法在创建组件时有条件地创建观察器。
+- en: 'The `this.$watch()` method accepts the following parameters:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this.$watch()` 方法接受以下参数：'
+- en: Name of the target data to watch as a string
+  id: totrans-235
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要观察的目标数据的名称作为字符串
+- en: The callback function as a watcher’s handler to trigger when the target data’s
+    value changes
+  id: totrans-236
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 回调函数作为观察器的处理程序，用于在目标数据的值发生变化时触发
+- en: '`this.$watch()` returns a function you can call to stop the watcher. The code
+    in [Example 3-19](#example_03_12) shows how to use the `this.$watch()` method
+    to create a watcher that observes for changes in `user.address.city`.'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this.$watch()` 返回一个函数，您可以调用它来停止观察器。[示例 3-19](#example_03_12) 中的代码展示了如何使用 `this.$watch()`
+    方法创建一个观察 `user.address.city` 的观察器。'
+- en: Example 3-19\. A watcher that observes for changes in city field in the user’s
+    address
+  id: totrans-238
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-19\. 观察 `user` 的地址中城市字段的更改的观察器
+- en: '[PRE25]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: '[![1](assets/1.png)](#co_composing_components_CO1-1)'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_composing_components_CO1-1)'
+- en: Define a `stopWatchingAddressCity` property for storing the watcher’s return
+    function.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义一个 `stopWatchingAddressCity` 属性来存储观察器的返回函数。
+- en: '[![2](assets/2.png)](#co_composing_components_CO1-2)'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_composing_components_CO1-2)'
+- en: Create a watcher for `user.address.city` only when the `user` object’s `address`
+    object property is available.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅当 `user` 对象的 `address` 对象属性可用时，才为 `user.address.city` 创建一个观察器。
+- en: '[![3](assets/3.png)](#co_composing_components_CO1-3)'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_composing_components_CO1-3)'
+- en: Before unmounting the component, trigger the `stopWatchingAddressCity` function
+    to stop the watcher if relevant.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在卸载组件之前，如果相关，则触发 `stopWatchingAddressCity` 函数以停止观察器。
+- en: Using this approach, we can limit the number of unnecessary watchers created,
+    such as the watcher for `user.address.city` when `user.address` doesn’t exist.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 采用这种方法，我们可以限制创建不必要观察器的数量，例如在 `user.address` 不存在时，对 `user.address.city` 的观察器。
+- en: Next, we will look at another interesting feature of Vue, the `slot` component.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将看一下 Vue 的另一个有趣功能，即 `slot` 组件。
+- en: The Power of Slots
+  id: totrans-248
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 插槽的强大之处
+- en: Building a component is about more than just its data and logic. We often want
+    to maintain the current component’s sense and existing design but still allow
+    users to modify parts of the UI template. This flexibility is crucial when building
+    a customizable component library in any framework. Fortunately, Vue offers the
+    `<slot>` component to allow us to dynamically replace the default UI design for
+    an element when needed.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建组件不仅涉及其数据和逻辑。我们经常希望保持当前组件的感觉和现有设计，但仍然允许用户修改UI模板的部分。在任何框架中构建可定制组件库时，这种灵活性至关重要。幸运的是，Vue
+    提供了 `<slot>` 组件，允许我们在需要时动态替换元素的默认UI设计。
+- en: 'For instance, let’s build a layout component `ListLayout` to render a list
+    of items, with each item having the following type:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们构建一个布局组件 `ListLayout` 来渲染项目列表，每个项目的类型如下：
+- en: '[PRE26]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: For each item in the list, by default, the layout component should render its
+    name and description, as shown in [Example 3-20](#example_03_30).
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于列表中的每个项目，默认情况下，布局组件应该渲染其名称和描述，如 [示例 3-20](#example_03_30) 所示。
+- en: Example 3-20\. The first template implementation of the `ListLayout` component
+  id: totrans-253
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-20\. `ListLayout` 组件的第一个模板实现
+- en: '[PRE27]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: We also define a sample list of items to render for `ListLayout` in its `script`
+    section ([Example 3-21](#example_03_33)).
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还在 `ListLayout` 的 `script` 部分定义了要渲染的项目示例列表（[示例 3-21](#example_03_33)）。
+- en: Example 3-21\. The script section of the `ListLayout` component
+  id: totrans-256
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-21\. `ListLayout` 组件的脚本部分
+- en: '[PRE28]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: '[Figure 3-17](#figure_03_30) shows the default rendered UI of a single item
+    using the previous template ([Example 3-20](#example_03_30)) and data ([Example 3-21](#example_03_33)).'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 3-17](#figure_03_30) 显示了使用之前模板（[示例 3-20](#example_03_30)）和数据（[示例 3-21](#example_03_33)）渲染的单个项目的默认界面。'
+- en: '![A screenshot shows the sample UI layout of the item in ListLayout component](assets/lvue_0317.png)'
+  id: totrans-259
+  prefs: []
+  type: TYPE_IMG
+  zh: '![截图显示了 `ListLayout` 组件中项目的示例界面布局](assets/lvue_0317.png)'
+- en: Figure 3-17\. A sample UI layout of the item in the `ListLayout` component
+  id: totrans-260
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-17\. `ListLayout` 组件中项目的示例界面布局
+- en: Based on this default UI, we can then offer users an option to customize each
+    item’s UI. To do so, we wrap the code block within a `li` element with a `slot`
+    element, as shown in [Example 3-22](#example_03_31).
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于这个默认界面，我们可以为用户提供自定义每个项目界面的选项。为此，我们将代码块包装在一个带有 `slot` 元素的 `li` 元素中，如 [示例 3-22](#example_03_31)
+    所示。
+- en: Example 3-22\. `ListLayout` component with `slot`
+  id: totrans-262
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-22\. 带有 `slot` 的 `ListLayout` 组件
+- en: '[PRE29]'
+  id: totrans-263
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Notice how we bind the `item` variable received for each `v-for` iteration to
+    the same `item` prop attribute of the `slot` component using `:` syntax. By doing
+    so, we ensure the `slot` provides access to the same `item` data to its descendants.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意我们如何使用 `:` 语法将每次 `v-for` 迭代接收的 `item` 变量绑定到 `slot` 组件的同一 `item` prop 属性。通过这样做，我们确保
+    `slot` 将相同的 `item` 数据提供给其后代。
+- en: Note
+  id: totrans-265
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `slot` component doesn’t share the same data context with its host component
+    (such as `ListLayout`). If you want to access any data property of the host component,
+    you need to pass it as a prop to `slot` using `v-bind` syntax. We will learn more
+    about giving props to nested elements in [“Nested Components and Data Flow in
+    Vue”](ch04.html#ch04_nested_components).
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`slot` 组件不与其主机组件（如 `ListLayout`）共享相同的数据上下文。如果您想访问主机组件的任何数据属性，您需要使用 `v-bind`
+    语法将其作为 `slot` 的 prop 传递。我们将在 [“Vue 中的嵌套组件和数据流”](ch04.html#ch04_nested_components)
+    中进一步学习如何向嵌套元素传递 props。'
+- en: 'However, we need more than having `item` available for the custom template
+    content to make it work. In the parent component of `ListLayout`, we add `v-slot`
+    directive to `<ListLayout>` tag to get access to the `item` passed to its `slot`
+    component, following the syntax below:'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，仅仅拥有 `item` 可用于自定义模板内容并不足以使其工作。在 `ListLayout` 的父组件中，我们在 `<ListLayout>` 标签上添加
+    `v-slot` 指令，以获取传递给其 `slot` 组件的 `item`，以下是语法示例：
+- en: '[PRE30]'
+  id: totrans-268
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Here we use the object destructuring syntax `{ item }` to create a scoped slot
+    reference to the data property we want to access. Then we can use `item` directly
+    on our custom template content, as in [Example 3-23](#example_03_32).
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们使用对象解构语法 `{ item }` 来创建对我们想要访问的数据属性的作用域插槽引用。然后，我们可以在自定义模板内容中直接使用 `item`，如
+    [示例 3-23](#example_03_32) 中所示。
+- en: Example 3-23\. Compose `ProductItemList` from `ListLayout`
+  id: totrans-270
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-23\. 从 `ListLayout` 组合 `ProductItemList`
+- en: '[PRE31]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: In [Example 3-23](#example_03_32), we change the UI to display a thumbnail image
+    and the item’s name only. You can see the result in [Figure 3-21](#figure_03_16).
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 3-23](#example_03_32) 中，我们改变了界面，只显示缩略图和项目名称。您可以在 [图 3-21](#figure_03_16)
+    中看到结果。
+- en: This example is the most straightforward use case for the `slot` component when
+    we want to enable customization in a single slot in the element. But what about
+    more complex scenarios like a product card component containing a thumbnail, the
+    main description area, and an area of actions, each of which requires customization?
+    For such a case, we still can take advantage of the power of `slot`, with naming
+    capability.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个例子是 `slot` 组件的最简单的用例，当我们想要在元素的单个插槽中启用定制时。但是对于像包含缩略图、主要描述区域和行动区域的产品卡组件这样更复杂的情景，我们仍然可以利用
+    `slot` 的强大功能，带有命名能力。
+- en: '![A screenshot shows the UI layout of ProductItemList component](assets/lvue_0318.png)'
+  id: totrans-274
+  prefs: []
+  type: TYPE_IMG
+  zh: '![截图显示了 `ProductItemList` 组件的界面布局](assets/lvue_0318.png)'
+- en: Figure 3-18\. The UI layout of the `ProductItemList` component
+  id: totrans-275
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-18\. `ProductItemList` 组件的界面布局
+- en: Using Named Slots with Template Tag and v-slot Attribute
+  id: totrans-276
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用带有模板标签和 `v-slot` 属性的命名插槽
+- en: In [Example 3-22](#example_03_31), we only enable customization for the UI of
+    the item’s name and description as a single slot. To split the customization into
+    several slot sections for a thumbnail, the main description area, and a footer
+    of actions, we use `slot` with the attribute `name`, as in [Example 3-24](#example_03_34).
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[示例 3-22](#example_03_31)中，我们仅将项目名称和描述的 UI 自定义为单个插槽。为了将自定义拆分为缩略图、主要描述区域和操作页脚的多个插槽部分，我们使用具有属性名称的
+    `slot`，如[示例 3-24](#example_03_34)。
+- en: Example 3-24\. `ListLayout` component with named slots
+  id: totrans-278
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-24\. 带有命名插槽的 `ListLayout` 组件
+- en: '[PRE32]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: We assigned each slot with the names `thumbnail`, `main`, and `actions`, respectively.
+    And for the `main` slot, we add a fallback content template to display the item’s
+    name and description.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们分配了每个插槽名称为 `thumbnail`、`main` 和 `actions`。对于 `main` 插槽，我们添加了一个备用内容模板，以显示项目的名称和描述。
+- en: 'When we want to pass the custom content to a specific slot, we wrap the content
+    with a `template` tag. Then we pass the name declaring the desired slot (`slot-name`
+    for example) to the `v-slot` directive of the `template`, following the syntax:'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们想要将自定义内容传递给特定插槽时，我们使用 `template` 标签将内容包裹起来。然后，我们将声明所需插槽的名称（例如 `slot-name`）传递给
+    `template` 的 `v-slot` 指令，遵循以下语法：
+- en: '[PRE33]'
+  id: totrans-282
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'We can also use the shorthand syntax `#` instead of `v-slot`:'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以使用简写语法 `#` 替代 `v-slot`：
+- en: '[PRE34]'
+  id: totrans-284
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Note
+  id: totrans-285
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: From here on, we will use the syntax `#` to denote `v-slot` when using with
+    the `template` tag.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从现在开始，我们将使用 `#` 语法来表示 `template` 标签的 `v-slot`。
+- en: 'Like using `v-slot` on the component tag, we can also give access to the slot’s
+    data:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像在组件标签上使用 `v-slot` 一样，我们也可以访问插槽的数据：
+- en: '[PRE35]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Using multiple slots
+  id: totrans-289
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用多个插槽
+- en: For multiple slots, you *must* use the `v-slot` directive for each relevant
+    `template` tag, and *not* on the component tag. Otherwise, Vue will throw an error.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于多个插槽，*必须*对每个相关的 `template` 标签使用 `v-slot` 指令，而*不能*用于组件标签。否则，Vue 将抛出错误。
+- en: 'Let’s go back to our `ProductItemList` component ([Example 3-23](#example_03_32))
+    and refactor the component to render the following custom content sections for
+    the product item:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到我们的 `ProductItemList` 组件（[示例 3-23](#example_03_32)）并重构组件以渲染以下产品项目的自定义内容部分：
+- en: A thumbnail image
+  id: totrans-292
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个缩略图图像
+- en: An action button for adding the product to the cart
+  id: totrans-293
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个用于将产品添加到购物车的操作按钮
+- en: '[Example 3-25](#example_03_35) shows how to implement that using `template`
+    and `v-slot`.'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-25](#example_03_35)展示了如何使用 `template` 和 `v-slot` 实现这一点。'
+- en: Example 3-25\. Compose `ProductItemList` with named slot
+  id: totrans-295
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-25\. 使用命名插槽组合 `ProductItemList`
+- en: '[PRE36]'
+  id: totrans-296
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: The code results in the output shown in [Figure 3-19](#figure_03_32).
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码的输出如[图 3-19](#figure_03_32)所示。
+- en: '![A screenshot shows the UI layout of ProductItemList component](assets/lvue_0319.png)'
+  id: totrans-298
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ProductItemList 组件的 UI 布局截图](assets/lvue_0319.png)'
+- en: Figure 3-19\. Output of `ProductItemList` with customized slot content
+  id: totrans-299
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-19\. 使用自定义插槽内容的 `ProductItemList` 输出
+- en: And that’s it. You are ready to use slots to customize your UI components. With
+    slots, you can now create some basic standard reusable layouts for your application,
+    such as a page layout with a header and footer, a side panel layout, or a modal
+    component that can be a dialog or notification. You will then find how handy slots
+    are in keeping your code organized and reusable.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是全部。现在您已经准备好使用插槽来自定义您的 UI 组件了。使用插槽，您现在可以为应用程序创建一些基本的标准可重复使用的布局，例如带有页眉和页脚的页面布局，侧边栏布局，或者可以是对话框或通知的模态组件。然后，您将发现插槽在保持代码组织和可重用性方面是多么方便。
+- en: Note
+  id: totrans-301
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Using `slot` also means the browser won’t apply all relevant scoped styles defined
+    in the component. To enable this functionality, see [“Applying Scoped Styles to
+    Slot Content”](#slotted_style).
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `slot` 也意味着浏览器不会应用组件中定义的所有相关作用域样式。要启用此功能，请参阅[“将作用域样式应用于插槽内容”](#slotted_style)。
+- en: Next, we will learn how to access the mounted component instance or a DOM element
+    using refs.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将学习如何使用 refs 访问已安装组件实例或 DOM 元素。
+- en: Understanding Refs
+  id: totrans-304
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解 Refs
+- en: While Vue typically handles most of the DOM interactions for you, for some scenarios
+    you may need to directly access a DOM element within a component for further manipulation.
+    For instance, you may want to open a modal dialog when the user clicks a button
+    or focus on a specific input field when mounting the component. In such cases,
+    you can use the `ref` attribute to access the target DOM element instance.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 Vue 通常会为您处理大部分 DOM 交互，但在某些场景中，您可能需要直接访问组件内的 DOM 元素以进行进一步操作。例如，当用户点击按钮时要打开模态对话框，或者在组件安装时聚焦特定输入字段。在这种情况下，您可以使用
+    `ref` 属性来访问目标 DOM 元素实例。
+- en: The `ref` is a Vue built-in attribute that allows you to receive a direct reference
+    to a DOM element or a mounted child instance. In the `template` section, you assign
+    the value of the `ref` attribute to a string representing the reference name on
+    the target element. [Example 3-26](#example_03_27_1) shows how to create a `messageRef`,
+    which refers to the DOM element `input`.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ref` 是一个 Vue 内置属性，允许你直接引用一个 DOM 元素或已挂载的子实例。在 `template` 部分，你将 `ref` 属性的值分配给一个表示目标元素上引用名称的字符串。示例 3-26（#example_03_27_1）展示了如何创建
+    `messageRef`，它引用了 `input` DOM 元素。'
+- en: Example 3-26\. An input component with a ref attribute assigned to `messageRef`
+  id: totrans-307
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-26\. 具有分配给 `messageRef` 的 `ref` 属性的输入组件
+- en: '[PRE37]'
+  id: totrans-308
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: You can then access the `messageRef` in the `script` section to manipulate the
+    `input` element through a `this.$refs.messageRef` instance. The reference instance
+    `messageRef` will have all the properties and methods of the `input` element.
+    For instance, you can use `this.$refs.messageRef.focus()` to focus on the `input`
+    element programmatically.
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后你可以在 `script` 部分访问 `messageRef` 来操作 `input` 元素，通过 `this.$refs.messageRef`
+    实例。例如，你可以使用 `this.$refs.messageRef.focus()` 以编程方式聚焦 `input` 元素。
+- en: Accessing the ref attribute
+  id: totrans-310
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 访问 `ref` 属性
+- en: The `ref` attribute is accessible only *after* mounting the component.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有在组件挂载后，`ref` 属性才能访问。
+- en: The reference instance contains all the properties and methods of a specific
+    DOM element or the child component instance, depending on the target element type.
+    In a scenario where you use the `ref` attribute on a looped element using `v-for`,
+    the reference instance will be the array containing the looped elements without
+    order.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 引用实例包含特定 DOM 元素或子组件实例的所有属性和方法，具体取决于目标元素类型。在使用 `v-for` 对循环元素使用 `ref` 属性的场景中，引用实例将是包含循环元素但无顺序的数组。
+- en: Take a list of tasks, for instance. As [Example 3-27](#example_03_16) shows,
+    you can use the `ref` attribute to access the list of tasks.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以任务列表为例。如 [示例 3-27](#example_03_16) 所示，你可以使用 `ref` 属性访问任务列表。
+- en: Example 3-27\. A list of tasks with a ref attribute assigned to `taskListRef`
+  id: totrans-314
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-27\. 具有分配给 `taskListRef` 的 `ref` 属性的任务列表
+- en: '[PRE38]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: Once Vue mounts the `TaskListComponent`, you can see the `tasksRef` contains
+    three `li` DOM elements and nested in `refs` property of the component instance,
+    as seen in the Vue Devtools screenshot in [Figure 3-20](#figure_03_15).
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦 Vue 挂载了 `TaskListComponent`，你可以看到 `tasksRef` 包含三个 `li` DOM 元素，并嵌套在组件实例的 `refs`
+    属性中，如 [图 3-20](#figure_03_15) 中 Vue Devtools 的截图所示。
+- en: You can now use `this.$refs.tasksRef` to access the list of the task elements
+    and perform further modification when needed.
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以使用 `this.$refs.tasksRef` 访问任务元素列表，并在需要时进行进一步修改。
+- en: Note
+  id: totrans-318
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注
+- en: '`ref` can also accept a function as its value, by adding a prefix, `:`, to
+    it (`:ref`). The function accepts the reference instance as its input parameter.'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ref` 也可以接受函数作为其值，通过给它添加前缀 `:`（`:ref`）。该函数接受引用实例作为其输入参数。'
+- en: We have learned about the `ref` attribute and how it can be helpful in many
+    real-world challenges, such as building a reusable modal system (see [“Implementing
+    a Modal with Teleport and the <dialog> Element”](ch04.html#ch04_modal_teleport)).
+    The following section will explore how to create and share standard configurations
+    across components with mixins.
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了 `ref` 属性以及它如何在许多现实世界的挑战中提供帮助，例如构建可重用的模态系统（参见 [“使用 Teleport 和 <dialog>
+    元素实现模态框”](ch04.html#ch04_modal_teleport)）。接下来的部分将探讨如何通过混入（mixins）创建和共享组件间的标准配置。
+- en: '![Vue Devtools showing the tasksRef reference instance with three li elements](assets/lvue_0320.png)'
+  id: totrans-321
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue Devtools 显示具有三个 li 元素的 tasksRef 引用实例](assets/lvue_0320.png)'
+- en: Figure 3-20\. Vue Devtools showing the `tasksRef` reference instance
+  id: totrans-322
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-20\. Vue Devtools 显示 `tasksRef` 引用实例
+- en: Sharing Component Configuration with Mixins
+  id: totrans-323
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用混入共享组件配置
+- en: In reality, it is not uncommon for some components to share similar data and
+    behaviors, such as a cafe and a dining restaurant component. Both elements share
+    the logic of making reservations and accepting payments, but each has unique features.
+    In such scenarios, you can use the `mixins` property to share the standard functionalities
+    across these two components.
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，某些组件共享类似的数据和行为并不罕见，比如咖啡馆和餐厅组件。这两个元素共享预订和接受付款的逻辑，但每个都有独特的特点。在这种情况下，你可以使用
+    `mixins` 属性来跨这两个组件共享标准功能。
+- en: For instance, you can create a `restaurantMixin` object that contains the standard
+    functionalities of the two components, `DiningComponent` and `CafeComponent`,
+    as in [Example 3-28](#example_03_17).
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，你可以创建一个包含两个组件 `DiningComponent` 和 `CafeComponent` 标准功能的 `restaurantMixin`
+    对象，如[示例 3-28](#example_03_17)所示。
+- en: Example 3-28\. A `restaurantMixin` mixin object
+  id: totrans-326
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-28\. 一个 `restaurantMixin` 混入对象
+- en: '[PRE39]'
+  id: totrans-327
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: You can then use the `restaurantMixin` object in the `mixins` property of `Dining`
+    `Component`, as seen in [Example 3-29](#example_03_18).
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，你可以在 `DiningComponent` 的 `mixins` 属性中使用 `restaurantMixin` 对象，如[示例 3-29](#example_03_18)所示。
+- en: Example 3-29\. Using the `restaurantMixin` mixins property of the `DiningComponent`
+  id: totrans-329
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-29\. 使用 `DiningComponent` 的 `restaurantMixin` 混入属性
+- en: '[PRE40]'
+  id: totrans-330
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: '[Example 3-30](#example_03_19) shows the similar `CafeComponent`.'
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-30](#example_03_19) 显示类似的 `CafeComponent`。'
+- en: Example 3-30\. Using the `restaurantMixin` mixins property of the `CafeComponent`
+  id: totrans-332
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-30\. 使用 `CafeComponent` 的 `restaurantMixin` 混入属性
+- en: '[PRE41]'
+  id: totrans-333
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: Upon creating the components, the Vue engine will merge the mixin logic into
+    the component, with the component’s data declaration taking precedence. In Examples
+    [3-29](#example_03_18) and [3-30](#example_03_19), the `DiningComponent` and `CafeComponent`
+    will have the same properties, `menu`, `reservations`, `payments`, and `title`,
+    but with different values. Also, the methods and hooks declared in `restaurantMixin`
+    will be available to both components. It is similar to the inheritance pattern,
+    though the component doesn’t override the mixin hooks’ behavior. Instead, the
+    Vue engine calls the mixin’s hooks first, then the component’s hooks.
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在创建组件时，Vue 引擎将混入逻辑合并到组件中，组件的数据声明优先。在示例 [3-29](#example_03_18) 和 [3-30](#example_03_19)
+    中，`DiningComponent` 和 `CafeComponent` 将拥有相同的属性 `menu`、`reservations`、`payments`
+    和 `title`，但具有不同的值。此外，`restaurantMixin` 中声明的方法和钩子将对两个组件都有效。这类似于继承模式，尽管组件不会覆盖混入钩子的行为。相反，Vue
+    引擎先调用混入的钩子，然后调用组件的钩子。
+- en: When Vue mounts the `DiningComponent`, you will see the output in [Figure 3-21](#figure_03_16)
+    in the browser console.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 Vue 挂载 `DiningComponent` 时，你将在浏览器控制台中看到 [Figure 3-21](#figure_03_16) 的输出。
+- en: '![Output of the DiningComponent showing the created hook of restaurantMixin
+    called first, then the DiningComponent''s created hook](assets/lvue_0321.png)'
+  id: totrans-336
+  prefs: []
+  type: TYPE_IMG
+  zh: '![DiningComponent 输出显示 restaurantMixin 创建钩子首先被调用，然后是 DiningComponent 的创建钩子](assets/lvue_0321.png)'
+- en: Figure 3-21\. Output order of console log of the `DiningComponent`
+  id: totrans-337
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-21\. `DiningComponent` 控制台日志输出顺序
+- en: Similarly, when Vue mounts the `CafeComponent`, you will see the output in [Figure 3-22](#figure_03_17)
+    in the browser console.
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，当 Vue 挂载 `CafeComponent` 时，你将在浏览器控制台中看到 [Figure 3-22](#figure_03_17) 的输出。
+- en: '![Output of the CafeComponent showing the created hook of restaurantMixin called
+    first, then the CafeComponent''s created hook](assets/lvue_0322.png)'
+  id: totrans-339
+  prefs: []
+  type: TYPE_IMG
+  zh: '![CafeComponent 输出显示 restaurantMixin 创建钩子首先被调用，然后是 CafeComponent 的创建钩子](assets/lvue_0322.png)'
+- en: Figure 3-22\. Output order of console log of the `CafeComponent`
+  id: totrans-340
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-22\. `CafeComponent` 控制台日志输出顺序
+- en: Note that `title` value has changed between the two components, while Vue triggers
+    the `created` hook of the `restaurantMixin` first, followed by the one declared
+    on the element itself.
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意 `title` 的值在两个组件之间已更改，Vue 首先触发 `restaurantMixin` 的 `created` 钩子，然后是组件本身声明的钩子。
+- en: Note
+  id: totrans-342
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The order of merging and triggering the hooks for multiple mixins is according
+    to the order of the mixins array. Vue *always* calls the component’s hooks last.
+    Consider this order when putting multiple mixins together.
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多个混入的合并和触发顺序根据混入数组的顺序。Vue *总是* 最后调用组件的钩子。当组合多个混入时，请考虑此顺序。
+- en: If you open the Vue Devtools, you will see the `restaurantMixin` is not visible,
+    and the `DiningComponent` and `CafeComponent` are with their own data properties,
+    as shown in Figures [3-23](#figure_03_18) and [3-24](#figure_03_19).
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你打开 Vue Devtools，你会看到 `restaurantMixin` 是不可见的，而 `DiningComponent` 和 `CafeComponent`
+    则带有各自的数据属性，如图 [3-23](#figure_03_18) 和 [3-24](#figure_03_19) 所示。
+- en: '![Vue Devtools showing the DiningComponent](assets/lvue_0323.png)'
+  id: totrans-345
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue Devtools 显示 DiningComponent](assets/lvue_0323.png)'
+- en: Figure 3-23\. Vue Devtools showing the `DiningComponent`
+  id: totrans-346
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-23\. Vue Devtools 显示 `DiningComponent`
+- en: '![Vue Devtools showing the CafeComponent](assets/lvue_0324.png)'
+  id: totrans-347
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue Devtools 显示 CafeComponent](assets/lvue_0324.png)'
+- en: Figure 3-24\. Vue Devtools showing the `CafeComponent`
+  id: totrans-348
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-24\. Vue Devtools 显示 `CafeComponent`
+- en: Mixins are great for sharing common logic between components and keeping your
+    code organized. However, too many mixins can confuse other developers in understanding
+    and debugging, and in most cases, are considered bad practice. We recommend validating
+    your use case before choosing mixins over alternatives, such as the Composition
+    API ([Chapter 5](ch05.html#unique_chapter_id_06)).
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Mixin 对于在组件之间共享常见逻辑并保持代码组织非常有用。但是，过多的 Mixin 可能会让其他开发人员在理解和调试时感到困惑，并且在大多数情况下被认为是不良实践。我们建议在选择
+    Mixin 而不是 Composition API（[第 5 章](ch05.html#unique_chapter_id_06)）等替代方案之前，验证您的使用案例。
+- en: At this point, we have explored how to compose components’ logic using advanced
+    features in `template` and `script` sections. Next, let’s learn how to make your
+    component beautiful with Vue’s built-in styling features in the `style` section.
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经探讨了如何使用 `template` 和 `script` 部分的高级功能来组成组件的逻辑。接下来，让我们学习如何通过 Vue 内置的样式特性在
+    `style` 部分使您的组件更加美观。
+- en: Scoped Styling Components
+  id: totrans-351
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 带作用域的样式组件
+- en: 'Like a regular HTML page structure, we can define CSS stylings for an SFC component
+    using the `<style>` tag:'
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像常规的 HTML 页面结构一样，我们可以使用 `<style>` 标签为 SFC 组件定义 CSS 样式：
+- en: '[PRE42]'
+  id: totrans-353
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: The `<style>` section usually comes last in the order of a Vue SFC component
+    and can appear multiple times. Upon mounting the component to the DOM, the Vue
+    engine will apply the CSS styles defined within the `<style>` tag to all the elements
+    or matched DOM selectors within the application. In other words, all CSS rules
+    that appeared in the `<style>` of a component apply globally once mounted. Take
+    the HeadingComponent shown in [Example 3-31](#example_03_28), which renders a
+    heading title with some stylings.
+  id: totrans-354
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<style>` 部分通常在 Vue 单文件组件的顺序中位于最后，并且可以出现多次。将组件挂载到 DOM 后，Vue 引擎将应用 `<style>`
+    标签内定义的 CSS 样式到应用程序中所有元素或匹配的 DOM 选择器上。换句话说，组件中 `<style>` 中出现的所有 CSS 规则在挂载后会全局应用。以
+    [示例 3-31](#example_03_28) 中展示的 `HeadingComponent` 为例，它渲染了一个带有一些样式的标题。'
+- en: Example 3-31\. Using the `<style>` tag in `HeadingComponent`
+  id: totrans-355
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-31\. 在 `HeadingComponent` 中使用 `<style>` 标签
+- en: '[PRE43]'
+  id: totrans-356
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'In [Example 3-31](#example_03_28), we created two CSS class selectors: `heading`
+    and `description` for `h1` and `p` elements of the component, respectively. When
+    Vue mounts the component, the browser will paint these elements with the appropriate
+    styles, as seen in [Figure 3-25](#figure_03_20).'
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 3-31](#example_03_28) 中，我们为组件的 `h1` 元素和 `p` 元素创建了两个 CSS 类选择器：`heading`
+    和 `description`。当 Vue 挂载组件时，浏览器将使用适当的样式绘制这些元素，如 [图 3-25](#figure_03_20) 中所示。
+- en: '![The heading element has a red color and a big font size, while the description
+    element has a light gray color and small font size](assets/lvue_0325.png)'
+  id: totrans-358
+  prefs: []
+  type: TYPE_IMG
+  zh: '![标题元素具有红色和大字体大小，而描述元素具有浅灰色和小字体大小](assets/lvue_0325.png)'
+- en: Figure 3-25\. The `HeadingComponent` with styles applied
+  id: totrans-359
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-25\. 应用了样式的 `HeadingComponent`
+- en: '[Example 3-32](#example_03_20) shows adding a `span` element with the same
+    `heading` class selector outside `HeadingComponent` in the parent component `App.vue`.'
+  id: totrans-360
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 3-32](#example_03_20) 展示了在父组件 `App.vue` 中的 `HeadingComponent` 外部添加了一个带有相同
+    `heading` 类选择器的 `span` 元素。'
+- en: Example 3-32\. Adding the same class selector to the parent component `App.vue`
+  id: totrans-361
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-32\. 在父组件 `App.vue` 中添加相同的类选择器
+- en: '[PRE44]'
+  id: totrans-362
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: The browser then still applies the same styles to the `span` element, as shown
+    in [Figure 3-26](#figure_03_21).
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后浏览器仍然将相同的样式应用于 `span` 元素，如 [图 3-26](#figure_03_21) 所示。
+- en: '![A screenshot shows the span element and h1 element in the browser have red
+    color and same font size](assets/lvue_0326.png)'
+  id: totrans-364
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示浏览器中的 span 元素和 h1 元素都具有红色颜色和相同的字体大小](assets/lvue_0326.png)'
+- en: Figure 3-26\. The span element in `App.vue` has the same CSS styles as the `h1`
+    element in the `HeadingComponent`
+  id: totrans-365
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-26\. `App.vue` 中的 `span` 元素具有与 `HeadingComponent` 中的 `h1` 元素相同的 CSS 样式
+- en: But if we don’t use the `HeadingComponent`, or it does not yet exist in the
+    application on run-time, the `span` element will not have the CSS rules of the
+    `heading` class selector.
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果我们不使用 `HeadingComponent`，或者在运行时应用程序中它尚不存在，`span` 元素将不会具有 `heading` 类选择器的
+    CSS 规则。
+- en: 'To avoid such a scenario and to have better control of style rules and selectors,
+    Vue offers a unique feature, the `scoped` attribute. With the `<style scoped>`
+    tag, Vue ensures the CSS rules will apply to relevant elements within the component
+    and not leak them to the rest of the application. Vue achieved this mechanism
+    by performing these steps:'
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了避免这种情况并更好地控制样式规则和选择器，Vue 提供了一个独特的特性，即 `scoped` 属性。通过 `<style scoped>` 标签，Vue
+    确保 CSS 规则仅适用于组件内相关的元素，而不会泄露到应用程序的其他部分。Vue 通过执行以下步骤实现了这一机制：
+- en: Add a randomly generated data attribute on the target element tag with the prefix
+    syntax `data-v`.
+  id: totrans-368
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在目标元素标记上添加随机生成的数据属性，使用前缀语法`data-v`。
+- en: Transform the CSS selectors defined in the `<style scoped>` tag to include the
+    generated data attribute.
+  id: totrans-369
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将在`<style scoped>`标签中定义的CSS选择器转换为包含生成的数据属性。
+- en: Let’s see how this works in practice. In [Example 3-33](#example_03_21), we
+    add the `scoped` attribute to the `<style>` tag of the `HeadingComponent`.
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看这在实践中是如何工作的。在[Example 3-33](#example_03_21)中，我们为`HeadingComponent`的`<style>`标签添加了`scoped`属性。
+- en: Example 3-33\. Adding the scoped attribute to the `<style>` tag of `HeadingComponent`
+  id: totrans-371
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 3-33。为`HeadingComponent`的`<style>`标签添加scoped属性。
+- en: '[PRE45]'
+  id: totrans-372
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: The `span` element defined in `App.vue` ([Example 3-32](#example_03_20)) will
+    not have the same CSS styles as the `h1` element in `HeadingComponent`, as shown
+    in [Figure 3-27](#figure_03_22).
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`App.vue`中定义的span元素（[Example 3-32](#example_03_20)）将不会具有与`HeadingComponent`中的`h1`元素相同的CSS样式，如[Figure 3-27](#figure_03_22)所示。
+- en: '![A screenshot shows the span element and h1 element in the browser have different
+    colors and font sizes](assets/lvue_0327.png)'
+  id: totrans-374
+  prefs: []
+  type: TYPE_IMG
+  zh: '![截图显示浏览器中的span元素和h1元素具有不同的颜色和字体大小](assets/lvue_0327.png)'
+- en: Figure 3-27\. The span element in `App.vue` now has default black color
+  id: totrans-375
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 3-27。现在，`App.vue`中的span元素具有默认的黑色。
+- en: When you open the Elements tab in the browser’s Developer Tools, you can see
+    the `h1` and `p` elements now have the `data-v-xxxx` attribute, as shown in [Figure 3-28](#figure_03_23).
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您在浏览器开发者工具的元素选项卡中打开时，您可以看到`h1`和`p`元素现在具有data-v-xxxx属性，如[Figure 3-28](#figure_03_23)所示。
+- en: '![The h1 and p elements in HeadingComponent have the data-v-xxxx attribute](assets/lvue_0328.png)'
+  id: totrans-377
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在HeadingComponent中，h1和p元素具有data-v-xxxx属性](assets/lvue_0328.png)'
+- en: Figure 3-28\. The `h1` and `p` elements in `HeadingComponent` have the `data-v-xxxx`
+    attribute
+  id: totrans-378
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 3-28。`HeadingComponent`中的`h1`和`p`元素具有`data-v-xxxx`属性。
+- en: And if you select the `h1` element and look at its styles on the right panel,
+    you can see that the CSS selector `.heading` has become `.heading[data-v-xxxx]`,
+    as shown in [Figure 3-29](#figure_03_24).
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您选择`h1`元素并查看右侧面板上的样式，您会看到CSS选择器`.heading`已变成`.heading[data-v-xxxx]`，如[Figure 3-29](#figure_03_24)所示。
+- en: '![The CSS selector .heading is transformed to .heading[data-v-xxxx]](assets/lvue_0329.png)'
+  id: totrans-380
+  prefs: []
+  type: TYPE_IMG
+  zh: '![CSS选择器`.heading`被转换为`.heading[data-v-xxxx]`](assets/lvue_0329.png)'
+- en: Figure 3-29\. The CSS selector `.heading` is transformed to `.heading[data-v-xxxx]`
+  id: totrans-381
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 3-29。CSS选择器`.heading`被转换为`.heading[data-v-xxxx]`
+- en: I strongly recommend you start working with the `scoped` attribute in your components
+    as a good coding habit to avoid undesirable CSS bugs when your project grows.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我强烈建议您在组件中使用`scoped`属性作为良好的编码习惯，以避免项目增长时出现不必要的CSS错误。
+- en: Note
+  id: totrans-383
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The browser follows [the CSS specificity](https://oreil.ly/x4iOg) when deciding
+    which order to apply the styles. Because Vue’s scoped mechanism uses attribute
+    selectors `[data-v-xxxx]`, using the `.heading` selector solely is not enough
+    to override the component’s styles from the parent.
+  id: totrans-384
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器在决定应用样式的顺序时遵循[CSS特异性](https://oreil.ly/x4iOg)。因为Vue的作用域机制使用属性选择器`[data-v-xxxx]`，仅使用`.heading`选择器是不足以覆盖父组件中的样式。
+- en: Applying CSS to a Child Component in Scoped Styles
+  id: totrans-385
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在作用域样式中应用CSS到子组件
+- en: Beginning with Vue 3.x, you can override or extend the styles of a child component
+    from the parent with a scoped style by using the `:deep()` pseudo-class. For example,
+    as [Example 3-34](#example_03_22) shows, we can override the scoped styles of
+    paragraph element `p` in the `HeadingComponent` from its parent `App`.
+  id: totrans-386
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从Vue 3.x开始，您可以使用`:deep()`伪类从父级覆盖或扩展子组件的作用域样式。例如，如[Example 3-34](#example_03_22)所示，我们可以覆盖父级`App`中`HeadingComponent`中段落元素`p`的作用域样式。
+- en: Example 3-34\. Overriding the scoped styles of paragraph element `p` in the
+    `Heading` `Component` from its parent `App`
+  id: totrans-387
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-34。覆盖父级`App`中`HeadingComponent`中段落元素`p`的作用域样式。
+- en: '[PRE46]'
+  id: totrans-388
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: The `p` element in the `HeadingComponent` will have the color black instead
+    of its scoped color, `#b76210`, as shown in [Figure 3-30](#figure_03_25).
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`HeadingComponent`中，`p`元素的颜色将是黑色，而不是其作用域颜色`#b76210`，如[Figure 3-30](#figure_03_25)所示。
+- en: '![The p element in HeadingComponent has the color of black instead of its scoped
+    color #b76210](assets/lvue_0330.png)'
+  id: totrans-390
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在HeadingComponent中，p元素的颜色是黑色，而不是其作用域颜色#b76210](assets/lvue_0330.png)'
+- en: Figure 3-30\. The p element in `HeadingComponent` has the color black
+  id: totrans-391
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 3-30。`HeadingComponent`中的p元素是黑色的。
+- en: Note
+  id: totrans-392
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The browser will apply the newly defined CSS rules to any `p` elements nested
+    in any child component of `App` and its children.
+  id: totrans-393
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器将新定义的 CSS 规则应用于 `App` 的任何子组件中嵌套的任何 `p` 元素及其子级。
+- en: Applying Scoped Styles to Slot Content
+  id: totrans-394
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 将作用域样式应用于 Slot 内容
+- en: By design, any styles defined in the `<style scoped>` tag is relevant only to
+    the component’s default `template` itself. Vue won’t be able to transform any
+    slotted content to include the `data-v-xxxx` attribute. To style any slotted content,
+    you can use the `:slot([CSS selector])` pseudo-class or create a dedicated `style`
+    section for them on the parent level and keep the code organized.
+  id: totrans-395
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据设计，`<style scoped>` 标签中定义的任何样式仅与组件的默认 `template` 相关联。Vue 无法转换任何分发内容以包括 `data-v-xxxx`
+    属性。要为任何分发内容设置样式，您可以使用 `:slot([CSS selector])` 伪类，或在父级别创建专用的 `style` 部分，并保持代码整洁。
+- en: Accessing a Component’s Data Value in Style Tag with v-bind() Pseudo-Class
+  id: totrans-396
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `v-bind()` 伪类在 Style 标签中访问组件的数据值
+- en: We often need to access the component’s data value and bind that value to a
+    valid CSS property, such as changing dark or light mode or theme color for an
+    application based on the user’s preference. For such use cases, we use the pseudo-class
+    `v-bind()`.
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们经常需要访问组件的数据值，并将该值绑定到有效的 CSS 属性，例如根据用户偏好更改应用程序的暗模式或主题颜色。对于这类用例，我们使用 `v-bind()`
+    伪类。
+- en: '`v-bind()` accepts the component’s data property and JavaScript expressions
+    as a string for its only argument. For example, we can change the color of the
+    `h1` element in the `HeadingComponent` based on the value of the `titleColor`
+    data property, as shown in [Example 3-35](#example_03_23).'
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`v-bind()` 接受组件的数据属性和 JavaScript 表达式作为其唯一参数的字符串。例如，我们可以根据 `titleColor` 数据属性的值更改
+    `HeadingComponent` 中 `h1` 元素的颜色，如 [示例 3-35](#example_03_23) 所示。'
+- en: Example 3-35\. Changing the color of the `h1` element based on the value of
+    the `titleColor`
+  id: totrans-399
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-35\. 根据 `titleColor` 数据属性的值更改 `h1` 元素的颜色
+- en: '[PRE47]'
+  id: totrans-400
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: The `v-bind()` pseudo-class then transforms the value of the `titleColor` data
+    property into an inline hashed CSS variable, as shown in [Figure 3-31](#figure_03_26).
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`v-bind()` 伪类然后将 `titleColor` 数据属性的值转换为内联哈希 CSS 变量，如 [图 3-31](#figure_03_26)
+    所示。'
+- en: '![The value of the titleColor data property is now a hashed CSS property in
+    inline style](assets/lvue_0331.png)'
+  id: totrans-402
+  prefs: []
+  type: TYPE_IMG
+  zh: '![titleColor 数据属性的值现在是内联样式中的哈希 CSS 属性](assets/lvue_0331.png)'
+- en: Figure 3-31\. The value of the `titleColor` data property is now a hashed CSS
+    property in inline style
+  id: totrans-403
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-31\. titleColor 数据属性的值现在是内联样式中的哈希 CSS 属性
+- en: Let’s open the Elements tab in the browser’s Developer Tools and look at the
+    element’s styles. You can see the generated color property for the `.heading`
+    selector remains static and has the same value as the developed hashed CSS property
+    of `titleColor` ([Figure 3-32](#figure_03_27)).
+  id: totrans-404
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在浏览器的开发者工具中打开元素选项卡，查看元素的样式。您可以看到 `.heading` 选择器生成的颜色属性保持静态，并且具有与 `titleColor`
+    的开发哈希 CSS 属性相同的值（图 3-32，参见 [#figure_03_27](#figure_03_27)）。
+- en: '![The generated color property for the .heading selector has the same value
+    as the generated hashed CSS property of titleColor](assets/lvue_0332.png)'
+  id: totrans-405
+  prefs: []
+  type: TYPE_IMG
+  zh: '![.heading 选择器生成的颜色属性与 titleColor 的生成哈希 CSS 属性具有相同的值](assets/lvue_0332.png)'
+- en: Figure 3-32\. The generated color property for the .heading selector has the
+    same value as the generated hashed CSS property of `titleColor`
+  id: totrans-406
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-32\. .heading 选择器生成的颜色属性与 titleColor 的生成哈希 CSS 属性具有相同的值
+- en: '`v-bind()` helps retrieve a component’s data value and then bind the desired
+    CSS property to that dynamic value. However, this is only one-way binding. If
+    you want to retrieve the defined CSS styles in the `template` for binding to the
+    template’s elements, you need to use CSS Modules, which we will cover in the next
+    section.'
+  id: totrans-407
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`v-bind()` 帮助检索组件的数据值，然后将所需的 CSS 属性绑定到该动态值。然而，这只是单向绑定。如果您希望检索模板中定义的 CSS 样式以绑定到模板的元素上，您需要使用
+    CSS 模块，在下一节我们将介绍它。'
+- en: Styling Components with CSS Modules
+  id: totrans-408
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 CSS 模块为组件设置样式
+- en: Another alternative for scoping your CSS styles per component is to use CSS
+    Modules.^([1](ch03.html#id874)) CSS Modules is an approach that allows you to
+    write CSS styles regularly and then consume them as a JavaScript object (*module*)
+    in our `template` and `script` sections.
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个用于按组件范围限定 CSS 样式的替代方法是使用 CSS 模块。[^1] CSS 模块是一种允许您正常编写 CSS 样式，然后在我们的 `template`
+    和 `script` 部分中以 JavaScript 对象（*模块*）的形式消耗它们的方法。
+- en: To start using CSS Modules in a Vue SFC Component, you need to add the `module`
+    attribute to the `style` tag, as shown in our `HeadingComponent` in [Example 3-36](#example_03_24).
+  id: totrans-410
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在Vue的SFC组件中开始使用CSS模块，您需要在`style`标签中添加`module`属性，就像我们在[示例 3-36](#example_03_24)中的`HeadingComponent`中展示的那样。
+- en: Example 3-36\. Using CSS Modules in `HeadingComponent`
+  id: totrans-411
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-36\. 在`HeadingComponent`中使用CSS模块
+- en: '[PRE48]'
+  id: totrans-412
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: Now you will have access to these CSS selectors as fields of a `$style` property
+    object of the component. We can remove the static class names `heading` and `description`
+    assigned for `h1` and `p`, respectively, in the `template` section. Instead, we
+    will bind the classes of these elements to the relevant fields of the `$style`
+    object ([Example 3-37](#example_03_25)).
+  id: totrans-413
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您将作为组件的`$style`属性对象的字段访问这些CSS选择器。我们可以在`template`部分删除为`h1`和`p`元素分配的静态类名`heading`和`description`。而是将这些元素的类绑定到`$style`对象的相关字段，如[示例 3-37](#example_03_25)所示。
+- en: Example 3-37\. Binding classes dynamically with $style object
+  id: totrans-414
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-37\. 使用`$style`对象动态绑定类
+- en: '[PRE49]'
+  id: totrans-415
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: The output on the browser stays the same as [Figure 3-27](#figure_03_22). However,
+    when looking at the relevant elements on the Elements tab in the browser’s Developer
+    Tools, you will see Vue has hashed the generated class names to keep the styles
+    scoped within the component, as in [Figure 3-33](#figure_03_28).
+  id: totrans-416
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器上的输出与[图 3-27](#figure_03_22)相同。但是，当查看浏览器开发工具中的元素标签时，您会看到Vue已对生成的类名进行了哈希处理，以便在组件内部保持样式隔离，如[图 3-33](#figure_03_28)所示。
+- en: '![Vue hashes the class names](assets/lvue_0333.png)'
+  id: totrans-417
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue对类名进行了哈希处理](assets/lvue_0333.png)'
+- en: Figure 3-33\. The generated class names `heading` and `description` are now
+    hashed
+  id: totrans-418
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-33\. 生成的类名`heading`和`description`现在已经被哈希化
+- en: Additionally, you can rename the CSS style object `$style` by assigning a name
+    to the `module` attribute, as shown in [Example 3-38](#example_03_26).
+  id: totrans-419
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，您可以通过为`module`属性赋予名称来重命名CSS样式对象`$style`，如[示例 3-38](#example_03_26)中所示。
+- en: Example 3-38\. Renaming the CSS style object $style to `headerClasses`
+  id: totrans-420
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-38\. 将CSS样式对象`$style`重命名为`headerClasses`
+- en: '[PRE50]'
+  id: totrans-421
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: And in the `template` section, you can bind the classes of the `h1` and `p`
+    elements to the `headerClasses` object instead ([Example 3-39](#example_03_27)).
+  id: totrans-422
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`template`部分，您可以将`h1`和`p`元素的类绑定到`headerClasses`对象，而不是[示例 3-39](#example_03_27)中所示的`template`部分。
+- en: Example 3-39\. Binding classes dynamically with `headerClasses` object
+  id: totrans-423
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 3-39\. 使用`headerClasses`对象动态绑定类
+- en: '[PRE51]'
+  id: totrans-424
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Note
+  id: totrans-425
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you are using `<script setup>` or `setup()` function in your component ([Chapter 5](ch05.html#unique_chapter_id_06)),
+    you can use the `useCssModule()` hook to access the instance of the style object.
+    This function accepts the name of the style object as its only argument.
+  id: totrans-426
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在组件中使用了`<script setup>`或`setup()`函数（见[第5章](ch05.html#unique_chapter_id_06)），则可以使用`useCssModule()`钩子来访问样式对象的实例。此函数仅接受样式对象的名称作为其唯一参数。
+- en: The component now has a more isolated design than when using the `scoped` attribute
+    in the `style` tag. The code looks more organized, and it is more challenging
+    to override this component’s styles from outside since Vue hashes the relevant
+    CSS selectors randomly. Nevertheless, depending on your project’s requirements,
+    one approach may be better than the other, or it might be crucial to combine both
+    `scoped` and `module` attributes to achieve the desired result.
+  id: totrans-427
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，该组件的设计比在`style`标签中使用`scoped`属性时更加隔离。代码看起来更有组织性，从外部覆盖该组件的样式更具挑战性，因为Vue会随机哈希相关的CSS选择器。然而，根据项目的需求，一种方法可能比另一种更好，或者结合使用`scoped`和`module`属性以实现所需的结果可能至关重要。
+- en: Summary
+  id: totrans-428
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: In this chapter, we learned how to create a Vue component in the SFC standard
+    and use `defineComponent()` to enable TypeScript support for the Vue application
+    fully. We also learned to use `slots` to create a reusable component with isolated
+    styles and shared mixin configurations in different contexts. We have explored
+    further composing components using the component’s lifecycle hooks, `computed`,
+    `methods`, and `watch` properties in the Options API. Next, we will build on these
+    foundations to create custom events and develop the interactions between components
+    with the provide/inject patterns.
+  id: totrans-429
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们学习了如何按照SFC标准创建Vue组件，并使用`defineComponent()`全面支持Vue应用程序的TypeScript。我们还学会了使用`slots`在不同上下文中创建具有隔离样式和共享混合配置的可重用组件。我们进一步探讨了使用组件生命周期钩子、`computed`、`methods`和`watch`选项API属性来组合组件。接下来，我们将在这些基础上构建，创建自定义事件，并使用提供/注入模式开发组件之间的交互。
+- en: ^([1](ch03.html#id874-marker)) [CSS Modules](https://oreil.ly/YQ6IJ) started
+    as an open source project for React.
+  id: totrans-430
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch03.html#id874-marker)) [CSS 模块](https://oreil.ly/YQ6IJ) 最初是为 React 开发的一个开源项目。

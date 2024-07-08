@@ -1,0 +1,1864 @@
+- en: Chapter 8\. Routing
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章\. 路由
+- en: In previous chapters, we have learned the fundamentals of Vue components and
+    different approaches to composing a Vue component. We proceeded to create reusable
+    component logic as standalone composable using Composition API. We also learned
+    about more advanced concepts of rendering and custom plugin creation.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前几章中，我们学习了 Vue 组件的基础知识以及组合 Vue 组件的不同方法。我们继续将可重用的组件逻辑作为独立的可组合部分使用 Composition
+    API。我们还学习了有关渲染和自定义插件创建的更高级概念。
+- en: This chapter will explore a different aspect of building a Vue application,
+    routing, by introducing you to the concept of a routing system with Vue Router,
+    the official routing management library for the Vue application, and its core
+    API. We then learn how to configure the app’s routes, pass and handle data between
+    the application’s paths using router guards, and build dynamic and nested routes
+    for our application.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章将通过向您介绍 Vue Router 的路由系统概念来探讨构建 Vue 应用程序的不同方面，Vue Router 是 Vue 应用程序的官方路由管理库，并介绍其核心
+    API。然后，我们学习如何配置应用程序的路由，通过路由守卫传递和处理数据，并为应用程序构建动态和嵌套路由。
+- en: What is Routing?
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 什么是路由？
+- en: 'When users navigate around the web, they enter a Uniform Resource Locator (URL)
+    in the browser’s address bar. A URL is the address of a resource within the web.
+    It contains many parts, which we can divide into the following significant sections
+    ([Figure 8-1](#figure_c07_01_url)):'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户在 Web 上导航时，他们在浏览器地址栏中输入统一资源定位符（URL）。URL 是 Web 中资源的地址。它包含许多部分，我们可以分为以下重要部分（[图
+    8-1](#figure_c07_01_url)）：
+- en: Location
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 位置
+- en: Includes the protocol, the application’s domain name (or IP address of the web
+    server), and the port used to access the requested resource.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 包括协议、应用程序的域名（或 Web 服务器的 IP 地址）和用于访问请求资源的端口。
+- en: Path
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路径
+- en: The path to the requested resource. In web development, we use it to determine
+    the page component to render on the browser side based on a predefined path pattern.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求资源的路径。在 Web 开发中，我们使用它来根据预定义的路径模式在浏览器端确定要呈现的页面组件。
+- en: Query parameters
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查询参数
+- en: A set of key-value pairs for passing additional information to the server, separated
+    by an `&` symbol. We mainly use query parameters to pass data between pages.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一组用 `&` 符号分隔的键值对，用于向服务器传递附加信息。我们主要使用查询参数在页面之间传递数据。
+- en: Anchor
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 锚点
+- en: Any text after the `#` symbol. We use anchors to navigate to a specific element
+    on the same page, often with matched `id` value with the matched id or a time-lapse
+    for a media element.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`#` 符号后的任何文本。我们使用锚点在同一页面上导航到特定元素，通常与匹配的 `id` 值或媒体元素的时间间隔匹配。'
+- en: '![A diagram shows the one-way data flow between components](assets/lvue_0801.png)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_IMG
+  zh: '![图示显示组件之间的单向数据流](assets/lvue_0801.png)'
+- en: Figure 8-1\. URL structure
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. URL 结构
+- en: Upon receiving the URL from the user, the browser then communicates with the
+    server based on the received URL, which returns the requested resource, if any.
+    The resource can be a static file, such as an image or a video, or a dynamic page,
+    such as a web page or a web application.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当浏览器从用户接收到 URL 后，根据接收到的 URL 与服务器进行通信，返回请求的资源（如果有）。该资源可以是静态文件，如图像或视频，也可以是动态页面，如网页或
+    Web 应用程序。
+- en: With single-page applications (SPAs), we perform the routing mechanism on the
+    browser side instead, thus allowing smooth page navigation without refreshing
+    the browser. As a URL is a page’s address, we use a routing system to connect
+    its path pattern to a specific component representing it in our application.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在单页面应用程序（SPA）中，我们在浏览器端执行路由机制，从而实现平滑的页面导航而无需刷新浏览器。由于 URL 是页面的地址，我们使用路由系统将其路径模式连接到在应用程序中表示它的特定组件。
+- en: Frontend frameworks like Vue provide the layout for building components for
+    an SPA but not the routing services. To create a complete user navigation experience,
+    we must design and develop the application’s routing ourselves, including solving
+    the SPA’s issues such as history keeping and bookmarking.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前端框架如 Vue 提供了构建单页面应用（SPA）组件的布局，但并未提供路由服务。为了创建完整的用户导航体验，我们必须自行设计和开发应用程序的路由，包括解决
+    SPA 的历史记录和书签等问题。
+- en: Or we can use Vue Router as our primary engine for routing.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者我们可以将 Vue Router 作为我们主要的路由引擎。
+- en: Using Vue Router
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Vue Router
+- en: As the official routing service for Vue applications, Vue Router offers a control
+    mechanism for handling page navigation in a Vue application. We use Vue Router
+    to set up our application’s routing systems, including configuring the mapping
+    between components and pages, delivering a good user experience on the client
+    side for the SPA’s flow.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为Vue应用程序的官方路由服务，Vue Router提供了一个控制机制，用于处理Vue应用程序中的页面导航。我们使用Vue Router来设置应用程序的路由系统，包括配置组件和页面之间的映射，为SPA的流程在客户端提供良好的用户体验。
+- en: Note
+  id: totrans-21
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The official Vue Router documentation is available at the [Vue Router website](https://oreil.ly/AwUZo),
+    containing information on installation, APIs, and primary use cases for reference.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 官方Vue Router文档可在[Vue Router网站](https://oreil.ly/AwUZo)找到，包含安装、API和主要用例的相关信息供参考。
+- en: Since Vue Router is a standalone package from the Vue framework, we need to
+    perform additional steps to have it installed and ready to use in our application,
+    which we will discuss next.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于Vue Router是Vue框架中的独立包，因此我们需要执行额外的步骤来安装并准备在我们的应用程序中使用它，接下来我们将讨论这些步骤。
+- en: Installing Vue Router
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 安装Vue Router
+- en: 'The most straightforward way to install Vue Router for a new Vue project using
+    Vite is to choose `Yes` when being asked to install Vue Router during the setup
+    (see [“Create a New Vue Application”](ch01.html#chapter_01_newVueApp)). Vite then
+    will take care of installing the Vue Router package and scaffold your project
+    with related files and folders ([Figure 8-2](#figure_c07_01)), as in the following
+    structure:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用Vite为新的Vue项目安装Vue Router的最简单方法是在设置期间选择“是”以安装Vue Router（参见[“创建新的Vue应用程序”](ch01.html#chapter_01_newVueApp)）。然后，Vite将负责安装Vue
+    Router包，并用相关文件和文件夹（如[图 8-2](#figure_c07_01)）搭建您的项目结构：
+- en: The `router` folder with one file, `index.ts`, containing the routes configurations
+    for the app.
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`router`文件夹中有一个名为`index.ts`的文件，其中包含应用程序的路由配置。'
+- en: The `views` folder has two sample Vue components, `AboutView` and `HomeView`.
+    Each component is the view for the related URL paths, which we will discuss shortly.
+  id: totrans-27
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`views`文件夹中有两个示例Vue组件，`AboutView`和`HomeView`。每个组件是相关URL路径的视图，稍后我们将讨论它们。'
+- en: '![A diagram shows the one-way data flow between components](assets/lvue_0802.png)'
+  id: totrans-28
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个图表显示了组件之间单向数据流](assets/lvue_0802.png)'
+- en: Figure 8-2\. Project structure after scaffolding with Vite with Vue Router enabled
+  id: totrans-29
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2 在使用Vite启用Vue Router搭建后的项目结构
+- en: Vite will also inject some code into the `main.ts` file to initialize Vue Router.
+    Hence, the created app will enable the primary router enabled and make it ready
+    to use.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vite还会向`main.ts`文件中注入一些代码，以初始化Vue Router。因此，创建的应用程序将启用主路由，并使其准备就绪。
+- en: 'However, to fully understand how Vue Router works, we will skip the scaffolding
+    option and add Vue Router to our existing project manually by using the following
+    command:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，为了全面理解Vue Router的工作原理，我们将跳过搭建选项，并通过以下命令手动将Vue Router添加到我们现有的项目中：
+- en: '[PRE0]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Note
+  id: totrans-33
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In this book, we use Vue Router 4.1.6, the latest version at the time of writing.
+    You can replace the version number after `@` with the latest version from the
+    [Vue Router NPM page](https://oreil.ly/h6Q0V).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，我们使用的是Vue Router 4.1.6版本，这是撰写本文时的最新版本。您可以从[Vue Router NPM页面](https://oreil.ly/h6Q0V)中使用`@`后的最新版本号替换它。
+- en: For Vue 3 projects, you should use version 4 and above.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于Vue 3项目，您应该使用4及以上版本。
+- en: 'To demonstrate the Vue Router’s capabilities, we will build an SPA representing
+    a pizza ordering system. The application header will have the following page links:
+    Home, About, Pizzas, Contact, and Login (see [Figure 8-3](#figure_c07_02)).'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了展示Vue Router的功能，我们将构建一个SPA，代表一个比萨订购系统。应用程序标题栏将包含以下页面链接：主页（Home）、关于（About）、比萨（Pizzas）、联系（Contact）和登录（Login）（参见[图 8-3](#figure_c07_02)）。
+- en: '![A screenshot showing the layout of the Pizza House application''s header](assets/lvue_0803.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个屏幕截图显示了Pizza House应用程序标题栏的布局](assets/lvue_0803.png)'
+- en: Figure 8-3\. Pizza House application with navigation header
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3 比萨之家应用程序带有导航标题
+- en: 'Each application link leads to a page represented by a Vue component. For each
+    application page, we create a placeholder component and keep it under the `views`
+    folder. Our Pizza House codebase now contains the following view components:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个应用程序链接都指向一个由Vue组件表示的页面。对于每个应用程序页面，我们创建一个占位符组件，并将其保存在`views`文件夹中。我们的Pizza House代码库现在包含以下视图组件：
+- en: '`HomeView`'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`HomeView`'
+- en: Our application’s home page contains a welcome message and a list of pizzas.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们应用程序的主页包含欢迎消息和比萨列表。
+- en: '`AboutView`'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`AboutView`'
+- en: The about page, which will contain a short description of the application.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于页面将包含应用程序的简短描述。
+- en: '`PizzasView`'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`PizzasView`'
+- en: Displaying a list of pizzas for ordering.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示用于订购的披萨列表。
+- en: '`ContactView`'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ContactView`'
+- en: Displaying a contact form.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示联系表单。
+- en: '`LoginView`'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`LoginView`'
+- en: Displaying the login form for the user.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显示用户登录表单。
+- en: We need to map these components to the appropriate page links, demonstrated
+    in [Table 8-1](#table_chap07_01).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要将这些组件映射到适当的页面链接，示例见 [第 8-1 表](#table_chap07_01)。
+- en: Table 8-1\. Table of the available routes with their corresponding components
+    and page URLs in Pizza House
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第 8-1 表。Pizza House 中可用路由及其对应组件和页面 URL 的表格
+- en: '| Page link | Component | Route path pattern |'
+  id: totrans-52
+  prefs: []
+  type: TYPE_TB
+  zh: '| 页面链接 | 组件 | 路由路径模式 |'
+- en: '| --- | --- | --- |'
+  id: totrans-53
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *https://localhost:4000* | HomeView | `/` |'
+  id: totrans-54
+  prefs: []
+  type: TYPE_TB
+  zh: '| *https://localhost:4000* | HomeView | `/` |'
+- en: '| *https://localhost:4000/about* | AboutView | `/about` |'
+  id: totrans-55
+  prefs: []
+  type: TYPE_TB
+  zh: '| *https://localhost:4000/about* | AboutView | `/about` |'
+- en: '| *https://localhost:4000/pizzas* | PizzasView | `/pizzas` |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| *https://localhost:4000/pizzas* | PizzasView | `/pizzas` |'
+- en: '| *https://localhost:4000/contact* | Contact | `/contact` |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| *https://localhost:4000/contact* | Contact | `/contact` |'
+- en: '| *https://localhost:4000/login* | LoginView | `/login` |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| *https://localhost:4000/login* | LoginView | `/login` |'
+- en: '[Table 8-1](#table_chap07_01) also shows the corresponding route patterns for
+    each page link. We will use these patterns to define the routes in our application.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第 8-1 表](#table_chap07_01) 还显示了每个页面链接的相应路由模式。我们将使用这些模式来定义应用程序中的路由。'
+- en: Note
+  id: totrans-60
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The port `4000` for `localhost` is the local port number for the development
+    server by Vite. It can change depending on your Vite configuration and the available
+    ports when you run your project locally.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`localhost` 的 `4000` 端口是 Vite 的开发服务器的本地端口号。它可以根据您的 Vite 配置和本地运行项目时可用的端口而变化。'
+- en: Defining Routes
+  id: totrans-62
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 定义路由
+- en: A route is a path pattern in response to a page URL. We define a route in Vue
+    Router based on a configuration object using the interface `RouteRecordRaw`. This
+    configuration object contains the following properties described in [Table 8-2](#table_chap07_02).
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 路由是对页面 URL 的响应路径模式。我们在 Vue Router 中基于配置对象使用 `RouteRecordRaw` 接口定义路由。该配置对象包含以下在
+    [第 8-2 表](#table_chap07_02) 中描述的属性。
+- en: Table 8-2\. Properties for a route configuration object
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第 8-2 表。路由配置对象的属性
+- en: '| Property | Type | Description | Required? |'
+  id: totrans-65
+  prefs: []
+  type: TYPE_TB
+  zh: '| 属性 | 类型 | 描述 | 必须？ |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-66
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| `path` | `string` | The pattern to check against the browser’s location (browser
+    URL) | Yes |'
+  id: totrans-67
+  prefs: []
+  type: TYPE_TB
+  zh: '| `path` | `string` | 用于检查浏览器位置（浏览器 URL）的模式 | 是 |'
+- en: '| `component` | `Component` | The component to render when the browser’s location
+    matches the route’s path pattern | No |'
+  id: totrans-68
+  prefs: []
+  type: TYPE_TB
+  zh: '| `component` | `Component` | 当浏览器位置匹配路由路径模式时要渲染的组件 | 否 |'
+- en: '| `name` | `string` | The name of the route. We can use it to avoid hard-coded
+    URLs in the code. | No |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| `name` | `string` | 路由的名称。我们可以使用它来避免在代码中硬编码 URL。 | 否 |'
+- en: '| `components` | `{ [name: string]: Component }` | A collection of components
+    to render based on the matched route’s name | No |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| `components` | `{ [name: string]: Component }` | 基于匹配路由名称渲染的组件集合 | 否 |'
+- en: '| `redirect` | `string` or `Location` or `Function` | The redirect path | No
+    |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| `redirect` | `string` 或 `Location` 或 `Function` | 重定向路径 | 否 |'
+- en: '| `props` | `boolean` or `Object` or `Function` | The props to pass to the
+    component | No |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| `props` | `boolean` 或 `Object` 或 `Function` | 传递给组件的 props | 否 |'
+- en: '| `alias` | `string` or `Array<string>` | The alias path | No |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| `alias` | `string` 或 `Array<string>` | 别名路径 | 否 |'
+- en: '| `children` | `Array<RouteConfig>` | The child routes | No |'
+  id: totrans-74
+  prefs: []
+  type: TYPE_TB
+  zh: '| `children` | `Array<RouteConfig>` | 子路由 | 否 |'
+- en: '| `before``Enter` | `Function` | The navigation guard callback | No |'
+  id: totrans-75
+  prefs: []
+  type: TYPE_TB
+  zh: '| `beforeEnter` | `Function` | 导航守卫回调 | 否 |'
+- en: '| `meta` | `any` | The route’s metadata. We can use this for passing additional
+    information not visible on the URL. | No |'
+  id: totrans-76
+  prefs: []
+  type: TYPE_TB
+  zh: '| `meta` | `any` | 路由的元数据。我们可以使用它传递不在 URL 上可见的附加信息。 | 否 |'
+- en: '| `sensitive` | `Boolean` | Whether the route should be case sensitive. By
+    default, all routes are case insensitive; for example, `/pizzas` and `/Pizzas`
+    are the same route. | No |'
+  id: totrans-77
+  prefs: []
+  type: TYPE_TB
+  zh: '| `sensitive` | `Boolean` | 路由是否区分大小写。默认情况下，所有路由都是不区分大小写的；例如，`/pizzas` 和 `/Pizzas`
+    是同一个路由。 | 否 |'
+- en: '| `strict` | `Boolean` | Whether we should allow trailing slash (like `/about/`
+    or `/about`) | No |'
+  id: totrans-78
+  prefs: []
+  type: TYPE_TB
+  zh: '| `strict` | `Boolean` | 是否允许尾部斜杠（例如 `/about/` 或 `/about`） | 否 |'
+- en: 'We often don’t use all the available fields to define a route. For instance,
+    take the default application path (`/`). It’s sufficient to define the following
+    `home` route object with the `path` property set to `/` and the `component` property
+    set to `HomeView`:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通常不使用所有可用字段来定义路由。例如，采取默认应用程序路径 (`/`)。仅需定义以下 `home` 路由对象即可，`path` 属性设置为 `/`，`component`
+    属性设置为 `HomeView`：
+- en: '[PRE1]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Vue Router in the previous code maps the default entry URL (such as *https://localhost:4000*)
+    to the `/` case unless `strict` mode is enabled. If there is no indicator after
+    the slash `/`, Vue Router will render the `HomeView` component as the default
+    view. This behavior applies in both cases: when a user visits *https://localhost:4000*,
+    or *https://localhost:4000/*.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述代码中，Vue Router将默认入口URL（例如*https://localhost:4000*）映射到`/`情况，除非启用了`strict`模式。如果斜杠`/`后没有指示符，则Vue
+    Router将`HomeView`组件渲染为默认视图。这种行为适用于以下两种情况：当用户访问*https://localhost:4000*或*https://localhost:4000/*时。
+- en: 'Now we can proceed to configure our app’s `routes` as an array of `RouteRecordRaw`
+    configuration objects in the `index.ts` file under the `router` folder, as in
+    the following code:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以继续在`router`文件夹下的`index.ts`文件中配置我们应用的`routes`，将其配置为`RouteRecordRaw`配置对象的数组，如下所示的代码：
+- en: '[PRE2]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Using Named Routes
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用命名路由
+- en: This chapter uses the named route with the `name` property. I recommend using
+    this approach in your application, making the code more readable and maintainable.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章节使用具有`name`属性的命名路由。我建议在您的应用程序中使用这种方法，使代码更具可读性和可维护性。
+- en: That’s straightforward enough. We have defined the necessary routes for our
+    Pizza House. But we need more than this for our route system to work. We must
+    create a router instance from the given routes and plug it into our Vue application
+    on initialization. We will do this next.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这已经很简单了。我们已经为我们的Pizza House定义了必要的路由。但是我们的路由系统需要更多东西才能工作。我们必须从给定的路由创建一个路由器实例，并在初始化时将其插入到我们的Vue应用程序中。接下来我们将这样做。
+- en: Creating a Router Instance
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 创建路由实例
+- en: 'We can create the router instance using the `createRouter` method from the
+    `vue-router` package. This method takes a configuration object of type `RouterOptions`
+    as an argument, with the following main properties:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用`vue-router`包中的`createRouter`方法创建路由器实例。此方法接受一个`RouterOptions`类型的配置对象作为参数，其中包含以下主要属性：
+- en: '`history`'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`history`'
+- en: The history mode object can be hash-based or web-based (HTML history mode).
+    The web-based method utilizes the HTML5 history API to make the URL readable,
+    allowing us to navigate without reloading the page.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 历史模式对象可以基于哈希或基于Web（HTML历史模式）。基于Web的方法利用HTML5历史API使URL可读，允许我们在不重新加载页面的情况下导航。
+- en: '`routes`'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`routes`'
+- en: The array of routes to use in the router instance.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于在路由器实例中使用的路由数组。
+- en: '`linkActiveClass`'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`linkActiveClass`'
+- en: The class name for the active link. By default, it is `router-link-active`.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于激活链接的类名。默认情况下是`router-link-active`。
+- en: '`linkExactActiveClass`'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`linkExactActiveClass`'
+- en: The class name for the active link. By default, it is `router-link-exact-active`.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于精确激活链接的类名。默认情况下是`router-link-exact-active`。
+- en: Note
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Other less common properties for the `RouterOptions` interface are available
+    at the [RouterOptions documentation](https://oreil.ly/pcSqw).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`RouterOptions`接口的其他不太常见属性在[RouterOptions文档](https://oreil.ly/pcSqw)中可用。'
+- en: 'We use the `createWebHistory` method from the `vue-route` package to create
+    a web-based `history` object. This method takes a string that represents the base
+    URL as its optional argument:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`vue-route`包中的`createWebHistory`方法来创建基于web的`history`对象。该方法接受一个可选参数，表示基本URL的字符串：
+- en: '[PRE3]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'However, passing the base URL as a static string is not a good practice. We
+    want to keep the base URL configurable and isolated for different environments
+    like development and production. For this purpose, Vite exposes the environment
+    object `import.meta.env`, which contains a `BASE_URL` property. You can set the
+    value for `BASE_URL` in a dedicated environment file, often denoted by the `.env`
+    prefix, or through the command line when running the Vite server. Vite then extracts
+    the relevant value for `BASE_URL` and injects it into the `import.meta.env` object,
+    and we can use it in our code, as follows:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，将基本URL作为静态字符串传递并不是一个好习惯。我们希望保持基本URL可配置并独立，适用于不同的环境，如开发和生产。为此，Vite提供了环境对象`import.meta.env`，其中包含一个`BASE_URL`属性。您可以在专用的环境文件中设置`BASE_URL`值，通常以`.env`前缀表示，或者通过运行Vite服务器时的命令行设置。然后，Vite会提取相关的`BASE_URL`值并将其注入到`import.meta.env`对象中，我们可以在我们的代码中使用它，如下所示：
+- en: '[PRE4]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Using BASE_URL from the Environment File
+  id: totrans-103
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用环境文件中的`BASE_URL`
+- en: You don’t have to set the `BASE_URL` value in the `.env` file for development.
+    Vite will map it to the local server URL automatically.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您不必在开发中的`.env`文件中设置`BASE_URL`值。Vite会自动将其映射到本地服务器URL。
+- en: Most modern hosting platforms, such as Netlify, will set the `BASE_URL` value
+    for you during deployment, often to your application’s domain name.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数现代托管平台（如Netlify）在部署期间会为您设置`BASE_URL`值，通常为应用程序的域名。
+- en: We have created the router instance from the given `routes` and the desired
+    `history` mode. Our next step is to plug this instance into our Vue application.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经从给定的 `routes` 和所需的 `history` 模式创建了路由实例。下一步是将这个实例插入到我们的 Vue 应用程序中。
+- en: Plugging the Router Instance Into the Vue Application
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 将路由实例插入到 Vue 应用程序中
+- en: 'In the `main.ts` file where we initialize the application instance `app`, we
+    will import the created `router` instance and pass it as the argument to the `app.use()`
+    method:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `main.ts` 文件中初始化应用程序实例 `app` 的地方，我们将导入创建的 `router` 实例，并将其作为参数传递给 `app.use()`
+    方法：
+- en: '[PRE5]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Our application now has a routing system for the navigation between pages. However,
+    if you run the application now, you will see that the `AboutView` component is
+    still not rendered when navigating to the `/about` path. We must modify our `App.vue`
+    component to display the suitable component that binds to the route’s path in
+    its configurations. Let’s do that next.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的应用程序现在具有了用于在页面之间导航的路由系统。但是，如果现在运行应用程序，您会看到在导航到 `/about` 路径时仍然没有渲染 `AboutView`
+    组件。我们必须修改我们的 `App.vue` 组件以显示适合路由路径的组件配置。接下来我们就来做这件事。
+- en: Rendering the Current Page with the RouterView Component
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 RouterView 组件渲染当前页面
+- en: 'To dynamically generate the desired view for a particular URL path, Vue Router
+    provides `RouterView` (or `router-view`) as the placeholder component. During
+    running, Vue Router will replace it with the element that matches the current
+    URL pattern based on the configuration provided. We can use this component in
+    our `App.vue` component to render the current page:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了动态生成特定 URL 路径的所需视图，Vue Router 提供了 `RouterView`（或 `router-view`）作为占位符组件。在运行时，Vue
+    Router 将根据提供的配置替换为与当前 URL 模式匹配的元素。我们可以在 `App.vue` 组件中使用此组件来渲染当前页面：
+- en: '[PRE6]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: When running the application, the default home page is now the `HomeView` ([Figure 8-4](#home-view)).
+    When navigating to `/about` using the browser’s location bar, you will see that
+    the `AboutView` component is rendered ([Figure 8-5](#about-view)).
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行应用程序时，默认主页现在是 `HomeView`（参见 [图 8-4](#home-view)）。当使用浏览器的位置栏导航到 `/about` 时，您会看到
+    `AboutView` 组件被渲染了（参见 [图 8-5](#about-view)）。
+- en: '![Home View](assets/lvue_0804.png)'
+  id: totrans-115
+  prefs: []
+  type: TYPE_IMG
+  zh: '![主页视图](assets/lvue_0804.png)'
+- en: Figure 8-4\. Application displays the HomeView component for the `"/"` path
+  id: totrans-116
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-4\. 应用程序显示了 `HomeView` 组件，对应路径为 `"/"`
+- en: '![About View](assets/lvue_0805.png)'
+  id: totrans-117
+  prefs: []
+  type: TYPE_IMG
+  zh: '![关于视图](assets/lvue_0805.png)'
+- en: Figure 8-5\. Application displays the AboutView component for the `"/about"`
+    path
+  id: totrans-118
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-5\. 应用程序显示了 `AboutView` 组件，对应路径为 `"/about"`
+- en: 'Since `RouterView` is a Vue component, we can pass props, attributes, and event
+    listeners to it. `RouterView` will then pass them to the rendered view to handle.
+    For instance, we can add a class using the `RouterView`:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 `RouterView` 是一个 Vue 组件，我们可以向其传递 props、attributes 和事件监听器。`RouterView` 将把它们传递给渲染的视图来处理。例如，我们可以使用
+    `RouterView` 添加一个类：
+- en: '[PRE7]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: The rendered component—`AboutView`, for example—will then receive the `class`
+    as the primary container element (see [Figure 8-6](#figure_ch7_03)), and we can
+    use it for CSS styling accordingly.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染的组件——例如 `AboutView`——将会接收 `class` 作为主要容器元素（参见 [图 8-6](#figure_ch7_03)），我们可以相应地用它来进行
+    CSS 样式设置。
+- en: '![RouterView class](assets/lvue_0806.png)'
+  id: totrans-122
+  prefs: []
+  type: TYPE_IMG
+  zh: '![RouterView 类](assets/lvue_0806.png)'
+- en: Figure 8-6\. `AboutView` receives the `class` attribute from the `RouterView`
+    component
+  id: totrans-123
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-6\. `AboutView` 组件从 `RouterView` 组件接收 `class` 属性
+- en: At this point, we have seen how to set up the routes for our application and
+    render the current page using the `RouterView` component. However, navigating
+    by manually setting the URL path on the browser’s address bar does not seem to
+    be very convenient for users. To enhance the user experience for our app, we can
+    compose a header with navigation links using the `a` element and the full path.
+    Or we can use the built-in `RouterLink` component to build the links to our routes,
+    which we will discuss next.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经学习了如何设置应用程序的路由并使用 `RouterView` 组件渲染当前页面。然而，通过手动在浏览器地址栏设置 URL 路径来导航似乎对用户来说并不是很方便。为了增强我们应用程序的用户体验，我们可以组合一个包含导航链接的页眉，使用
+    `a` 元素和完整路径。或者，我们可以使用内置的 `RouterLink` 组件来构建到我们的路由的链接，接下来我们将讨论这个内容。
+- en: Build a Navigation Bar with the RouterLink Component
+  id: totrans-125
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 RouterLink 组件构建导航栏
+- en: 'Vue Router provides the `RouterLink` (or `router-link`) component to generate
+    an interactive and navigable element from a set of given props, such as `to`,
+    for a specific route’s path. The route path can be a string that has the same
+    value as `path` in the route configuration, as in the following example for the
+    link to navigate to the about page:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue Router 提供了 `RouterLink`（或 `router-link`）组件，用于根据给定的 `to` 属性生成交互和可导航的元素，用于特定路由路径。路由路径可以是字符串，其值与路由配置中的
+    `path` 相同，如以下示例用于导航到关于页面的链接：
+- en: '[PRE8]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Alternatively, we can pass an object representing the route’s location object,
+    including the `name` and the `params` for the route parameters:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们可以传递一个代表路由位置对象的对象，包括路由参数的 `name` 和 `params`：
+- en: '[PRE9]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'By default, this component renders an anchor element (`a`) with an `href` and
+    classes for the active link, such as `router-link-active` and `router-link-exact-active`.
+    We can change the default element to any other element using the Boolean `custom`
+    prop and `v-slot`, usually another interactive element such as `button`, as in
+    the following example:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，该组件将使用带有 `href` 和类似于 `router-link-active` 和 `router-link-exact-active`
+    的类的锚元素 (`a`) 进行渲染。我们可以使用布尔型 `custom` 属性和 `v-slot` 将默认元素更改为任何其他元素，通常是另一个交互元素，如
+    `button`，如下例所示：
+- en: '[PRE10]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: This code will render a `button` element instead of the default `a` element,
+    binding with the `navigate` function to navigate the given route when clicking.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码将呈现一个 `button` 元素，而不是默认的 `a` 元素，绑定 `navigate` 函数以在点击时导航到给定的路由。
+- en: Using `custom` Prop
+  id: totrans-133
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 `custom` 属性
+- en: If you use the `custom` prop, you must bind the `navigate` function as a click
+    handler or the `href` link to the custom element. Otherwise, the navigation will
+    not work.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用 `custom` 属性，必须将 `navigate` 函数绑定为点击处理程序或将 `href` 链接到自定义元素。否则，导航将无法正常工作。
+- en: Also, no class names such as `router-link-active` or `router-link-exact-active`
+    will be added to the custom element when in action.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当自定义元素激活时，不会添加类名如 `router-link-active` 或 `router-link-exact-active`。
+- en: Let’s build our navigation bar, `NavBar`, using `RouterLink` as shown in [Example 8-1](#NavBar_component).
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使用 `RouterLink` 构建我们的导航栏 `NavBar`，如 [示例 8-1](#NavBar_component) 所示。
+- en: Example 8-1\. `NavBar` component
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-1\. `NavBar` 组件
+- en: '[PRE11]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'We also add some CSS styles to the navigation bar and the active link:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还向导航栏和活动链接添加了一些 CSS 样式：
+- en: '[PRE12]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Using activeClass and exactActiveClass Props
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 `activeClass` 和 `exactActiveClass` 属性
+- en: You can use the `activeClass` and `exactActiveClass` props of `RouterLink` to
+    customize the class names for the active link instead of using the default ones.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用 `RouterLink` 的 `activeClass` 和 `exactActiveClass` 属性来自定义活动链接的类名，而不是使用默认的类名。
+- en: Once we add `NavBar` to the `App` component, we will see the navigation bar
+    at the top of the page ([Figure 8-7](#figure_ch7_04)).
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们将 `NavBar` 添加到 `App` 组件中，我们将在页面顶部看到导航栏 ([图 8-7](#figure_ch7_04))。
+- en: '![A screenshot showing the navigation bar with Home link active and underlined](assets/lvue_0807.png)'
+  id: totrans-144
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示带有主页链接激活和下划线的导航栏的屏幕截图](assets/lvue_0807.png)'
+- en: Figure 8-7\. Navigation bar of the application
+  id: totrans-145
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-7\. 应用程序的导航栏
+- en: Now our users can navigate between pages using the navigation bar. However,
+    we still need to handle the data flow between the pages. In the upcoming sections,
+    we will see how to pass data between routes with route parameters.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们的用户可以使用导航栏在页面之间导航。但是，我们仍然需要处理页面之间的数据流。在接下来的几节中，我们将看到如何使用路由参数在路由之间传递数据。
+- en: Passing Data Between Routes
+  id: totrans-147
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在路由之间传递数据
+- en: 'To pass data between routes, we can use the `query` field in the router object
+    passed to `to`:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在路由之间传递数据，我们可以使用传递给 `to` 的路由器对象中的 `query` 字段：
+- en: '[PRE13]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'The `query` field is an object that contains the query parameters we want to
+    pass to the route. Vue Router will translate it into a complete `href` path with
+    query parameters, starting with `?` syntax:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`query` 字段是一个对象，包含我们要传递给路由的查询参数。Vue Router 将其转换为带有查询参数的完整 `href` 路径，以 `?` 语法开始：'
+- en: '[PRE14]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'We can then access the query parameters in the route component, `PizzasView`,
+    using the `useRoute()` function:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以使用 `useRoute()` 函数在路由组件 `PizzasView` 中访问查询参数。
+- en: '[PRE15]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: This code will render the following page, where the browser’s URL is *http://localhost:4000/pizzas?id=1*
+    ([Figure 8-8](#figure_ch7_05)).
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码将呈现以下页面，其中浏览器的 URL 是 *http://localhost:4000/pizzas?id=1* ([图 8-8](#figure_ch7_05))。
+- en: '![A screenshot showing the Pizzas page with the query parameter](assets/lvue_0808.png)'
+  id: totrans-155
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示带有查询参数的披萨页面的屏幕截图](assets/lvue_0808.png)'
+- en: Figure 8-8\. Pizzas page with the query parameter
+  id: totrans-156
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-8\. 带有查询参数的披萨页面
+- en: You can also pass the query parameters in the browser’s address bar, and the
+    router instance will decouple it from the `route.query` object accordingly. This
+    mechanism is handy in many scenarios. Take our `PizzasView` page, for instance.
+    This page displays a list of pizzas taken from a `usePizzas` hook, using the `PizzaCard`
+    component as shown in [Example 8-2](#pizza_view_component).
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以在浏览器地址栏中传递查询参数，路由器实例将相应地将其解耦为`route.query`对象。这种机制在许多情况下都很方便。例如，考虑我们的`PizzasView`页面。此页面显示了使用`usePizzas`钩子从中获取的披萨列表，使用`PizzaCard`组件，如[示例 8-2](#pizza_view_component)所示。
+- en: Example 8-2\. `PizzasView` component
+  id: totrans-158
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-2\. `PizzasView`组件
+- en: '[PRE16]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Now we want to add a search feature, where the user can search for a pizza by
+    its title using a query params `search` and get the filtered list of pizzas. We
+    can add a `useSearch` hook, which receives the value of `route.query.search` as
+    its initial value and returns the filtered list of pizzas as well as the reactive
+    `search` value, as shown in [Example 8-3](#useSearch_hook).
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们想要添加一个搜索功能，用户可以通过标题使用查询参数`search`搜索披萨，并获取经过筛选的披萨列表。我们可以添加一个`useSearch`钩子，它接收`route.query.search`的值作为初始值，并返回经过筛选的披萨列表以及响应式的`search`值，如[示例 8-3](#useSearch_hook)所示。
+- en: Example 8-3\. Implementing `useSearch` hook
+  id: totrans-161
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 8-3\. 实现`useSearch`钩子
+- en: '[PRE17]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Then we use the `useSearch` hook in the `PizzasView` component and change the
+    iteration to be over `searchResults` instead of `pizzas`:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们在`PizzasView`组件中使用`useSearch`钩子，并将迭代方式更改为遍历`searchResults`而不是`pizzas`：
+- en: '[PRE18]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Now when you go to `/pizzas?search=hawaii`, the list will show only the pizza
+    with the title `Hawaii` ([Figure 8-9](#figure_ch7_06)).
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当您访问`/pizzas?search=hawaii`时，列表将仅显示标题为`Hawaii`的披萨（[图 8-9](#figure_ch7_06)）。
+- en: '![A screenshot showing the Pizzas page with the search query parameter](assets/lvue_0809.png)'
+  id: totrans-166
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示具有搜索查询参数的披萨页面的屏幕截图](assets/lvue_0809.png)'
+- en: Figure 8-9\. Pizzas page with the search term from query parameter
+  id: totrans-167
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-9\. 具有查询参数中搜索词的披萨页面
+- en: 'How about allowing the user to search while on the page and then syncing the
+    updated search term with the query parameter? For that, we need to perform the
+    following changes:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑允许用户在页面上进行搜索，然后将更新后的搜索词与查询参数同步？为此，我们需要进行以下更改：
+- en: 'Add an input field to the `template` and bind it to the `search` variable:'
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在`template`中添加一个输入字段，并将其绑定到`search`变量：
+- en: '[PRE19]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Get the `router` instance using the `useRouter()` method:'
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`useRouter()`方法获取`router`实例：
+- en: '[PRE20]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'Use the `watch` function to watch for changes in the `search` value and update
+    the query parameter using `router.replace`:'
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`watch`函数监听`search`值的变化，并使用`router.replace`更新查询参数。
+- en: '[PRE21]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: When you type in the search field, the router instance will update the URL with
+    the new query value.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您在搜索栏中输入时，路由器实例将使用新的查询值更新URL。
+- en: Note
+  id: totrans-176
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you use Vue 2.x and below or Options API (without `setup()`), you can access
+    the `router` and `route` instances using `this.$router` and `this.$route`, respectively.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用的是Vue 2.x及以下版本或Options API（没有使用`setup()`），可以分别使用`this.$router`和`this.$route`来访问`router`和`route`实例。
+- en: At this point, we have learned how to retrieve the query params with the `route`
+    instance. Using the `route` instance in every component that needs to access the
+    query params can be tedious. Instead, we can decouple the query params using props,
+    which we will learn next.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经学会了如何使用`route`实例检索查询参数。在每个需要访问查询参数的组件中使用`route`实例可能会很麻烦。相反，我们可以使用props解耦查询参数，接下来我们将学习这一点。
+- en: Decoupling Route Parameters Using Props
+  id: totrans-179
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Props解耦路由参数
+- en: 'In the route configuration object, we can define the static props to pass to
+    the view component as an object with static values or a function that returns
+    the props. For example, in the following code, we change our `pizzas` route configuration
+    to pass the `searchTerm` prop, whose value is from `route.query.search`, to the
+    `PizzaView` component:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在路由配置对象中，我们可以定义静态props以作为对象传递给视图组件的静态值或返回props的函数。例如，在以下代码中，我们改变了我们的`pizzas`路由配置以传递`searchTerm`
+    prop，其值来自`route.query.search`，传递给`PizzaView`组件：
+- en: '[PRE22]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'In the `PizzasView` component, we can remove the use of `useRoute` and access
+    the `searchTerm` prop using the `props` object:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`PizzasView`组件中，我们可以移除对`useRoute`的使用，并使用`props`对象访问`searchTerm` prop：
+- en: '[PRE23]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: The behavior of the application stays the same as before.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序的行为与以前相同。
+- en: 'You can also use `props: true` to pass the `route.params` object to the view
+    component as props, without caring about any specific props. When the route changes,
+    we can combine this approach with navigation guards to perform side effects for
+    the route’s parameters. More about navigation guards in the next section.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '你还可以使用`props: true`将`route.params`对象作为props传递给视图组件，而不需要关心任何特定的props。当路由改变时，我们可以将这种方法与导航卫兵结合起来，以执行路由参数的副作用。关于导航卫兵的更多信息将在下一节中介绍。'
+- en: Understanding Navigation Guards
+  id: totrans-186
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解导航卫兵
+- en: 'Navigation guards are functions to help us control the navigation flow better.
+    We can also use them to perform side effects when the route changes or before
+    the navigation happens. There are three types of navigation guards and hooks:
+    global, component-level, and route-level.'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导航卫兵是帮助我们更好地控制导航流程的函数。我们还可以使用它们在路由改变或导航发生之前执行副作用。有三种类型的导航卫兵和钩子：全局、组件级别和路由级别。
+- en: Global Navigation Guards
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局导航卫兵
+- en: 'For every router instance, Vue Router exposes a set of global-level navigation
+    guards, including:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个路由器实例，Vue Router公开了一组全局级别的导航卫兵，包括：
+- en: '`router.beforeEach`'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`router.beforeEach`'
+- en: Called *before* every navigation
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每次导航之前调用
+- en: '`router.beforeResolve`'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`router.beforeResolve`'
+- en: Called *after* Vue Router has resolved all async components in the route and
+    all in-component guards (if any), but *before* confirming the navigation
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Vue Router解析路由的所有异步组件和所有组件内卫兵（如果有的话）之后，但在确认导航之前调用
+- en: '`router.afterEach`'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`router.afterEach`'
+- en: Called *after* confirming the navigation and *before* the next update of the
+    DOM and the navigation
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在确认导航之后和DOM的下一次更新之前调用
+- en: 'The global guards help perform validation before navigating to a specific route.
+    For example, we can use the `router.beforeEach` to check if the user is authenticated
+    before navigating to the `/pizzas` route. If not, we can redirect the user to
+    the `/login` page:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 全局卫兵帮助在导航到特定路由之前执行验证。例如，我们可以使用`router.beforeEach`来检查用户是否在导航到`/pizzas`路由之前进行了身份验证。如果没有，我们可以将用户重定向到`/login`页面：
+- en: '[PRE24]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: In this code, `to` is the destination route object to navigate to, `from` is
+    the current route object, and `next` is a function to call to resolve the hook/guard.
+    We need to trigger `next()` at the end, either without any argument to continue
+    to the original destination or with a new route object as its argument to redirect
+    the user to a different route. Otherwise, Vue Router will block the navigation
+    flow.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这段代码中，`to`是要导航到的目标路由对象，`from`是当前路由对象，`next`是一个函数，用于调用以解析钩子/卫兵。我们需要在最后触发`next()`，要么没有任何参数继续到原始目标，要么用新的路由对象作为其参数重定向用户到不同的路由。否则，Vue
+    Router将阻止导航流程。
+- en: Note
+  id: totrans-199
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Alternatively, we can use the `router.beforeResolve` to perform the same validation.
+    The critical difference between `router.before``Each` and `router.beforeResolve`
+    is that Vue Router triggers the latter after resolving all in-component guards.
+    However, invoking the callback after settling everything will be less valuable
+    when you want to avoid loading the suitable async component before confirming
+    the navigation.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们可以使用`router.beforeResolve`来执行相同的验证。`router.beforeEach`和`router.beforeResolve`之间的关键区别在于，Vue
+    Router在解析所有组件内卫兵后触发后者。然而，当你想要在确认导航之前避免加载适当的异步组件时，等待一切解决后再调用回调将不太有价值。
+- en: 'How about the `router.afterEach`? We can use this hook to perform actions like
+    saving some page’s data as cache, tracking page analytics, or authenticating our
+    user when navigating away from the login page:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`router.afterEach`怎么样？我们可以利用这个钩子执行动作，如将某些页面数据保存为缓存，跟踪页面分析，或者在从登录页面导航时对用户进行身份验证：'
+- en: '[PRE25]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: While the global guards help perform side effects and control the redirecting
+    of the whole application, in some cases we only want to achieve side effects for
+    a specific route. In this case, using route-level guards is a good option.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然全局卫兵帮助执行副作用并控制整个应用程序的重定向，但在某些情况下，我们只想为特定路由实现副作用。在这种情况下，使用路由级别卫兵是一个不错的选择。
+- en: Route-Level Navigation Guards
+  id: totrans-204
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 路由级别导航卫兵
+- en: 'For every route, we can define a callback for the `beforeEnter` guard, which
+    Vue Router triggers when entering a path from a different one. Take our `/pizzas`
+    route, for instance. Instead of mapping the `props` field with a function, we
+    can achieve mapping the search query as a prop to the view by manually setting
+    the `to.params.``searchTerm` field to `to.query.search` before entering the route:'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于每个路由，我们可以定义 `beforeEnter` 守卫的回调函数，当从一个路径进入另一个路径时，Vue Router 将触发此守卫。例如我们的 `/pizzas`
+    路由。与其将 `props` 字段与函数映射，我们可以通过手动设置 `to.params.``searchTerm` 字段为 `to.query.search`，在进入路由之前将搜索查询映射为视图的一个
+    prop：
+- en: '[PRE26]'
+  id: totrans-206
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Note that we have set `props: true` in the pizzas route. The UI will still
+    display the same list of pizzas as before ([Figure 8-10](#figure_07_pizzaslist)).'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '注意，我们在比萨路由中设置了 `props: true`。UI 仍将显示与之前相同的比萨列表（见 [图 8-10](#figure_07_pizzaslist)）。'
+- en: '![A screenshot of the Pizzas list page.](assets/lvue_0810.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个 Pizzas 列表页面的截图。](assets/lvue_0810.png)'
+- en: Figure 8-10\. Pizzas list
+  id: totrans-209
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-10\. 比萨列表
+- en: We can manually modify the `to.query.searchTerm` within this guard. However,
+    the changes won’t reflect on the URL path in the browser’s address bar. If we
+    want to update the URL path, we can use the `next` function to redirect the user
+    to a new route object with the desired query parameters.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以在这个守卫内手动修改 `to.query.searchTerm`。然而，这些更改不会反映在浏览器地址栏中的 URL 路径上。如果我们想要更新 URL
+    路径，我们可以使用 `next` 函数将用户重定向到一个新的路由对象，并带有所需的查询参数。
+- en: Passing an Array of Callbacks to beforeEnter
+  id: totrans-211
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将回调函数数组传递给 beforeEnter
+- en: '`beforeEnter` also accepts an array of callbacks, which Vue Router triggers
+    in sequence. Hence we can perform multiple side effects for a specific route before
+    entering it.'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beforeEnter` 也接受一个回调函数数组，Vue Router 将按顺序触发这些回调。因此，我们可以为特定路由执行多个副作用，然后再进入它。'
+- en: Like other global guards, the `beforeEnter` guard is handy when you want to
+    perform authentication to specific routes, additional modification to the route
+    parameters before passing them to the view component, etc. Next, we will learn
+    how to leverage the component-level guards to perform side effects for a specific
+    view.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像其他全局守卫一样，`beforeEnter` 守卫在您想要执行认证到特定路由、在将路由参数传递给视图组件之前进行额外修改等情况时非常有用。接下来，我们将学习如何利用组件级别的守卫来为特定视图执行副作用。
+- en: Component-Level Router Guards
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 组件级别的路由守卫
+- en: From Vue 3.x on, Vue Router also provides composable guards at the component
+    level to help control the flow of route leaving and updating, as `onBeforeRouteLeave`
+    and `onBeforeRouteUpdate`. While Vue Router triggers `onBeforeRouteLeave` when
+    the user navigates away from the current path view, it invokes `onBeforeRouteUpdate`
+    when the user navigates to the same path view but with different parameters.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 Vue 3.x 开始，Vue Router 在组件级别也提供了可组合的守卫，以帮助控制路由的离开和更新流程，例如 `onBeforeRouteLeave`
+    和 `onBeforeRouteUpdate`。当用户从当前路径视图导航离开时，Vue Router 触发 `onBeforeRouteLeave`，而用户在同一路径视图但参数不同的情况下导航时，则调用
+    `onBeforeRouteUpdate`。
+- en: 'We can use `onBeforeRouteLeave` to display a message to confirm the user’s
+    navigation away from the Contact page with the following code:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用 `onBeforeRouteLeave` 显示一个消息来确认用户是否导航离开联系页面，代码如下：
+- en: '[PRE27]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Now when you are on the Contact page and try to navigate to another page, you
+    will see a confirmation popup asking you to confirm your navigation, as in [Figure 8-11](#figure_07_alert).
+    Clicking on the Cancel button will prevent navigation, and clicking the OK button
+    will continue the navigation.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您位于联系页面并尝试导航到另一页时，您将看到一个确认弹窗询问您确认导航，如[图 8-11](#figure_07_alert)所示。单击取消按钮将阻止导航，单击确定按钮将继续导航。
+- en: '![A screenshot of the confirmation popup.](assets/lvue_0811.png)'
+  id: totrans-219
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个确认弹窗的截图。](assets/lvue_0811.png)'
+- en: Figure 8-11\. Confirmation popup
+  id: totrans-220
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-11\. 确认弹窗
+- en: Note
+  id: totrans-221
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you use Options API for your components, `beforeRouteLeave` and `beforeRouteUpdate`
+    guards would be available on the options object to achieve the same functionality.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的组件使用 Options API，那么 `beforeRouteLeave` 和 `beforeRouteUpdate` 守卫将在选项对象中可用，以实现相同的功能。
+- en: There is also a `beforeRouteEnter` hook, which the router triggers before Vue
+    initialize the view component. This guard is similar to the `setup()` hook; hence,
+    Vue Router’s API has no equivalent composable.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一个 `beforeRouteEnter` 钩子，在 Vue 初始化视图组件之前，路由器会触发这个守卫。此守卫类似于 `setup()` 钩子；因此，Vue
+    Router 的 API 中没有等价的可组合函数。
+- en: We have explored the available navigation guards in different levels of a routing
+    system and their order of execution, shown in [Figure 8-12](#figure_07_guardflow).
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经探索了路由系统中不同级别的导航守卫及其执行顺序，如 [图 8-12](#figure_07_guardflow) 所示。
+- en: '![A diagram of the navigation guard flow.](assets/lvue_0812.png)'
+  id: totrans-225
+  prefs: []
+  type: TYPE_IMG
+  zh: '![导航守卫流程的图示。](assets/lvue_0812.png)'
+- en: Figure 8-12\. Order of triggering navigation guards and their equivalent composable
+  id: totrans-226
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 8-12\. 触发导航守卫及其等效组合的顺序
+- en: Understanding the navigation flow and the order of execution of the guards is
+    crucial to building a robust routing system. Next, we will learn how to create
+    nested routes for our application.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解导航流程和守卫执行顺序对于构建强大的路由系统至关重要。接下来，我们将学习如何为我们的应用程序创建嵌套路由。
+- en: Creating Nesting Routes
+  id: totrans-228
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建嵌套路由
+- en: 'At this point, we have built a basic one-level routing system for our application.
+    In reality, most routing systems are more complex. Sometimes, we want to create
+    subpages for a specific page, such as a Frequently Asked Questions (FAQs) page,
+    and a Form page for the Contact page:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经为我们的应用程序构建了基本的单级路由系统。实际上，大多数路由系统都更复杂。有时，我们希望为特定页面创建子页面，例如常见问题解答（FAQ）页面和联系页面的表单页面：
+- en: '[PRE28]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: The default UI for the `/contact` page will be the `ContactView` page, and the
+    user can navigate to the Form page by clicking on a link presented on this page.
+    In this case, we need to create nested routes for the `/contact` page using the
+    `children` field of the route configuration object.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`/contact` 页面的默认 UI 将是 `ContactView` 页面，用户可以通过在此页面上显示的链接点击转到 Form 页面。在这种情况下，我们需要使用路由配置对象的
+    `children` 字段为 `/contact` 页面创建嵌套路由。'
+- en: 'First create the `ContactFaqView` and `ContactFormView` components, so the
+    router can render them when matched, and then modify our `/contact` route:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先创建 `ContactFaqView` 和 `ContactFormView` 组件，以便路由匹配时渲染它们，然后修改我们的 `/contact`
+    路由：
+- en: '[PRE29]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'We must also stub the placeholder component `RouterView` inside the `ContactView`
+    to render the nested routes. As an example, let’s add the following code to the
+    `ContactView`:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还必须在 `ContactView` 内部桩设占位符组件 `RouterView`，以渲染嵌套路由。例如，让我们向 `ContactView` 添加以下代码：
+- en: '[PRE30]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Now this Contact component will render `ContactFaqView` when the user navigates
+    to *http://localhost:4000/contact/faq* ([Figure 8-13](#figure_07_contactfaq_nested))
+    and `ContactFormView` when the user navigates to *http://localhost:4000/contact/form*,
+    respectively.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当用户分别导航到 *http://localhost:4000/contact/faq*（[图 8-13](#figure_07_contactfaq_nested)）和
+    *http://localhost:4000/contact/form* 时，该 Contact 组件将渲染 `ContactFaqView` 和 `ContactFormView`。
+- en: '![Screenshot of the Contact page with FAQ view rendered inside when navigating
+    to http://localhost:4000/contact/faq](assets/lvue_0813.png)'
+  id: totrans-237
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当导航到 http://localhost:4000/contact/faq 时，显示 Contact 页面内的 FAQ 视图的屏幕截图](assets/lvue_0813.png)'
+- en: Figure 8-13\. Example output when navigating to http://localhost:4000/contact/faq
+  id: totrans-238
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 8-13\. 访问 http://localhost:4000/contact/faq 时的示例输出
+- en: This approach proves beneficial when we want to create a specific UI layout
+    for a page containing nested views with nested routes.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们想要为包含嵌套视图及其嵌套路由的页面创建特定的 UI 布局时，这种方法非常有益。
+- en: 'We have seen how to create a nested route within a parent layout. However,
+    in some cases we want to make a nested way without a parent layout, so we must
+    declare the default path for the parent’s route as its nested route object. For
+    example, instead of claiming the parent `/contact` route’s `name` and `component`,
+    we can move it to the nested path with an empty path pattern:'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经看到如何在父布局中创建嵌套路由。然而，在某些情况下，我们希望在没有父布局的情况下创建嵌套方式，因此必须将父路由的默认路径声明为其嵌套路由对象的路径。例如，我们可以将父
+    `/contact` 路由的 `name` 和 `component` 移动到空路径模式的嵌套路径中。
+- en: '[PRE31]'
+  id: totrans-241
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: This way, when the user navigates to *http://localhost:4000/contact/faq*, only
+    the `Contact``FaqView` component will be rendered as a separate page, without
+    the content of the `ContactView` ([Figure 8-14](#figure_07_contactfaq)).
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样，当用户导航到 *http://localhost:4000/contact/faq* 时，只有 `ContactFaqView` 组件将作为单独的页面渲染，而不包含
+    `ContactView` 的内容（[图 8-14](#figure_07_contactfaq)）。
+- en: '![Screenshot of the Contact page with FAQ view rendered inside when navigating
+    to http://localhost:4000/contact/faq](assets/lvue_0814.png)'
+  id: totrans-243
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当导航到 http://localhost:4000/contact/faq 时，显示 Contact 页面内的 FAQ 视图的屏幕截图](assets/lvue_0814.png)'
+- en: Figure 8-14\. Example output when navigating to http://localhost:4000/contact/faq
+  id: totrans-244
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 8-14\. 访问 http://localhost:4000/contact/faq 时的示例输出
+- en: Note
+  id: totrans-245
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As you can see in the screenshot, the Contact link is still active in the navigation
+    bar. This behavior happens because the link element of the Contact page still
+    has the class `router-link-active`, but not `router-link-exact-active`. We can
+    fix this styling issue by defining CSS rules for only the exact active link instead.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您在屏幕截图中所看到的，导航栏中的联系人链接仍然处于活动状态。这种行为发生的原因是联系人页面的链接元素仍然具有`router-link-active`类，但不具有`router-link-exact-active`类。我们可以通过仅为确切活动的链接定义CSS规则来解决这个样式问题。
+- en: Using nested routes is very common in real-world applications; in fact, our
+    `routes` array is already nested children for the router instance of the application.
+    Declaring nested routes is a great way to organize routing structure and create
+    dynamic routes, which we will explore next.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现实世界的应用程序中，使用嵌套路由非常普遍；实际上，我们的`routes`数组已经作为应用程序路由器实例的嵌套子级。声明嵌套路由是组织路由结构和创建动态路由的一个很好的方法，我们将在下一节中探讨。
+- en: Creating Dynamic Routes
+  id: totrans-248
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建动态路由
+- en: One of the most beneficial features of Vue Router is the ability to set up dynamic
+    routes with routing parameters (routing params), which are variables extracted
+    from a URL path. Routing params come in handy when we have a dynamic data-driven
+    route structure. Each route shares a typical pattern and differs only by a unique
+    identifier, such as a user or product id.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue Router最有用的功能之一是设置具有路由参数（路由参数）的动态路由，这些参数是从URL路径中提取的变量。当我们有一个动态数据驱动的路由结构时，路由参数非常有用。每个路由共享一个典型模式，只有唯一标识符（例如用户或产品id）不同。
+- en: 'Let’s revise our routes for the Pizza House and add a dynamic path for displaying
+    one pizza at a time. One option is to define a new route, `/pizza`, and pass the
+    pizza’s id as its query parameter as `/pizza?id=my-pizza-id` as we learned in
+    [“Passing Data Between Routes”](#passing_data_between_routes). The better option,
+    however, is to modify the `/pizzas` route and add a new nested route to it with
+    the path pattern `:id`, as follows:'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们修改Pizza House的路由并添加一个动态路径，以便每次显示一个pizza。一种选项是定义一个新的路由`/pizza`，并将pizza的id作为其查询参数传递，如我们在[“在路由之间传递数据”](#passing_data_between_routes)中学到的那样。然而，更好的选择是修改`/pizzas`路由，并向其添加一个新的嵌套路由，路径模式为`:id`，如下所示：
+- en: '[PRE32]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: By using `:id`, Vue Router will match any path that has a similar format, like
+    */pizzas/1234-pizza-id*, and save the extracted id (like `1234-pizza-id`) as the
+    `route.params.id` field.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`:id`，Vue Router将匹配任何具有类似格式的路径，例如*/pizzas/1234-pizza-id*，并将提取的id（例如`1234-pizza-id`）保存为`route.params.id`字段。
+- en: 'Since we learned about the `props` field in the route configuration object,
+    we can set its value to `true`, enabling the automatic mapping of route parameters
+    to the `PizzaView`’s props:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们已经了解了路由配置对象中的`props`字段，我们可以将其值设置为`true`，从而使路由参数自动映射到`PizzaView`的props中：
+- en: '[PRE33]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'In the bound `PizzaView` component, we declare `id` as the component’s props
+    with `defineProps()` and retrieve the pizza’s details from the `pizzas` array
+    using the `useRoute` hook and this `id` prop:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在绑定的`PizzaView`组件中，我们使用`defineProps()`将`id`声明为组件的props，并使用`useRoute`钩子从`pizzas`数组中检索pizza的详细信息：
+- en: '[PRE34]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'We can display the details of `pizza` in the `PizzaView` component as follows:'
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`PizzaView`组件中，我们可以如下显示`pizza`的详细信息：
+- en: '[PRE35]'
+  id: totrans-258
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Now when you navigate to `/pizzas/1`, with `1` as the id of an existing pizza
+    in the list, the `PizzaView` component will display the pizza’s details, as shown
+    in [Figure 8-15](#figure_07_pizza_details).
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当您导航到`/pizzas/1`时，其中`1`是列表中现有pizza的id时，`PizzaView`组件将显示pizza的详细信息，如[图 8-15](#figure_07_pizza_details)所示。
+- en: '![A screenshot displaying the pizza details page of pizza with id 1](assets/lvue_0815.png)'
+  id: totrans-260
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示pizza id为1的pizza详细页面的屏幕截图](assets/lvue_0815.png)'
+- en: Figure 8-15\. Pizza details page
+  id: totrans-261
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-15\. Pizza详细页面
+- en: Fetching Data from the Server
+  id: totrans-262
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从服务器获取数据
+- en: Ideally, you should avoid fetching data again from the server, such as `pizzas`
+    in the `PizzaView` component. Instead, you should use data store management such
+    as Pinia ([Chapter 9](ch09.html#unique_chapter_id_08)) to store fetched `pizzas`
+    and retrieve them from the store whenever needed.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理想情况下，您应该避免再次从服务器获取数据，例如在`PizzaView`组件中的`pizzas`。相反，您应该使用数据存储管理，如Pinia（[第 9章](ch09.html#unique_chapter_id_08)），将获取的`pizzas`存储起来，并在需要时从存储中检索它们。
+- en: Thus far, we have explored how to create nested and dynamic routes and decoupled
+    the route’s parameters into props. In the next section, we will learn how to implement
+    custom back and forward buttons for our application with Vue Router.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经探讨了如何创建嵌套和动态路由，并将路由的参数解耦为props。在下一节中，我们将学习如何使用Vue Router为我们的应用程序实现自定义后退和前进按钮。
+- en: Going Back and Forward with the Router Instance
+  id: totrans-265
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用路由实例进行前进和后退
+- en: 'Implementing a custom back button is a common feature in web applications in
+    addition to using the native browser’s back button. We can use the `router.back()`
+    method to navigate to the previous page in the history stack, where `router` is
+    the app’s router instance received from `useRouter()`:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在网页应用程序中实现自定义返回按钮是一个常见功能，除了使用浏览器的原生返回按钮外，我们还可以使用 `router.back()` 方法导航到历史堆栈中的前一页，其中
+    `router` 是从 `useRouter()` 接收到的应用程序路由器实例：
+- en: '[PRE36]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'To move forward in the history stack, we can use the `router.forward()` method:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在历史堆栈中前进，我们可以使用 `router.forward()` 方法：
+- en: '[PRE37]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: Using router.go() To Navigate to a Specific Page in the History Stack
+  id: totrans-270
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 `router.go()` 导航到历史堆栈中的特定页面
+- en: You can also use the `router.go()` method, which accepts an argument as the
+    number of steps in the history stack to go back or forward. For instance, `router.go(-2)`
+    will navigate to the page two steps back, while `router.go(2)` will jump two steps
+    forward (if they exist).
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以使用 `router.go()` 方法，该方法接受历史堆栈中要向后或向前移动的步数作为参数。例如，`router.go(-2)` 将导航到两步之前的页面，而
+    `router.go(2)` 将向前跳两步（如果存在）。
+- en: 'We have explored the basics of Vue Router and created a basic routing system
+    for our application with all the pages we need. But there is one thing we need
+    to handle: if you try to navigate a path that doesn’t exist, you will see a blank
+    page. This scenario happens because Vue Router can’t find a matched component
+    to render when the user tries to navigate to a path that doesn’t exist. This will
+    be our next topic.'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经探讨了 Vue Router 的基础知识，并为我们的应用程序创建了一个基本的路由系统，包含所有我们需要的页面。但有一件事情我们需要处理：如果尝试导航到不存在的路径，将会看到一个空白页面。这种情况发生是因为
+    Vue Router 无法找到匹配的组件来渲染，当用户尝试导航到不存在的路径时。这将是我们下一个话题。
+- en: Handling Unknown Routes
+  id: totrans-273
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 处理未知路由
+- en: 'In most scenarios, we can’t control all the paths users will try to navigate
+    while using our application. For instance, a user may attempt to access *https://localhost:4000/pineapples*,
+    for which we haven’t defined a route. We can display a 404 page to the user in
+    such cases by using the regular expressions (regex) pattern `/:pathMatch(.**)**`
+    as `path` in a new `error` route:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数情况下，我们无法控制用户在使用我们的应用程序时尝试导航的所有路径。例如，用户可能尝试访问 *https://localhost:4000/pineapples*，对于这些路径，我们尚未定义路由。在这种情况下，我们可以使用正则表达式模式
+    `/:pathMatch(.**)**` 作为新 `error` 路由中的 `path` 来向用户显示 404 页面：
+- en: '[PRE38]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: Vue Router will match the unfound paths against the pattern `/:pathMatch(.**)**`
+    accordingly and then store the matched path value in the `pathMatch` parameter
+    of the route location object.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue Router 将根据模式 `/:pathMatch(.**)**` 匹配未找到的路径，并将匹配的路径值存储在路由位置对象的 `pathMatch`
+    参数中。
+- en: Using Regex to Match Unknown Paths
+  id: totrans-277
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用正则表达式匹配未知路径
+- en: You can replace `pathMatch` with any other name you want. Its purpose is to
+    let Vue Router knows where to store the matched path value.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以将`pathMatch`替换为任何其他你想要的名字。它的目的是让 Vue   可以将 `pathMatch` 替换为你想要的任何名称。其目的是让 Vue
+    Router 知道要存储匹配路径的值。
+- en: 'In the `ErrorView` component, we can display a message to the user:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `ErrorView` 组件中，我们可以向用户显示一条消息：
+- en: '[PRE39]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Now when we try to visit *https://localhost:4000/pineapples* or any unknown
+    path, we will see the 404 page rendered.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当我们尝试访问 *https://localhost:4000/pineapples* 或任何未知路径时，将会显示 404 页面。
+- en: 'Furthermore, we can use the `useRoute()` method of the `vue-router` package
+    to access the current route location and display its path’s value:'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们还可以使用 `vue-router` 包的 `useRoute()` 方法来访问当前路由位置并显示其路径的值：
+- en: '[PRE40]'
+  id: totrans-283
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: This code will display the path of the current route, which is, in this case,
+    `/pineapples` ([Figure 8-16](#figure_07_error)).
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码将显示当前路由的路径，例如在本例中为 `/pineapples`（参见图 8-16](#figure_07_error)）。
+- en: '![A screenshot showing the 404 page](assets/lvue_0816.png)'
+  id: totrans-285
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 404 页面的截图](assets/lvue_0816.png)'
+- en: Figure 8-16\. The 404 page
+  id: totrans-286
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-16\. 404 页面
+- en: 'Alternatively, we can use the `redirect` property in the route configuration
+    to redirect users to a specific route, such as the home page, when they visit
+    an unknown path. For example, we can rewrite our `error` route as:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们可以在路由配置中使用 `redirect` 属性将用户重定向到特定路由，例如主页，当他们访问未知路径时。例如，我们可以重写我们的 `error`
+    路由如下：
+- en: '[PRE41]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: When we visit an unknown path, the router instance will automatically redirect
+    us to the home page, and we no longer need an `ErrorView` component.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们访问一个未知路径时，路由实例会自动将我们重定向到首页，我们不再需要 `ErrorView` 组件。
+- en: Summary
+  id: totrans-290
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: In this chapter, we have explored how we can build a routing system for our
+    Vue application using different APIs provided by Vue Router in our application.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们探讨了如何利用Vue Router在我们的应用程序中使用不同的API构建路由系统。
+- en: Moving between routes requires the data flow to be consistent, like handling
+    data flow between components that aren’t in a direct parent-children relationship.
+    To solve this challenge, we need an efficient data management system for our application.
+    The next chapter introduces Pinia, the official data management library for Vue,
+    and how we can build an efficient, reusable data management system using Pinia
+    APIs.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在路由之间移动需要数据流保持一致，就像处理不直接处于父子关系的组件之间的数据流一样。为了解决这个挑战，我们需要为我们的应用程序设计一个高效的数据管理系统。下一章介绍了Pinia，Vue官方的数据管理库，以及如何利用Pinia的API构建一个高效、可重复使用的数据管理系统。

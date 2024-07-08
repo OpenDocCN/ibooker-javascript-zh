@@ -1,0 +1,2909 @@
+- en: Chapter 5\. Common Questions and Powerful Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第五章. 常见问题和强大模式
+- en: Now that we’re more aware of what React does and how it works under the hood,
+    let’s explore its practical applications a little deeper in how we write React
+    applications. In this chapter, we’ll explore the answers to common React questions
+    to boost our fluency around memoization, lazy loading, and performance. Let’s
+    get started by talking about memoization.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们更了解 React 在幕后的工作原理，让我们深入探讨它在编写 React 应用程序时的实际应用。在本章中，我们将探讨关于记忆化、惰性加载和性能的常见
+    React 问题的答案，以提升我们对这些概念的熟练程度。让我们开始谈论记忆化。
+- en: Memoization with React.memo
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 React.memo 进行记忆化
+- en: 'Memoization is a technique used in computer science to optimize the performance
+    of functions by caching their previously computed results. In simple terms, memoization
+    stores the output of a function based on its inputs so that if the function is
+    called again with the same inputs, it returns the cached result rather than recomputing
+    the output. This significantly reduces the time and resources needed to execute
+    a function, especially for functions that are computationally expensive or called
+    frequently. Memoization relies on function purity, which is defined as a function
+    predictably returning the same outputs for given inputs. An example of a pure
+    function is:'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记忆化是计算机科学中用于通过缓存先前计算的结果来优化函数性能的技术。简单来说，记忆化根据函数的输入存储其输出，因此如果再次使用相同的输入调用函数，则返回缓存的结果而不是重新计算输出。这显著减少了执行函数所需的时间和资源，特别是对于计算开销大或频繁调用的函数。记忆化依赖于函数的纯度，即对于给定的输入，函数可预测地返回相同的输出。一个纯函数的例子是：
+- en: '[PRE0]'
+  id: totrans-4
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'This `add` function always returns `3` when given arguments `1` and `2`, and
+    therefore can be memoized safely. If the function relies on some side effect like
+    network communication, it wouldn’t be memoizable. Consider, for example:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当给定参数 `1` 和 `2` 时，此 `add` 函数始终返回 `3`，因此可以安全地进行记忆化。如果函数依赖于像网络通信之类的副作用，则无法进行记忆化。例如考虑：
+- en: '[PRE1]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Given an input `2`, this function will return a different result every day and
+    therefore cannot be memoized. A silly example perhaps, but through it we crudely
+    understand basic memoization.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给定输入 `2`，这个函数每天都会返回一个不同的结果，因此无法进行记忆化。也许这是一个愚蠢的例子，但通过这个例子，我们粗略理解了基本的记忆化。
+- en: 'Memoization is particularly useful when dealing with expensive calculations
+    or when rendering large lists of items. Consider a function:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在处理昂贵计算或渲染大量项目列表时，记忆化特别有用。考虑一个函数：
+- en: '[PRE2]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Calling `doHardThing` once might take a few minutes to do the hard thing, but
+    calling it a second, third, fourth, or *nth* time doesn’t actually do the hard
+    thing but instead returns the stored result. This is the gist of memoization.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用 `doHardThing` 一次可能需要几分钟来完成困难任务，但第二次、第三次、第四次或*n*次调用实际上不会执行困难任务，而是返回存储的结果。这就是记忆化的要点。
+- en: In the context of React, memoization can be applied to functional components
+    using the `React.memo` component. This function returns a new component that only
+    rerenders if its props have changed. Based on [Chapter 4](ch04.html#ch04), ideally
+    now we know that to “rerender” means to reinvoke the function component. If wrapped
+    in `React.memo`, the function is not called again during reconciliation unless
+    its props have changed. By memoizing functional components, we can prevent unnecessary
+    rerenders, which can improve the overall performance of our React application.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 的上下文中，可以使用 `React.memo` 组件对功能组件应用记忆化。此函数返回一个新组件，仅当其 props 发生变化时才重新渲染。基于[第四章](ch04.html#ch04)，理想情况下现在我们知道“重新渲染”意味着重新调用函数组件。如果包装在
+    `React.memo` 中，该函数在协调期间不会再次调用，除非其 props 发生了变化。通过对功能组件进行记忆化，我们可以防止不必要的重新渲染，从而提高
+    React 应用程序的整体性能。
+- en: We already know that React components are functions that are invoked for reconciliation,
+    as discussed in [Chapter 4](ch04.html#ch04). React calls function components with
+    their props recursively to create a vDOM tree that is then used as the basis of
+    two Fiber trees that are reconciled. Sometimes, rendering (that is, invoking a
+    component function) can take a long time due to intense computations within the
+    function component, or intense computations when applying it to the DOM via placement
+    or update effects, as covered in [Chapter 4](ch04.html#ch04). This slows down
+    our application and presents a laggy user experience. Memoization is a way to
+    avoid this by storing the results of expensive computations and returning them
+    when the same inputs are passed to the function, or the same props are passed
+    to the component.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经知道React组件是被调用以进行协调的函数，如[第4章](ch04.html#ch04)中讨论的那样。React递归调用函数组件以创建vDOM树，然后用作协调的两个Fiber树的基础。有时，由于函数组件内的强烈计算或将其应用于DOM的放置或更新效果中的强烈计算，渲染（即调用组件函数）可能需要很长时间，如[第4章](ch04.html#ch04)中所述。这会减慢我们的应用程序并呈现迟滞的用户体验。记忆化是一种通过存储昂贵计算的结果并在传递给函数相同输入或组件相同props时返回它们的方式来避免这种情况。
+- en: 'To understand why `React.memo` is important, let’s consider a common scenario
+    where we have a list of items that need to be rendered in a component. For example,
+    let’s say we have a to do list that we want to display in a component, like this:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解为什么`React.memo`很重要，让我们考虑一个常见的场景，我们有一个需要在组件中呈现的项目列表。例如，假设我们有一个待办事项列表，我们希望在组件中显示，如下所示：
+- en: '[PRE3]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Now, let’s compose this component into another component that rerenders on
+    user input:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们将此组件组合到另一个根据用户输入重新渲染的组件中：
+- en: '[PRE4]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'In our `App` component, on every keystroke in the `input` field, `TodoList`
+    will rerender: the `TodoList` function component will be reinvoked with its props
+    on every keystroke. This can and probably will present performance problems, but
+    is central to how React works: when a state change occurs in a component, every
+    function component from that component down the tree is reinvoked during reconciliation.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的`App`组件中，在每次`input`字段中的键入时，`TodoList`都将重新渲染：每次在协调期间状态变化发生时，`TodoList`函数组件都将使用其props重新调用。这可能会导致性能问题，但这是React工作的核心：当组件中发生状态更改时，从该组件向下的每个函数组件都会在协调期间重新调用。
+- en: 'If the to do list is large, and the component is rerendered frequently, this
+    can cause a performance bottleneck in the application. One way to optimize this
+    component is to memoize it using `React.memo`:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果待办事项列表很大，并且组件频繁重新渲染，这可能导致应用程序性能瓶颈。优化此组件的一种方法是使用`React.memo`进行记忆化：
+- en: '[PRE5]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: By wrapping the `TodoList` component with `React.memo`, React will only rerender
+    the component if its props have changed. Surrounding state changes will not affect
+    it. This means that if the to do list remains the same, the component will not
+    rerender, and its cached output will be used instead. This can save significant
+    resources and time, especially when the component is complex and the to do list
+    is large.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`React.memo`包装`TodoList`组件，React仅在其props更改时重新渲染组件。周围的状态变化不会影响它。这意味着如果待办事项列表保持不变，组件将不会重新渲染，并且将使用其缓存的输出。这可以节省大量资源和时间，特别是当组件复杂且待办事项列表很大时。
+- en: 'Let’s consider another example where we have a complex component with multiple
+    nested components that are expensive to render:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑另一个例子，我们有一个包含多个昂贵渲染的嵌套组件的复杂组件：
+- en: '[PRE6]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'If the `data` prop changes frequently, this component can be expensive to render,
+    especially if the nested components are also complex. We can optimize this component
+    using `React.memo` to memoize each nested component:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`data`属性经常变化，这个组件可能很昂贵，特别是如果嵌套组件也很复杂。我们可以使用`React.memo`来优化这个组件，以记忆化每个嵌套组件：
+- en: '[PRE7]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: By memoizing each nested component, React will only rerender the components
+    that have changed, and the cached outputs will be used for the components that
+    have not changed. This can significantly improve the performance of the `Dashboard`
+    component and reduce unnecessary rerenders. Thus, we can see that `React.memo`
+    is an essential tool for optimizing the performance of functional components in
+    React. This can be particularly useful for components that are expensive to render
+    or have complex logic.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过记忆化每个嵌套组件，React 仅会重新渲染已更改的组件，并且缓存的输出将用于未更改的组件。这可以显著提高 `Dashboard` 组件的性能并减少不必要的重新渲染。因此，我们可以看到
+    `React.memo` 是优化 React 函数组件性能的重要工具。对于渲染开销大或具有复杂逻辑的组件来说，这尤其有用。
+- en: Getting Fluent in React.memo
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 熟悉 `React.memo`
+- en: Let’s briefly walk through how `React.memo` works. When an update happens in
+    React, your component is compared with the results of the vDOM returned from its
+    previous render. If these results are different—i.e., if its props change—the
+    reconciler runs an update effect if the element already exists in the host environment
+    (usually the browser DOM), or a placement effect if it doesn’t. If its props are
+    the same, the component still rerenders and the DOM is still updated.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们简要介绍一下 `React.memo` 的工作原理。当 React 中发生更新时，你的组件将与其上一个渲染返回的虚拟 DOM 结果进行比较。如果这些结果不同
+    — 即，如果其 props 发生变化 — 调和器会在元素已存在于宿主环境（通常是浏览器 DOM）中时运行更新效果，或者在其不存在时运行放置效果。如果其 props
+    相同，则组件仍会重新渲染并且 DOM 仍会更新。
+- en: 'This is what `React.memo` is good for: avoiding unnecessary rerenders when
+    a component’s props are identical between renders. Since we can do this in React,
+    it begs the question: how much and how often should we memoize stuff? Surely if
+    we memoize every component, our application might be faster overall, no?'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 `React.memo` 的好处所在：在组件的 props 在渲染之间保持不变时避免不必要的重新渲染。由于我们可以在 React 中做到这一点，这引发了一个问题：我们应该对多少内容进行记忆化，以及多频繁地记忆化呢？如果我们记忆化每个组件，整体应用可能会更快，对吗？
+- en: Memoized Components That Still Rerender
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 记忆化的组件仍然会重新渲染
+- en: '`React.memo` performs what is called a *shallow* comparison of the props to
+    determine whether they’ve changed or not. The problem with this is while scalar
+    types can be compared quite accurately in JavaScript, nonscalars cannot. To have
+    a high-quality discussion, let’s break down briefly what scalar and nonscalar
+    types are, and how they behave in comparison operations.'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.memo` 执行的是所谓的 *浅* 比较，以确定 props 是否发生了更改。问题在于，虽然 JavaScript 中可以相当准确地比较标量类型，但无法对非标量类型进行比较。为了进行高质量的讨论，让我们简要地分析一下什么是标量和非标量类型，以及它们在比较操作中的行为。'
+- en: Scalars (primitive types)
+  id: totrans-31
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 标量（原始类型）
+- en: Scalar types, also known as primitive types, are foundational. These types represent
+    singular, indivisible values. Unlike more complex data structures like arrays
+    and objects, scalars do not possess properties or methods, and they are immutable
+    by nature. This means that once a scalar value is set, it cannot be altered without
+    creating a completely new value. JavaScript has several scalar types, including
+    numbers, strings, booleans, and others like symbols, BigInts, undefined, and null.
+    Each of these types serves a unique purpose. For instance, while numbers are self-explanatory,
+    symbols provide a way to create unique identifiers, and undefined and null allow
+    developers to represent the absence of a value in different contexts. When comparing
+    scalar values, we’re often interested in their actual content or value.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标量类型，也称为原始类型，是基础类型。这些类型表示单一的、不可分割的值。与数组和对象等更复杂的数据结构不同，标量没有属性或方法，并且它们天生是不可变的。这意味着一旦设置了标量值，就不能在不完全创建新值的情况下进行更改。JavaScript
+    有几种标量类型，包括数字、字符串、布尔值，以及像符号、BigInt、undefined 和 null 这样的其他类型。每种类型都有其独特的用途。例如，尽管数字很好理解，符号提供了一种创建唯一标识符的方式，而
+    undefined 和 null 允许开发人员在不同的上下文中表示值的缺失。在比较标量值时，我们通常对它们的实际内容或值感兴趣。
+- en: Nonscalars (reference types)
+  id: totrans-33
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 非标量（引用类型）
+- en: Moving beyond the simplicity of scalars, we encounter nonscalar or reference
+    types. These types don’t store data, but rather a reference or a pointer to where
+    the data is stored in memory. This distinction is crucial because it impacts how
+    these types are compared, manipulated, and interacted with in code. In JavaScript,
+    the most common nonscalar types are objects and arrays. Objects allow us to store
+    structured data with key-value pairs, while arrays provide ordered collections.
+    Functions, too, are considered reference types in JavaScript. A key characteristic
+    of nonscalars is that multiple references can point to the same memory location.
+    This means that modifying data through one reference can impact other references
+    pointing to the same data. When it comes to comparison, nonscalar types are compared
+    by their memory reference, not by their content. This can sometimes lead to unexpected
+    results for those not familiar with this nuance. For example, two arrays with
+    identical content but different memory locations will be considered unequal when
+    compared using the strict equality operator.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 超越标量的简单性，我们遇到了非标量或引用类型。这些类型不存储数据，而是存储数据在内存中的引用或指针。这种区别至关重要，因为它影响了这些类型在代码中如何比较、操作和交互。在
+    JavaScript 中，最常见的非标量类型是对象和数组。对象允许我们使用键值对存储结构化数据，而数组提供有序的集合。在 JavaScript 中，函数也被视为引用类型。非标量的一个关键特征是多个引用可以指向相同的内存位置。这意味着通过一个引用修改数据可能会影响指向同一数据的其他引用。在比较时，非标量类型是通过它们的内存引用而不是它们的内容进行比较的。这有时会对不熟悉这种微妙差异的人产生意外结果。例如，两个具有相同内容但不同内存位置的数组在使用严格相等运算符进行比较时将被视为不相等。
+- en: 'Consider the following example:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑以下示例：
+- en: '[PRE8]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'With this array comparison, the arrays, objects, and other nonscalar types
+    are compared *by reference*: as in, does the lefthand-side array’s reference to
+    its position in the computer’s memory equal the righthand-side’s memory location.
+    This is why the comparison returns `false`. The same is true for objects. What
+    we’re doing with the object comparison is creating two different objects in memory
+    on the lefthand side and the righthand side—of course they’re not equal, they’re
+    two different objects that live in two different places in memory! They just have
+    the same content.'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种数组比较方式，数组、对象和其他非标量类型都是通过*引用*进行比较的：也就是说，左侧数组在计算机内存中的引用位置是否等于右侧的内存位置。这就是为什么比较返回`false`。对象也是如此。通过对象比较，我们在左侧和右侧分别在内存中创建了两个不同的对象——当然它们不相等，它们是存在于内存中两个不同位置的两个不同对象！它们只是具有相同的内容。
+- en: 'This is why `React.memo` can be tricky to use. Consider a functional component
+    `List` that takes in an array of items as a prop and renders them:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么使用`React.memo`可能会很棘手。考虑一个名为`List`的函数组件，它以一个项数组作为 prop 并渲染它们：
+- en: '[PRE9]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Now, imagine using this component within a parent component and passing a new
+    array instance each time the parent renders:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，想象一下在父组件中使用这个组件，并在每次父组件渲染时传递一个新的数组实例：
+- en: '[PRE10]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Every time the `Increment` button is clicked, the `ParentComponent` rerenders.
+    Even though the items passed to `List` haven’t changed in value, a new array instance
+    is created, with `['apple', 'banana', 'cherry']` each time. Since `React.memo`
+    performs a shallow comparison of props, it will see this new array instance as
+    a different prop from the previous render’s array, causing the `List` component
+    to rerender unnecessarily.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每当点击`Increment`按钮时，`ParentComponent`都会重新渲染。尽管传递给`List`的项值没有变化，但每次都会创建一个新的数组实例，每次都是`['apple',
+    'banana', 'cherry']`。由于`React.memo`对 props 执行浅比较，它会将这个新数组实例视为与上一次渲染的数组不同的 prop，导致`List`组件不必要地重新渲染。
+- en: 'To fix this, we could memoize the array using the `useMemo` hook:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要修复这个问题，我们可以使用`useMemo`钩子来对数组进行记忆：
+- en: '[PRE11]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Now, the array is only created once and retains the same reference across rerenders,
+    preventing unnecessary rerenders of the `List` component.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，数组只创建一次，并在重新渲染时保持相同的引用，从而防止`List`组件不必要地重新渲染。
+- en: This example underscores the importance of understanding reference comparisons
+    when working with `React.memo` and nonscalar props. If not used cautiously, we
+    could inadvertently introduce performance issues instead of optimizations.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个示例强调了在使用`React.memo`和非标量 props 时理解引用比较的重要性。如果不小心使用，我们可能会在优化之外无意中引入性能问题。
+- en: '`React.memo` often also gets circumvented quite commonly by another nonscalar
+    type: functions. Consider the following case:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.memo`也经常被另一种非标量类型——函数所绕过。考虑以下情况：'
+- en: '[PRE12]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'While the props don’t appear to change or depend on enclosing state with props
+    `name`, `url`, and `onChange` all having constant values, if we compare the props
+    we see the following:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 props 看起来没有改变或依赖于封闭状态，但如果我们比较 props，我们会看到以下内容：
+- en: '[PRE13]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Once again, this is because we’re comparing functions *by reference*. Remember
+    that as long as props differ, our component will not be memoized. We can combat
+    this by using the `useCallback` hook inside `MemoizedAvatar`’s parent:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次强调，这是因为我们通过引用比较函数。请记住，只要 props 不同，我们的组件就不会被记忆化。我们可以通过在 `MemoizedAvatar` 的父组件中使用
+    `useCallback` 钩子来解决这个问题：
+- en: '[PRE14]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Now we can be confident that `onAvatarChange` will never change unless one of
+    the things in its dependency array (second argument) changes, like the current
+    user ID. With this, our memoization is fully complete and reliable. This is the
+    recommended way to memoize components that have functions as props.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以确信 `onAvatarChange` 只有在其依赖数组中的某个东西（第二个参数）更改时才会改变。有了这个，我们的记忆化完全完成并可靠。这是记忆化具有函数作为
+    props 的组件的推荐方式。
+- en: Great! This now means that our memoized components will never unnecessarily
+    rerender. Right? Wrong! There’s one more thing we need to be aware of.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很好！现在这意味着我们的记忆化组件将不会不必要地重新渲染。对吗？错了！我们还需要注意一件事。
+- en: It’s a Guideline, Not a Rule
+  id: totrans-55
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 这是一个指导方针，而不是一个规则
+- en: React uses `React.memo` as a hint to its reconciler that we don’t want our components
+    to rerender if their props stay the same. The function just hints to React. Ultimately,
+    what React does is up to React. `React.memo` is consistent about avoiding rerenders
+    that cascade from the parent, and that’s its one purpose. It’s not a guarantee
+    that a component will never rerender. To echo back to the beginning of this book,
+    React is intended to be a declarative abstraction of our user interface where
+    we describe *what* we want, and React figures out the best way *how* to do it.
+    `React.memo` is a part of this.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用 `React.memo` 作为向其调和器的提示，表明如果它们的 props 保持不变，我们不希望我们的组件重新渲染。这个函数只是给 React
+    一个提示。最终，React 的操作由 React 决定。`React.memo` 一致地避免从父级开始的重新渲染级联，这是它的唯一目的。它不能保证组件永远不会重新渲染。回想一下本书开头的话，React
+    旨在成为我们用户界面的声明性抽象，在这里我们描述我们想要的*是什么*，React 找到最佳实现*如何*。`React.memo` 是这个过程的一部分。
+- en: '`React.memo` does not guarantee consistently avoided rerenders, because React
+    may decide to rerender a memoized component for various reasons, such as changes
+    to the component tree or changes to the global state of the application.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.memo` 不能保证始终避免重新渲染，因为 React 可能会因为各种原因重新渲染记忆化组件，比如组件树的更改或应用程序的全局状态的更改。'
+- en: To understand this more, let’s take a look at some code snippets from React’s
+    source code.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要更好地理解这一点，让我们看一些来自 React 源代码的代码片段。
+- en: 'First, let’s look at the implementation of `React.memo`:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们看一下 `React.memo` 的实现：
+- en: '[PRE15]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: In this implementation, `React.memo` returns a new object that represents the
+    memoized component. The object has a `$$typeof` property that identifies it as
+    a memoized component, a `type` property that references the original component,
+    and a `compare` property that specifies the comparison function to use for memoization.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个实现中，`React.memo` 返回一个新对象，表示记忆化组件。该对象具有一个 `$$typeof` 属性，用于标识它为记忆化组件，一个 `type`
+    属性，引用原始组件，以及一个 `compare` 属性，指定用于记忆化的比较函数。
+- en: 'Next, let’s look at how `React.memo` is used in the reconciler:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们看一下调和器中如何使用 `React.memo`：
+- en: '[PRE16]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Here’s a breakdown of what’s happening:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是正在发生的事情的详细解释：
+- en: 1. Initial check
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1. 初始检查
+- en: The function `updateMemoComponent` takes several parameters, including the current
+    and work-in-progress Fibers, the component, new props, and render lanes (which,
+    as discussed, indicate priority and timing of updates). The initial check (`if
+    (current === null)`) determines if this is the initial render of the component.
+    If `current` is `null`, the component is being mounted for the first time.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数 `updateMemoComponent` 接受几个参数，包括当前和工作中的 Fiber，组件，新 props，以及渲染 lanes（如前所述，指示更新的优先级和时机）。初始检查（`if
+    (current === null)`）确定这是否是组件的初始渲染。如果 `current` 是 `null`，则表示组件是首次挂载。
+- en: 2\. Type and fast path optimization
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 2\. 类型和快速路径优化
+- en: It then checks if the component is a simple function component and eligible
+    for a fast path update by checking `Component.compare` and `Component.defaultProps`.
+    If these conditions are met, it sets the work-in-progress Fiber’s tag to `SimpleMemoComponent`,
+    indicating a simpler component type that can be updated more efficiently.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，它检查组件是否是一个简单的函数组件，并且是否符合快速更新路径的条件，通过检查`Component.compare`和`Component.defaultProps`。如果满足这些条件，它将工作中的
+    Fiber 的标签设置为`SimpleMemoComponent`，表示这是一种更简单的组件类型，可以更高效地更新。
+- en: 3\. Development mode checks
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 3\. 开发模式检查
+- en: In development mode (`__DEV__`), the function performs additional checks, like
+    validating prop types and warning about deprecated features (like `defaultProps`
+    in function components).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发模式下（`__DEV__`），该函数执行额外的检查，如验证属性类型和警告有关函数组件中已弃用功能（如`defaultProps`）的内容。
+- en: 4\. Creating new Fiber
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 4\. 创建新的 Fiber
+- en: If it’s the initial render, a new Fiber is created with `createFiberFromTypeAndProps`.
+    This Fiber represents the unit of work for React’s renderer. It sets up references
+    and returns the child (new Fiber).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果是初始渲染，将使用`createFiberFromTypeAndProps`创建一个新的 Fiber。这个 Fiber 表示 React 渲染器的工作单元。它设置引用并返回子
+    Fiber（新的 Fiber）。
+- en: 5\. Updating existing Fiber
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 5\. 更新现有的 Fiber
+- en: If the component is updating (`current !== null`), it performs similar development
+    mode checks. It then checks if the component needs an update by comparing the
+    old props with new props using a shallow comparison (`shallowEqual`) or a custom
+    comparison function, if provided.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果组件正在更新（`current !== null`），它执行类似的开发模式检查。然后，它通过浅比较（`shallowEqual`）或自定义比较函数（如果提供了）来比较旧的属性和新的属性，以判断组件是否需要更新。
+- en: 6\. Bailing out of update
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 6\. 提前退出更新
+- en: If the props are equal and the ref hasn’t changed, it can bail out of the update
+    using `bailoutOnAlreadyFinishedWork`, which means no further rendering work is
+    needed for this component.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果属性相等且引用未更改，则可以通过`bailoutOnAlreadyFinishedWork`提前退出更新，这意味着此组件无需进一步的渲染工作。
+- en: 7\. Updating work-in-progress Fiber
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 7\. 更新工作中的 Fiber
+- en: If an update is needed, the function flags the work-in-progress Fiber with `PerformedWork`
+    and creates a new work-in-progress child Fiber based on the current child, but
+    with new props.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果需要更新，函数将使用`PerformedWork`标记工作中的 Fiber，并基于当前子 Fiber 创建一个新的工作中子 Fiber，但带有新的
+    props。
+- en: To summarize, this function is responsible for determining whether a memoized
+    component (a component wrapped with `React.memo`) needs to be updated or if it
+    can skip updating to optimize performance. It handles both the initial render
+    and updates, performing different operations based on whether it’s creating a
+    new Fiber or updating an existing one.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下，这个函数负责确定 memoized 组件（使用`React.memo`包装的组件）是否需要更新，或者是否可以跳过更新以优化性能。它处理初始渲染和更新，根据是否创建新的
+    Fiber 或更新现有的 Fiber 执行不同的操作。
+- en: 'Here’s what parts of this function tell us about the conditions under which
+    a `React.memo` component would rerender or not:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下部分告诉我们有关`React.memo`组件何时重新渲染或不重新渲染的条件：
+- en: No previous render (initial mount)
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有先前的渲染（初始挂载）
+- en: If `current === null`, the component is being mounted for the first time and
+    thus it cannot skip rendering. A new Fiber is created and returned for the component
+    to render.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`current === null`，则该组件是首次挂载，因此无法跳过渲染。将创建一个新的 Fiber 并返回，用于组件的渲染。
+- en: Simple function component optimization
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简单函数组件优化
+- en: If the component is a simple function component (without default props and without
+    a custom comparison function), React will optimize it to a `SimpleMemoComponent`.
+    This allows React to use a fast path for updates because it can assume that the
+    component only depends on its props and nothing else, and a shallow comparison
+    is sufficient to determine if it should update.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果组件是一个简单的函数组件（没有默认属性且没有自定义比较函数），React 将优化它为`SimpleMemoComponent`。这使得 React
+    可以使用快速更新路径，因为它可以假定组件仅依赖于其属性，而浅比较就足以确定是否应该更新。
+- en: Comparison function
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 比较函数
+- en: If there is a previous render, the component will only update if the comparison
+    function returns `false`. This comparison function can be custom if supplied or
+    default to a shallow equality check (`shallowEqual`). If the comparison function
+    determines that the new props are equal to the previous props and the `ref` is
+    the same, the component will not rerender, and the function will bail out of the
+    rendering process.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果有先前的渲染，仅当比较函数返回 `false` 时，组件才会更新。如果提供了比较函数，则此比较函数可以自定义，否则默认为浅比较（`shallowEqual`）。如果比较函数确定新的
+    props 等于先前的 props，并且 `ref` 也相同，则组件不会重新渲染，函数将退出渲染过程。
+- en: Default props and prop types in development
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发中的默认 props 和 prop 类型
+- en: In development mode (`__DEV__`), there are checks for `defaultProps` and `propTypes`.
+    The use of `defaultProps` will trigger a warning in development mode because future
+    versions of React plan to deprecate `defaultProps` on function components. Prop
+    types are checked for validation purposes.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在开发模式（`__DEV__`）下，会对 `defaultProps` 和 `propTypes` 进行检查。在函数组件中使用 `defaultProps`
+    会在开发模式下触发警告，因为 React 的未来版本计划废弃函数组件上的 `defaultProps`。Prop 类型会被检查以进行验证。
+- en: Bailout conditions
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 退出条件
+- en: If there are no scheduled updates or context changes (`hasScheduledUpdateOr​Con⁠text`
+    is `false`), the comparison function deems the old and new props to be equal,
+    and the `ref` hasn’t changed, then the function will return the result of `bailoutOnAlreadyFinishedWork`,
+    effectively skipping the rerender.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有计划的更新或上下文变化（`hasScheduledUpdateOr​Con⁠text` 为 `false`），比较函数认为旧 props 和新
+    props 相等，并且 `ref` 没有改变，那么函数将返回 `bailoutOnAlreadyFinishedWork` 的结果，从而有效地跳过重新渲染。
+- en: However, if there are scheduled context updates, the component will rerender—even
+    if its props don’t change. This is because context updates are considered to be
+    outside the scope of the component’s props. State changes, context changes, and
+    scheduled updates can also trigger rerenders.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，如果有计划的上下文更新，组件将重新渲染，即使其 props 没有变化。这是因为上下文更新被认为是超出组件 props 范围之外的内容。状态变化、上下文变化和计划更新也可以触发重新渲染。
+- en: Performed work flag
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行的工作标志
+- en: If an update is necessary, the `PerformedWork` flag is set on the `workInProgress`
+    Fiber, indicating that this Fiber has performed work during the current render.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果需要更新，则在 `workInProgress` Fiber 上设置 `PerformedWork` 标志，表示此 Fiber 在当前渲染期间已执行工作。
+- en: Thus, `React.memo` components will not rerender if the comparison between the
+    old and new props (using either the custom provided comparison function or the
+    default shallow comparison) determines that the props are equal, and there are
+    no updates scheduled due to state or context changes. If the props are determined
+    to be different, or if there are state or context changes, the component will
+    rerender.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，如果使用 `React.memo` 组件，在旧 props 和新 props 之间的比较（使用自定义的比较函数或默认的浅比较）确定 props 相等，并且没有由于状态或上下文变化而计划更新，那么组件将不会重新渲染。如果
+    props 被确定为不同，或者存在状态或上下文变化，组件将重新渲染。
+- en: Memoization with useMemo
+  id: totrans-95
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 `useMemo` 进行记忆化
+- en: '`React.memo` and the `useMemo` hook are both tools for memoization, but with
+    very different purposes. `React.memo` memoizes an entire component to keep it
+    from rerendering. `useMemo` memoizes a specific calculation inside a component,
+    to avoid expensive recalculations and preserve a consistent reference for the
+    result.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.memo` 和 `useMemo` 钩子都是记忆化的工具，但目的完全不同。`React.memo` 记忆化整个组件以防止其重新渲染。`useMemo`
+    则记忆化组件内的特定计算，以避免昂贵的重新计算并保持结果的一致引用。'
+- en: 'Let’s briefly delve into `useMemo`. Consider a component:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们简要地深入了解 `useMemo`。考虑一个组件：
+- en: '[PRE17]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: This component can potentially slow down our application due to its sorting
+    operation. The sorting operation has a time complexity that’s typically O(n log
+    n) for average and worst-case scenarios. If our list has, say, one million people,
+    it can involve significant computational overhead on each render. In computer
+    science terms, the sorting operation’s efficiency is largely determined by the
+    number of items, n, hence the O(n log n) time complexity.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于其排序操作，此组件可能会潜在地减慢我们的应用程序。排序操作的时间复杂度通常为平均情况和最坏情况下的 O(n log n)。例如，如果我们的列表有一百万人，每次渲染可能会涉及显著的计算开销。在计算机科学术语中，排序操作的效率很大程度上取决于项数
+    n，因此时间复杂度为 O(n log n)。
+- en: To optimize this, we would use the `useMemo` hook to avoid sorting the people
+    array on every render, especially when the `unsortedPeople` array hasn’t changed.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了优化此过程，我们将使用 `useMemo` 钩子，避免在每次渲染时对 people 数组进行排序，尤其是在 `unsortedPeople` 数组未更改时。
+- en: The current implementation of the component presents a significant performance
+    issue. Every time the state updates, which happens on every keystroke inside the
+    input field, the component rerenders. If a name is entered with 5 characters and
+    our list contains 1,000,000 people, the component will rerender 5 times. For each
+    render, it will sort the list, which involves on the order of 1,000,000 × log(1,000,000)
+    operations due to the time complexity of sorting. This amounts to many millions
+    of operations just for entering a five-character name! Fortunately, this inefficiency
+    can be mitigated using the `useMemo` hook, ensuring that the sorting operation
+    is only executed when the `unsortedPeople` array changes.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件的当前实现存在显著的性能问题。每次状态更新时（即在输入字段内每次按键时），组件都会重新渲染。如果输入一个包含5个字符的名称，而我们的列表包含100万人，组件将重新渲染5次。每次渲染时，它将对列表进行排序，这涉及到大约100万
+    × log(100万)的操作，由于排序的时间复杂度。这相当于仅仅输入一个五字符的名称就需要执行许多百万次操作！幸运的是，可以使用`useMemo`钩子来减轻这种效率低下，确保只在`unsortedPeople`数组变化时执行排序操作。
+- en: 'Let’s rewrite that code snippet a little bit:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们稍微改写一下这段代码片段：
+- en: '[PRE18]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: There! Much better! We wrapped the value of `sortedPeople` in a function that
+    was passed to the first argument of `useMemo`. The second argument we pass to
+    `useMemo` represents an array of values that, if changed, re-sorts the array.
+    Since the array contains only `unsortedPeople`, it will only sort the array once,
+    and every time the list of people changes—not whenever someone types in the name
+    input field. This is a great example of how to use `useMemo` to avoid unnecessary
+    rerenders.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好多了！我们将`sortedPeople`的值包装在传递给`useMemo`第一个参数的函数中。我们传递给`useMemo`的第二个参数表示一个值数组，如果变化，则重新排序数组。由于数组只包含`unsortedPeople`，因此它只会在人员列表发生更改时重新排序数组，而不是每当有人在姓名输入字段中键入时。这是如何使用`useMemo`避免不必要重新渲染的绝佳示例。
+- en: useMemo Considered Harmful
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '[Memo化的考虑](https://wiki.example.org/memoization_considered_harmful)'
+- en: While it might be tempting to wrap all variable declarations inside a component
+    with `useMemo`, this isn’t always beneficial. `useMemo` is particularly valuable
+    for memoizing computationally expensive operations or maintaining stable references
+    to objects and arrays. For scalar values, such as strings, numbers, or booleans,
+    using `useMemo` is typically unnecessary. This is because these scalar values
+    are passed and compared by their actual value in JavaScript, not by reference.
+    So every time you set or compare a scalar value, it’s the actual value you’re
+    working with, not a reference to a memory location that might change.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管将所有变量声明包装在`useMemo`组件内部可能很诱人，但这并不总是有利的。`useMemo`特别适用于记忆化计算密集型操作或保持对象和数组的稳定引用。对于标量值（如字符串、数字或布尔值），通常不需要使用`useMemo`。这是因为这些标量值在JavaScript中是通过它们的实际值传递和比较的，而不是通过引用。因此，每次设置或比较标量值时，你都在处理的是实际值，而不是可能会变化的内存位置的引用。
+- en: 'In these cases, loading and executing the `useMemo` function may be more expensive
+    than the actual operation it’s trying to optimize. For instance, consider the
+    following example:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这些情况下，加载和执行`useMemo`函数可能比其试图优化的实际操作更昂贵。例如，考虑以下示例：
+- en: '[PRE19]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'In this example, the `doubledCount` variable is memoized using the `useMemo`
+    hook. However, since `count` is a scalar value, it’s not necessary to memoize
+    it. Instead, we can simply compute the doubled count directly in the JSX:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`doubledCount`变量使用`useMemo`钩子进行了记忆化。然而，由于`count`是一个标量值，没有必要进行记忆化。相反，我们可以直接在JSX中计算加倍后的计数：
+- en: '[PRE20]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Now, `doubledCount` is no longer memoized, but the component still performs
+    the same computation with less memory consumption and overhead since we’re not
+    importing and invoking `useMemo`. This is a good example of how to avoid using
+    `useMemo` when it’s not necessary.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，`doubledCount`不再是记忆化的，但组件仍然执行相同的计算，内存消耗更少，开销更小，因为我们没有导入和调用`useMemo`。这是一个很好的例子，说明在不必要时如何避免使用`useMemo`。
+- en: What may present an additional performance problem, however, is that we’re re-creating
+    the `onClick` handler on the button on every render since it’s passed by memory
+    reference. But is this really a problem? Let’s look closer.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，可能会出现额外的性能问题，因为我们在每次渲染时重新创建按钮上的`onClick`处理程序，因为它是通过内存引用传递的。但这真的是个问题吗？让我们仔细看看。
+- en: 'Some suggest that we should memoize the `onClick` handler using `useCallback`:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有人建议我们应该使用`useCallback`来记忆化`onClick`处理程序：
+- en: '[PRE21]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Should we, though? The answer is no. There is no benefit in having the increment
+    function memoized here, since `<button>` is a browser-native element and not a
+    React function component that can be called. Also, there are no further components
+    below it that React would continue on to render.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应该这样做吗？答案是否定的。在这里将增量函数进行记忆化并没有好处，因为`<button>`是一个浏览器原生元素，而不是可以调用的React函数组件。此外，它下面也没有更多的组件可以继续渲染。
+- en: Moreover, in React, built-in or “host” components (like `div`, `button`, `input`,
+    etc.) are treated slightly differently from custom components when it comes to
+    props, including function props.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，在React中，内置或“主机”组件（如`div`，`button`，`input`等）在处理props时与自定义组件略有不同，包括函数props。
+- en: 'Here’s what happens with function props on built-in components:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是在内置组件上处理函数props时发生的情况：
+- en: Direct pass-through
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接传递
+- en: When you pass a function prop (such as an `onClick` handler) to a built-in component,
+    React passes it through directly to the actual DOM element. It does not create
+    any wrappers or perform any additional work on these functions.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您将函数prop（如`onClick`处理程序）传递给内置组件时，React会将其直接传递给实际的DOM元素。它不会为这些函数创建任何包装器或执行任何额外的工作。
+- en: However, in the case of `onClick` and event-based props, React uses event delegation
+    for handling events, not direct attachment of event handlers to DOM elements.
+    This means that when you provide an `onClick` handler to a built-in React element
+    like a `<button>`, React does not attach the `onClick` handler directly to the
+    button’s DOM node. Instead, React listens for all events at the top level using
+    a single event listener. This is attached to the root of the document (or the
+    root of the React application), and it relies on event bubbling to catch events
+    that originate from individual elements. This approach is efficient because it
+    reduces the memory footprint and the initial setup time for event handlers. Rather
+    than having to attach and manage individual handlers for each instance of an event
+    on each element, React can handle all events of a particular type (like clicks)
+    with a single real event listener. When an event occurs, React maps it to the
+    appropriate component and calls the handlers you’ve defined in a way that follows
+    the expected propagation path. So even though the events are being caught at the
+    top level, they will behave as if they were attached directly to the specific
+    elements. This event delegation system is mostly transparent when you’re writing
+    a React application; you define `onClick` handlers the same way you would if they
+    were being attached directly. Under the hood, however, React is optimizing event
+    handling for you.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，在`onClick`和基于事件的props的情况下，React使用事件委托来处理事件，而不是直接将事件处理程序附加到DOM元素上。这意味着当你为像`<button>`这样的内置React元素提供一个`onClick`处理程序时，React并不直接将`onClick`处理程序附加到按钮的DOM节点上。相反，React在顶层使用单个事件侦听器监听所有事件。这个侦听器附加到文档的根部（或React应用程序的根部），并依赖事件冒泡来捕获来自各个元素的事件。这种方法是高效的，因为它减少了事件处理程序的内存占用和初始设置时间。React不必为每个元素上每个事件实例附加和管理单独的处理程序，而是可以使用单个真实事件侦听器处理特定类型的所有事件（例如点击）。当事件发生时，React会将其映射到适当的组件，并按照预期的传播路径调用您定义的处理程序。因此，即使事件是在顶层捕获的，它们的行为也会表现得好像它们是直接附加到特定元素上的。在编写React应用程序时，这种事件委托系统通常是透明的；您定义`onClick`处理程序的方式与直接附加处理程序时相同。然而，在幕后，React正在为您优化事件处理。
+- en: Rerendering behavior
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重新渲染行为
+- en: Built-in components do not rerender due to changes in function props unless
+    they are part of a higher component that has rerendered. For example, if a parent
+    component rerenders and provides a new function as a prop to a built-in component,
+    the built-in component will rerender because its props have changed. However,
+    this rerender is typically fast and not something you generally need to optimize
+    unless profiling shows it to be a problem.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于函数props的变化不会导致内置组件重新渲染，除非它们是属于已经重新渲染的更高级组件的一部分。例如，如果父组件重新渲染并为内置组件提供一个新的函数作为props，那么内置组件将重新渲染，因为其props已经改变。然而，这种重新渲染通常是快速的，通常不需要优化，除非分析显示它是一个问题。
+- en: No virtual DOM comparison for functions
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有函数的虚拟DOM比较
+- en: The virtual DOM comparison for built-in components is based on the identity
+    of the function props. If you pass an inline function (like `onClick={() => do​Something()}`),
+    it will be a new function each time the component renders, but React doesn’t do
+    a deep comparison on functions to detect changes. The new function simply replaces
+    the old one on the DOM element, and thus we get performance savings with built-in
+    components.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于内置组件，虚拟 DOM 的比较是基于函数属性的标识。如果传递一个内联函数（例如 `onClick={() => do​Something()}`），每次组件渲染时都会是一个新函数，但
+    React 不会对函数进行深度比较以检测更改。新函数简单地替换旧函数在 DOM 元素上，因此我们在内置组件中获得了性能上的节省。
+- en: Event pooling
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件池化
+- en: React uses event pooling for event handlers to reduce memory overhead. The event
+    object that is passed to your event handlers is a synthetic event that is pooled,
+    meaning that it is reused for different events to reduce the garbage collection
+    overhead.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用事件池化来减少事件处理程序的内存开销。传递给事件处理程序的事件对象是一个合成事件，它是池化的，意味着它被重用于不同的事件，以减少垃圾回收的开销。
+- en: This is a strong contrast to custom components. For custom components, if you
+    pass a new function as a prop, the child component may rerender if it’s a pure
+    component or if it has memoization applied (such as with `React.memo`), because
+    it detects a change in props. But for host components, React doesn’t provide such
+    built-in memoization because it would add overhead that isn’t beneficial in most
+    cases. The actual DOM elements that React outputs don’t have a memoization concept;
+    they simply update with the new function reference when the properties change.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这与自定义组件形成了鲜明的对比。对于自定义组件，如果将一个新的函数作为属性传递，子组件可能会重新渲染，如果它是一个纯组件或者应用了记忆化（如`React.memo`），因为它检测到了属性的变化。但是对于宿主组件，React
+    不提供这种内置的记忆化，因为这样做在大多数情况下没有好处。React 输出的实际 DOM 元素没有记忆化的概念；它们只是在属性改变时更新为新的函数引用。
+- en: In practice, this means that while you should be cautious about passing new
+    function instances to custom components that might be expensive to rerender, doing
+    so with built-in components is less of a concern. However, it’s always good to
+    be mindful of how often you’re creating new functions and passing them around,
+    as unnecessary function creation can lead to garbage collection churn, which might
+    be a performance issue in very high-frequency update scenarios.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际应用中，这意味着虽然您应该谨慎地将新的函数实例传递给可能昂贵重新渲染的自定义组件，但对于内置组件来说，这并不是那么值得关注。然而，始终注意您创建新函数和传递它们的频率，因为不必要的函数创建可能会导致垃圾回收的频繁触发，在非常高频率的更新场景中可能会成为性能问题。
+- en: 'Thus, `useCallback` isn’t helping here at all, and is in fact worse than useless:
+    not only does it provide no value, it also adds overhead to our application. This
+    is because `useCallback` has to be imported, invoked, and passed the dependencies,
+    and then it has to compare the dependencies to see if the function should be recomputed.
+    All of this has runtime complexity that can hurt our app more than help it.'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，在这里 `useCallback` 根本没有帮助，实际上比没有使用还要糟糕：它不仅不提供任何价值，而且还给我们的应用程序增加了额外的开销。这是因为
+    `useCallback` 必须被导入、调用并传递依赖项，然后它必须比较依赖项，以确定是否应该重新计算函数。所有这些都具有运行时复杂性，可能对我们的应用程序造成更多的伤害而不是帮助。
+- en: What’s a good example for `useCallback` then? `useCallback` is particularly
+    useful when you have a component that is likely to rerender often and you pass
+    a callback down to a child component, especially if that child component is optimized
+    with `React.memo` or `shouldComponentUpdate`. The memoization of the callback
+    ensures that the child component does not rerender unnecessarily when the parent
+    component renders.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useCallback` 的一个很好的例子是什么？当你有一个组件可能经常重新渲染并且将回调传递给子组件时，特别是如果该子组件使用了`React.memo`或`shouldComponentUpdate`进行了优化时，`useCallback`特别有用。回调函数的记忆化确保了当父组件重新渲染时，子组件不会不必要地重新渲染。'
+- en: 'Here’s an example where `useCallback` is beneficial:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是 `useCallback` 有益的一个例子：
+- en: '[PRE22]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'In this example:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中：
+- en: '`ExpensiveComponent` is a child component that is wrapped in `React.memo`,
+    which means it will only rerender if its props change. This is a case where you
+    want to avoid passing a new function instance on each render.'
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`ExpensiveComponent` 是一个包裹在 `React.memo` 中的子组件，这意味着它仅在其 props 发生变化时重新渲染。这是一个你希望避免在每次渲染时传递新函数实例的情况。'
+- en: '`MyComponent` has two pieces of state: `count` and `otherState`.'
+  id: totrans-135
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`MyComponent` 有两个状态：`count` 和 `otherState`。'
+- en: '`incrementCount` is a callback that updates `count`. It is memoized with `use​Call⁠back`,
+    which means the `ExpensiveComponent` will not rerender when `MyComponent` rerenders
+    due to a change in `otherState`.'
+  id: totrans-136
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`incrementCount`是一个更新`count`的回调函数。它通过`use​Call⁠back`进行了记忆化，这意味着当`MyComponent`由于`otherState`的更改而重新渲染时，`ExpensiveComponent`不会重新渲染。'
+- en: The `doSomethingElse` function changes `otherState` but doesn’t need to be memoized
+    with `useCallback` because it is not passed down to `Expensive​Compo⁠nent` or
+    any other child.
+  id: totrans-137
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`doSomethingElse`函数改变了`otherState`，但不需要使用`useCallback`进行记忆化，因为它不会传递给`Expensive​Compo⁠nent`或任何其他子组件。'
+- en: By using `useCallback`, we ensure that `ExpensiveComponent` does not rerender
+    unnecessarily when `MyComponent` rerenders for reasons unrelated to `count`. This
+    is beneficial in cases where the rendering of the child component is a heavy operation
+    and you want to optimize performance by reducing the number of renders.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`useCallback`，我们确保`ExpensiveComponent`在`MyComponent`重新渲染时不会不必要地重新渲染，原因与`count`无关。在子组件的渲染是一个耗时操作且你希望通过减少渲染次数来优化性能的情况下，这是有益的。
+- en: This is a good example of how to use `useCallback` to avoid unnecessary rerenders,
+    ensuring that the function that is passed down to an expensive component is only
+    created once, and it retains the same reference across rerenders. This prevents
+    unnecessary rerenders of the expensive component. `useCallback` is essentially
+    `useMemo` for functions.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个很好的例子，展示了如何使用`useCallback`来避免不必要的重新渲染，确保传递给昂贵组件的函数仅创建一次，并且在重新渲染过程中保持相同的引用。这可以防止昂贵组件的不必要重新渲染。`useCallback`本质上是函数的`useMemo`。
+- en: 'Let’s consider another example:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑另一个例子：
+- en: '[PRE23]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'We’re not using `useMemo` here anywhere, mainly because the component is stateless.
+    This is good! But what if we have some input that triggers rerenders like this:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们这里没有使用`useMemo`，主要是因为组件是无状态的。这是好事！但是如果有一些输入会触发类似这样的重新渲染，那该怎么办呢：
+- en: '[PRE24]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Now we’re recomputing `new Date()` on every keystroke. Let’s fix this with
+    `useMemo`:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们在每次按键时重新计算`new Date()`。让我们用`useMemo`修复这个问题：
+- en: '[PRE25]'
+  id: totrans-145
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: This is good because `today` will be a reference to the same object every time
+    the component rerenders with the same props, and we assume the component will
+    always rerender in the same day.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是好的，因为`today`将在组件重新渲染时引用相同的对象，并且我们假设组件将始终在同一天重新渲染。
+- en: Note
+  id: totrans-147
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: There’s a slight edge case here if the user’s clock lapses at midnight while
+    they’re using this component, but this is a rare edge case that we can ignore
+    for now. Of course, we do better when there’s real production code involved.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里有一个小的边缘情况，如果用户在使用此组件时，他们的时钟在午夜时分归零，但这是一个我们现在可以忽略的罕见边缘情况。当然，当涉及到真实的生产代码时，我们会做得更好。
+- en: 'This example facilitates a bigger question: should we wrap `isAdult`’s value
+    in `useMemo`? What happens if we do? The answer is that we shouldn’t because `isAdult`
+    is a scalar value that requires no computation besides memory allocation. We *do*
+    call `.getFullYear` a bunch of times, but we trust the JavaScript engine and the
+    React runtime to handle the performance for us. It’s a simple assignment with
+    no further computation, like sorting, filter, or mapping.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例引发了一个更大的问题：我们是否应该将`isAdult`的值包装在`useMemo`中？如果这样做会发生什么？答案是我们不应该，因为`isAdult`是一个标量值，除了内存分配之外不需要任何计算。我们确实多次调用`.getFullYear`，但我们信任JavaScript引擎和React运行时来处理性能问题。这是一个简单的赋值，没有进一步的计算，例如排序、过滤或映射。
+- en: In this case, we should not use `useMemo` because it is more likely to slow
+    our app down than speed it up because of the overhead of `useMemo` itself, including
+    importing it, calling it, passing in the dependencies, and then comparing the
+    dependencies to see if the value should be recomputed. All of this has runtime
+    complexity that can hurt our app more than help it. Instead, we assign and trust
+    React to intelligently rerender our component when necessary with its own optimizations.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，我们不应该使用`useMemo`，因为它更可能减慢我们应用程序的速度，而不是加快它，因为`useMemo`本身的开销，包括导入它、调用它、传递依赖项，然后比较依赖项以查看是否应重新计算值。所有这些都具有可能对我们应用程序造成更多伤害而不是帮助的运行时复杂性。相反，我们分配并信任React在必要时通过其自身的优化智能重新渲染我们的组件。
+- en: Our applications are now enjoying performance benefits of faster rerenders even
+    in the face of heavy computations—but can we do more? In the next section, let’s
+    take a look at how all of the stuff we’ve covered so far probably will not even
+    matter in a few years based on some exciting things the React team is working
+    on to automatically consider memoization for us, enabling us to *forget* about
+    the details and instead focus on our applications.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使在面对重计算时，我们的应用程序现在也享受着更快的重新渲染性能好处——但我们能做得更多吗？在下一节中，让我们看看到目前为止我们已经涵盖的所有内容，可能在几年后都不会再重要，基于
+    React 团队正在致力于为我们自动考虑记忆化的一些激动人心的事物，使我们能够*忘记*细节，而专注于我们的应用程序。
+- en: Forget About All of This
+  id: totrans-152
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 忘记这一切
+- en: React Forget is a new toolchain aimed at automating memoization in React applications,
+    potentially making hooks like `useMemo` and `useCallback` redundant. By automatically
+    handling memoization, React Forget helps optimize component rerendering, improving
+    both user experience (UX) and developer experience (DX). This automation shifts
+    React’s rerendering behavior from object identity changes to semantic value changes
+    without deep comparisons, thereby enhancing performance. Introduced at React Conf
+    2021, React Forget is not yet generally available at the time of writing, but
+    is in use in production at Meta across Facebook, Instagram, and more, and has
+    “exceeded expectations” internally so far.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Forget 是一个旨在自动化 React 应用程序中记忆化的新工具链，有可能使像 `useMemo` 和 `useCallback` 这样的钩子变得多余。通过自动处理记忆化，React
+    Forget 帮助优化组件重新渲染，改善用户体验（UX）和开发者体验（DX）。这种自动化将 React 的重新渲染行为从对象身份更改转变为语义值更改，无需深度比较，从而提升性能。React
+    Forget 于 2021 年的 React Conf 中推出，目前在 Meta（Facebook、Instagram 等）内部已投入使用，并且“在内部已超出预期”。
+- en: If there is enough interest, we will cover React Forget in a future edition
+    of this book. Please let us know by posting about it on social media (especially
+    𝕏, formerly Twitter) and tagging the author, *@tejaskumar_*.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果有足够的兴趣，我们将在未来的版本中涵盖 React Forget。请通过社交媒体（尤其是 𝕏，之前是 Twitter）发帖并标记作者 *@tejaskumar_*
+    来告知我们。
+- en: Lazy Loading
+  id: totrans-155
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 懒加载
+- en: As our applications grow, we accumulate a lot of JavaScript. Our users then
+    download these massive JavaScript bundles—sometimes going into the double digits
+    on megabytes—only to use a small portion of the code. This is a problem because
+    it slows down our users’ initial load time, and it also slows down our users’
+    subsequent page loads because they have to download the entire bundle again, especially
+    when we don’t have access to the servers that serve these bundles and cannot add
+    the requisite headers for caching and so on.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们的应用程序增长时，我们积累了大量 JavaScript。然后，我们的用户下载这些庞大的 JavaScript 捆绑包——有时会达到数十兆字节——但实际上只使用其中的一小部分代码。这是一个问题，因为它减慢了用户的初始加载时间，也减慢了用户后续的页面加载时间，特别是当我们无法访问提供这些捆绑包的服务器，并且无法添加必需的缓存头等时。
+- en: One of the main problems with shipping too much JavaScript is that it can slow
+    down page load times. JavaScript files are typically larger than other types of
+    web assets, such as HTML and CSS, and require more processing time to execute.
+    This can lead to longer page load times, especially on slower internet connections
+    or older devices.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运用过多 JavaScript 的一个主要问题是它会减慢页面加载时间。JavaScript 文件通常比其他类型的网页资产（如 HTML 和 CSS）要大，执行时需要更多处理时间。这可能导致页面加载时间变长，尤其是在较慢的互联网连接或旧设备上。
+- en: 'For example, consider the following code snippet that loads a large JavaScript
+    file on page load:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，请考虑以下加载大型 JavaScript 文件的代码片段：
+- en: '[PRE26]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'In this example, the *large.js* file is loaded in the `<head>` of the page,
+    which means that it will be executed before any other content on the page. This
+    can lead to slower page load times, especially on slower internet connections
+    or older devices. A common solution to this problem is to load JavaScript files
+    asynchronously using the `async` attribute:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，*large.js* 文件在页面的 `<head>` 部分加载，这意味着它将在页面上的任何其他内容之前执行。这可能导致页面加载时间变慢，尤其是在较慢的互联网连接或旧设备上。解决这个问题的常见方法是使用
+    `async` 属性异步加载 JavaScript 文件：
+- en: '[PRE27]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: In this example, the *large.js* file is loaded asynchronously using the `async`
+    attribute. This means that it will be downloaded in parallel with other resources
+    on the page, which can help improve page load times.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，*large.js* 文件使用 `async` 属性进行异步加载。这意味着它将与页面上的其他资源并行下载，有助于提高页面加载时间。
+- en: Another problem with shipping too much JavaScript is that it can increase data
+    usage. JavaScript bundles are typically larger than other types of web assets,
+    which means that they require more data to be transferred over the network. This
+    can be a problem for users with limited data plans or slow internet connections,
+    as it can lead to increased costs and slower page load times.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发送太多 JavaScript 的另一个问题是可能增加数据使用量。JavaScript 捆绑包通常比其他类型的 Web 资产更大，这意味着它们需要通过网络传输更多的数据。对于拥有有限数据计划或较慢的互联网连接的用户来说，这可能是一个问题，因为它可能导致成本增加和页面加载时间变慢。
+- en: To mitigate these issues, we can take several steps to reduce the amount of
+    JavaScript that is shipped to users. One approach is to use code splitting to
+    load only the JavaScript that is needed for a particular page or feature. This
+    can help reduce page load times and data usage by only loading the necessary code.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了缓解这些问题，我们可以采取几个步骤来减少向用户传送的 JavaScript 量。一种方法是使用代码分割，只加载特定页面或功能所需的 JavaScript。这可以通过只加载必要的代码来帮助减少页面加载时间和数据使用量。
+- en: 'For example, consider the following code snippet that uses code splitting to
+    load only the JavaScript that is needed for a particular page:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑以下使用代码分割来加载特定页面所需的 JavaScript 的代码片段：
+- en: '[PRE28]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: In this example, the `import` function is used to asynchronously load the *large.js*
+    file only when it is needed. This can help reduce page load times and data usage
+    by only loading the necessary code.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`import` 函数被用来在需要时异步加载 *large.js* 文件。这可以通过只加载必要的代码来帮助减少页面加载时间和数据使用量。
+- en: Another approach is to use lazy loading to defer the loading of noncritical
+    JavaScript until after the page has loaded. This can help reduce page load times
+    and data usage by loading noncritical code only when it is needed.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种方法是使用懒加载来延迟加载非关键 JavaScript，直到页面加载完成后再加载。这可以通过只在需要时加载非关键代码来帮助减少页面加载时间和数据使用量。
+- en: 'For example, consider the following code snippet that uses lazy loading to
+    defer the loading of noncritical JavaScript:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑以下使用懒加载来延迟加载非关键 JavaScript 的代码片段：
+- en: '[PRE29]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: In this example, the `import` function is used to asynchronously load the *non-critical.js*
+    file only when the “Load more content” button is clicked. This can help reduce
+    page load times and data usage by loading noncritical code only when it is needed.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`import` 函数被用来在“加载更多内容”按钮被点击时异步加载 *non-critical.js* 文件。这可以帮助减少页面加载时间和数据使用量，只在需要时加载非关键代码。
+- en: 'Thankfully, React has a solution that makes this even more straightforward:
+    lazy loading using `React.lazy` and `Suspense`. Let’s take a look at how we can
+    use these to improve our application’s performance.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，React 提供了一个解决方案，使这一切更加简单：使用 `React.lazy` 和 `Suspense` 进行懒加载。让我们看看如何使用它们来提高我们应用的性能。
+- en: Lazy loading is a technique that allows us to load a component only when it’s
+    needed, like with the dynamic import in the preceding example. This is useful
+    for large applications that have many components that are not needed on the initial
+    render. For example, if we have a large application with a collapsible sidebar
+    that has a list of links to other pages, we might not want to load the full sidebar
+    if it’s collapsed on first load. Instead, we can load it only when the user toggles
+    the sidebar.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 懒加载是一种技术，允许我们仅在需要时加载组件，就像前面示例中的动态导入一样。对于具有许多不需要在初始渲染时加载的组件的大型应用程序非常有用。例如，如果我们有一个大型应用程序，侧边栏可以折叠，并且具有指向其他页面的链接列表，如果侧边栏在首次加载时是折叠状态，我们可能不希望加载完整的侧边栏。相反，我们可以在用户切换侧边栏时再加载它。
+- en: 'Let’s explore the following code sample:'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来探索以下代码示例：
+- en: '[PRE30]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'In this example, `<Sidebar />` is 22 MB of JavaScript. This is a lot of JavaScript
+    to download, parse, and execute, and it’s not necessary on the initial render
+    if the sidebar is collapsed. Instead, we can use `React.lazy` to lazy load the
+    component only if `showSidebar` is true. As in, only if we need it:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，如果 `<Sidebar />` 是 22 MB 的 JavaScript。这是一大块需要下载、解析和执行的 JavaScript，在侧边栏首次渲染时如果折叠了，这并不是必需的。相反，只有在
+    `showSidebar` 为 true 时，我们才能使用 `React.lazy` 来懒加载组件。也就是说，只在需要时加载：
+- en: '[PRE31]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Instead of *statically importing* `./Sidebar`, we *dynamically* import it—that
+    is, we pass a function to `lazy` that returns a promise that resolves to the imported
+    module. A dynamic import returns a promise because the module may not be available
+    immediately. It may need to be downloaded from the server first. React’s `lazy`
+    function, which triggers the import, is never called unless the underlying component
+    (in this case, `Sidebar`) is to be rendered. This way, we avoid shipping the 22
+    MB sidebar until we actually *render* `<Sidebar />`.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是静态导入`./Sidebar`，我们动态导入它——也就是说，我们将一个返回导入模块的promise的函数传递给`lazy`。动态导入返回一个promise，因为模块可能不会立即可用。它可能需要首先从服务器下载。React的`lazy`函数触发导入，只有在需要渲染底层组件（在这种情况下是`Sidebar`）时才会调用。这样，我们避免在实际*渲染*`<Sidebar
+    />`之前将 22 MB 的侧边栏传输过来。
+- en: 'You may have also noticed another new import: `Suspense`. We use `Suspense`
+    to wrap the component in the tree. `Suspense` is a component that allows us to
+    show a fallback component while the promise is resolving (read: as the sidebar
+    is downloading). In the snippet, we’re showing a fallback component that is a
+    lightweight version of the heavy sidebar while the heavy sidebar is downloading.
+    This is a great way to provide immediate feedback to the user while the sidebar
+    is loading.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能还注意到了另一个新的导入：`Suspense`。我们使用`Suspense`来包装树中的组件。`Suspense`是一个组件，允许我们在promise正在解析时显示一个fallback组件（即侧边栏正在下载时）。在片段中，我们展示了一个轻量级版本的重型侧边栏作为fallback组件，而重型侧边栏正在下载中。这是在侧边栏加载时为用户提供即时反馈的好方法。
+- en: Now, when the user clicks the button to toggle the sidebar, they’ll see a “skeleton
+    UI” that they can orient themselves around while the sidebar is loaded and rendered.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当用户点击按钮切换侧边栏时，他们会看到一个“骨架UI”，可以在侧边栏加载和渲染时进行定位。
+- en: Greater UI Control with Suspense
+  id: totrans-181
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用Suspense实现更大的UI控制
+- en: React Suspense works like a try/catch block. You know how you can `throw` an
+    exception from literally anywhere in your code, and then catch it with a `catch`
+    block somewhere else—even in a different module? Well, Suspense works in a similar
+    (but not exactly the same) way. You can place lazy-loaded and asynchronous primitives
+    anywhere in your component tree, and then catch them with a `Suspense` component
+    anywhere above it in the tree, even if your Suspense boundary is in a completely
+    different file.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Suspense的工作方式类似于try/catch块。你知道你可以从代码中的任何位置`throw`一个异常，然后在其他地方（甚至是不同的模块中）使用`catch`块捕获它吗？嗯，Suspense以类似的方式（但不完全相同）工作。你可以在组件树的任何位置放置延迟加载和异步基元，然后在树中的任何上层使用`Suspense`组件捕获它们，即使你的Suspense边界在完全不同的文件中。
+- en: 'Knowing this, we have the power to choose where we want to show the loading
+    state for our 22 MB sidebar. For example, we can hide the entire application while
+    the sidebar is loading—which is a pretty bad idea because we block our entire
+    app’s information from the user just for a sidebar—or we can show a loading state
+    for the sidebar only. Let’s take a look at how we can do the former (even though
+    we shouldn’t) just to understand `Suspense`’s capabilities:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 了解了这些，我们有能力选择在哪里显示我们的 22 MB 侧边栏的加载状态。例如，我们可以在侧边栏加载时隐藏整个应用程序——这是一个相当糟糕的想法，因为我们为了一个侧边栏而阻止了整个应用程序的信息传递给用户——或者我们可以仅显示侧边栏的加载状态。让我们看看如何做前者（即使我们不应该这样做）只是为了理解`Suspense`的能力：
+- en: '[PRE32]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: By wrapping the entire component in `Suspense`, we render the `fallback` until
+    all asynchronous children (promises) are resolved. This means that the entire
+    application is hidden until the sidebar is loaded. This can be useful if we want
+    to wait until everything’s ready to reveal the user interface to the user, but
+    in this case it might not be the best idea because the user is left wondering
+    what’s going on and can’t interact with the application at all.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过将整个组件包裹在`Suspense`中，我们在所有异步子组件（即promises）解析之前渲染`fallback`。这意味着整个应用程序在侧边栏加载之前都是隐藏的。如果我们希望等到所有准备就绪后再向用户显示界面，这是很有用的，但在这种情况下可能不是最佳选择，因为用户会不知所措，无法与应用程序进行交互。
+- en: 'This is why we should only use `Suspense` to wrap the components that need
+    to be lazy loaded, like this:'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么我们应该只使用`Suspense`来包装需要延迟加载的组件，就像这样：
+- en: '[PRE33]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: The Suspense boundary is a very powerful primitive that can remedy layout shift
+    and make user interfaces more responsive and intuitive. It’s a great tool to have
+    in your arsenal. Moreover, if high-quality skeleton UI is used in the `fallback`,
+    we can further guide our users to understand what’s going on and what to expect
+    while our lazy-loaded components load, thereby orienting them to the interface
+    they’re about to interact with before it’s ready. Taking advantage of all of this
+    is a great way to improve our applications’ performance and fluently get the most
+    out of React.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Suspense边界是一个非常强大的原语，可以修复布局移动，并使用户界面更加响应和直观。这是一个非常好的工具。此外，如果在`fallback`中使用高质量的骨架UI，我们可以进一步指导用户了解正在发生的事情，并在我们的延迟加载组件加载时引导他们了解即将与之交互的界面。充分利用这一点是改善我们应用性能的好方法，并流畅地利用React的最佳方式。
+- en: 'Next, we’ll look at another interesting question that many React developers
+    ask: when should we use `useState` versus `useReducer`?'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将看看另一个许多React开发者问的有趣问题：何时应该使用`useState`而不是`useReducer`？
+- en: useState Versus useReducer
+  id: totrans-190
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: useState与useReducer
+- en: 'React exposes two hooks for managing state: `useState` and `useReducer`. Both
+    of these hooks are used to manage state in a component. The difference between
+    the two is that `useState` is a hook that is better suited to manage a single
+    piece of state, whereas `useReducer` is a hook that manages more complex state.
+    Let’s take a look at how we can use `useState` to manage state in a component:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React暴露了两个用于管理状态的钩子：`useState`和`useReducer`。这两个钩子都用于在组件中管理状态。它们之间的区别在于，`useState`更适合管理单个状态片段，而`useReducer`更适合管理更复杂的状态。让我们看看如何在组件中使用`useState`来管理状态：
+- en: '[PRE34]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'In this example, we’re using `useState` to manage a single piece of state:
+    `count`. But what if our state’s a little more complex?'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们使用`useState`来管理一个单独的状态：`count`。但如果我们的状态稍微复杂呢？
+- en: '[PRE35]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Now we can see that our state is a little more complex. We have a `count`, a
+    `name`, and an `age`. We can increment the `count` by clicking the button, which
+    sets the state to *a new object* that has the same properties as the previous
+    state, but with the `count` incremented by `1`. This is a very common pattern
+    in React. The problem with it is that it can raise the possibility of bugs. For
+    example, if we don’t carefully spread the old state, we might accidentally overwrite
+    some of the state’s properties.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以看到，我们的状态变得有些复杂。我们有一个`count`、一个`name`和一个`age`。通过点击按钮，我们可以增加`count`，这会将状态设置为一个*新对象*，该对象具有与上一个状态相同的属性，但`count`增加了`1`。这在React中非常常见。但问题是，这可能会引发bug的可能性。例如，如果我们没有仔细地展开旧状态，可能会意外地覆盖一些状态的属性。
+- en: 'Fun fact: `useState` uses `useReducer` internally. You can think of `useState`
+    as a higher-level abstraction of `useReducer`. In fact, you can reimplement `useState`
+    with `useReducer` if you wish!'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的事实：`useState`在内部使用`useReducer`。你可以将`useState`看作是对`useReducer`的更高级抽象。实际上，如果你愿意，你可以用`useReducer`重新实现`useState`！
+- en: 'Seriously, you’d just do this:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说真的，你只需要这样做：
+- en: '[PRE36]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'Let’s look at the same example, but implemented with `useReducer` instead:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看相同的例子，但是使用`useReducer`实现：
+- en: '[PRE37]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'Now, some would say this is a tad more verbose than `useState`, and many would
+    agree, but this is to be expected whenever anyone goes a level lower in an abstraction
+    stack: the lower the abstraction, the more verbose the code. After all, abstractions
+    are intended to replace complex logic with syntax sugar in most cases. So since
+    we can do the same thing with `useState` as we can with `useReducer`, why don’t
+    we just always use `useState` since it’s simpler?'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，有些人会说这比`useState`多了一些冗余，许多人也会同意，但这在抽象堆栈中向下一个级别时是可以预料的：抽象级别越低，代码越冗长。毕竟，抽象的目的是在大多数情况下用语法糖替换复杂逻辑。既然我们可以用`useState`做与`useReducer`一样的事情，为什么不总是使用`useState`，因为它更简单呢？
+- en: 'There are three large benefits to using `useReducer` to answer this question:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`useReducer`回答这个问题有三个主要好处：
+- en: It separates the logic of updating state from the component. Its accompanying
+    `reducer` function can be tested in isolation, and it can be reused in other components.
+    This is a great way to keep our components clean and simple, and embrace the *single
+    responsibility principle*.
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它将更新状态的逻辑与组件分离。它的伴随`reducer`函数可以独立测试，并且可以在其他组件中重用。这是保持我们组件简洁和清晰，同时遵循*单一责任原则*的一个好方法。
+- en: 'We can test the reducer like this:'
+  id: totrans-204
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们可以这样测试reducer：
+- en: '[PRE38]'
+  id: totrans-205
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'In this example, we’re testing two scenarios: one where the increment action
+    is dispatched to the reducer, and one where an unknown action is dispatched.'
+  id: totrans-206
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们正在测试两种情况：一种是分派增量操作到reducer，另一种是分派未知操作。
+- en: In the first test, we’re creating an initial state object with a count value
+    of `0`, and an increment action object. We’re then expecting the count value in
+    the resulting state object to be incremented to `1`. We use the `toEqual` matcher
+    to compare the expected and actual state objects.
+  id: totrans-207
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在第一个测试中，我们创建了一个初始状态对象，其计数值为`0`，并创建了一个增量操作对象。我们期望结果状态对象中的计数值增加到`1`。我们使用`toEqual`匹配器来比较预期和实际的状态对象。
+- en: In the second test, we’re creating an initial state object with a count value
+    of `0`, and an unknown action object. We’re then expecting the resulting state
+    object to be the same as the initial state object. We use the `toBe` matcher to
+    compare the expected and actual state objects, since we’re testing for reference
+    equality.
+  id: totrans-208
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 在第二个测试中，我们创建了一个初始状态对象，其计数值为`0`，并创建了一个未知操作对象。然后我们期望结果状态对象与初始状态对象相同。我们使用`toBe`匹配器来比较预期和实际的状态对象，因为我们测试的是引用相等性。
+- en: By testing our reducer in this way, we can ensure that it behaves correctly
+    and produces the expected output when given different input scenarios.
+  id: totrans-209
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过这种方式测试我们的reducer，我们可以确保它在给定不同输入场景时行为正确并产生预期的输出。
+- en: Our state and the way it changes is always explicit with `useReducer`, and some
+    would argue that `useState` can obfuscate the overall state update flow of a component
+    through layers of JSX trees.
+  id: totrans-210
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`useReducer`，我们的状态及其变化始终是明确的，有人会认为`useState`可能会通过多层JSX树来混淆组件的整体状态更新流程。
+- en: '`useReducer` is an *event sourced* model, meaning it can be used to model events
+    that happen in our application, which we can then keep track of in some type of
+    audit log. This audit log can be used to replay events in our application to reproduce
+    bugs or to implement *time-travel debugging*. It also enables some powerful patterns
+    like undo/redo, optimistic updates, and analytics tracking of common user actions
+    across our interface.'
+  id: totrans-211
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`useReducer`是一种*事件源模型*，意味着它可以用于建模应用程序中发生的事件，然后我们可以在某种审计日志中跟踪这些事件。这个审计日志可以用来重放应用程序中的事件以重现错误或实现*时间旅行调试*。它还能支持一些强大的模式，如撤销/重做、乐观更新和跟踪用户界面上常见用户操作的分析。'
+- en: While `useReducer` is a great tool to have in your arsenal, it’s not always
+    necessary. In fact, it’s often overkill for most use cases. So when should we
+    use `useState` versus `useReducer`? The answer is that it depends on the complexity
+    of your state. But hopefully with all of this information, you can make a more
+    informed decision about which one to use in your application.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然`useReducer`是一个很好的工具，但并不总是必需的。事实上，对于大多数用例来说，它通常是过度复杂的。那么我们何时应该使用`useState`而不是`useReducer`？答案是取决于您的状态的复杂性。但希望通过所有这些信息，您能在应用程序中更明智地选择使用哪个。
+- en: Immer and Ergonomics
+  id: totrans-213
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Immer和人性化设计
+- en: Immer, a popular React library, is particularly useful when dealing with complex
+    state management in your applications. When your state shape is nested or complex,
+    traditional state updating methods can become verbose and error prone. Immer helps
+    to manage such complexities by allowing you to work with a mutable draft state
+    while ensuring the produced state is immutable.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Immer，一个流行的React库，在处理应用程序中复杂状态管理时特别有用。当您的状态形状是嵌套或复杂的时候，传统的状态更新方法可能会变得冗长且容易出错。Immer通过允许您使用可变草稿状态来处理这些复杂性，同时确保生成的状态是不可变的，有助于管理这些复杂性。
+- en: In a React application, state management is commonly handled using the `useState`
+    or `useReducer` hooks. While `useState` is suitable for simple state, `useReducer`
+    is more suited for complex state management, and that’s where Immer shines the
+    most.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在React应用程序中，状态管理通常使用`useState`或`useReducer`钩子处理。虽然`useState`适用于简单的状态，但`useReducer`更适用于复杂的状态管理，这正是Immer最擅长的地方。
+- en: 'When working with `useReducer`, the reducer function you provide is expected
+    to be pure and always return a new state object. This can lead to verbose code
+    when dealing with nested state objects. However, by integrating Immer with `useReducer`
+    through `useImmerReducer` from the use-immer library, you can write reducers that
+    appear to mutate the state directly, while actually operating on a draft state
+    provided by Immer. This way, you get to write simpler and more intuitive reducer
+    functions:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用 `useReducer` 时，提供的 reducer 函数应当是纯的，并始终返回一个新的状态对象。当处理嵌套状态对象时，这可能导致冗长的代码。然而，通过在
+    `use-immer` 库中通过 `useImmerReducer` 将 Immer 集成到 `useReducer` 中，您可以编写看似直接改变状态的 reducer
+    函数，实际上是在 Immer 提供的草稿状态上操作。这样，您可以编写更简单、更直观的 reducer 函数：
+- en: '[PRE39]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: In this example, `useImmerReducer` simplifies the reducer function significantly,
+    allowing direct assignments to update the nested state properties, which would
+    have required `spread` or `Object.assign` operations in a traditional reducer.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，`useImmerReducer` 显著简化了 reducer 函数，允许直接赋值以更新嵌套状态属性，在传统的 reducer 中则需要使用
+    `spread` 或 `Object.assign` 操作。
+- en: 'Furthermore, Immer is not just limited to `useReducer`. You can also use it
+    with `useState` whenever you have a complex state object and want to ensure immutability
+    when updating the state. Immer provides a `produce` function that you can use
+    to create your next state based on the current state and a set of instructions:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，Immer 不仅仅局限于 `useReducer`。每当您拥有复杂的状态对象并希望在更新状态时确保不可变性时，您还可以在 `useState` 中使用它。Immer
+    提供了一个 `produce` 函数，您可以使用它根据当前状态和一组指令创建下一个状态：
+- en: '[PRE40]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: In the `updateName` function, Immer’s `produce` function takes the current `state`
+    and a function that receives a `draft` of the state. Inside this function, you
+    can work with the draft as if it were mutable, while Immer ensures that the produced
+    state is a new immutable object.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `updateName` 函数中，Immer 的 `produce` 函数接受当前的 `state` 和一个接收状态的 `draft` 的函数。在此函数内部，您可以像处理可变对象一样处理草稿，而
+    Immer 确保生成的状态是一个新的不可变对象。
+- en: Immer’s ability to simplify state updates, especially in complex or nested state
+    structures, makes it a great companion to React’s state management hooks, facilitating
+    cleaner, more maintainable, and less error-prone code.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Immer 在简化状态更新方面的能力，特别是在复杂或嵌套的状态结构中，使其成为 React 状态管理钩子的绝佳伴侣，促进更干净、更可维护和更少错误的代码。
+- en: Powerful Patterns
+  id: totrans-223
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 强大的模式
+- en: Software design patterns are commonly used solutions to recurring problems in
+    software development. They provide a way to solve problems that have been encountered
+    and solved by other developers, saving time and effort in the software development
+    process. They are often expressed as templates or guidelines for creating software
+    that can be used in different situations. Software design patterns are typically
+    described using a common vocabulary and notation, which makes them easier to understand
+    and communicate among developers. They can be used to improve the quality, maintainability,
+    and efficiency of software systems.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件设计模式是软件开发中常用的解决方案，用于解决重复出现的问题。它们提供了一种解决已被其他开发人员遇到并解决过的问题的方法，节省了软件开发过程中的时间和精力。通常以模板或指南的形式表达，用于创建可在不同情境中使用的软件。软件设计模式通常使用共同的词汇和符号描述，这使得它们更易于理解和开发人员之间的沟通。它们可以用于提高软件系统的质量、可维护性和效率。
+- en: 'Software design patterns are important for several reasons:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件设计模式之所以重要有几个原因：
+- en: Reusability
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可重用性
+- en: Design patterns provide reusable solutions to common problems, which can save
+    time and effort in software development.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设计模式提供了解决常见问题的可重用方案，可以节省软件开发中的时间和精力。
+- en: Standardization
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标准化
+- en: Design patterns provide a standard way of solving problems, which makes it easier
+    for developers to understand and communicate with each other.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设计模式提供了解决问题的标准方法，使开发人员更易于理解和相互沟通。
+- en: Maintainability
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可维护性
+- en: Design patterns provide a way to structure code that is easy to maintain and
+    modify, which can improve the longevity of software systems.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设计模式提供了一种易于维护和修改的代码结构方式，可以提高软件系统的持久性。
+- en: Efficiency
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 效率
+- en: Design patterns provide efficient solutions to common problems, which can improve
+    the performance of software systems.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设计模式提供了解决常见问题的高效方案，可以提高软件系统的性能。
+- en: Usually, software design patterns naturally arrive over time in response to
+    real-world needs. These patterns solve specific problems that engineers experience,
+    and find their way into an “engineer’s arsenal” of tools to use in different use
+    cases. *One pattern is not inherently worse than the other*; each has its place.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，软件设计模式是随着时间的推移自然而然地响应现实需求而产生的。这些模式解决了工程师遇到的具体问题，并成为“工程师工具库”中用于不同用例的工具。*一个模式并不一定比另一个更差*；每种模式都有其适用的场景。
+- en: 'Most patterns help us identify ideal levels of abstraction: how we can write
+    code that ages like fine wine instead of accruing extra state and configuration
+    to the point where it becomes unreadable and/or unmaintainable. This is why a
+    common consideration when picking a design pattern is *control*: how much of it
+    we give to users versus how much of it our program handles.'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数模式帮助我们确定理想的抽象级别：我们如何编写像美酒般经久的代码，而不是累积额外的状态和配置，以至于代码变得难以阅读和/或难以维护。这就是为什么在选择设计模式时常见的考虑因素是*控制*：我们将多少控制权交给用户，而我们的程序又处理了多少控制权。
+- en: With that, let’s dive in to some popular React patterns, following a rough chronological
+    order of when these patterns emerged.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们深入探讨一些流行的 React 模式，按照这些模式出现的大致时间顺序。
+- en: Presentational/Container Components
+  id: totrans-237
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 展示组件/容器组件
+- en: 'It’s common to see a React design pattern that is a combination of two components:
+    a *presentational component* and a *container component*. The presentational component
+    renders the UI, and the container component handles the state of the UI. Consider
+    a counter. This is how a counter would look when implementing this pattern:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 设计模式中，常见的一种模式是组合两个组件：*展示组件*和*容器组件*。展示组件负责渲染 UI，而容器组件则处理 UI 的状态。以计数器为例，实现该模式的计数器如下所示：
+- en: '[PRE41]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'In this example, we have two components: `PresentationalCounter` (a presentational
+    component) and `ContainerCounter` (a container component). The presentational
+    component renders the UI, and the container component handles the state.'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们有两个组件：`PresentationalCounter`（一个展示组件）和`ContainerCounter`（一个容器组件）。展示组件负责渲染
+    UI，而容器组件则处理状态。
+- en: Why is this a thing? This pattern is quite useful because of the principle of
+    *single responsibility*, which highly encourages us to separate concerns in our
+    applications, enabling them to scale better by being more modular, reusable, and
+    even testable. Instead of having a component be responsible for how it should
+    look and how it should work, we split these concerns. The result? `PresentationalCounter`
+    can be passed between other stateful containers and preserve the look we want,
+    while `ContainerCounter` can be replaced with another stateful container and preserve
+    the functionality we want.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么要用这种模式？这种模式非常有用，因为它遵循*单一责任*原则，极大地鼓励我们在应用程序中分离关注点，使其更具扩展性，通过更模块化、可重用甚至可测试。我们将组件的外观与功能分开，结果呢？`PresentationalCounter`可以在其他有状态容器之间传递，并保持我们想要的外观，而`ContainerCounter`可以被替换为另一个有状态容器，并保留我们想要的功能。
+- en: We can also unit test `ContainerCounter` in isolation, and instead visually
+    test (using Storybook or similar) `PresentationalCounter` in isolation. We can
+    also assign engineers or engineering teams more comfortable with visual work to
+    `PresentationalCounter`, while assigning engineers who prefer data structures
+    and algorithms to `ContainerCounter`.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们也可以单独对`ContainerCounter`进行单元测试，而使用 Storybook 或类似工具对`PresentationalCounter`进行可视化测试。我们也可以将更喜欢视觉工作的工程师或工程团队分配给`PresentationalCounter`，而将更喜欢数据结构和算法的工程师分配给`ContainerCounter`。
+- en: We have so many more options because of this decoupled approach. For these reasons,
+    the container/presentational component pattern has gained quite a lot of popularity
+    and is still in use today. However, the introduction of hooks allowed for far
+    more convenience in adding statefulness to components without needing a container
+    component to provide that state.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于这种解耦的方法，我们有更多的选择。因此，容器/展示组件模式因其灵活性而广受欢迎，并且今天仍在使用。然而，使用 hooks 的引入使得在组件中添加状态变得更加方便，而不需要容器组件来管理状态。
+- en: Nowadays, in many cases the container/presentational pattern can be replaced
+    with hooks. Although we can still leverage this pattern, even with React Hooks,
+    it can easily be considered overengineering in smaller applications.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如今，在许多情况下，容器/展示模式可以用 hooks 替代。尽管我们仍然可以利用这种模式，即使使用 React Hooks，它在较小的应用程序中也很容易被认为是过度工程化。
+- en: Higher-Order Component
+  id: totrans-245
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 高阶组件
+- en: 'According to [Wikipedia’s definition of a higher-order function](https://oreil.ly/Ywx56):'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据[Wikipedia关于高阶函数的定义](https://oreil.ly/Ywx56)
+- en: 'In mathematics and computer science, a higher-order function (HOF) is a function
+    that does at least one of the following: takes one or more functions as arguments
+    (i.e., a procedural parameter, which is a parameter of a procedure that is itself
+    a procedure), returns a function as its result.'
+  id: totrans-247
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 在数学和计算机科学中，高阶函数（HOF）是至少满足以下条件之一的函数：接受一个或多个函数作为参数（即过程参数，是一个过程的参数，本身又是一个过程），或者以函数作为其结果返回。
+- en: 'In the JSX world, a higher-order component (HOC) is basically this: a component
+    that takes another component as an argument and returns a new component that is
+    the result of the composition of the two. HOCs are great for *shared behavior
+    across components that we’d rather not repeat*.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JSX世界中，高阶组件（HOC）基本上是这样的：一个接受另一个组件作为参数并返回一个由两者组合而成的新组件。HOC非常适合*跨组件共享行为*。
+- en: 'For example, many web applications need to request data from some data source
+    asynchronously. Loading and error states are often inevitable, but we sometimes
+    forget to account for them in our software. If we manually add `loading`, `data`,
+    and `error` props to our components, the chances that we miss a few get even higher.
+    Let’s consider a basic to do list app:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，许多Web应用程序需要异步从某些数据源请求数据。加载和错误状态通常是不可避免的，但我们有时会忘记在软件中考虑它们。如果我们手动为组件添加`loading`、`data`和`error`
+    props，那么我们遗漏几个的机会就更高了。让我们考虑一个基本的待办事项列表应用程序：
+- en: '[PRE42]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'This app has a few problems. We don’t account for loading or error states.
+    Let’s fix this:'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此应用程序存在一些问题。我们没有考虑加载或错误状态。让我们来解决这个问题：
+- en: '[PRE43]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: Yikes. This got pretty unruly, pretty fast. Moreover, *this solves the problem
+    for just one component*. Do we need to add these pieces of state (i.e., loading,
+    data, and error) to each component that interacts with a foreign data source?
+    This is a *cross-cutting concern*, and exactly where HOCs shine.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 糟糕。这很快变得非常混乱。此外，*这只解决了一个组件的问题*。我们需要为与外部数据源交互的每个组件添加这些状态（即加载、数据和错误）吗？这是一个*横切关注点*，而HOC正是它发挥作用的地方。
+- en: 'Instead of repeating this loading, error, and data pattern for each component
+    that talks to a foreign data source asynchronously, we can use an HOC factory
+    to deal with these states for us. Let’s consider a `withAsync` HOC factory that
+    remedies this:'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其为每个与异步外部数据源交互的组件重复加载、错误和数据模式，我们可以使用一个HOC工厂来处理这些状态。让我们考虑一个解决这个问题的`withAsync`
+    HOC工厂：
+- en: '[PRE44]'
+  id: totrans-255
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: '`withAsync` will deal with loading and error states, and render any component
+    when data is available. Let’s look at its implementation:'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`withAsync`将处理加载和错误状态，并在数据可用时渲染任何组件。让我们看看它的实现：'
+- en: '[PRE45]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'So now, when any `Component` is passed into `withAsync`, we get a new component
+    that renders appropriate pieces of information based on its props. This changes
+    our initial component into something more workable:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以现在，当任何`Component`被传递到`withAsync`中时，我们得到一个新的组件，根据其props呈现适当的信息。这使我们的初始组件变得更加可行：
+- en: '[PRE46]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'No more nested ternaries, and the `TodoList` itself can show appropriate information
+    depending on whether it’s loading, has an error, or has data. Since the `withAsync`
+    HOC factory deals with this cross-cutting concern, we can wrap any component that
+    talks to an external data source with it and get back a new component that responds
+    to `loading` and `error` props. Consider a blog:'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不再有嵌套的三元操作符，而`TodoList`本身可以根据其是否正在加载、是否有错误或是否有数据来显示适当的信息。由于`withAsync`的HOC工厂处理这种横切关注点，我们可以用它包装任何与外部数据源交互的组件，并获得一个响应`loading`和`error`
+    props的新组件。考虑一个博客：
+- en: '[PRE47]'
+  id: totrans-261
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: In this example, both `Post` and `Comments` use the `withAsync` HOC pattern,
+    which returns a newer version of `BasicPost` and `BasicComments`, respectively,
+    that now responds to `loading` and `error` props. The behavior for this cross-cutting
+    concern is centrally managed in `withAsync`’s implementation, so we account for
+    loading and error states “for free” just by using the HOC pattern here.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，`Post`和`Comments`都使用`withAsync`的高阶组件模式，分别返回更新后的`BasicPost`和`BasicComments`版本，现在响应`loading`和`error`属性。这种横切关注点的行为在`withAsync`的实现中进行了集中管理，因此我们在这里使用HOC模式时可以“免费”处理加载和错误状态。
+- en: However, similar to presentational and container components, HOCs are often
+    also discarded in favor of hooks, since hooks provide similar benefits with added
+    convenience.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，与展示性组件和容器组件类似，由于钩子提供了额外的便利性，HOCs经常被抛弃。
+- en: Composing HOCs
+  id: totrans-264
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 组合HOCs
+- en: 'Composing multiple HOCs together is a common pattern in React, which allows
+    developers to mix and match functionalities and behaviors across components. Here’s
+    an example of how you might compose multiple HOCs:'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将多个HOC组合在一起是React中的一种常见模式，它允许开发人员跨组件混合和匹配功能和行为。以下是一个示例，展示了如何组合多个HOC：
+- en: 'Suppose you have two HOCs, `withLogging` and `withUser`:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你有两个HOC，`withLogging` 和 `withUser`：
+- en: '[PRE48]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Now, say you want to compose these two HOCs together. One way to do this is
+    to nest them:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，假设你想要将这两个HOC组合在一起。一种方法是嵌套它们：
+- en: '[PRE49]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'However, nested HOC calls can be difficult to read and maintain, especially
+    as the number of HOCs increases. Imagine this in your application over time:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，嵌套的高阶组件（HOC）调用可能难以阅读和维护，特别是随着HOC数量的增加。想象一下这在你的应用程序中随着时间的推移会是怎样的情况：
+- en: '[PRE50]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Yuck! A better approach is to create a utility function that composes multiple
+    HOCs together into a single HOC. Such a utility function might look like this:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哎呀！更好的方法是创建一个实用函数，将多个HOC组合成一个单一的HOC。这样的实用函数可能看起来像这样：
+- en: '[PRE51]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: In this `compose` function, `reduceRight` is used to apply each HOC from right
+    to left to the `WrappedComponent`. This way, you can list your HOCs in a flat
+    list, which is easier to read and maintain. The `compose` function is a common
+    utility in functional programming, and libraries like Redux provide their own
+    `compose` utility function for this purpose.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个`compose`函数中，使用`reduceRight`从右到左应用每个HOC到`WrappedComponent`上。这样一来，你可以将你的HOC列在一个平面列表中，这样更容易阅读和维护。`compose`函数是函数式编程中常见的实用工具，像Redux这样的库也提供了它们自己的`compose`实用函数用于此目的。
+- en: 'To revisit our previous yucky example with our new `compose` utility, it would
+    look more like this:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要重访我们之前的丑陋示例，使用新的`compose`实用程序后，它看起来会更像这样：
+- en: '[PRE52]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: Isn’t that better? Less indentation, more readability, and easier maintenance.
+    Each HOC in the chain wraps the component produced by the previous HOC, adding
+    its own behavior to the mix. This way, you can build up complex components from
+    simpler components and HOCs, each focused on a single concern. This makes your
+    code more modular, easier to understand, and easier to test.
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是不是更好了？缩减了缩进，增强了可读性，更易于维护。链中的每个HOC都包装了前一个HOC生成的组件，并为其添加了自己的行为。这样一来，你可以从简单组件和HOC构建复杂组件，每个组件都专注于一个单一关注点。这使得你的代码更模块化、更易于理解和测试。
+- en: HOCs versus hooks
+  id: totrans-278
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: HOC与hooks
+- en: Since the introduction of hooks, HOCs have become less popular. Hooks provide
+    a more convenient way to add functionality to components, and they also solve
+    some of the problems that HOCs have. For example, HOCs can cause issues with ref
+    forwarding, and they can also cause unnecessary rerenders when used incorrectly.
+    [Table 5-1](#table5-1) shows a little bit of a detailed comparison between the
+    two.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自从引入hooks以来，HOC已经变得不那么流行了。Hooks提供了一种更方便的方法来向组件添加功能，并解决了一些HOC存在的问题。例如，HOC可能会在错误使用时导致ref转发问题和不必要的重新渲染。[Table 5-1](#table5-1)展示了两者之间的详细比较。
+- en: Table 5-1\. Comparison of HOCs versus hooks
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 5-1\. HOC与hooks的比较
+- en: '| Feature | HOCs | Hooks |'
+  id: totrans-281
+  prefs: []
+  type: TYPE_TB
+  zh: '| 功能 | HOCs | Hooks |'
+- en: '| --- | --- | --- |'
+  id: totrans-282
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| **Code reuse** | Excellent for sharing logic across multiple components.
+    | Ideal for extracting and sharing logic within a component or across similar
+    components. |'
+  id: totrans-283
+  prefs: []
+  type: TYPE_TB
+  zh: '| **代码重用** | 用于在多个组件之间共享逻辑非常出色。 | 用于从组件内提取和共享逻辑，或在相似组件之间共享逻辑理想。 |'
+- en: '| **Rendering logic** | Can control rendering of wrapped component. | Do not
+    affect rendering directly, but can be used within functional components to manage
+    side effects related to rendering. |'
+  id: totrans-284
+  prefs: []
+  type: TYPE_TB
+  zh: '| **渲染逻辑** | 可以控制包装组件的渲染。 | 不会直接影响渲染，但可以在函数组件中使用以管理与渲染相关的副作用。 |'
+- en: '| **Prop manipulation** | Can inject and manipulate props, providing additional
+    data or functions. | Cannot inject or manipulate props directly. |'
+  id: totrans-285
+  prefs: []
+  type: TYPE_TB
+  zh: '| **属性操作** | 可以注入和操作属性，提供额外的数据或函数。 | 不能直接注入或操作属性。 |'
+- en: '| **State management** | Can manage and manipulate state outside of the wrapped
+    component. | Designed to manage local state within functional components. |'
+  id: totrans-286
+  prefs: []
+  type: TYPE_TB
+  zh: '| **状态管理** | 可以在包装组件之外管理和操作状态。 | 设计用于在函数组件内管理局部状态。 |'
+- en: '| **Lifecycle methods** | Can encapsulate lifecycle logic related to the wrapped
+    component. | `useEffect` and other hooks can handle lifecycle events within functional
+    components. |'
+  id: totrans-287
+  prefs: []
+  type: TYPE_TB
+  zh: '| **生命周期方法** | 可以封装与包装组件相关的生命周期逻辑。 | `useEffect` 和其他hooks可以处理函数组件内的生命周期事件。
+    |'
+- en: '| **Ease of composition** | Can be composed together, but may result in “wrapper
+    hell” if not managed well. | Easily composable and can be used alongside other
+    hooks without adding layers of components. |'
+  id: totrans-288
+  prefs: []
+  type: TYPE_TB
+  zh: '| **组合的便利性** | 可以一起组合，但如果管理不当，可能导致“包装地狱”。 | 易于组合，可以与其他钩子同时使用，而不增加组件的层次。 |'
+- en: '| **Ease of testing** | Testing can be more complex due to additional wrapper
+    components. | Generally easier to test as they can be isolated easier than HOCs.
+    |'
+  id: totrans-289
+  prefs: []
+  type: TYPE_TB
+  zh: '| **测试的便利性** | 由于需要额外的包装组件，测试可能会更复杂。 | 通常比高阶组件（HOCs）更容易测试，因为它们可以更容易地被隔离。 |'
+- en: '| **Type safety** | With TypeScript, can be tricky to type correctly, especially
+    with deeply nested HOCs. | Better type inference and easier to type with TypeScript.
+    |'
+  id: totrans-290
+  prefs: []
+  type: TYPE_TB
+  zh: '| **类型安全性** | 在 TypeScript 中，正确地进行类型定义可能会比较棘手，特别是在深度嵌套的高阶组件（HOCs）中。 | 更好的类型推断和在
+    TypeScript 中更容易进行类型定义。 |'
+- en: '[Table 5-1](#table5-1) provides a side-by-side comparison of HOCs and hooks,
+    showcasing their respective strengths and use cases. While HOCs are still a useful
+    pattern, hooks are generally preferred for most use cases due to their simplicity
+    and ease of use.'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表格 5-1](#table5-1) 提供了高阶组件（HOCs）和钩子（hooks）的并排比较，展示了它们各自的优势和使用案例。虽然高阶组件（HOCs）仍然是一个有用的模式，但由于其简单性和易用性，钩子（hooks）通常在大多数使用案例中更受青睐。'
+- en: From this table, we can observe that HOCs and hooks are pivotal in React for
+    sharing logic across components, yet they cater to slightly different use cases.
+    HOCs excel in sharing logic across multiple components and are particularly adept
+    at controlling the rendering of the wrapped component and manipulating props,
+    providing additional data or functions to components. They can manage state outside
+    of the wrapped component and encapsulate lifecycle logic related to the wrapped
+    component. However, they can lead to a “wrapper hell” if not managed well, especially
+    when many HOCs are nested together. This nesting can also make testing more complex,
+    and type safety with TypeScript can become tricky, especially with deeply nested
+    HOCs.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这个表格中，我们可以看出，在 React 中，高阶组件（HOCs）和钩子（hooks）对于在组件之间共享逻辑非常关键，然而它们针对的使用案例略有不同。高阶组件（HOCs）在跨多个组件共享逻辑方面表现出色，特别擅长控制包装组件的渲染和操作属性，提供额外的数据或函数给组件。它们可以管理包装组件之外的状态，并封装与包装组件相关的生命周期逻辑。然而，如果管理不当，特别是当许多高阶组件（HOCs）嵌套在一起时，它们可能导致“包装地狱”。这种嵌套也可能使测试变得更加复杂，而在
+    TypeScript 中的类型安全性可能会变得棘手，特别是在深度嵌套的高阶组件（HOCs）中。
+- en: On the other hand, hooks are ideal for extracting and sharing logic within a
+    component or across similar components without adding extra layers of components,
+    thus avoiding the “wrapper hell” scenario. Unlike HOCs, hooks do not affect rendering
+    directly and cannot inject or manipulate props directly. They are designed to
+    manage local state within functional components and handle lifecycle events using
+    the `useEffect` Hook, among others. Hooks promote ease of composition, and are
+    generally easier to test as they can be isolated easier than HOCs. Moreover, when
+    used with TypeScript, hooks provide better type inference and are easier to type,
+    thus potentially reducing bugs related to type errors.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，钩子（hooks）非常适合在组件内或类似组件之间提取和共享逻辑，而不会增加额外的组件层次，因此避免了“包装地狱”的场景。与高阶组件（HOCs）不同，钩子（hooks）不会直接影响渲染，并且不能直接注入或操作属性。它们设计用于在函数组件中管理局部状态，并使用
+    `useEffect` Hook 等处理生命周期事件。钩子（hooks）促进了组合的便利性，并且通常比高阶组件（HOCs）更容易测试，因为它们可以更容易地被隔离。此外，与
+    TypeScript 结合使用时，钩子（hooks）提供了更好的类型推断和更容易的类型定义，因此可以减少与类型错误相关的 bug。
+- en: While both HOCs and hooks provide mechanisms to reuse logic, hooks offer a more
+    direct and less complicated approach to managing state, lifecycle events, and
+    other React features within functional components. On the flip side, HOCs provide
+    a more structured way to inject behavior into components, which can be beneficial
+    in larger codebases or in codebases that have not yet adopted hooks. Each has
+    its own set of advantages, and the choice between using HOCs or hooks would largely
+    depend on the specific requirements of your project and the team’s familiarity
+    with these patterns.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管高阶组件（HOCs）和钩子（hooks）都提供了重用逻辑的机制，但钩子（hooks）在管理状态、生命周期事件和其他 React 特性方面提供了更直接、不那么复杂的方法。另一方面，高阶组件（HOCs）提供了一种更结构化的方式将行为注入组件中，在较大的代码库或尚未采用钩子的代码库中可能非常有益。每种方式都有其自身的优势，选择使用高阶组件（HOCs）还是钩子（hooks）将主要取决于项目的具体需求以及团队对这些模式的熟悉程度。
+- en: 'Can we think of any React HOCs that we use fairly frequently? Yes, we can!
+    `React.memo` is one that we just covered in this chapter and is indeed an HOC!
+    Let’s look at another one: `React.forwardRef`. This is an HOC that forwards a
+    ref to a child component. Let’s look at an example:'
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以考虑一些我们经常使用的 React 高阶组件吗？是的，我们可以！`React.memo`就是我们在本章中刚介绍过的一个高阶组件！让我们再看一个例子：`React.forwardRef`。这是一个将引用转发给子组件的高阶组件。让我们看一个例子：
+- en: '[PRE53]'
+  id: totrans-296
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: In this example, we’re using `React.forwardRef` to forward a ref to the `FancyInput`
+    component. This allows us to access the input element’s `focus` method in the
+    parent component. This is a common pattern in React, and it’s a great example
+    of how HOCs can be used to solve problems that are difficult to solve with regular
+    components.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们使用`React.forwardRef`来将引用转发给`FancyInput`组件。这允许我们在父组件中访问输入元素的`focus`方法。这是
+    React 中的一个常见模式，也是如何使用高阶组件来解决那些难以用常规组件解决的问题的一个很好的例子。
+- en: Render Props
+  id: totrans-298
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 渲染属性
+- en: 'Since we’ve already talked about JSX expressions, a common pattern is to have
+    props that are functions that receive component-scoped state as arguments to facilitate
+    code reuse. Here’s a simple example:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们已经讨论了 JSX 表达式，一个常见的模式是拥有那些作为函数的属性，这些函数接收组件范围的状态作为参数以促进代码重用。这里有一个简单的例子：
+- en: '[PRE54]'
+  id: totrans-300
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: Notice how there’s a prop called `render` that receives a function as a value.
+    This prop even outputs some JSX markup that’s actually rendered. But why? Turns
+    out `WindowSize` does some magic internally to compute the size of a user’s window,
+    and then calls `props.render` to return the structure we declare, making use of
+    enclosing state to render the window size.
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意到有一个名为`render`的属性，它接收一个函数作为值。这个属性甚至输出一些实际渲染的 JSX 标记。但为什么呢？原来`WindowSize`在内部做了一些魔法来计算用户窗口的大小，然后调用`props.render`来返回我们声明的结构，利用封闭状态来渲染窗口大小。
+- en: 'Let’s take a look at `WindowSize` to understand this a bit more:'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看一下`WindowSize`，以更深入地理解这一点：
+- en: '[PRE55]'
+  id: totrans-303
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'From this example, we can see that `WindowSize` uses an event listener to store
+    some stuff in state on every resize, but the component itself is headless: it
+    has no opinions about what UI to present. Instead, it yields control to whatever
+    parent is rendering it and calls the *render prop* it’s supplied, effectively
+    inverting control to its parent for the rendering job.'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这个例子中，我们可以看到`WindowSize`使用事件侦听器在每次调整大小时将一些内容存储在状态中，但组件本身是无头的：它对要呈现的 UI 没有任何意见。相反，它将控制权委托给渲染它的父组件，并调用提供的*渲染属性*，有效地将控制反转给其父组件来完成渲染工作。
+- en: This helps a component that depends on the window size for rendering receive
+    this information without duplicating the `useEffect` blocks and keeps our code
+    a little bit more DRY (Don’t Repeat Yourself). This pattern is no longer as popular
+    and has since been effectively replaced with React Hooks.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这有助于依赖窗口大小进行渲染的组件在接收此信息时不重复使用`useEffect`块，并使我们的代码更加 DRY（不要重复自己）。这种模式不再那么流行，已经被
+    React Hooks 有效地取代。
+- en: Children as a function
+  id: totrans-306
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 作为函数的子组件
+- en: 'Since `children` is a prop, some have preferred to drop the `render` prop name
+    altogether and instead just use `children`. This would change the use of `WindowSize`
+    to look like this:'
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`children`是一个属性，一些人更喜欢完全放弃`render`属性名称，而是只使用`children`。这将使`WindowSize`的使用看起来像这样：
+- en: '[PRE56]'
+  id: totrans-308
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'Some React authors prefer this because it’s truer to the intent of the code:
+    `WindowSize` in this case looks a bit like a React Context, and whatever we display
+    tends to feel like children that consume this context. Still, React Hooks eliminate
+    the need for this pattern altogether, so maybe proceed with caution.'
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些 React 作者更喜欢这样做，因为这更符合代码的意图：在这种情况下，`WindowSize`看起来有点像一个 React 上下文，我们显示的内容似乎就像是消费这个上下文的子元素。不过，React
+    Hooks 消除了对这种模式的需求，所以可能要谨慎使用。
+- en: Control Props
+  id: totrans-310
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 控制属性
+- en: The Control Props pattern in React is a strategic approach to state management
+    that expands upon the concept of controlled components. It provides a flexible
+    mechanism for determining how state is managed within a component. To understand
+    this, let’s first understand controlled components.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 中的**控制属性模式**是一种策略性的状态管理方法，扩展了受控组件的概念。它提供了一种灵活的机制来确定组件内部状态的管理方式。为了理解这一点，让我们首先了解受控组件。
+- en: Controlled components are components that do not maintain their own internal
+    state. Instead, they receive their current value as a prop from a parent component,
+    which is the single source of truth for their state. When the state should change,
+    controlled components notify the parent using callback functions, typically `onChange`.
+    The parent is thus responsible for managing the state and updating the value of
+    the controlled component.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受控组件是不维护自身内部状态的组件。相反，它们从父组件作为 prop 接收其当前值，这是它们状态的唯一真相来源。当状态应该更改时，受控组件使用回调函数（通常是
+    `onChange`）通知父组件。因此，父组件负责管理状态并更新受控组件的值。
+- en: 'For example, a controlled `<input>` element looks like this:'
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，受控 `<input>` 元素如下所示：
+- en: '[PRE57]'
+  id: totrans-314
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: The Control Props pattern takes the principle of controlled components further
+    by allowing a component to either be controlled externally by props or manage
+    its own state internally, providing optional external control. A component following
+    the Control Props pattern accepts both the state value and a function to update
+    that state as props. This dual capability enables the parent to exert control
+    over the child component’s state if it chooses to do so, but it also allows the
+    child component to operate independently if not controlled.
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制属性模式进一步扩展了受控组件的原则，允许组件可以通过 props 外部控制或者在内部管理自己的状态，提供可选的外部控制。遵循控制属性模式的组件接受状态值和更新该状态的函数作为
+    props。这种双重能力使得父组件可以选择性地控制子组件的状态，但也允许子组件在未受控时独立操作。
+- en: 'An example of the Control Props pattern is a toggle button that can either
+    be controlled by its parent or manage its own state:'
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制属性模式的一个示例是一个切换按钮，可以由其父组件控制或管理其自身状态：
+- en: '[PRE58]'
+  id: totrans-317
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: In the `Toggle` component, `isOn` represents the internal state, while `on`
+    is the external control prop. The component can operate in a controlled mode if
+    the `on` prop is provided by the parent. If not, it falls back to its internal
+    state, `isOn`. The `onToggle` prop is a callback that allows the parent component
+    to respond to state changes, providing the parent with the opportunity to synchronize
+    its own state with the state of the `Toggle`.
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `Toggle` 组件中，`isOn` 表示内部状态，而 `on` 是外部控制属性。如果父组件提供了 `on` prop，则组件可以以受控模式运行。如果没有，则退回到其内部状态
+    `isOn`。`onToggle` prop 是一个回调，允许父组件响应状态变化，提供父组件与 `Toggle` 组件状态同步的机会。
+- en: This pattern enhances component flexibility, offering both controlled and uncontrolled
+    modes of operation. It allows the parent to be in charge when necessary, while
+    also letting the component retain autonomy over its own state when not explicitly
+    controlled.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此模式增强了组件的灵活性，提供了受控和非受控两种操作模式。它允许父组件在必要时接管控制，同时在未明确控制时让组件保持对其自身状态的自治。
+- en: Prop Collections
+  id: totrans-320
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 属性集合
+- en: 'We often need to bundle a whole bunch of props together. For example, when
+    creating drag-and-drop user interfaces, there are quite a few props to manage:'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们经常需要打包一整套属性在一起。例如，在创建拖放用户界面时，有很多属性需要管理：
+- en: '`onDragStart`'
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onDragStart`'
+- en: To tell the browser what to do when a user starts dragging an element
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 告知浏览器在用户开始拖动元素时应执行的操作
+- en: '`onDragOver`'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onDragOver`'
+- en: To identify a dropzone
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 识别一个放置区域
+- en: '`onDrop`'
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onDrop`'
+- en: To execute some code when an element is dropped on this element
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素被拖放到此元素上时执行一些代码
+- en: '`onDragEnd`'
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`onDragEnd`'
+- en: To tell the browser what to do when an element is done being dragged
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素拖动完成时，告知浏览器应执行的操作
+- en: Moreover, data/elements cannot be dropped in other elements by default. To allow
+    an element to be dropped on another, we must prevent the default handling of the
+    element. This is done by calling the `event.preventDefault` method for the `onDragOver`
+    event for a possible dropzone.
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，默认情况下，数据/元素不能被放置在其他元素中。要允许元素被放置到另一个元素上，我们必须阻止元素的默认处理。这可以通过在可能的放置区域的 `onDragOver`
+    事件上调用 `event.preventDefault` 方法来实现。
+- en: 'Since these props usually go together, and since `onDragOver` usually defaults
+    to `event => { event.preventDefault(); moreStuff(); }`, we can collect these props
+    together and reuse them in various components, like so:'
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于这些属性通常一起使用，并且 `onDragOver` 通常默认为 `event => { event.preventDefault(); moreStuff();
+    }`，我们可以将这些属性集合在一起，并在各种组件中重复使用，如下所示：
+- en: '[PRE59]'
+  id: totrans-332
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'Now, if we have a React component we expect to behave like a dropzone, we can
+    use the prop collection on it, like this:'
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们有一个期望行为类似放置区域的 React 组件，我们可以像这样在其上使用属性集合：
+- en: '[PRE60]'
+  id: totrans-334
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: This is the prop collection pattern, and it makes a number of props reusable.
+    This is often quite widely used in the accessibility space to include a number
+    of `aria-*` props on accessible components. One problem that’s still present though
+    is that if we write a custom `onDragOver` prop and override the collection, we
+    lose the `event.prevent​De⁠fault` call that we get out of the box using the collection.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是属性集合模式，它使许多属性可重复使用。在可访问组件中广泛使用，包括许多`aria-*`属性。然而，仍然存在一个问题，即如果我们编写一个自定义的`onDragOver`属性并覆盖该集合，我们将失去使用集合时的`event.preventDefault`调用。
+- en: 'This can cause unexpected behavior, removing the ability to drop a component
+    on `Dropzone`:'
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能会导致意外行为，从而无法将组件放置在`Dropzone`上：
+- en: '[PRE61]'
+  id: totrans-337
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: Thankfully, we can fix this using prop getters.
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，我们可以使用属性获取器来解决这个问题。
+- en: Prop getters
+  id: totrans-339
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 属性获取器
+- en: Prop getters essentially compose prop collections with custom props and merge
+    them. From our example, we’d like to preserve the `event.preventDefault` call
+    in the `droppableProps` collection’s `onDragOver` handler, while also adding a
+    custom `alert("Dragged!");` call to it. We can do this using prop getters.
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 属性获取器本质上是将属性集合与自定义属性合并。从我们的示例中，我们希望在`droppableProps`集合的`onDragOver`处理程序中保留`event.preventDefault`调用，并同时添加自定义的`alert("Dragged!");`调用。我们可以使用属性获取器来实现这一点。
+- en: 'First, we’ll change the `droppableProps` collection to a prop getter:'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将把`droppableProps`集合改为属性获取器：
+- en: '[PRE62]'
+  id: totrans-342
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'At this point, nothing has changed besides where we once exported a prop collection,
+    we now export a function that returns a prop collection. This is a prop getter.
+    Since this is a function, it can receive arguments—like a custom `onDragOver`.
+    We can compose this custom `onDragOver` with our default one, like so:'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，除了我们之前导出属性集合的位置，我们现在导出一个返回属性集合的函数。这就是属性获取器。由于这是一个函数，它可以接收参数，比如自定义的`onDragOver`。我们可以像这样将自定义的`onDragOver`与默认的组合起来：
+- en: '[PRE63]'
+  id: totrans-344
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'Now, we can use the prop getter like this:'
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以像这样使用属性获取器：
+- en: '[PRE64]'
+  id: totrans-346
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'This custom `onDragOver` will compose into our default `onDragOver`, and both
+    things will happen: `event.preventDefault()` and `alert("Dragged!")`. This is
+    the prop getter pattern.'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个自定义的`onDragOver`将与我们的默认`onDragOver`组合在一起，两件事都会发生：`event.preventDefault()`和`alert("Dragged!")`。这就是属性获取器模式。
+- en: Compound Components
+  id: totrans-348
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 复合组件
+- en: 'Sometimes, we have accordion components like this:'
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，我们会有类似这样的手风琴组件：
+- en: '[PRE65]'
+  id: totrans-350
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'This component is intended to render a list similar to this, except *only one
+    item* can be open at a given time:'
+  id: totrans-351
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个组件的目的是渲染类似于此的列表，只是在任何给定时间*只能打开一个*项目：
+- en: '`One`'
+  id: totrans-352
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`One`'
+- en: '`Two`'
+  id: totrans-353
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Two`'
+- en: '`Three`'
+  id: totrans-354
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Three`'
+- en: 'The inner workings of this component would look something like this:'
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此组件的内部工作将如下所示：
+- en: '[PRE66]'
+  id: totrans-356
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'But what if we wanted a custom separator between items `Two` and `Three`? What
+    if we wanted the third link to be red or something? We’d probably resort to some
+    type of hack like this:'
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果我们想在项目`Two`和`Three`之间添加一个自定义分隔符怎么办？如果我们想让第三个链接变成红色或其他颜色？我们可能会诉诸某种类型的hack，比如这样：
+- en: '[PRE67]'
+  id: totrans-358
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'But that wouldn’t look the way we want. So we’d probably do more hacks on our
+    current hack:'
+  id: totrans-359
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但那看起来不符合我们的期望。所以我们可能会在当前的hack基础上做更多的hack：
+- en: '[PRE68]'
+  id: totrans-360
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'Now is that code we’d be proud of? I’m not sure. This is why we need *compound
+    components*: they allow us to have a grouping of interconnected, distinct components
+    that share state, but are atomically renderable, giving us more control of the
+    element tree.'
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在这段代码能让我们自豪吗？我不确定。这就是为什么我们需要*复合组件*：它们允许我们组合一组相互连接但具有独立状态的组件，但它们可以被原子化地呈现，从而使我们能够更好地控制元素树。
+- en: 'This accordion, expressed using the compound components pattern, would look
+    like this:'
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用复合组件模式表达的手风琴将如下所示：
+- en: '[PRE69]'
+  id: totrans-363
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'If we decide to explore how this pattern can be implemented in React, we might
+    consider two ways:'
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们决定探索如何在React中实现这种模式，我们可能会考虑两种方式：
+- en: With `React.cloneElement` on the children
+  id: totrans-365
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`React.cloneElement`处理子组件
+- en: With React Context
+  id: totrans-366
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用React上下文
+- en: '`React.cloneElement` is considered a legacy API, so let’s pursue doing this
+    with React Context. First, we’ll start with a context that each part of the accordion
+    can read from:'
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.cloneElement`被视为遗留API，因此让我们尝试使用React上下文来实现这一点。首先，我们将从每个手风琴部分都可以读取的上下文开始：'
+- en: '[PRE70]'
+  id: totrans-368
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: 'Then, our `Accordion` component will just provide context to its children:'
+  id: totrans-369
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们的`Accordion`组件将仅向其子组件提供上下文：
+- en: '[PRE71]'
+  id: totrans-370
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: 'Now, let’s create discrete `AccordionItem` components that consume and respond
+    to this context as well:'
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们创建离散的`AccordionItem`组件，以便作为上下文的消费者并对其做出响应：
+- en: '[PRE72]'
+  id: totrans-372
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: 'Now that we’ve got multiple parts for our `Accordion` making it a compound
+    component, our usage of the `Accordion` goes from this:'
+  id: totrans-373
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了多个部分组成的 `Accordion`，使其成为一个复合组件，我们对 `Accordion` 的使用从这里开始：
+- en: '[PRE73]'
+  id: totrans-374
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: 'to this:'
+  id: totrans-375
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到这里：
+- en: '[PRE74]'
+  id: totrans-376
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'The benefit of this is that we have far more control, while each `AccordionItem`
+    is aware of the larger state of `Accordion`. So now, if we wanted to include a
+    horizontal line between items `Two` and `Three`, we could break out of the `map`
+    and go more manual if we wanted to:'
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做的好处是，我们有了更多的控制权，同时每个 `AccordionItem` 都知道 `Accordion` 的更大状态。因此，如果我们想在 `Two`
+    和 `Three` 之间包含一条水平线，我们可以在 `map` 中跳出并手动操作：
+- en: '[PRE75]'
+  id: totrans-378
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: 'Or, we could do something more hybrid, like:'
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们可以做一些更混合的东西，比如：
+- en: '[PRE76]'
+  id: totrans-380
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'This is the benefit of compound components: they invert control of rendering
+    to the parent, while preserving contextual state awareness among children. The
+    same approach could be used for a tab UI, where tabs are aware of the current
+    tab state while having varying levels of element nesting.'
+  id: totrans-381
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是复合组件的好处：它们将渲染的控制权反转给父组件，同时在子组件之间保留了上下文状态感知。同样的方法可以用于标签 UI，其中标签知道当前标签状态，同时具有不同层次的元素嵌套。
+- en: Another benefit is that this pattern promotes separation of concerns, which
+    helps applications scale significantly better over time.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个好处是，这种模式促进了关注点分离，有助于应用程序随着时间的推移显著扩展。
+- en: State Reducer
+  id: totrans-383
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 状态减少器
+- en: 'The state reducer pattern in React was invented and popularized by Kent C.
+    Dodds (*@kentcdodds*), one of the most prominent and proficient engineers and
+    educators in the React space, and a true world-renowned expert in the field. This
+    pattern offers a powerful way to create flexible and customizable components.
+    Let’s illustrate this concept with a real-world example: a toggle button component.
+    This example will demonstrate how a basic toggle component can be enhanced to
+    allow consumers to customize its state logic, disabling the toggle on certain
+    days of the week for some business reason.'
+  id: totrans-384
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 中的状态减少器模式是由 Kent C. Dodds（*@kentcdodds*）发明和推广的，他是 React 领域中最杰出和熟练的工程师和教育者之一，是该领域真正享誉世界的专家。这种模式提供了一个强大的方式来创建灵活和可定制的组件。让我们用一个现实世界的例子来说明这个概念：一个切换按钮组件。这个例子将演示如何增强基本的切换组件，使消费者能够定制其状态逻辑，在某些业务原因下禁用特定日期的切换按钮。
+- en: 'First, we start with a basic toggle component using the `useReducer` hook.
+    The component maintains its own state, determining whether the toggle is in an
+    `On` or `Off` position. The initial state is set to `false`, indicating the `Off`
+    state:'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们使用 `useReducer` 钩子创建一个基本的切换组件。该组件维护其自己的状态，确定切换是否处于 `On` 或 `Off` 位置。初始状态设置为
+    `false`，表示处于 `Off` 状态：
+- en: '[PRE77]'
+  id: totrans-386
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: 'To implement the state reducer pattern, the `Toggle` component is modified
+    to accept a `stateReducer` prop. This prop allows the component’s internal state
+    logic to be customized or extended. The component’s `internalDispatch` function
+    combines the internal reducer logic with the external reducer provided by the
+    `stateReducer` prop:'
+  id: totrans-387
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要实现状态减少器模式，`Toggle` 组件被修改为接受一个 `stateReducer` 属性。这个属性允许定制或扩展组件的内部状态逻辑。组件的 `internalDispatch`
+    函数将内部减少器逻辑与 `stateReducer` 属性提供的外部减少器结合起来：
+- en: '[PRE78]'
+  id: totrans-388
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: 'From this code snippet, we can see that the `stateReducer` prop is used to
+    customize the component’s internal state logic. The `stateReducer` function is
+    called with the current state and the action object; however, we add an extra
+    property of metadata to the action: `changes`. This `changes` property contains
+    the next state of the component, which is calculated by the internal reducer.
+    This allows the external reducer to access the next state of the component and
+    make decisions based on that.'
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这段代码片段中，我们可以看到 `stateReducer` 属性用于定制组件的内部状态逻辑。`stateReducer` 函数被调用时传入当前状态和动作对象；然而，我们在动作对象中添加了一个额外的元数据属性：`changes`。这个
+    `changes` 属性包含了组件的下一个状态，该状态是由内部减少器计算得出的。这允许外部减少器访问组件的下一个状态，并基于此做出决策。
+- en: 'Let’s see how the `Toggle` component can be utilized with custom behavior based
+    on this pattern. In the following example, the `App` component uses the `Toggle`
+    but provides a custom `stateReducer`. This reducer contains logic that prevents
+    the toggle from being turned off on Wednesdays because Wednesday in this app’s
+    location is a universal “no off” day. This illustrates how the state reducer pattern
+    allows for flexible modification of component behavior without changing the component
+    itself:'
+  id: totrans-390
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看`Toggle`组件如何利用基于这种模式的自定义行为。在下面的例子中，`App`组件使用了`Toggle`，但提供了一个自定义的`stateReducer`。这个reducer包含逻辑，防止在周三将开关关闭，因为在这个应用程序的位置，周三是一个普遍的“不能关”的日子。这说明了状态reducer模式如何允许在不改变组件本身的情况下灵活修改组件行为：
+- en: '[PRE79]'
+  id: totrans-391
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: With this example, we see the power of the state reducer pattern in creating
+    highly flexible and reusable components. By allowing external logic to integrate
+    with the internal state management of a component, we can cater to a wide range
+    of behaviors and use cases, enhancing both the utility and versatility of the
+    component.
+  id: totrans-392
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个例子，我们看到了状态reducer模式在创建高度灵活和可重用组件中的威力。通过允许外部逻辑与组件的内部状态管理集成，我们可以满足各种行为和用例的需求，增强组件的实用性和多功能性。
+- en: Whew! What a chapter! Let’s wrap things up and summarize what we learned.
+  id: totrans-393
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哎呀！这是一章啊！让我们总结一下我们学到了什么。
+- en: Chapter Review
+  id: totrans-394
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 章节复习
+- en: Throughout this chapter, we’ve discussed various aspects of React, including
+    memoization, lazy loading, reducers, and state management. We’ve explored the
+    advantages and potential drawbacks of different approaches to these topics and
+    how they can impact the performance and maintainability of React applications.
+  id: totrans-395
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们讨论了React的各个方面，包括记忆化、延迟加载、reducers和状态管理。我们探讨了不同方法在这些主题上的优势和潜在缺点，以及它们如何影响React应用程序的性能和可维护性。
+- en: We started by discussing memoization in React and its benefits for optimizing
+    component rendering. We looked at the `React.memo` function and how it can be
+    used to prevent unnecessary rerenders of components. We also examined some potential
+    issues with memoization, such as stale state and the need to carefully manage
+    dependencies.
+  id: totrans-396
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先讨论了React中的记忆化及其优化组件渲染的好处。我们看了看`React.memo`函数及其如何用于防止组件不必要的重新渲染。我们还检查了一些记忆化可能遇到的问题，例如陈旧状态和需谨慎管理依赖关系的需要。
+- en: Next, we talked about lazy loading in React and how it can be used to defer
+    the loading of certain components or resources until they are actually needed.
+    We looked at the `React.lazy` and `Suspense` components and how they can be used
+    to implement lazy loading in a React application. We also discussed the trade-offs
+    of lazy loading, such as increased complexity and potential performance issues.
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们谈到了React中的延迟加载及其如何延迟加载某些组件或资源直到它们真正需要的时候。我们看了看`React.lazy`和`Suspense`组件及其如何在React应用程序中实现延迟加载。我们还讨论了延迟加载的权衡，例如增加的复杂性和潜在的性能问题。
+- en: We then moved on to reducers and how they can be used for state management in
+    React. We explored the differences between `useState` and `useReducer`, and discussed
+    the advantages of using a centralized reducer function for managing state updates.
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接着，我们转向reducers及其在React中用于状态管理的使用。我们探讨了`useState`和`useReducer`之间的区别，并讨论了使用集中式reducer函数来管理状态更新的优势。
+- en: Throughout our conversation, we used code examples from our own implementations
+    to illustrate the concepts we discussed. We explored how these examples work under
+    the hood and how they can impact the performance and maintainability of React
+    applications.
+  id: totrans-399
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的讨论中，我们使用了来自我们自己实现的代码示例来说明我们讨论的概念。我们探讨了这些示例在内部运行的方式以及它们如何影响React应用程序的性能和可维护性。
+- en: Through the use of code examples and in-depth explanations, we gained a deeper
+    understanding of these topics and how they can be applied in real-world React
+    applications.
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用代码示例和深入的解释，我们深入了解了这些主题及其在实际React应用程序中的应用。
+- en: Review Questions
+  id: totrans-401
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 复习问题
+- en: 'Let’s ask ourselves a few questions to test our understanding of the concepts
+    we learned in this chapter:'
+  id: totrans-402
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们自问一些问题，以测试我们对本章学习的概念的理解：
+- en: What is memoization in React, and how can it be used to optimize component rendering?
+  id: totrans-403
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 什么是React中的记忆化，它如何用于优化组件渲染？
+- en: What are the advantages of using `useReducer` for state management in React,
+    and how does it differ from `useState`?
+  id: totrans-404
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用`useReducer`进行React状态管理有什么优势，它与`useState`有什么不同？
+- en: How can lazy loading be implemented in a React application using the `React.lazy`
+    and `Suspense` components?
+  id: totrans-405
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如何利用 `React.lazy` 和 `Suspense` 组件在 React 应用中实现懒加载？
+- en: What are some potential issues that can arise when using memoization in React,
+    and how can they be mitigated?
+  id: totrans-406
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用 memoization 在 React 中可能出现的一些潜在问题是什么，以及如何减轻这些问题？
+- en: How can the `useCallback` hook be used to memoize functions passed as props
+    to components in React?
+  id: totrans-407
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`useCallback` 钩子如何用于在 React 组件中将函数作为 props 进行记忆化？'
+- en: Up Next
+  id: totrans-408
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 接下来
+- en: In the next chapter, we’ll look at React on the server side—diving into serve-side
+    rendering, its benefits and trade-offs, hydration, frameworks, and more. See you
+    there!
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将探讨 React 在服务器端的应用——深入研究服务器端渲染、其优势和权衡、水合、框架等等。到时见！

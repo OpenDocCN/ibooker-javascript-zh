@@ -1,0 +1,996 @@
+- en: Chapter 3\. Unions and Literals
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第三章。联合类型和字面量
+- en: Nothing is constant
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 没有什么是恒定的
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Values may change over time
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 值可能随时间变化
+- en: ''
+  id: totrans-4
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: (well, except constants)
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: （好吧，除了常数）
+- en: '[Chapter 2, “The Type System”](ch02.xhtml#the_type_system) covered the concept
+    of the “type system” and how it can read values to understand the types of variables.
+    Now I’d like to introduce two key concepts that TypeScript works with to make
+    inferences on top of those values:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第二章，“类型系统”](ch02.xhtml#the_type_system) 讨论了“类型系统”的概念以及如何读取值以理解变量的类型。现在我想介绍
+    TypeScript 与之一起工作以进行推断的两个关键概念：'
+- en: Unions
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合
+- en: Expanding a value’s allowed type to be two or more possible types
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展一个值的允许类型为两种或更多种可能的类型
+- en: Narrowing
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缩小
+- en: Reducing a value’s allowed type to *not* be one or more possible types
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缩小一个值的允许类型为 *不是* 一个或多个可能的类型
+- en: Put together, unions and narrowing are powerful concepts that allow TypeScript
+    to make informed inferences on your code many other mainstream languages cannot.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合类型和类型缩小的结合是强大的概念，使得 TypeScript 能够做出其他许多主流语言无法做出的有根据的推断。
+- en: Union Types
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 联合类型
+- en: 'Take this `mathematician` variable:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个`mathematician`变量：
+- en: '[PRE0]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: What type is `mathematician`?
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`mathematician`是什么类型？'
+- en: It’s neither only `undefined` nor only `string`, even though those are both
+    potential types. `mathematician` can be *either* `undefined` or `string`. This
+    kind of “either or” type is called a *union*. Union types are a wonderful concept
+    that let us handle code cases where we don’t know exactly which type a value is,
+    but do know it’s one of two or more options.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它不仅仅是`undefined`，也不仅仅是`string`，尽管它们都是可能的类型。`mathematician`可以是*要么* `undefined`
+    *要么* `string`。这种“要么或者”类型称为*联合类型*。联合类型是一个很棒的概念，它允许我们处理那些我们不确切知道值是哪种类型，但知道它是两个或更多选项之一的代码情况。
+- en: TypeScript represents union types using the `|` (pipe) operator between the
+    possible values, or *constituents*. The previous `mathematician` type is thought
+    of as `string | undefined`. Hovering over the mathematician variable would show
+    its type as `string | undefined` ([Figure 3-1](#hovering_union_type)).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 使用 `|`（管道）操作符来表示联合类型的可能值或 *组成部分*。之前的 `mathematician` 类型被视为 `string
+    | undefined`。悬停在 `mathematician` 变量上会显示其类型为 `string | undefined`（[图 3-1](#hovering_union_type)）。
+- en: '![TypeScript reporting the ''mathematician'' variable as being type ''string
+    | undefined''.](Images/lets_0301.png)'
+  id: totrans-18
+  prefs: []
+  type: TYPE_IMG
+  zh: '![TypeScript 报告 ''mathematician'' 变量为 ''string | undefined'' 类型。](Images/lets_0301.png)'
+- en: Figure 3-1\. TypeScript reporting the `mathematician` variable as being type
+    `string | undefined`
+  id: totrans-19
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-1。TypeScript 报告 `mathematician` 变量为 `string | undefined` 类型
+- en: Declaring Union Types
+  id: totrans-20
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 声明联合类型
+- en: 'Union types are an example of a situation when it might be useful to give an
+    explicit type annotation for a variable even though it has an initial value. In
+    this example, `thinker` starts off `null` but is known to potentially contain
+    a `string` instead. Giving it an explicit `string | null` type annotation means
+    TypeScript will allow it to be assigned values of type `string`:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合类型是一个例子，当可能需要为一个变量提供显式类型注解时，尽管它有一个初始值。在这个例子中，`thinker` 起初是 `null`，但可能包含一个
+    `string`。给它一个显式的 `string | null` 类型注解意味着 TypeScript 允许它被赋予 `string` 类型的值：
+- en: '[PRE1]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Union type declarations can be placed anywhere you might declare a type with
+    a type annotation.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合类型声明可以放置在你可能声明类型注解的任何地方。
+- en: Note
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The order of a union type declaration does not matter. You can write `boolean
+    | number` or `number | boolean` and TypeScript will treat both the exact same.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合类型声明的顺序不重要。你可以写 `boolean | number` 或 `number | boolean`，TypeScript 将完全相同对待它们。
+- en: Union Properties
+  id: totrans-26
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 联合属性
+- en: When a value is known to be a union type, TypeScript will only allow you to
+    access member properties that exist on all possible types in the union. It will
+    give you a type-checking error if you try to access a type that doesn’t exist
+    on all possible types.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当一个值已知是联合类型时，TypeScript 只允许你访问所有可能类型中存在的成员属性。如果尝试访问一个不在所有可能类型上存在的类型，它会给你一个类型检查错误。
+- en: 'In the following snippet, `physicist` is of type `number | string`. While `.toString()`
+    exists in both types and is allowed to be used, `.toUpperCase()` and `.toFixed()`
+    are not because `.toUpperCase()` is missing on the `number` type and `.toFixed()`
+    is missing on the `string` type:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下面的代码片段中，`physicist` 的类型是 `number | string`。虽然`.toString()` 在两种类型中都存在并且允许使用，但`.toUpperCase()`
+    和 `.toFixed()` 不允许使用，因为`.toUpperCase()` 在`number`类型上缺失，而`.toFixed()` 在`string`类型上缺失：
+- en: '[PRE2]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Restricting access to properties that don’t exist on all union types is a safety
+    measure. If an object is not known to definitely be a type that contains a property,
+    TypeScript will believe it unsafe to try to use that property. The property might
+    not exist!
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 限制访问不在所有联合类型上存在的属性是一种安全措施。 如果对象不确定一定是包含某个属性的类型，TypeScript 将认为尝试使用该属性是不安全的。 属性可能不存在！
+- en: 'To use a property of a union typed value that only exists on a subset of the
+    potential types, your code will need to indicate to TypeScript that the value
+    at that location in code is one of those more specific types: a process called
+    *narrowing*.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用仅存在于潜在类型子集上的联合类型值的属性，您的代码需要告诉 TypeScript 该代码位置的值是其中更具体类型之一：这个过程称为 *缩小*。
+- en: Narrowing
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 缩小
+- en: Narrowing is when TypeScript infers from your code that a value is of a more
+    specific type than what it was defined, declared, or previously inferred as. Once
+    TypeScript knows that a value’s type is more narrow than previously known, it
+    will allow you to treat the value like that more specific type. A logical check
+    that can be used to narrow types is called a *type guard*.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缩小是指 TypeScript 从您的代码推断出一个值的类型比定义、声明或先前推断的类型更具体的情况。 一种可以用于缩小类型的逻辑检查称为 *类型守卫*。
+- en: Let’s cover two of the common type guards TypeScript can use to deduce type
+    narrowing from your code.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来讨论 TypeScript 可以使用的两种常见类型守卫，从你的代码中推断出类型缩小的方法。
+- en: Assignment Narrowing
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 赋值缩小
+- en: If you directly assign a value to a variable, TypeScript will narrow the variable’s
+    type to that value’s type.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果直接将值分配给变量，则 TypeScript 将缩小变量的类型为该值的类型。
+- en: 'Here, the `admiral` variable is declared initially as a `number | string`,
+    but after being assigned the value `"Grace Hopper"`, TypeScript knows it must
+    be a `string`:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`admiral` 变量最初声明为 `number | string`，但在分配值 `"Grace Hopper"` 后，TypeScript
+    知道它必须是 `string`：
+- en: '[PRE3]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Assignment narrowing comes into play when a variable is given an explicit union
+    type annotation and an initial value too. TypeScript will understand that while
+    the variable may later receive a value of any of the union typed values, it starts
+    off as only the type of its initial value.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当变量被赋予明确的联合类型注释和初始值时，赋值缩小就会发挥作用。 TypeScript 将理解，虽然变量后来可能接收联合类型值中的任何一个，但它起始时仅作为其初始值的类型。
+- en: 'In the following snippet, `inventor` is declared as type `number | string`,
+    but TypeScript knows it’s immediately narrowed to a `string` from its initial
+    value:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下面的代码片段中，`inventor` 声明为 `number | string` 类型，但 TypeScript 知道它立即从其初始值缩小为 `string`：
+- en: '[PRE4]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Conditional Checks
+  id: totrans-42
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 条件检查
+- en: 'A common way to get TypeScript to narrow a variable’s value is to write an
+    `if` statement checking the variable for being equal to a known value. TypeScript
+    is smart enough to understand that inside the body of that `if` statement, the
+    variable must be the same type as the known value:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缩小变量值的常见方式是编写一个 `if` 语句，检查变量是否等于已知值。 TypeScript 足够聪明，理解在该 `if` 语句的主体内，变量必须与已知值相同类型：
+- en: '[PRE5]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Narrowing with conditional logic shows TypeScript’s type-checking logic mirroring
+    good JavaScript coding patterns. If a variable might be one of several types,
+    you’ll generally want to check its type for being what you need. TypeScript is
+    forcing us to play it safe with our code. Thanks, TypeScript!
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用条件逻辑进行缩小显示出 TypeScript 的类型检查逻辑反映了良好的 JavaScript 编码模式。 如果变量可能是多种类型之一，通常会希望检查其类型是否符合需要的类型。
+    TypeScript 强制我们在代码中保持安全性。 谢谢，TypeScript！
+- en: Typeof Checks
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: typeof 检查
+- en: In addition to direct value checking, TypeScript also recognizes the `typeof`
+    operator in narrowing down variable types.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了直接值检查外，TypeScript 还识别 `typeof` 操作符来缩小变量类型。
+- en: 'Similar to the `scientist` example, checking if `typeof researcher` is `"string"`
+    indicates to TypeScript that the type of `researcher` must be `string`:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 `scientist` 示例，检查 `typeof researcher` 是否为 `"string"` 表示 TypeScript 必须将 `researcher`
+    的类型确定为 `string`：
+- en: '[PRE6]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Logical negations from `!` and `else` statements work as well:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 逻辑否定 `!` 和 `else` 语句同样有效：
+- en: '[PRE7]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Those code snippets can be rewritten with a ternary statement, which is also
+    supported for type narrowing:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些代码片段可以使用三元语句进行重写，也支持类型缩小：
+- en: '[PRE8]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Whichever way you write them, `typeof` checks are a practical and often used
+    way to narrow types.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论如何编写它们，`typeof` 检查都是缩小类型的实用且经常使用的方式。
+- en: TypeScript’s type checker recognizes several more forms of narrowing that we’ll
+    see in later chapters.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的类型检查器识别出我们将在后续章节中看到的几种更多的缩小形式。
+- en: Literal Types
+  id: totrans-56
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 字面类型
+- en: 'Now that I’ve shown union types and narrowing for working with values that
+    may be two or more potential types, I’d like go the opposite direction by introducing
+    *literal types*: more specific versions of primitive types.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我已经展示了联合类型和用于处理可能是两种或更多种潜在类型的值的缩小，我想通过引入 *字面类型* 来走相反的方向：原始类型的更具体版本。
+- en: 'Take this `philosopher` variable:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 拿这个 `philosopher` 变量：
+- en: '[PRE9]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: What type is `philosopher`?
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`philosopher` 是什么类型？'
+- en: At first glance, you might say `string`—and you’d be correct. `philosopher`
+    is indeed a `string`.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 乍一看，你可能会说 `string` —— 你是正确的。 `philosopher` 确实是一个 `string`。
+- en: But! `philosopher` is not just any old `string`. It’s specifically the value
+    `"Hypatia"`. Therefore, the `philosopher` variable’s type is technically the more
+    specific `"Hypatia"`.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是！ `philosopher` 不只是任何旧的 `string`。它特别是值 `"Hypatia"`。因此， `philosopher` 变量的类型在技术上更具体
+    `"Hypatia"`。
+- en: 'Such is the concept of a *literal type*: the type of a value that is known
+    to be a specific value of a primitive, rather than any of those primitive’s values
+    at all. The primitive type `string` represents the set of all possible strings
+    that could ever exist; the literal type `"Hypatia"` represents just that one string.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 *字面类型* 的概念：这是一个已知为原始特定值的值类型，而不是所有这些原始值中的任何一个。原始类型 `string` 表示可能存在的所有可能字符串集合；字面类型
+    `"Hypatia"` 仅代表这一个字符串。
+- en: If you declare a variable as `const` and directly give it a literal value, TypeScript
+    will infer the variable to be that literal value as a type. This is why, when
+    you hover a mouse over a `const` variable with an initial literal value in an
+    IDE such as VS Code, it will show you the variable’s type as that literal ([Figure 3-2](#hovering_const_string_literal))
+    instead of the more general primitive ([Figure 3-3](#hovering_let_string_literal)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您将一个变量声明为 `const` 并直接赋予它一个字面值，TypeScript 将推断该变量为该字面值作为类型。这就是为什么当您将鼠标悬停在具有初始字面值的
+    `const` 变量上时，在诸如 VS Code 的 IDE 中，它将显示该变量的类型为该字面值 ([图 3-2](#hovering_const_string_literal))
+    而不是更一般的原始类型 ([图 3-3](#hovering_let_string_literal))。
+- en: '![TypeScript reporting a ''const'' variable as being its string literal type.](Images/lets_0302.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![TypeScript 报告一个 ''const'' 变量为其字符串字面类型。](Images/lets_0302.png)'
+- en: Figure 3-2\. TypeScript reporting a `const` variable as being specifically its
+    literal type
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-2\. TypeScript 报告一个 `const` 变量为其字面类型
+- en: '![TypeScript reporting a ''let'' variable as being type ''string''.](Images/lets_0303.png)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_IMG
+  zh: '![TypeScript 报告一个 ''let'' 变量为类型 ''string''。](Images/lets_0303.png)'
+- en: Figure 3-3\. TypeScript reporting a `let` variable as being generally its primitive
+    type
+  id: totrans-68
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-3\. TypeScript 报告一个 `let` 变量通常为其原始类型
+- en: You can think of each *primitive* type as a *union* of every possible matching
+    *literal* value. In other words, a primitive type is the set of all possible literal
+    values of that type.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将每个 *原始* 类型视为每个可能匹配 *字面* 值的 *联合*。换句话说，原始类型是该类型的所有可能字面值的集合。
+- en: 'Other than the `boolean`, `null`, and `undefined` types, all other primitives
+    such as `number` and `string` have a infinite number of literal types. The common
+    types you’ll find in typical TypeScript code are just those:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 `boolean`、`null` 和 `undefined` 类型外，所有其他原始类型如 `number` 和 `string` 都有无限数量的字面类型。在典型的
+    TypeScript 代码中，您会发现以下常见类型：
+- en: '`boolean`: just `true | false`'
+  id: totrans-71
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`boolean`：只是 `true | false`'
+- en: '`null` and `undefined`: both just have one literal value, themselves'
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`null` 和 `undefined`：两者都只有一个字面值，它们自己'
+- en: '`number`: `0 | 1 | 2 | ... | 0.1 | 0.2 | ...`'
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`number`: `0 | 1 | 2 | ... | 0.1 | 0.2 | ...`'
+- en: '`string`: `"" | "a" | "b" | "c" | ... | "aa" | "ab" | "ac" | ...`'
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`string`: `"" | "a" | "b" | "c" | ... | "aa" | "ab" | "ac" | ...`'
+- en: 'Union type annotations can mix and match between literals and primitives. A
+    representation of a lifespan, for example, might be represented by any `number`
+    *or* one of a couple known edge cases:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 联合类型注释可以混合和匹配文字和原语。例如，寿命的表示可以由任何`number` *或* 一对已知的极端情况之一表示：
+- en: '[PRE10]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Literal Assignability
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 字面赋值
+- en: You’ve seen how different primitive types such as `number` and `string` are
+    not assignable to each other. Similarly, different literal types within the same
+    primitive type—e.g., `0` and `1`—are not assignable to each other.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您已经看到了不同的原始类型如 `number` 和 `string` 是不可相互分配的。同样，同一原始类型内的不同字面类型 —— 例如 `0` 和 `1`
+    —— 也不能相互分配。
+- en: 'In this example, `specificallyAda` is declared as being of the literal type
+    `"Ada"`, so while the value `"Ada"` may be given to it, the types `"Byron"` and
+    `string` are not assignable to it:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`specificallyAda`被声明为字面量类型`"Ada"`，因此可以赋予其值`"Ada"`，但`"Byron"`和`string`类型不能赋给它：
+- en: '[PRE11]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Literal types are, however, allowed to be assigned to their corresponding primitive
+    types. Any specific literal string is still a `string`.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，文本类型允许被分配给它们对应的基本类型。任何特定的字面量字符串仍然是`string`。
+- en: 'In this code example, the value `":)"`, which is of type `":)"`, is being assigned
+    to the `someString` variable previously inferred to be of type `string`:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个代码示例中，类型为`":)"`的值`":)"`被赋给之前推断为`string`类型的`someString`变量：
+- en: '[PRE12]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Who would have thought a simple variable assignment would be so theoretically
+    intense?
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 谁会想到一个简单的变量赋值会如此理论化？
+- en: Strict Null Checking
+  id: totrans-85
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 严格空值检查
+- en: The power of narrowed unions with literals is particularly visible when working
+    with potentially undefined values, an area of type systems TypeScript refers to
+    as *strict null checking*. TypeScript is part of a surge of modern programming
+    languages that utilize strict null checking to fix the dreaded “billion-dollar
+    mistake.”
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在处理潜在未定义值时，通过收窄联合与字面量的能力，TypeScript中类型系统所称的*严格空值检查*尤为明显。TypeScript是一波利用严格空值检查来修复可怕“十亿美元错误”的现代编程语言之一。
+- en: The Billion-Dollar Mistake
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 十亿美元错误
+- en: I call it my billion-dollar mistake. It was the invention of the null reference
+    in 1965… This has led to innumerable errors, vulnerabilities, and system crashes,
+    which have probably caused a billion dollars of pain and damage in the last 40
+    years.
+  id: totrans-88
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 我称它为我的十亿美元错误。这是在1965年发明的空引用……这导致了无数的错误、漏洞和系统崩溃，在过去40年中可能造成了数十亿美元的痛苦和损失。
+- en: ''
+  id: totrans-89
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Tony Hoare, 2009
+  id: totrans-90
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: Tony Hoare, 2009
+- en: 'The “billion-dollar mistake” is a catchy industry term for many type systems
+    allowing null values to be used in places that require a different type. In languages
+    without strict null checking, code like this example that assign `null` to a `string`
+    is allowed:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “十亿美元错误”是一个行业术语，用于描述许多类型系统允许在需要不同类型的位置使用null值的情况。在没有严格空值检查的语言中，像这个示例一样将`null`赋给`string`是允许的：
+- en: '[PRE13]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: If you’ve previously worked in a typed language such as C++ or Java that suffers
+    from the billion-dollar mistake, it may be surprising to you that some languages
+    don’t allow such a thing. If you’ve never worked in a language with the strict
+    null checking before, it may be surprising that some languages allowed the billion-dollar
+    mistake in the first place!
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你之前在像C++或Java这样的类型语言中工作过，这些语言因为“十亿美元的错误”而著名，那么某些不允许这种情况发生的语言可能会让你感到惊讶。如果你以前从未在具有严格空值检查的语言中工作过，那么一些允许这种“十亿美元的错误”发生的语言可能会让你感到惊讶！
+- en: The TypeScript compiler contains a multitude of options that allow changing
+    how it runs. [Chapter 13, “Configuration Options”](ch13.xhtml#configuration_options)
+    will cover TypeScript compiler options in depth. One of the most useful opt-in
+    options, `strictNullChecks`, toggles whether strict null checking is enabled.
+    Roughly speaking, disabling `strictNullChecks` adds `| null | undefined` to every
+    type in your code, thereby allowing any variable to receive `null` or `undefined`.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript编译器包含多种选项，允许更改其运行方式。[第13章，“配置选项”](ch13.xhtml#configuration_options)将深入讨论TypeScript编译器选项。其中最有用的选择性选项之一，`strictNullChecks`，切换是否启用严格空值检查。粗略地说，禁用`strictNullChecks`会向代码中的每种类型添加`|
+    null | undefined`，从而允许任何变量接收`null`或`undefined`。
+- en: 'With the `strictNullChecks` option set to `false`, the following code is considered
+    totally type safe. That’s wrong, though; `nameMaybe` might be `undefined` when
+    `.toLowerCase` is accessed from it:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`strictNullChecks`选项设置为`false`时，以下代码被认为是完全类型安全的。然而，这是错误的；`nameMaybe`在访问`.toLowerCase`时可能是`undefined`：
+- en: '[PRE14]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'With strict null checking enabled, TypeScript sees the potential crash in the
+    code snippet:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启用严格空值检查后，TypeScript能够在代码片段中看到潜在的崩溃：
+- en: '[PRE15]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Without strict null checking enabled, it’s much harder to know whether your
+    code is safe from errors due to accidentally `null` or `undefined` values.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有启用严格空值检查，很难知道你的代码是否安全，是否会因为意外的`null`或`undefined`值而导致错误。
+- en: TypeScript best practice is generally to enable strict null checking. Doing
+    so helps prevent crashes and eliminates the billion-dollar mistake.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript的最佳实践通常是启用严格空值检查。这样做有助于防止崩溃，并消除“十亿美元错误”。
+- en: Truthiness Narrowing
+  id: totrans-101
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 真值收窄
+- en: 'Recall from JavaScript that *truthiness*, or being *truthy*, is whether a value
+    would be considered `true` when evaluated in a `Boolean` context, such as an `&&`
+    operator or `if` statement. All values in JavaScript are truthy except for those
+    defined as *falsy*: `false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, and `NaN`.^([1](ch03.xhtml#idm45584691848224))'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 JavaScript 中可以回忆起*真值*或*真值性*，即在`Boolean`上下文（如`&&`操作符或`if`语句）中，一个值是否被认为是`true`。JavaScript
+    中的所有值都是真值，除了被定义为*假值*的：`false`、`0`、`-0`、`0n`、`""`、`null`、`undefined` 和 `NaN`。^([1](ch03.xhtml#idm45584691848224))
+- en: 'TypeScript can also narrow a variable’s type from a truthiness check if only
+    some of its potential values may be truthy. In the following snippet, `geneticist`
+    is of type `string | undefined`, and because `undefined` is always falsy, TypeScript
+    can deduce that it must be of type `string` within the `if` statement’s body:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 还可以通过真值检查来缩小变量的类型，如果它的一些潜在值可能是真值。在下面的片段中，`geneticist` 的类型是 `string
+    | undefined`，因为`undefined`始终为假，TypeScript 可以推断在`if`语句体内它必须是`string`类型：
+- en: '[PRE16]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Logical operators that perform truthiness checking work as well, namely `&&`
+    and `?.`:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行真值检查的逻辑运算符同样适用，即`&&` 和 `?.`：
+- en: '[PRE17]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Unfortunately, truthiness checking doesn’t go the other way. If all we know
+    about a `string | undefined` value is that it’s falsy, that doesn’t tell us whether
+    it’s an empty string or `undefined`.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，真值检查并不适用于反向情况。如果我们知道`string | undefined`值是假值，这并不能告诉我们它是空字符串还是`undefined`。
+- en: 'Here, `biologist` is of type `false | string`, and while it can be narrowed
+    down to just `string` in the `if` statement body, the `else` statement body knows
+    it can still be a string if it’s `""`:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`biologist` 的类型是 `false | string`，虽然它可以在`if`语句体中缩小为`string`，但`else`语句体知道，如果是`""`，它仍然可以是一个字符串：
+- en: '[PRE18]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Variables Without Initial Values
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 没有初始值的变量
+- en: 'Variables declared without an initial value default to `undefined` in JavaScript.
+    That presents an edge case in the type system: what if you declare a variable
+    to be a type that doesn’t include `undefined`, then try to use it before assigning
+    a value?'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，声明而没有初始值的变量默认为`undefined`。这在类型系统中构成一个特例：如果你声明一个变量为不包含`undefined`的类型，然后试图在赋值前使用它会怎么样？
+- en: 'TypeScript is smart enough to understand that the variable is `undefined` until
+    a value is assigned. It will report a specialized error message if you try to
+    use that variable, such as by accessing one of its properties, before assigning
+    a value:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 足够智能，能理解在赋值前变量是`undefined`。如果在赋值前尝试使用该变量，例如访问其属性，它将报告一个专门的错误消息：
+- en: '[PRE19]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Note that this reporting doesn’t apply if the variable’s type includes `undefined`.
+    Adding `| undefined` to a variable’s type indicates to TypeScript that it doesn’t
+    need to be defined before use, as `undefined` is a valid type for its value.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，如果变量的类型包含`undefined`，这种报告就不适用。向变量的类型添加`| undefined`表示 TypeScript 在使用前不需要定义它，因为`undefined`是其值的有效类型。
+- en: 'The previous code snippet wouldn’t emit any errors if the type of `mathematician`
+    is `string | undefined`:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`mathematician`的类型是`string | undefined`，则前面的代码片段不会发出任何错误：
+- en: '[PRE20]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Type Aliases
+  id: totrans-117
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型别名
+- en: Most union types you’ll see in code will generally only have two or three constituents.
+    However, you may sometimes find a use for longer union types that are inconvenient
+    to type out repeatedly.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代码中，你通常会看到只有两个或三个组成部分的联合类型。然而，有时你可能会发现需要重复输入的长联合类型也是有用的。
+- en: 'Each of these variables can be one of four possible types:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些变量中的每一个可能是四种可能的类型之一：
+- en: '[PRE21]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'TypeScript includes *type aliases* for assigning easier names to reused types.
+    A type alias starts with the `type` keyword, a new name, `=`, and then any type.
+    By convention, type aliases are given names in PascalCase:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 包含了用于为重复使用的类型分配更简单名称的*类型别名*。类型别名以`type`关键字开始，接着是一个新名称、`=`，然后是任何类型。按照惯例，类型别名采用
+    PascalCase 命名：
+- en: '[PRE22]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Type aliases act as a copy-and-paste in the type system. When TypeScript sees
+    a type alias, it acts as if you’d typed out the actual type the alias was referring
+    to. The previous variables’ type annotations could be rewritten to use a type
+    alias for the long union type:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名在类型系统中起到复制粘贴的作用。当 TypeScript 遇到类型别名时，它会将其视为你直接输入了别名所引用的实际类型。可以用长联合类型的类型别名重写前面变量的类型注解：
+- en: '[PRE23]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: That’s a lot easier to read!
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样阅读起来轻松多了！
+- en: Type aliases are a handy feature to use in TypeScript whenever your types start
+    getting complex. For now, that just includes long union types; later on it will
+    include array, function, and object types.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名是TypeScript中的一个方便功能，无论是对于复杂的类型还是数组、函数和对象类型。
+- en: Type Aliases Are Not JavaScript
+  id: totrans-127
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型别名不是JavaScript
+- en: Type aliases, like type annotations, are not compiled to the output JavaScript.
+    They exist purely in the TypeScript type system.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名，就像类型注解一样，不会编译到输出的JavaScript中。它们纯粹存在于TypeScript的类型系统中。
+- en: 'The previous code snippet would compile to roughly this JavaScript:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前面的代码片段大致会编译成这样的JavaScript：
+- en: '[PRE24]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Because type aliases are purely in the type system, you cannot reference them
+    in runtime code. TypeScript will let you know with a type error if you are trying
+    to access something that won’t exist at runtime:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为类型别名纯粹存在于类型系统中，您不能在运行时代码中引用它们。如果您试图访问不存在的内容，TypeScript会通过类型错误提醒您：
+- en: '[PRE25]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Type aliases exist purely as a development-time construct.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名纯粹作为开发时的构造存在。
+- en: Combining Type Aliases
+  id: totrans-134
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 结合类型别名
+- en: Type aliases may reference other type aliases. It can sometimes be useful to
+    have type aliases refer to each other, such as when one type alias is a union
+    of types that includes (is a superset of) the union types within another type
+    alias.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名可以引用其他类型别名。有时候，让一个类型别名引用另一个类型别名是很有用的，比如一个类型别名是另一个类型别名中的联合类型（是一个超集）。
+- en: 'This `IdMaybe` type is a union of the types within `Id` as well as `undefined`
+    and `null`:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个`IdMaybe`类型是`Id`中的类型以及`undefined`和`null`的联合：
+- en: '[PRE26]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Type aliases don’t have to be declared in order of usage. You can have a type
+    alias declared earlier in a file reference an alias declared later in the file.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型别名不需要按照使用顺序声明。你可以在文件中较早地声明一个类型别名引用稍后在文件中声明的别名。
+- en: 'The previous code snippet could be rewritten to have `IdMaybe` come before
+    `Id`:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前面的代码片段可以重写，使得`IdMaybe`出现在`Id`之前：
+- en: '[PRE27]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Summary
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: 'In this chapter, you went over union and literal types in TypeScript, along
+    with how its type system can deduce more specific (narrower) types from how our
+    code is structured:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您已经学习了TypeScript中的联合类型和字面类型，以及它的类型系统如何从我们代码的结构中推断出更具体（更窄）的类型：
+- en: How union types represent values that could be one of two or more types
+  id: totrans-143
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 联合类型如何表示可能是两种或更多类型之一的值
+- en: Explicitly indicating union types with type annotations
+  id: totrans-144
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用类型注解明确指示联合类型
+- en: How type narrowing reduces the possible types of a value
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 类型缩小如何减少值的可能类型
+- en: The difference between `const` variables with literal types and `let` variables
+    with primitive types
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`const`变量与字面类型的变量之间的差异'
+- en: The “billion-dollar mistake” and how TypeScript handles strict null checking
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: “十亿美元错误”以及TypeScript如何处理严格的空值检查
+- en: Using explicit `| undefined` to represent values that might not exist
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用显式的`| undefined`来表示可能不存在的值
+- en: Implicit `| undefined` for unassigned variables
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于未分配变量，隐式的`| undefined`
+- en: Using type aliases to save typing long type unions repeatedly
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用类型别名以避免重复输入长类型联合
+- en: Tip
+  id: totrans-151
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Now that you’ve finished reading this chapter, practice what you’ve learned
+    on [*https://learningtypescript.com/unions-and-literals*](https://learningtypescript.com/unions-and-literals).
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经完成了本章的阅读，请在[*https://learningtypescript.com/unions-and-literals*](https://learningtypescript.com/unions-and-literals)上练习您所学到的内容。
+- en: Why are `const` variables so serious?
+  id: totrans-153
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 为什么`const`变量如此严格？
+- en: ''
+  id: totrans-154
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: They take themselves too literally.
+  id: totrans-155
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 它们太过于字面了。
+- en: ^([1](ch03.xhtml#idm45584691848224-marker)) The deprecated `document.all` object
+    in browsers is also defined as falsy in an old quirk of legacy browser compatibility.
+    For the purposes of this book—and your own happiness as a developer—don’t worry
+    about `document.all`.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch03.xhtml#idm45584691848224-marker)) 在旧版本浏览器兼容性的古怪遗留中，已弃用的`document.all`对象也被定义为假值。对于本书和作为开发者的您的幸福感，请不要担心`document.all`。

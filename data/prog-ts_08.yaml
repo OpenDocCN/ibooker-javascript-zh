@@ -1,0 +1,1593 @@
+- en: Chapter 8\. Asynchronous Programming, Concurrency, and Parallelism
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 8 章。异步编程、并发和并行
+- en: So far in this book, we’ve dealt mostly with synchronous programs—programs that
+    take some input, do some stuff, and run to completion in a single pass. But the
+    really interesting programs—the building blocks of real-world applications that
+    make network requests, interact with databases and filesystems, respond to user
+    interaction, offload CPU-intensive work to separate threads—all make use of asynchronous
+    APIs like callbacks, promises, and streams.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，在本书中，我们主要处理了同步程序 —— 程序接受一些输入，完成一些任务，并在单次执行中运行完成。但真正有趣的程序 —— 现实世界应用的构建模块，它们发起网络请求、与数据库和文件系统交互、响应用户交互、将
+    CPU 密集型工作转移到单独的线程 —— 都利用了像回调、Promise 和流这样的异步 API。
+- en: These asynchronous tasks are where JavaScript really shines and sets itself
+    apart from other mainstream multithreaded languages like Java and C++. Popular
+    JavaScript engines like V8 and SpiderMonkey do with one thread what traditionally
+    required many threads, by being clever and multiplexing tasks over a single thread
+    while other tasks are idling. This *event loop* is the standard threading model
+    for JavaScript engines, and the one that we’ll assume you’re using. From an end
+    user’s perspective, it usually doesn’t matter whether your engine uses an event
+    looped model or a multithreaded one, but it does affect the explanations I’ll
+    be giving for how things work and why we design things the way we do.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些异步任务正是 JavaScript 真正闪耀并与其他主流多线程语言如 Java 和 C++ 区分开来的地方。像 V8 和 SpiderMonkey
+    这样的流行 JavaScript 引擎利用单线程做多线程的事情，通过巧妙地将任务多路复用到单线程，而其他任务则处于空闲状态。这种 *事件循环* 是 JavaScript
+    引擎的标准线程模型，也是我们假设你正在使用的模型。从最终用户的角度来看，你的引擎使用事件循环模型还是多线程模型通常并不重要，但它影响了我对事物如何工作以及我们设计事物方式的解释。
+- en: This event-looped concurrency model is how JavaScript avoids all the common
+    footguns endemic to multithreaded programming, along with the overhead of synchronized
+    data types, mutexes, semaphores, and all the other bits of multithreading jargon.
+    And when you do run JavaScript over multiple threads, it’s rare to use shared
+    memory; the typical pattern is to use message passing and to serialize data when
+    sending it between threads. It’s a design reminiscent of Erlang, actor systems,
+    and other purely functional concurrency models, and is what makes multithreaded
+    programming in JavaScript foolproof.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种事件循环并发模型是 JavaScript 避免多线程编程中所有常见陷阱的方式，同时也避免了同步数据类型、互斥锁、信号量以及多线程术语的所有开销。当你在多线程上运行
+    JavaScript 时，很少使用共享内存；典型模式是使用消息传递，在发送数据时对其进行序列化。这种设计让人想起了 Erlang、actor 系统和其他纯函数并发模型，并且正是这种设计使得
+    JavaScript 中的多线程编程变得无懈可击。
+- en: That said, asynchronous programming does make programs harder to reason about,
+    because you can no longer mentally trace through a program line by line; you have
+    to know when to pause and move execution elsewhere, and when to resume again.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，异步编程确实使得程序更难理解，因为你不能再逐行 mentally 通过程序；你必须知道何时暂停并将执行移至其他地方，以及何时恢复执行。
+- en: 'TypeScript gives us the tools to reason about asynchronous programs: types
+    let us trace through asynchronous work, and built-in support for `async`/`await`
+    let us apply familiar synchronous thinking to asynchronous programs. We can also
+    use TypeScript to specify strict message-passing protocols for multithreaded programs
+    (it’s a lot simpler than it sounds). If all else fails, TypeScript can give you
+    a back rub when your coworker’s asynchronous code gets too complicated and you
+    have to stay late debugging it (behind a compiler flag, of course).'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 为我们提供了理解异步程序的工具：类型让我们追踪异步工作，而内置对 `async`/`await` 的支持则让我们将熟悉的同步思维应用到异步程序中。我们还可以使用
+    TypeScript 为多线程程序指定严格的消息传递协议（比听起来简单得多）。如果所有其他方法都失败了，当你的同事的异步代码变得过于复杂而你不得不加班调试时，TypeScript
+    可以给你一个后背按摩（当然，前提是启用了编译器标志）。
+- en: But before we get to working with asynchronous programs, let’s talk a bit more
+    about how asynchronicity actually works in modern JavaScript engines—how is it
+    that we can suspend and resume execution on what seems to be a single thread?
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但在我们开始处理异步程序之前，让我们再谈谈现代 JavaScript 引擎中异步性是如何工作的 —— 我们如何在看似单线程的情况下暂停和恢复执行？
+- en: JavaScript’s Event Loop
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JavaScript 的事件循环
+- en: 'Let’s start with an example. We’ll set a couple of timers, one that fires after
+    one millisecond, and the other after two:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们以一个例子开始。我们将设置几个定时器，一个在一毫秒后触发，另一个在两毫秒后触发：
+- en: '[PRE0]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Now, what will get logged to the console? Is it `A`, `B`, `C`?
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，控制台会输出什么呢？是`A`，`B`，`C`吗？
+- en: If you’re a JavaScript programmer, you know intuitively the answer is no—the
+    actual firing order is `C`, `A`, then `B`. If you haven’t worked with JavaScript
+    or TypeScript before, this behavior might seem mysterious and unintuitive. In
+    reality, it’s pretty straightforward; it just doesn’t follow the same concurrency
+    model as a `sleep` would in C, or scheduling work in another thread would in Java.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你是 JavaScript 程序员，你本能地知道答案是否定的——实际的触发顺序是`C`，`A`，然后是`B`。如果你之前没有使用过 JavaScript
+    或 TypeScript，这种行为可能看起来神秘和不直观。实际上，这很简单；只是它不遵循 C 中的`sleep`或 Java 中调度工作的并发模型。
+- en: 'At a high level, the JavaScript VM simulates concurrency like this (see [Figure 8-1](#javascript-loop-fig)):'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在高层次上，JavaScript 虚拟机以这种方式模拟并发（见[图 8-1](#javascript-loop-fig)）：
+- en: The main JavaScript thread calls into native asynchronous APIs like `XMLHTTPRequest`
+    (for AJAX requests), `setTimeout` (for sleeping), `readFile` (for reading a file
+    from disk), and so on. These APIs are provided by the JavaScript platform—you
+    can’t create them yourself.^([1](ch08.html#idm46304959625896))
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 主 JavaScript 线程调用本地的异步 API，例如`XMLHTTPRequest`（用于 AJAX 请求），`setTimeout`（用于延时），`readFile`（用于从磁盘读取文件）等等。这些
+    API 是由 JavaScript 平台提供的 —— 你不能自己创建它们。^([1](ch08.html#idm46304959625896))
+- en: Once you call into a native asynchronous API, control returns to the main thread
+    and execution continues as if the API was never called.
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一旦调用了本地的异步 API，控制会返回到主线程，并且执行会继续，就好像从未调用过 API 一样。
+- en: Once the asynchronous operation is done, the platform puts a *task* in its *event
+    queue*. Each thread has its own queue, used for relaying the results of asynchronous
+    operations back to the main thread. A task includes some metainformation about
+    the call, and a reference to a callback function from the main thread.
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一旦异步操作完成，平台会将一个任务放入其事件队列中。每个线程都有自己的队列，用于将异步操作的结果传递回主线程。任务包括有关调用的一些元信息，以及来自主线程的回调函数的引用。
+- en: Whenever the main thread’s call stack is emptied, the platform will check its
+    event queue for pending tasks. If there’s a task waiting, the platform runs it;
+    that triggers a function call, and control returns to that main thread function.
+    When the call stack resulting from that function call is once again empty, the
+    platform again checks the event queue for tasks that are ready to go. This loop
+    repeats until both the call stack and the event queue are empty, and all asynchronous
+    native API calls have completed.
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 每当主线程的调用栈清空时，平台就会检查其事件队列中是否有待处理的任务。如果有等待的任务，平台会执行它；这会触发一个函数调用，并且控制会返回到主线程函数。当由该函数调用产生的调用栈再次为空时，平台会再次检查事件队列，查看是否有准备就绪的任务。这个循环重复进行，直到调用栈和事件队列都为空，并且所有异步本地
+    API 调用都已完成。
+- en: '![prts 0801](assets/prts_0801.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0801](assets/prts_0801.png)'
+- en: 'Figure 8-1\. JavaScript’s event loop: what happens when you call an asynchronous
+    API'
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. JavaScript 的事件循环：当调用异步 API 时会发生什么
+- en: 'Armed with this information, it’s time to go back to our `setTimeout` example.
+    Here’s what happens:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些信息，现在是时候回到我们的`setTimeout`示例了。以下是发生的事情：
+- en: We call `setTimeout`, which calls a native timeout API with a reference to the
+    callback we passed in and the argument `1`.
+  id: totrans-20
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们调用`setTimeout`，它调用一个带有我们传入的回调函数和参数`1`的本地超时 API。
+- en: We call `setTimeout` again, which calls the native timeout API again with a
+    reference to the second callback we passed in and the argument `2`.
+  id: totrans-21
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们再次调用`setTimeout`，它再次使用我们传入的第二个回调函数和参数`2`调用本地的超时 API。
+- en: We log `C` to the console.
+  id: totrans-22
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们将`C`记录到控制台中。
+- en: In the background, after at least one millisecond, our JavaScript platform adds
+    a task to its event queue indicating that the timeout for the first `setTimeout`
+    has elapsed, and that its callback is now ready to be called.
+  id: totrans-23
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在后台，在至少一毫秒后，我们的 JavaScript 平台会向其事件队列中添加一个任务，指示第一个`setTimeout`的超时已经过去，并且它的回调现在可以被调用了。
+- en: After another millisecond, the platform adds a second task to the event queue
+    for the second `setTimeout`’s callback.
+  id: totrans-24
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 再过一毫秒，平台会为第二个`setTimeout`的回调添加第二个任务到事件队列中。
+- en: Since the call stack is empty, after step 3 is done the platform looks at its
+    event queue to see if there are any tasks in it. If steps 4 and/or 5 are done,
+    then it will find some tasks. For each task, it will call the corresponding callback
+    function.
+  id: totrans-25
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 自从调用栈为空后，在步骤 3 完成后，平台会查看其事件队列，看看是否有任何任务。如果步骤 4 和/或 5 完成，它将找到一些任务。对于每个任务，它将调用相应的回调函数。
+- en: Once both timers have elapsed and the event queue and call stack are empty,
+    the program exits.
+  id: totrans-26
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 一旦两个定时器都已经超时，并且事件队列和调用堆栈为空，程序就会退出。
+- en: That’s why we logged `C`, `A`, `B`, and not `A`, `B`, `C`. With this baseline
+    out of the way, we can start talking about how to type asynchronous code safely.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么我们记录了 `C`、`A`、`B`，而不是 `A`、`B`、`C`。有了这个基础，我们可以开始讨论如何安全地为异步代码编写类型。
+- en: Working with Callbacks
+  id: totrans-28
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用回调函数
+- en: The basic unit of the asynchronous JavaScript program is the *callback*. A callback
+    is a plain old function that you pass as an argument to another function. As in
+    a synchronous program, that other function invokes your function when it’s done
+    doing whatever it does (making a network request, etc.). Callbacks invoked by
+    asynchronous code are just functions, and there’s no giveaway in their type signatures
+    that they are invoked asynchronously.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 异步 JavaScript 程序的基本单元是 *回调函数*。回调函数是你作为参数传递给另一个函数的普通函数。就像同步程序一样，当另一个函数完成其操作（如发出网络请求等），它会调用你的函数。被异步代码调用的回调函数只是普通的函数，在它们的类型签名中没有任何特殊标记表明它们是异步调用。
+- en: For NodeJS native APIs like `fs.readFile` (used to asynchronously read the contents
+    of a file from disk) and `dns.resolveCname` (used to asynchronously resolve `CNAME`
+    records), the convention for callbacks is that the first parameter is an error
+    or `null`, and the second parameter is a result or `null`.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于像 `fs.readFile`（用于从磁盘异步读取文件内容）和 `dns.resolveCname`（用于异步解析 `CNAME` 记录）这样的 NodeJS
+    原生 API，回调函数的约定是第一个参数是错误或 `null`，第二个参数是结果或 `null`。
+- en: 'Here’s what `readFile`’s type signature looks like:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`readFile` 的类型签名如下所示：'
+- en: '[PRE1]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Notice that there’s nothing special about either `readFile`’s type or `callback`’s
+    type: both are regular JavaScript functions. Looking at the signature, there’s
+    no indication that `readFile` is asynchronous and that control will be passed
+    to the next line right after `readFile` is called (not waiting for its result).'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，`readFile` 的类型或 `callback` 的类型都没有任何特殊之处：它们都是普通的 JavaScript 函数。从签名上看，看不出 `readFile`
+    是异步的，以及在调用 `readFile` 后控制将传递到下一行（不等待其结果）。
+- en: Note
+  id: totrans-34
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'To run the following example yourself, be sure to first install type declarations
+    for NodeJS:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要自行运行以下示例，请确保首先安装 NodeJS 的类型声明：
+- en: '[PRE2]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: To learn more about third-party type declarations, jump ahead to [“JavaScript
+    That Has Type Declarations on DefinitelyTyped”](ch11.html#third-party-js-with-dt-typings).
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解更多关于第三方类型声明的信息，请跳到[“在 DefinitelyTyped 上有类型声明的 JavaScript”](ch11.html#third-party-js-with-dt-typings)。
+- en: 'For example, let’s write a NodeJS program that reads and writes to your Apache
+    access log:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们编写一个 NodeJS 程序，读取并写入到你的 Apache 访问日志中：
+- en: '[PRE3]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Unless you’re a TypeScript or JavaScript engineer and are familiar with how
+    NodeJS’s built-in APIs work, and know that they’re asynchronous and you can’t
+    rely on the order in which API calls appear in your code to dictate in which order
+    filesystem operations actually happen, you wouldn’t know that we just introduced
+    a subtle bug where the first `readFile` call may or may not return the access
+    log with our new line appended, depending on how busy the filesystem is at the
+    time this code runs.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除非你是 TypeScript 或 JavaScript 工程师，并且熟悉 NodeJS 的内置 API 如何工作，并且知道它们是异步的，并且不能依赖
+    API 调用在代码中出现的顺序来决定文件系统操作实际发生的顺序，否则你不会知道我们刚刚引入了一个微妙的 bug，即第一个 `readFile` 调用可能会或可能不会返回访问日志及其新行添加情况，这取决于文件系统在代码运行时的繁忙程度。
+- en: You might know that `readFile` is asynchronous from experience, or because you
+    saw it in NodeJS’s documentation, or because you know that NodeJS generally sticks
+    to the convention that if a function’s last argument is a function that takes
+    two arguments—an `Error | null` and a `T | null`, in that order—then the function
+    is usually asynchronous, or because you ran across the hall to your neighbor for
+    a cup of sugar and ended up staying for a while to chit-chat, then you somehow
+    got on the topic of asynchronous programming in NodeJS and they told you about
+    that time they had a similar issue a couple of months ago and how they fixed it.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能知道 `readFile` 是异步的是因为经验，或者因为你在 NodeJS 的文档中看到过，或者因为你知道 NodeJS 通常遵循的约定：如果一个函数的最后一个参数是一个接受两个参数的函数——一个
+    `Error | null` 和一个 `T | null`，那么通常这个函数是异步的，或者因为你跑到邻居家借了一杯糖，结果聊了一会，然后不知怎么地谈到了 NodeJS
+    中的异步编程，他们告诉了你几个月前他们遇到类似问题及其如何解决的经历。
+- en: Whatever it was, the types certainly didn’t help you get there.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论是什么，类型肯定不会帮助你到达那里。
+- en: 'Besides the fact that you can’t use types to help guide your intuition about
+    the nature of a function’s synchronicity, callbacks are also difficult to sequence—which
+    can lead to what some people call “callback pyramids”:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了你不能使用类型来帮助引导你对函数同步性质的直觉之外，回调在排序上也很难，这可能导致一些人所说的“回调金字塔”：
+- en: '[PRE4]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: When sequencing operations, you usually want to continue down the chain when
+    an operation succeeds, bailing out as soon as you hit an error. With callbacks,
+    you have to do this manually; when you start accounting for synchronous errors
+    too (e.g., the NodeJS convention is to `throw` when you give it a badly typed
+    argument, rather than calling your provided callback with an `Error` object),
+    properly sequencing callbacks can get error-prone.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在排序操作时，通常希望在操作成功时继续向下执行，一旦遇到错误就退出。使用回调时，你必须手动处理这些情况；如果还要考虑同步错误（例如，当你给NodeJS一个类型错误的参数时，它的惯例是`throw`而不是调用你提供的回调函数来处理`Error`对象），正确地排序回调可能会变得容易出错。
+- en: And sequencing is just one kind of operation you might want to run over asynchronous
+    tasks—you might also want to run functions in parallel to know when they’re all
+    done, race them to get the result of the first one that finishes, and so on.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而排序只是你可能想要在异步任务上运行的一种操作——你可能还想要并行运行函数以知晓它们何时全部完成，或者比赛以获取第一个完成的结果等等。
+- en: This is a limitation of plain old callbacks. Without more sophisticated abstractions
+    for operating on asynchronous tasks, working with multiple callbacks that depend
+    on each other in some way can get messy fast.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是纯回调的一个局限。如果没有更复杂的用于处理异步任务的抽象，使用多个彼此依赖的回调可能会很快变得混乱。
+- en: 'To recap:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下：
+- en: Use callbacks to do simple asynchronous tasks.
+  id: totrans-49
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用回调执行简单的异步任务。
+- en: While callbacks are great for modeling simple tasks, they quickly get hairy
+    as you try to do things with *lots* of asynchronous tasks.
+  id: totrans-50
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 虽然回调很适合建模简单任务，但在尝试处理*大量*异步任务时，它们很快变得棘手。
+- en: Regaining Sanity with Promises
+  id: totrans-51
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 用Promises恢复理智
+- en: Luckily, we’re not the first programmers to run into these limitations. In this
+    section we’ll develop the concept of *promises*, which are a way to abstract over
+    asynchronous work so that we can compose it, sequence it, and so on. Even if you’ve
+    worked with promises or futures before, this will be a helpful exercise to understand
+    how they work.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，我们不是第一个遇到这些限制的程序员。在本节中，我们将开发*promises*的概念，这是一种抽象异步工作的方式，使我们可以组合、排序等。即使你之前有过使用promises或futures的经验，这也将是一个有益的练习来理解它们的工作原理。
+- en: Note
+  id: totrans-53
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Most modern JavaScript platforms include built-in support for promises. In this
+    section we’ll develop our own partial `Promise` implementation as an exercise,
+    but in practice, you should use a built-in or off-the-shelf implementation instead.
+    Check whether or not your favorite platform supports promises [here](http://bit.ly/2uMxkk5),
+    or jump ahead to [“lib”](ch12.html#lib) to learn more about polyfilling promises
+    on platforms they’re not natively supported on.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数现代JavaScript平台都内置支持Promise。在本节中，我们将开发自己的部分`Promise`实现作为练习，但实际上，你应该使用内置的或现成的实现。检查你喜欢的平台是否支持Promise，请点击[这里](http://bit.ly/2uMxkk5)，或跳转到[“lib”](ch12.html#lib)了解如何在不支持的平台上使用polyfill填充promises。
+- en: 'We’ll start with an example of how we want to use `Promise` to first append
+    to a file, then read back the result:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从一个示例开始，展示我们如何使用`Promise`首先向文件追加内容，然后读回结果：
+- en: '[PRE5]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Notice how there’s no callback pyramid here—we’ve effectively linearized what
+    we want to do into a single, easy-to-understand chain of asynchronous tasks. When
+    one succeeds, the next one runs; if it fails, we skip to the `catch` clause. With
+    a callback-based API, this might have looked more like:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意这里没有回调金字塔——我们已经有效地将我们想要做的事情线性化成了一个简单易懂的异步任务链。一个成功后，下一个就运行；如果失败，我们跳转到`catch`子句。使用基于回调的API，这可能看起来更像：
+- en: '[PRE6]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Let’s design a `Promise` API that lets us do this.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们设计一个`Promise` API，让我们可以做到这一点。
+- en: '`Promise` starts from humble beginnings:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise` 从一开始就很谦逊：'
+- en: '[PRE7]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'A `new Promise` takes a function we call an *executor*, which the `Promise`
+    implementation will call with two arguments, a `resolve` function and a `reject`
+    function:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`new Promise`接受一个我们称为*executor*的函数，`Promise`实现将调用该函数，并传入两个参数，一个`resolve`函数和一个`reject`函数：
+- en: '[PRE8]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'How do `resolve` and `reject` work? Let’s demonstrate it by thinking about
+    how we would manually wrap a callback-based NodeJS API like `fs.readFile` in a
+    `Promise`-based API. We use NodeJS’s built-in `fs.readFile` API like this:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`resolve`和`reject`如何工作？让我们通过思考如何手动将基于回调的NodeJS API，如`fs.readFile`，包装成基于`Promise`的API来演示它。我们像这样使用NodeJS的内置`fs.readFile`
+    API：'
+- en: '[PRE9]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Wrapping that API in our `Promise` implementation, it now looks like this:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将该API包装在我们的`Promise`实现中，现在看起来像这样：
+- en: '[PRE10]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'So, the type of `resolve`’s parameter depends on which specific API we’re using
+    (in this case, its parameter’s type would be whatever `result`’s type is), and
+    the type of `reject`’s parameter is always some type of `Error`. Back to our implementation,
+    let’s update our code by replacing our unsafe `Function` types with more specific
+    types:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，`resolve`参数的类型取决于我们使用的特定API（在本例中，其参数类型将是`result`的类型），而`reject`参数的类型始终是某种`Error`类型。回到我们的实现，让我们通过用更具体的类型替换我们不安全的`Function`类型来更新我们的代码：
+- en: '[PRE11]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Because we want to be able to get a sense for what type a `Promise` will resolve
+    to just by looking at the `Promise` (for example, `Promise<number>` represents
+    an asynchronous task that results in a `number`), we’ll make `Promise` generic,
+    and pass its type parameters down to the `Executor` type in its constructor:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们希望能够通过查看`Promise`来了解它将解析为的类型（例如，`Promise<number>`表示一个异步任务，其结果是一个`number`），我们将使`Promise`成为泛型，并将其类型参数传递给其构造函数中的`Executor`类型：
+- en: '[PRE12]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'So far, so good. We defined `Promise`’s constructor API and understand what
+    the types at play are. Now, let’s think about chaining—what are the operations
+    we want to expose to run a sequence of `Promise`s, propagate their results, and
+    catch their exceptions? If you look back to the initial code example at the start
+    of this section, that’s what `then` and `catch` are for. Let’s add them to our
+    `Promise` type:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经定义了`Promise`的构造函数API，并了解了所涉及的类型。现在，让我们考虑链式调用 - 我们想要公开哪些操作来运行一系列`Promise`，传播它们的结果并捕获它们的异常？如果回顾一下本节开头的初始代码示例，`then`和`catch`的作用就是这样。让我们将它们添加到我们的`Promise`类型中：
+- en: '[PRE13]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '`then` and `catch` are two ways to sequence `Promise`s: `then` maps a successful
+    result of a `Promise` to a new `Promise`,^([2](ch08.html#idm46304958643512)) and
+    `catch` recovers from a rejection by mapping an error to a new `Promise`.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`then`和`catch`是顺序执行`Promise`的两种方式：`then`将`Promise`的成功结果映射到一个新的`Promise`，^([2](ch08.html#idm46304958643512))
+    而`catch`通过将错误映射到一个新的`Promise`来从拒绝中恢复。'
+- en: 'Using `then` looks like this:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`then`看起来像这样：
+- en: '[PRE14]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Because the type of `b`’s second type argument is `never` (meaning `b` will
+    never throw an error), the first `catch` clause will only get called if `a` errors.
+    But notice that when we use a `Promise`, we don’t have to care about the fact
+    that `a` might throw but `b` won’t—if `a` succeeds then we map the `Promise` to
+    `b`, and otherwise we jump to the first `catch` clause and map the `Promise` to
+    `c`. If `c` succeeds then we log `Done`, and if it rejects then we `catch` again.
+    This mimics how regular old `try`/`catch` statements work, and does for asynchronous
+    tasks what `try`/`catch` does for synchronous ones (see [Figure 8-2](#promise-state-fig)).
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为`b`的第二个类型参数的类型是`never`（意味着`b`永远不会抛出错误），如果`a`出错，第一个`catch`子句才会被调用。但请注意，当我们使用`Promise`时，我们不需要关心`a`可能会抛出异常而`b`不会
+    - 如果`a`成功，则将`Promise`映射到`b`，否则跳转到第一个`catch`子句并映射`Promise`到`c`。如果`c`成功，则记录`Done`，如果拒绝，则再次`catch`。这模仿了常规的`try`/`catch`语句的工作方式，并且对异步任务执行了`try`/`catch`对同步任务的操作（参见[Figure 8-2](#promise-state-fig)）。
+- en: '![prts 0802](assets/prts_0802.png)'
+  id: totrans-78
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0802](assets/prts_0802.png)'
+- en: Figure 8-2\. The Promise state machine
+  id: totrans-79
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图8-2\. Promise状态机
+- en: 'We also have to handle the case of `Promise`s that throw actual exceptions
+    (as in, `throw Error(''foo'')`). When we implement `then` and `catch`, we’ll do
+    this by wrapping code in `try`/`catch`es and rejecting in the `catch` clause.
+    This does have a few implications, though. It means that:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还必须处理抛出实际异常的`Promise`的情况（例如，`throw Error('foo')`）。在我们实现`then`和`catch`时，我们将通过使用`try`/`catch`包装代码并在`catch`子句中拒绝来处理这种情况。不过，这确实有一些影响。这意味着：
+- en: Every `Promise` has the potential to reject, and we can’t statically check for
+    this (because TypeScript doesn’t support indicating in a function’s signature
+    which exceptions the function might throw).
+  id: totrans-81
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 每个`Promise`都有可能被拒绝，并且我们无法静态检查这一点（因为TypeScript不支持在函数签名中指示函数可能抛出哪些异常）。
+- en: A `Promise` won’t always be rejected with an `Error`. Because TypeScript has
+    no choice but to inherit JavaScript’s behavior, and in JavaScript when you `throw`
+    you can throw anything—a string, a function, an array, a `Promise`, and not necessarily
+    an `Error`—we can’t assume that a rejection will be a subtype of `Error`. It’s
+    unfortunate, but this is a sacrifice we’ll make in the name of not having to force
+    consumers to `try/catch` every promise chain (which might be spread across multiple
+    files or modules!).
+  id: totrans-82
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`Promise`不一定会被`Error`拒绝。因为TypeScript别无选择，只能继承JavaScript的行为，而在JavaScript中，当你`throw`时，可以抛出任何东西——一个字符串、一个函数、一个数组、一个`Promise`，并且不一定是`Error`的子类型。这很不幸，但这是我们不强迫消费者在每个可能跨多个文件或模块的`Promise`链中使用`try/catch`的牺牲。'
+- en: 'Taking that into account, let’s loosen our `Promise` type a bit by not typing
+    errors:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到这一点，我们可以通过不对错误进行类型化来稍微放宽我们的`Promise`类型：
+- en: '[PRE15]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: We now have a fully baked `Promise` interface.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了一个完全成熟的`Promise`接口。
+- en: I’ll leave it as an exercise for you to hook it all together with implementations
+    for `then` and `catch`. The implementation for `Promise` is notoriously tricky
+    to write correctly—if you’re ambitious and have a couple of hours free, head over
+    to the [ES2015 specification](http://bit.ly/2JT3KUh) for a walkthrough of how
+    `Promise`’s state machine should work under the hood.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我会让你练习把所有内容都用`then`和`catch`实现。`Promise`的实现非常棘手，正确书写起来非常困难——如果你雄心勃勃并且有几个小时空闲时间，可以去[ES2015规范](http://bit.ly/2JT3KUh)了解一下`Promise`的状态机应该如何在底层工作。
+- en: async and await
+  id: totrans-87
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 异步和等待
+- en: 'Promises are a really powerful abstraction for working with asynchronous code.
+    They’re such a popular pattern that they even have their own JavaScript (and therefore,
+    TypeScript) syntax: `async` and `await`. This syntax lets you interact with asynchronous
+    operations the same way you do with synchronous ones.'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Promise`是处理异步代码的非常强大的抽象。它们是如此流行的一种模式，以至于它们甚至有了自己的JavaScript（因此也是TypeScript）语法：`async`和`await`。这种语法让你以与同步操作相同的方式与异步操作进行交互。'
+- en: Tip
+  id: totrans-89
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Think of `await` as language-level syntax sugar for `.then`. When you `await`
+    a `Promise`, you have to do so in an `async` block. And instead of `.catch`, you
+    can wrap your `await` in a regular `try`/`catch` block.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 把`await`想象成语言级别的语法糖，用于`.then`。当你`await`一个`Promise`时，必须在一个`async`块中这样做。而且，你可以用普通的`try`/`catch`块来包装你的`await`，而不是用`.catch`。
+- en: 'Let’s say you have the following promise (we didn’t cover `finally` in the
+    previous section, but it behaves the way you think it would, firing after both
+    `then` and `catch` have a chance to fire):'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你有以下的`Promise`（我们在前面的章节中没有涵盖`finally`，但它的行为和你想象的一样，在`then`和`catch`都有机会执行之后才会执行）：
+- en: '[PRE16]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'To convert this code to `async` and `await`, first put it in an `async` function,
+    then `await` the promise’s result:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要将此代码转换为`async`和`await`，首先将其放入一个`async`函数中，然后`await`该`Promise`的结果：
+- en: '[PRE17]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Since `async` and `await` are JavaScript features, we won’t go into them in
+    depth here—suffice it to say that TypeScript has full support for them, and they
+    are completely typesafe. Use them whenever you work with promises, to make it
+    easier to reason about chained operations and avoid lots of `then`s. To learn
+    more about `async` and `await`, head over to their documentation on [MDN](https://mzl.la/2TJLFYt).
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`async`和`await`是JavaScript的特性，我们在这里不会深入讨论它们——简单来说，TypeScript完全支持它们，并且它们是完全类型安全的。在处理`Promise`时，请使用它们，以便更轻松地推理链式操作，并避免大量的`then`。要了解更多关于`async`和`await`的信息，请访问它们在[MDN](https://mzl.la/2TJLFYt)上的文档。
+- en: Async Streams
+  id: totrans-96
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 异步流
+- en: While promises are fantastic for modeling, sequencing, and composing future
+    values, what if you have multiple values, which will become available at multiple
+    points in the future? This is less exotic than it sounds—think bits of a file
+    being read from the filesystem, pixels of a video streaming over the internet
+    from the Netflix server to your laptop, a bunch of keystrokes as you fill out
+    a form, some friends coming over to your house for a dinner party, or votes being
+    deposited into a ballot box throughout the course of Super Tuesday. While these
+    things may sound pretty different on the surface, you can look at them all as
+    asynchronous streams; they are all lists of things where each thing comes in at
+    some point in the future.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 promises 在建模、顺序化和组合未来值方面表现出色，但如果您有多个值将在未来的多个时间点可用，该怎么办呢？这并不像听起来那么奇特——想象一下从文件系统读取文件的一部分位、从
+    Netflix 服务器通过互联网流式传输到您的笔记本电脑的视频像素、填写表单时的一堆按键、朋友们来到您家参加晚餐聚会，或者在超级星期二期间向选票箱投票。尽管这些事情在表面上看起来很不同，但你可以把它们都看作是异步流；它们都是一系列东西，其中每一件东西都将在未来的某个时间点到来。
+- en: 'There are a few ways to model this, the most common being with an event emitter
+    (like NodeJS’s `EventEmitter`) or with a reactive programming library like [RxJS](https://www.npmjs.com/package/@reactivex/rxjs).^([3](ch08.html#idm46304958038360))
+    The difference between the two is like the difference between callbacks and promises:
+    events are quick and lightweight, while reactive programming libraries are more
+    powerful, and give you the ability to compose and sequence streams of events.'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有几种建模这种行为的方法，最常见的是使用事件发射器（例如 NodeJS 的`EventEmitter`）或使用响应式编程库（如[RxJS](https://www.npmjs.com/package/@reactivex/rxjs)）。它们之间的区别就像回调和
+    promises 之间的区别：事件快速且轻量，而响应式编程库更加强大，可以组合和顺序化事件流。
+- en: We’ll go over event emitters in the following section. To learn more about reactive
+    programming, head over to the documentation for your favorite reactive programming
+    library—for example, [RxJS](https://www.npmjs.com/package/@reactivex/rxjs), [MostJS](https://github.com/mostjs/core),
+    or [xstream](https://www.npmjs.com/package/xstream).
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在下一节介绍事件发射器。要了解更多关于响应式编程的信息，请查看您喜爱的响应式编程库的文档，例如[RxJS](https://www.npmjs.com/package/@reactivex/rxjs)、[MostJS](https://github.com/mostjs/core)或[xstream](https://www.npmjs.com/package/xstream)。
+- en: Event Emitters
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 事件发射器
+- en: 'At a high level, event emitters offer APIs that support emitting events on
+    a channel and listening for events on that channel:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在高层次上，事件发射器提供了支持在通道上发出事件并监听该通道上事件的 API：
+- en: '[PRE18]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Event emitters are a popular design pattern in JavaScript. You might have encountered
+    them when using DOM events, JQuery events, or NodeJS’s `EventEmitter` module.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件发射器是 JavaScript 中流行的设计模式。你可能在使用 DOM 事件、JQuery 事件或 NodeJS 的`EventEmitter`模块时遇到过它们。
+- en: In most languages, event emitters like this one are unsafe. That’s because the
+    type of `value` depends on the specific `channel`, and in most languages you can’t
+    use types to represent that relationship. Unless your language supports both overloaded
+    function signatures and literal types, you’re going to have trouble saying “this
+    is the type of event emitted on this channel.” Macros that generate methods to
+    emit events and listen on each channel are a common workaround to this problem,
+    but in TypeScript, you can express this naturally and safely using the type system.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数语言中，像这样的事件发射器是不安全的。这是因为`value`的类型取决于特定的`channel`，并且在大多数语言中，你无法使用类型来表示这种关系。除非你的语言支持重载函数签名和字面类型，否则你将很难说“这是在这个通道上发出的事件的类型”。生成用于发出事件和监听每个通道的方法的宏是解决这个问题的常见方法，但在
+    TypeScript 中，你可以通过类型系统自然而安全地表达这一点。
+- en: 'For example, say we’re using the [NodeRedis client](https://github.com/NodeRedis/node_redis),
+    a Node API for the popular Redis in-memory datastore. It works like this:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设我们正在使用[NodeRedis 客户端](https://github.com/NodeRedis/node_redis)，这是一个流行的
+    Redis 内存数据存储的 Node API。它的工作方式如下：
+- en: '[PRE19]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'As programmers using the Redis library, we want to know what types of arguments
+    to expect in our callbacks when we use the `on` API. But because the type of each
+    argument depends on the channel that Redis emits on, a single type won’t cut it.
+    If we were the authors of this library, the simplest way to achieve safety would
+    be with an overloaded type:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为使用 Redis 库的程序员，我们希望在使用`on`API时知道在回调中可以期望哪些类型的参数。但是由于每个参数的类型取决于 Redis 发布的通道，单一类型将无法满足要求。如果我们是这个库的作者，实现安全的最简单方法是使用重载类型：
+- en: '[PRE20]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'This works pretty well, but it’s a bit wordy. Let’s express it in terms of
+    a mapped type (see [“Mapped Types”](ch06.html#mapped-types)), pulling out the
+    event definitions into their own type, `Events`:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做效果不错，但有些啰嗦。让我们用一个映射类型的术语来表达它（参见[“映射类型”](ch06.html#mapped-types)），将事件定义提取到它们自己的类型
+    `Events` 中：
+- en: '[PRE21]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO1-1)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO1-1)'
+- en: We start by defining a single object type that enumerates every event the Redis
+    client might emit, along with the arguments for that event.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先定义一个单一对象类型，枚举了 Redis 客户端可能发出的每个事件，以及该事件的参数。
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO1-2)'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO1-2)'
+- en: We map over our `Events` type, telling TypeScript that `on` can be called with
+    any of the events we defined.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们对我们的 `Events` 类型进行映射，告诉 TypeScript 可以使用我们定义的任何事件调用 `on`。
+- en: 'We can then use this type to make the Node–Redis library safer, by typing both
+    of its methods—`emit` and `on`—as safely as possible:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以使用此类型使 Node-Redis 库更安全，尽可能安全地为其两种方法—`emit` 和 `on`—进行类型化：
+- en: '[PRE22]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: This pattern of pulling out event names and arguments into a shape and mapping
+    over that shape to generate listeners and emitters is common in real-world TypeScript
+    code. It’s also terse, and very safe. When an emitter is typed this way you can’t
+    misspell a key, mistype an argument, or forget to pass in an argument. It also
+    serves as documentation for engineers using your code, as their code editors will
+    suggest to them the possible events they might listen on and the types of parameters
+    in those events’ callbacks.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将事件名称和参数提取到一个形状中，并在该形状上进行映射以生成监听器和发射器，这种模式在真实的 TypeScript 代码中很常见。它也很简洁，非常安全。当发射器以这种方式类型化时，您不会拼错键，误输入参数，或者忘记传入参数。它还为使用您代码的工程师提供文档，因为他们的代码编辑器将为他们建议可能监听的事件及其回调中的参数类型。
+- en: Typesafe Multithreading
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型安全的多线程
+- en: 'So far, we’ve been talking about asynchronous programs that you might run on
+    a single CPU thread, a class of programs that most JavaScript and TypeScript programs
+    you’ll write will likely fall into. But sometimes, when doing CPU-intensive tasks,
+    you might opt for true parallelism: the ability to split out work across multiple
+    threads, in order to do it faster or to keep your main thread idle and responsive.
+    In this section, we’ll explore a few patterns for writing safe, parallel programs
+    in the browser and on the server.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们一直在讨论可能在单个 CPU 线程上运行的异步程序，这是大多数您编写的 JavaScript 和 TypeScript 程序可能属于的类别。但是有时，在执行
+    CPU 密集型任务时，您可能选择真正的并行性：在多个线程间分配工作，以便更快地执行或使主线程保持空闲和响应性。在本节中，我们将探讨一些在浏览器和服务器上编写安全并行程序的模式。
+- en: 'In the Browser: With Web Workers'
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在浏览器中：使用 Web Workers
+- en: Web Workers are a widely supported way to do multithreading in the browser.
+    You spin up some workers—special restricted background threads—from the main JavaScript
+    thread, and use them to do things that would have otherwise blocked the main thread
+    and made the UI unresponsive (i.e., CPU-bound tasks). Web Workers are a way to
+    run code in the browser in a truly parallel way; while asynchronous APIs like
+    `Promise` and `setTimeout` run code concurrently, Workers give you the ability
+    to run code in parallel, on another CPU thread. Web Workers can send network requests,
+    write to the filesystem, and so on, with a few minor restrictions.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web Workers 是在浏览器中进行多线程的广泛支持方式。您可以从主 JavaScript 线程中启动一些特殊的受限后台线程，并使用它们执行本来会阻塞主线程并使用户界面无响应的任务（即
+    CPU 绑定任务）。Web Workers 是在浏览器中以真正并行的方式运行代码的一种方式；而像 `Promise` 和 `setTimeout` 这样的异步
+    API 是并发运行代码的方式，Workers 则使您能够在另一个 CPU 线程上并行运行代码。Web Workers 可以发送网络请求，写入文件系统等，只有一些小的限制。
+- en: Because Web Workers are a browser-provided API, its designers put a lot of emphasis
+    on safety—not type safety like we know and love, but *memory safety*. Anyone that’s
+    written C, C++, Objective C, or multithreaded Java or Scala knows the pitfalls
+    of concurrently manipulating shared memory. When you have multiple threads reading
+    from and writing to the same piece of memory, it’s really easy to run into all
+    sorts of concurrency issues like nondeterminism, deadlocks, and so on.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 Web Workers 是浏览器提供的 API，其设计者非常强调安全性——不是我们熟悉和喜爱的类型安全，而是 *内存安全*。任何写过 C、C++、Objective
+    C 或多线程 Java 或 Scala 的人都知道并发操作共享内存的陷阱。当你有多个线程读写同一块内存时，很容易遇到各种并发问题，如非确定性、死锁等。
+- en: Because browser code must be particularly safe, and minimize the chances of
+    crashing the browser and causing a poor user experience, the primary way to communicate
+    between the main thread and Web Workers, and between Web Workers and other Web
+    Workers, is with *message passing*.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为浏览器代码必须特别安全，并且尽量减少崩溃浏览器并造成不良用户体验的机会，主线程与 Web Workers 之间以及 Web Workers 之间的主要通信方式是
+    *消息传递*。
+- en: Note
+  id: totrans-124
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'To follow along with the examples in this section, be sure to tell TSC that
+    you’re planning to run this code in a browser by enabling the `dom` lib in your
+    *tsconfig.json*:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要跟着本节中的示例操作，请确保通过在你的 *tsconfig.json* 中启用 `dom` 库来告诉 TSC 你打算在浏览器中运行这段代码：
+- en: '[PRE23]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'And for the code that you’re running in a Web Worker, use the `webworker` lib:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于在 Web Worker 中运行的代码，请使用 `webworker` 库：
+- en: '[PRE24]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: If you’re using a single *tsconfig.json* for both your Web Worker script and
+    your main thread, enable both at once.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你在同一个 *tsconfig.json* 文件中同时使用 Web Worker 脚本和主线程脚本，请一起启用它们。
+- en: 'The message passing API works like this. You first spawn a web worker from
+    a thread:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 消息传递 API 的工作方式如下。首先从一个线程生成一个 Web Worker：
+- en: '[PRE25]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Then, you pass messages to that worker:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，你可以向该工作线程传递消息：
+- en: '[PRE26]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: You can pass almost any kind of data to another thread with the `postMessage`
+    API.^([4](ch08.html#idm46304957247912))
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用 `postMessage` API 将几乎任何类型的数据传递给另一个线程。^([4](ch08.html#idm46304957247912))
+- en: 'The main thread will clone the data you pass before handing it off to the worker
+    thread.^([5](ch08.html#idm46304957246136)) On the Web Worker side, you listen
+    to incoming events with the globally available `onmessage` API:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主线程会在交给工作线程之前克隆你传递的数据。^([5](ch08.html#idm46304957246136)) 在 Web Worker 方面，你可以使用全局可用的
+    `onmessage` API 监听传入的事件：
+- en: '[PRE27]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'To communicate in the opposite direction—from the worker back to the main thread—you
+    use the globally available `postMessage` to send a message to the main thread,
+    and the `.onmessage` method in the main thread to listen for incoming messages.
+    To put it all together:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在反方向——从工作线程回到主线程——进行通信，你可以使用全局可用的 `postMessage` 发送消息到主线程，并在主线程中使用 `.onmessage`
+    方法监听传入的消息。将所有内容整合起来：
+- en: '[PRE28]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This API is a lot like the event emitter API we looked at in [“Event Emitters”](#event-emitters).
+    It’s a simple way to pass messages around, but without types, we don’t know that
+    we’ve correctly handled all the possible types of messages that might be sent.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个 API 很像我们在 [“事件发射器”](#event-emitters) 中看到的事件发射器 API。这是一种简单的消息传递方式，但没有类型信息，我们无法确保我们已经正确处理了可能发送的所有消息类型。
+- en: 'Since this API is really just an event emitter, we can apply the same techniques
+    as for regular event emitters to type it. For example, let’s build a simple messaging
+    layer for a chat client, which we’ll run in a worker thread. The messaging layer
+    will push updates to the main thread, and we won’t worry about things like error
+    handling, permissions, and so on. We’ll start by defining some incoming and outgoing
+    message types (the main thread sends `Commands` to the worker thread, and the
+    worker thread send `Events` back to the main thread):'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于这个 API 实际上只是一个事件发射器，我们可以像对待常规事件发射器一样对待它。例如，让我们为聊天客户端构建一个简单的消息层，在工作线程中运行。消息层将向主线程推送更新，我们不必担心诸如错误处理、权限等问题。我们首先定义一些传入和传出的消息类型（主线程向工作线程发送
+    `Commands`，工作线程向主线程发送 `Events`）：
+- en: '[PRE29]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'How could we apply these types to the Web Worker messaging API? The simplest
+    way might be to define a union of all possible message types, then switch on the
+    `Message` type. But this can get pretty tedious. For our `Command` type, it might
+    look something like this:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们如何将这些类型应用到 Web Worker 消息传递 API？最简单的方法可能是定义所有可能消息类型的联合，然后根据 `Message` 类型进行切换。但这可能会变得非常乏味。对于我们的
+    `Command` 类型，可能看起来像这样：
+- en: '[PRE30]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-1)'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-1)'
+- en: We define a union of all possible commands that the main thread might send to
+    a worker thread, along with the arguments for each command.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们定义了主线程可能发送到工作线程的所有可能命令的联合，并附带每个命令的参数。
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-2)'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-2)'
+- en: This is just a regular union type. When defining long union types, leading with
+    pipes (`|`) can make those types easier to read.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是一个常规的联合类型。在定义长联合类型时，以管道符号（`|`）开头可以使这些类型更易于阅读。
+- en: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-3)'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-3)'
+- en: We take messages sent over the untyped `onmessage` API, and delegate handling
+    them to our typed `processCommandFromMainThread` API.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们接收通过未类型化的`onmessage` API 发送的消息，并委托处理它们给我们的已类型化`processCommandFromMainThread`
+    API。
+- en: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-4)'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-4)'
+- en: '`processCommandFromMainThread` takes care of handling all incoming messages
+    from the main thread. It’s a safe, typed wrapper for the untyped `onmessage` API.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`processCommandFromMainThread` 负责处理主线程发送的所有传入消息。它是未类型化`onmessage` API 的安全、类型化包装器。'
+- en: '[![5](assets/5.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-5)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO2-5)'
+- en: Since the `Command` type is a discriminated union type (see [[discriminated
+    unions]]), we use a `switch` to exhaustively handle every possible type of message
+    the main thread might send our way.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`Command`类型是一个区分联合类型（参见[[discriminated unions]]），我们使用`switch`来详尽处理主线程可能发送给我们的每一种消息类型。
+- en: Let’s abstract Web Workers’ snowflake API behind a familiar `EventEmitter`-based
+    API. That way we can cut down on the verbosity of our incoming and outgoing message
+    types.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将 Web Workers 的雪花 API 抽象到一个熟悉的基于`EventEmitter`的 API 后面。这样我们可以减少我们传入和传出的消息类型的冗长。
+- en: 'We’ll start by constructing a typesafe wrapper for NodeJS’s `EventEmitter`
+    API (which is available for the browser under the [`events` package](https://www.npmjs.com/package/events)
+    on NPM):'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从构建 NodeJS 的`EventEmitter` API 的类型安全包装器开始（该 API 在 NPM 上的 [`events` package](https://www.npmjs.com/package/events)
+    中也适用于浏览器）：
+- en: '[PRE31]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-1)'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-1)'
+- en: '`SafeEmitter` declares a generic type `Events`, a `Record` mapping from `PropertyKey`
+    (TypeScript’s built-in type for valid object keys: `string`, `number`, or `Symbol`)
+    to a list of parameters.'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`SafeEmitter` 声明一个泛型类型`Events`，一个从`PropertyKey`（TypeScript 中有效对象键的内置类型：`string`、`number`
+    或 `Symbol`）到参数列表的映射。'
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-2)'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-2)'
+- en: We declare `emitter` as a private member on `SafeEmitter`. We do this instead
+    of extending `SafeEmitter` because our signatures for `emit` and `on` are more
+    restrictive than their overloaded counterparts in `EventEmitter`, and since functions
+    are contravariant in their parameters (remember, for a function `a` to be assignable
+    to another function `b` its parameters have to be supertypes of their counterparts
+    in `b`) TypeScript won’t let us declare these overloads.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将`emitter`声明为`SafeEmitter`上的私有成员。我们这样做是因为我们的`emit`和`on`的签名比它们在`EventEmitter`中重载的对应签名更严格，而且由于函数在它们的参数中是逆变的（记住，对于一个函数`a`能够分配给另一个函数`b`，它的参数必须是`b`中对应参数的超类型），TypeScript
+    不会让我们声明这些重载。
+- en: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-3)'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-3)'
+- en: '`emit` takes a `channel` plus arguments corresponding to the list of parameters
+    we defined in the `Events` type.'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`emit` 接受一个`channel`以及与我们在`Events`类型中定义的参数列表对应的参数。'
+- en: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-4)'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO3-4)'
+- en: Similarly, `on` takes a `channel` and a `listener`. `listener` takes a variable
+    number of arguments corresponding to the list of parameters we defined in the
+    `Events` type.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，`on`接受一个`channel`和一个`listener`。`listener`接受与我们在`Events`类型中定义的参数列表相对应的可变数量的参数。
+- en: 'We can use `SafeEmitter` to dramatically cut down on the boilerplate it takes
+    to safely implement a listening layer. On the worker side, we delegate all `onmessage`
+    calls to our emitter and expose a convenient and safe listener API to consumers:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用`SafeEmitter`大大减少安全实现监听层所需的样板代码。在工作线程上，我们将所有`onmessage`调用委托给我们的发射器，并为消费者暴露一个方便且安全的监听器API：
+- en: '[PRE32]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'On the flip side, we can also use an `EventEmitter`-based API to send commands
+    back from the main thread to the worker thread. Note that if you use this pattern
+    in your own code, you might consider using a more full-featured emitter (like
+    Paolo Fragomeni’s excellent [`EventEmitter2`](https://www.npmjs.com/package/eventemitter2))
+    that supports wildcard listeners, so you don’t have to manually add a listener
+    for each type of event:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，我们也可以使用基于`EventEmitter`的API，将命令从主线程发送回工作线程。请注意，如果您在自己的代码中使用此模式，您可能考虑使用更全面的发射器（例如Paolo
+    Fragomeni的优秀[`EventEmitter2`](https://www.npmjs.com/package/eventemitter2)），它支持通配符监听器，这样您就不必为每种事件类型手动添加监听器：
+- en: '[PRE33]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'That’s it! We’ve created a simple typesafe wrapper for the familiar event emitter
+    abstraction that we can use in a variety of settings, from cursor events in a
+    browser to communication across threads, making passing messages between threads
+    safe. This is a common pattern in TypeScript: even if something is unsafe, you
+    can usually wrap it in a typesafe API.'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就这样！我们已经创建了一个简单的类型安全包装器，用于熟悉的事件发射器抽象，可以在各种设置中使用，从浏览器中的光标事件到线程间的通信，使得线程间消息传递变得安全。这是TypeScript中的常见模式：即使某些内容不安全，您通常也可以将其包装在类型安全的API中。
+- en: Typesafe protocols
+  id: totrans-170
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 类型安全的协议
+- en: So far, we’ve looked at passing messages back and forth between two threads.
+    What would it take to extend the technique to say that a particular command always
+    receives a specific event as a response?
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经看到如何在两个线程之间传递消息。如果要扩展技术以确保特定命令始终接收特定事件作为响应，需要做些什么？
+- en: 'Let’s build a simple call-response protocol, which we can use to move function
+    evaluation across threads. We can’t easily pass functions between threads, but
+    we can define functions in a worker thread and send arguments to them, then send
+    results back. For example, let’s say we’re building a matrix math engine that
+    supports three operations: finding the determinant of a matrix, computing the
+    dot product of two matrices, and inverting a matrix.'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们构建一个简单的调用-响应协议，用于将函数评估移动到线程之间。我们无法轻松地在线程之间传递函数，但是我们可以在工作线程中定义函数并将参数发送到它们，然后将结果发送回来。例如，假设我们正在构建一个支持三个操作的矩阵数学引擎：查找矩阵的行列式、计算两个矩阵的点积以及求逆矩阵。
+- en: 'You know the drill—let’s start by sketching out the types for these three operations:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你知道怎么做了——让我们首先勾画出这三个操作的类型：
+- en: '[PRE34]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'We define matrices in our main thread, and run all computations in workers.
+    Once again, the idea is to wrap an unsafe operation (sending and receiving untyped
+    messages from a worker) with a safe one, exposing a well-defined, typed API for
+    consumers to use. In this naive implementation, we start by defining a simple
+    request-response protocol `Protocol`, which lists out the operations a worker
+    can perform along with their expected input and output types.^([6](ch08.html#idm46304956078632))
+    We then define a generic `createProtocol` function that takes a `Protocol` and
+    a file path to a Worker, and returns a function that takes a `command` in that
+    protocol and returns a final function that we can call to actually evaluate that
+    `command` for a specific set of arguments. OK, here we go:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在主线程中定义矩阵，并在工作线程中运行所有计算。再次强调，其思想是用安全的操作包装一个不安全的操作（向工作线程发送和接收未类型化的消息），为消费者暴露一个定义良好、类型化的API。在这个简单的实现中，我们首先定义了一个简单的请求-响应协议`Protocol`，列出了工作线程可以执行的操作及其预期的输入和输出类型。^([6](ch08.html#idm46304956078632))
+    然后，我们定义了一个通用的`createProtocol`函数，该函数接受一个`Protocol`和一个指向Worker的文件路径，并返回一个函数，该函数接受该协议中的一个`command`，并返回一个我们可以调用以实际评估该`command`的最终函数的函数。好的，我们开始吧：
+- en: '[PRE35]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-1)'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-1)'
+- en: We start by defining a general-purpose `Protocol` type that is not specific
+    to our `MatrixProtocol`.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先定义了一个通用的`Protocol`类型，该类型不特定于我们的`MatrixProtocol`。
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-2)'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-2)'
+- en: When we call `createProtocol`, we pass in a file path to a worker `script`,
+    along with a specific `Protocol`.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们调用`createProtocol`时，我们传入了一个工作脚本的文件路径，以及一个特定的`Protocol`。
+- en: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-3)'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-3)'
+- en: '`createProtocol` returns an anonymous function that we can then invoke with
+    a `command`, which is a key in the `Protocol` we bound in [![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-2).'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`createProtocol`返回一个匿名函数，然后我们可以用一个`command`来调用它，该`command`是我们在[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-2)中绑定的`Protocol`的键。'
+- en: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-4)'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-4)'
+- en: We then call that function with whatever the specific `in` type is for the command
+    we passed in in [![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-3).
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们使用传入的命令的具体`in`类型调用该函数在[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-3)。
+- en: '[![5](assets/5.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-5)'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO4-5)'
+- en: This gives us back a `Promise` for the specific `out` type for that command,
+    as defined in our particular protocol. Note that we have to explicitly bind a
+    type parameter to `Promise`, otherwise it defaults to `{}`.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将为我们返回一个`Promise`，该`Promise`是我们特定协议中特定`out`类型的。请注意，我们必须显式地将类型参数绑定到`Promise`，否则它将默认为`{}`。
+- en: 'Now let’s apply our `MatrixProtocol` type plus the path to our Web Worker script
+    to `createProtocol` (we won’t get into the nitty-gritty of how to compute a determinant,
+    and I’ll assume that you’ve implemented it in *MatrixWorkerScript.ts*). We’ll
+    get back a function that we can use to run a specific command in that protocol:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们应用我们的`MatrixProtocol`类型加上我们的Web Worker脚本的路径到`createProtocol`（我们不会深入探讨如何计算行列式的细节，我会假设你已经在*MatrixWorkerScript.ts*中实现了它）。我们将得到一个函数，我们可以用来运行该协议中的特定命令：
+- en: '[PRE36]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: Cool, huh? We’ve taken something totally unsafe—untyped message passing between
+    threads—and abstracted over it with a fully typesafe request-response protocol.
+    All the commands you can run using that protocol live in one place (`MatrixProtocol`),
+    and our core logic (`createProtocol`) lives separately from our concrete protocol
+    implementation (`runWithMatrixProtocol`).
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 酷，对吧？我们已经拿到了一些完全不安全的东西——线程间的无类型消息传递，并用完全类型安全的请求-响应协议进行了抽象。所有使用该协议运行的命令都集中在一个地方（`MatrixProtocol`），而我们的核心逻辑（`createProtocol`）则与我们的具体协议实现（`runWithMatrixProtocol`）分开。
+- en: Anytime you need to communicate between two processes—whether on the same machine
+    or between multiple computers on a network—typesafe protocols are a great tool
+    to make that communication safe. While this section helped develop some intuition
+    for what problems protocols solve, for a real-world application you’ll likely
+    want to reach for an existing tool like Swagger, gRPC, Thrift, or GraphQL—for
+    an overview, head over to [“Typesafe APIs”](ch09.html#APIs).
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何时候您需要在两个进程之间进行通信——无论是在同一台机器上还是在网络上的多台计算机之间——类型安全的协议都是确保通信安全的好工具。虽然本节帮助开发了一些关于协议解决问题的直觉，但对于真实世界的应用，您可能希望使用现有的工具，如Swagger、gRPC、Thrift或GraphQL——关于概述，请访问[“类型安全的API”](ch09.html#APIs)。
+- en: 'In NodeJS: With Child Processes'
+  id: totrans-191
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在NodeJS中：使用子进程
+- en: Note
+  id: totrans-192
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'To follow along with the examples in this section, be sure to install type
+    declarations for NodeJS from NPM:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要跟随本节中的示例，请确保从NPM安装NodeJS的类型声明：
+- en: '[PRE37]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: To learn more about using type declarations, jump ahead to [“JavaScript That
+    Has Type Declarations on DefinitelyTyped”](ch11.html#third-party-js-with-dt-typings).
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解更多关于使用类型声明的信息，请跳转到[“在DefinitelyTyped上有类型声明的JavaScript”](ch11.html#third-party-js-with-dt-typings)。
+- en: 'Typesafe parallelism in NodeJS works the same way as it does for Web Worker
+    threads in the browser (see [“Typesafe protocols”](#typesafe-protocols)). While
+    the message-passing layer itself is unsafe, it’s easy to build a typesafe API
+    over it. NodeJS’s child process API looks like this:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在NodeJS中，类型安全的并行性与Web Worker线程中的工作方式相同（参见[“类型安全协议”](#typesafe-protocols)）。虽然消息传递层本身不安全，但很容易在其上构建一个类型安全的API。NodeJS的子进程API如下所示：
+- en: '[PRE38]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-1)'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-1)'
+- en: We use NodeJS’s `fork` API to spawn a new child process.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用NodeJS的`fork` API来生成一个新的子进程。
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-2)'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-2)'
+- en: We listen to incoming messages from a child process using the `on` API. There
+    are a few messages that a NodeJS child process might send to its parent; here,
+    we just care about the `'message'` message.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`on` API监听来自子进程的传入消息。NodeJS子进程可能向其父进程发送几条消息；在这里，我们只关心`'message'`消息。
+- en: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-3)'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO5-3)'
+- en: We use the `send` API to send messages to a child process.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`send` API向子进程发送消息。
+- en: 'In our child thread, we listen to messages coming in from the main thread using
+    the `process.on` API and send messages back with `process.send`:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的子线程中，我们使用`process.on` API监听主线程发送过来的消息，并使用`process.send`发送消息回去：
+- en: '[PRE39]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO6-1)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO6-1)'
+- en: We use the `on` API on the globally defined `process` to listen for incoming
+    messages from a parent thread.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用全局定义的`process`上的`on` API来监听来自父线程的传入消息。
+- en: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO6-2)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_asynchronous_programming___span_class__keep_together__concurrency__and_parallelism__span__CO6-2)'
+- en: We use the `send` API on `process` to send messages to the parent process.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`process`的`send` API向父进程发送消息。
+- en: Because the mechanics are so similar to Web Workers, I’ll leave it as an exercise
+    to implement a typesafe protocol to abstract over interprocess communication in
+    NodeJS.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为机制与Web Workers如此相似，我将其作为一个练习留给你，以实现一个类型安全协议来抽象NodeJS中的进程间通信。
+- en: Summary
+  id: totrans-211
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: 'In this chapter we started with the basics of JavaScript’s event loop, and
+    continued on to a discussion of the building blocks of asynchronous code in JavaScript
+    and how to safely express them in TypeScript: callbacks, promises, `async`/`await`,
+    and event emitters. We then covered multithreading, exploring passing messages
+    between threads (in the browser and on the server) and building full protocols
+    for communicating between threads.'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们从JavaScript事件循环的基础开始讨论，继续探讨了JavaScript异步代码的构建块以及如何在TypeScript中安全地表达它们：回调函数、Promises、`async`/`await`和事件发射器。然后我们讨论了多线程，探索了在浏览器和服务器上传递消息以及构建完整的线程间通信协议。
+- en: 'As with [Chapter 7](ch07.html#error_handling), which technique you use is up
+    to you:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与[第7章](ch07.html#error_handling)中使用的技术相似，你可以自行选择：
+- en: For simple asynchronous tasks, callbacks are as straightforward as it gets.
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于简单的异步任务，回调函数是最直接的方法。
+- en: For more complex tasks that need to be sequenced and parallelized, promises
+    and `async`/`await` are your friend.
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于需要按顺序和并行执行的更复杂任务，Promises和`async`/`await`是你的好帮手。
+- en: When a promise doesn’t cut it (e.g., if you’re firing an event multiple times),
+    reach for event emitters or a reactive streams library like RxJS.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当一个Promise不够用（例如，如果你需要多次触发事件），可以使用事件发射器或类似RxJS的响应式流库。
+- en: To extend these techniques to multiple threads, use event emitters, typesafe
+    protocols, or typesafe APIs (see [“Typesafe APIs”](ch09.html#APIs)).
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要将这些技术扩展到多线程，可以使用事件发射器、类型安全协议或类型安全的API（参见[“类型安全API”](ch09.html#APIs)）。
+- en: Exercises
+  id: totrans-218
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 练习
+- en: 'Implement a general-purpose `promisify` function, which takes any function
+    that takes exactly one argument and a callback and wraps it in a function that
+    returns a promise. When you’re done, you should be able to use `promisify` like
+    this (install type declarations for NodeJS first, with `npm install @types/node
+    --save-dev`):'
+  id: totrans-219
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 实现一个通用的 `promisify` 函数，它接受一个接受一个参数和一个回调函数的函数，并将其包装在一个返回 Promise 的函数中。完成后，你应该能像这样使用
+    `promisify`（首先安装 NodeJS 的类型声明，使用 `npm install @types/node --save-dev`）：
+- en: '[PRE40]'
+  id: totrans-220
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: In the section on [“Typesafe protocols”](#typesafe-protocols) we derived one
+    half of a protocol for typesafe matrix math. Given this half of the protocol that
+    runs in the main thread, implement the other half that runs in a Web Worker thread.
+  id: totrans-221
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在[“类型安全协议”](#typesafe-protocols)部分，我们推导了一半类型安全矩阵数学协议。给定在主线程中运行的协议的一半，请实现在 Web
+    Worker 线程中运行的另一半。
+- en: 'Use a mapped type (as in [“In the Browser: With Web Workers”](#web-workers))
+    to implement a typesafe message-passing protocol for NodeJS’s `child_process`.'
+  id: totrans-222
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 使用映射类型（如[“在浏览器中：使用 Web Workers”](#web-workers)）来为 NodeJS 的 `child_process` 实现类型安全的消息传递协议。
+- en: ^([1](ch08.html#idm46304959625896-marker)) Well, you can if you fork your browser
+    platform, or build a C++ NodeJS extension.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch08.html#idm46304959625896-marker)) 好吧，如果你分叉你的浏览器平台，或者构建一个 C++ NodeJS
+    扩展，你就可以做到。
+- en: ^([2](ch08.html#idm46304958643512-marker)) Eagle-eyed readers will notice how
+    similar this API is to the `flatMap` API we developed in [“The Option Type”](ch07.html#option).
+    That similarity is no accident! Both `Promise` and `Option` are inspired by the
+    Monad design pattern popularized by the functional programming language Haskell.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch08.html#idm46304958643512-marker)) 用心的读者会注意到这个 API 如何与我们在[“Option 类型”](ch07.html#option)中开发的
+    `flatMap` API 相似。这种相似性并非偶然！`Promise` 和 `Option` 都受到了函数式编程语言 Haskell 中流行的 Monad
+    设计模式的启发。
+- en: ^([3](ch08.html#idm46304958038360-marker)) `Observables` are the basic building
+    block of reactive programming’s approach to doing things to values over time.
+    There’s an in-progress proposal to standardize `Observables` in the [`Observable`
+    proposal](https://tc39.github.io/proposal-observable/). Look forward to a deeper
+    dive into `Observables` in a future edition of this book, once the proposal is
+    more broadly adopted by JavaScript engines.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch08.html#idm46304958038360-marker)) `Observables` 是响应式编程对随时间做值操作的基本构建块。正在进行的提案是在
+    [`Observable` 提案](https://tc39.github.io/proposal-observable/) 中标准化 `Observables`。期待在本书的将来版本中深入探讨
+    `Observables`。
+- en: ^([4](ch08.html#idm46304957247912-marker)) Except for functions, errors, DOM
+    nodes, property descriptors, getters and setters, and prototype methods and properties.
+    For more information, head over to the [HTML5 specification](http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data).
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch08.html#idm46304957247912-marker)) 除了函数、错误、DOM 节点、属性描述符、getter 和 setter，以及原型方法和属性之外。欲了解更多信息，请访问[HTML5
+    规范](http://w3c.github.io/html/infrastructure.html#safe-passing-of-structured-data)。
+- en: ^([5](ch08.html#idm46304957246136-marker)) You can also use the `Transferable`
+    API to pass certain types of data (like `ArrayBuffer`) between threads by reference.
+    In this section we won’t be using `Transferable` to explicitly transfer object
+    ownership across threads, but that’s an implementation detail. If you use `Transferable`
+    for your use case, the approach is identical from a type safety point of view.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch08.html#idm46304957246136-marker)) 你也可以使用 `Transferable` API 在线程之间通过引用传递某些类型的数据（比如
+    `ArrayBuffer`）。在本节中，我们不会使用 `Transferable` 明确地在线程之间传递对象所有权，但这是一个实现细节。如果你的用例使用 `Transferable`，从类型安全的角度来看，方法是相同的。
+- en: ^([6](ch08.html#idm46304956078632-marker)) This implementation is naive because
+    it spawns a new worker every time we issue a command; in the real world, you probably
+    want to have a pooling mechanism that keeps a warm pool of workers around, and
+    recycles freed workers.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch08.html#idm46304956078632-marker)) 这个实现很简单，因为它每次发出命令时都会生成一个新的 worker；在实际世界中，你可能希望有一个保持热池的池化机制，并回收已释放的
+    workers。

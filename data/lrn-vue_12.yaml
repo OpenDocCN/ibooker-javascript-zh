@@ -1,0 +1,542 @@
+- en: Chapter 12\. Continuous Integration/Continuous Deployment of Vue.Js Applications
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第12章：Vue.Js 应用的持续集成/持续部署
+- en: 'The previous chapter showed us how to set up testing for our Vue application,
+    from unit tests with Vite to E2E tests with Playwright. With our application covered
+    with proper tests, we can move on to the next step: deployment.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上一章向我们展示了如何为我们的 Vue 应用程序设置测试，从使用 Vite 的单元测试到使用 Playwright 的 E2E 测试。通过为我们的应用程序覆盖适当的测试，我们可以继续进行下一步：部署。
+- en: This chapter will introduce you to the concept of CI/CD and how to set up a
+    CI/CD pipeline using GitHub Actions for your Vue application. We will also learn
+    how to use Netlify as our deployment and hosting platform for our application.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章将介绍 CI/CD 的概念，以及如何使用 GitHub Actions 为您的 Vue 应用程序设置 CI/CD 流水线。我们还将学习如何使用 Netlify
+    作为我们的应用程序的部署和托管平台。
+- en: CI/CD in Software Development
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 软件开发中的 CI/CD
+- en: Continuous integration (CI) and continuous delivery (CD) are combined software
+    development practices aiming to speed up and stabilize the software development
+    and delivery process. CI/CD includes monitoring the software lifecycle effectively
+    through an automated integration, testing, and continuous software deployment
+    to production process.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 持续集成（CI）和持续交付（CD）是结合的软件开发实践，旨在加快和稳定软件开发和交付过程。CI/CD 包括通过自动化集成、测试和持续软件部署到生产的过程，有效监控软件生命周期。
+- en: 'CI/CD offers many benefits to software development, including:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CI/CD 为软件开发带来了许多好处，包括：
+- en: Faster software delivery with automated deployment
+  id: totrans-6
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通过自动化部署实现更快的软件交付
+- en: Stronger collaboration between different teams
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不同团队之间更强的协作
+- en: Better software quality with automated testing
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通过自动化测试提高软件质量
+- en: Faster response to bugs and software issues in a more agile approach
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更加敏捷的方法响应错误和软件问题
+- en: 'In short, CI/CD contains three main concepts: continuous integration, continuous
+    delivery, and continuous deployment, and when combined, they form a robust software
+    development process known as the CI/CD pipeline ([Figure 12-1](#figure_ch10_pipeline)).'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简而言之，CI/CD 包含三个主要概念：持续集成、持续交付和持续部署，当它们结合在一起时，就形成了一个强大的软件开发流程，称为 CI/CD 流水线（[图
+    12-1](#figure_ch10_pipeline)）。
+- en: '![A screenshot showing the CI/CD pipeline approach, with continuous integration,
+    continuous delivery, and continuous deployment](assets/lvue_1201.png)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 CI/CD 流水线方法的截图，包含持续集成、持续交付和持续部署](assets/lvue_1201.png)'
+- en: Figure 12-1\. CI/CD pipeline
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图12-1. CI/CD 流水线
+- en: Continuous Integration
+  id: totrans-13
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 持续集成
+- en: Continuous integration enables developers to integrate code into a shared repository
+    frequently and simultaneously while working independently. With each code integration
+    (or merge), we validate it using an automated build of the application and an
+    automated system of different levels of testing. If there are conflicts between
+    new and old code versions or any problems with the new code, we can detect and
+    fix them quickly. Standard tools for continuous integration include Jenkins, CircleCI,
+    and GitHub Actions, which we will discuss in [“CI/CD Pipeline with GitHub Actions”](#chapter12_pipeline).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 持续集成使开发人员能够在独立工作的同时频繁且同时地将代码集成到共享仓库中。通过每次代码集成（或合并），我们使用应用程序的自动构建和不同级别测试的自动化系统进行验证。如果新旧代码版本之间存在冲突或新代码存在任何问题，我们可以迅速检测并修复它们。持续集成的标准工具包括
+    Jenkins、CircleCI 和 GitHub Actions，我们将在[“使用 GitHub Actions 的 CI/CD 流水线”](#chapter12_pipeline)中讨论它们。
+- en: Continuous Delivery
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 持续交付
+- en: The next step after a successful continuous integration is continuous delivery.
+    Continuous delivery automates the release of the validated application’s code
+    to the shared repository, making it ready for production deployment. Continuous
+    delivery requires continuous integration since it assumes the code is always verified.
+    It also includes another series of automated testing and release automation.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 成功的持续集成之后的下一步是持续交付。持续交付将验证的应用程序代码自动发布到共享仓库，使其为生产部署做好准备。持续交付需要持续集成，因为它假设代码始终是经过验证的。它还包括另一系列的自动化测试和发布自动化。
+- en: Continuous Deployment
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 持续部署
+- en: Continuous deployment is the CI/CD pipeline’s final step, automatically deploying
+    the validated code to production. It relies significantly on a well-tested automation
+    system for the codebase. Continuous deployment is the most advanced step of the
+    CI/CD pipeline. It is only necessary for some projects, especially when manual
+    approval is necessary before production deployment.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 连续部署是CI/CD流水线的最后一步，自动将经过验证的代码部署到生产环境。它在很大程度上依赖于对代码库进行了充分测试的自动化系统。连续部署是CI/CD流水线的最高级阶段，对某些项目尤其重要，特别是在需要在生产部署之前进行手动批准的情况下。
+- en: The three stages of the CI/CD pipeline form a more secure and flexible application
+    development and deployment process. In the next section, we will learn how to
+    set up a CI/CD pipeline for our Vue application using GitHub Actions.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CI/CD流水线的三个阶段形成了更安全和灵活的应用程序开发和部署流程。在下一节中，我们将学习如何为我们的Vue应用程序使用GitHub Actions设置CI/CD流水线。
+- en: CI/CD Pipeline with GitHub Actions
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用GitHub Actions的CI/CD流水线
+- en: Provided by GitHub, GitHub Actions is a platform-agnostic, language-agnostic,
+    and cloud-agnostic CI/CD platform. It is straightforward to use and free for projects
+    hosted on the GitHub platform. Each CI/CD pipeline in GitHub Actions contains
+    single or multiple workflows, denoted by a YAML file. Each workflow includes a
+    series of jobs and executes in parallel or sequentially. Each job has a series
+    of steps containing many sequential actions. And each action is a standalone command
+    or a script that gets executed in the designated runner environment ([Example 12-1](#example_workflow)).
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GitHub Actions由GitHub提供，是一个与平台无关、语言无关和云无关的CI/CD平台。它易于使用，并且对于托管在GitHub平台上的项目是免费的。GitHub
+    Actions中的每个CI/CD流水线包含一个或多个工作流，以YAML文件表示。每个工作流包括一系列作业，可以并行或顺序执行。每个作业都有一系列步骤，其中包含许多顺序执行的操作。每个操作都是在指定的运行环境中执行的独立命令或脚本（见[示例 12-1](#example_workflow)）。
+- en: Example 12-1\. Example GitHub workflow file
+  id: totrans-22
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例12-1。示例GitHub工作流文件
+- en: '[PRE0]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Note
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The workflow file follows YAML syntax. You can learn how to use YAML syntax
+    at the [workflow syntax for GitHub Actions documentation](https://oreil.ly/uIIkh).
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工作流文件遵循 YAML 语法。您可以在[GitHub Actions文档的工作流语法](https://oreil.ly/uIIkh)中学习如何使用
+    YAML 语法。
+- en: 'To start using GitHub Actions, within our Vue project directory, we will create
+    a new directory named `.github/workflows` with a workflow file, `ci.yml`. This
+    file will contain the configuration for our CI/CD pipeline. For example, the following
+    is a simple workflow file that runs our unit tests:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始使用 GitHub Actions，在我们的 Vue 项目目录中，我们将创建一个名为`.github/workflows`的新目录，其中包含一个名为`ci.yml`的工作流文件。这个文件将包含我们的CI/CD流水线的配置。例如，以下是一个简单的工作流文件，用于运行我们的单元测试：
+- en: '[PRE1]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](assets/1.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-1)'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-1)'
+- en: The workflow will be triggered when there is a push to the `main` branch or
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`main`分支有推送时，工作流将被触发。
+- en: '[![2](assets/2.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-2)'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-2)'
+- en: When there is a pull request to merge to `main`
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当有合并请求要合并到`main`时
+- en: '[![3](assets/3.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-3)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-3)'
+- en: Checkout the testing branch to a runner environment using built-in GitHub Actions,
+    `actions/checkout`
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用内置的 GitHub Actions，通过`actions/checkout`将测试分支检出到运行环境
+- en: '[![4](assets/4.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-4)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-4)'
+- en: Set up the node environment with Node.js version 18.x using built-in GitHub
+    Actions, `actions/setup-node`
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用内置的 GitHub Actions，使用Node.js版本18.x设置节点环境，`actions/setup-node`
+- en: '[![5](assets/5.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-5)'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-5)'
+- en: Install dependencies
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装依赖项
+- en: '[![6](assets/6.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-6)'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![6](assets/6.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-6)'
+- en: Run unit tests with reporting coverage
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行带有覆盖率报告的单元测试
+- en: '[![7](assets/7.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-7)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![7](assets/7.png)](#co_continuous_integration_continuous_deployment_of_vue_js_applications_CO1-7)'
+- en: Upload the test report to GitHub Actions as artifacts
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将测试报告作为工件上传到GitHub Actions
+- en: Note
+  id: totrans-42
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Each job is a standalone process and does not share the same environment. Therefore,
+    in its steps, we need to install dependencies for each job separately.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个作业都是独立的进程，并且不共享相同的环境。因此，在其步骤中，我们需要分别为每个作业安装依赖项。
+- en: On GitHub, we can navigate to the Actions tab to see the status of our workflow
+    ([Figure 12-2](#figure_ch10_actions)).
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 GitHub 上，我们可以进入 *Actions* 标签页查看工作流的状态（参见[图 12-2](#figure_ch10_actions)）。
+- en: '![A screenshot showing the GitHub Actions page, with the CI workflow running](assets/lvue_1202.png)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 GitHub Actions 页面，CI 工作流正在运行的截图](assets/lvue_1202.png)'
+- en: Figure 12-2\. GitHub Actions page with workflow running
+  id: totrans-46
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-2\. 正在运行的 GitHub Actions 页面
+- en: GitHub displays the workflows according to the commits, with their status and
+    the target branch (`main`). We can then view the status of each job within a workflow
+    by clicking on the job name, such as how we can see the status of the *unit-tests*
+    job in [Figure 12-3](#figure_ch10_unit_tests).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GitHub 根据提交显示工作流，包括其状态和目标分支（`main`）。我们可以通过点击作业名称查看工作流中每个作业的状态，例如我们可以查看单元测试作业的状态在[图 12-3](#figure_ch10_unit_tests)中。
+- en: '![A screenshot showing the status of the unit tests job](assets/lvue_1203.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示单元测试作业状态的截图](assets/lvue_1203.png)'
+- en: Figure 12-3\. Unit-tests of the job’s running status in steps
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-3\. 作业运行状态下的单元测试步骤
+- en: Once the workflow finishes running, we can see the test report uploaded to the
+    Artifacts section ([Figure 12-4](#figure_ch10_artifacts)).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦工作流运行完成，我们可以看到测试报告上传到 Artifacts 部分（参见[图 12-4](#figure_ch10_artifacts)）。
+- en: '![A screenshot showing uploaded artifacts, with the test report](assets/lvue_1204.png)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示上传的 Artifacts，带有测试报告的截图](assets/lvue_1204.png)'
+- en: Figure 12-4\. Artifacts section with test report
+  id: totrans-52
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-4\. 带有测试报告的 Artifacts 部分
+- en: We also can check the status result of a workflow, broken down by jobs, by clicking
+    on the workflow name ([Figure 12-5](#figure_ch10_workflow)).
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以通过点击工作流名称（如[图 12-5](#figure_ch10_workflow)）检查工作流的状态结果，按作业拆分。
+- en: '![A screenshot showing the execution status of a workflow](assets/lvue_1205.png)'
+  id: totrans-54
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示工作流执行状态的截图](assets/lvue_1205.png)'
+- en: Figure 12-5\. Workflow status page
+  id: totrans-55
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-5\. 工作流状态页面
+- en: GitHub Actions will mark any failed job and provide summary annotations of the
+    failures. We can also rerun a failed job by clicking on the *Re-run jobs* button.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GitHub Actions 将标记任何失败的作业，并提供失败的摘要注释。我们也可以通过点击 *Re-run jobs* 按钮重新运行失败的作业。
+- en: And with that, we have created our first CI/CD pipeline for our Vue application.
+    Alternatively, you can use available templates from the official [GitHub Actions
+    marketplace](https://oreil.ly/ch9V2) to create your workflows, with built-in support
+    for different programming languages, frameworks, services, and cloud providers
+    ([Figure 12-6](#figure_ch10_actions_marketplace)).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这样，我们为我们的 Vue 应用程序创建了第一个 CI/CD 管道。或者，您可以使用官方的[GitHub Actions 市场](https://oreil.ly/ch9V2)中提供的模板来创建您的工作流，该市场内置支持不同的编程语言、框架、服务和云提供商（参见[图 12-6](#figure_ch10_actions_marketplace)）。
+- en: '![A screenshot showing the GitHub Actions marketplace](assets/lvue_1206.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 GitHub Actions 市场的截图](assets/lvue_1206.png)'
+- en: Figure 12-6\. GitHub Actions marketplace
+  id: totrans-59
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-6\. GitHub Actions 市场
+- en: Based on our workflow example, you can create more workflows for your application
+    if required or extend the current workflow to include more steps, such as deployment.
+    In the next section, we will learn how to set up continuous deployment for our
+    application using Netlify.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据我们的工作流示例，如果需要，可以为应用程序创建更多工作流，或者扩展当前工作流以包括更多步骤，例如部署。在下一节中，我们将学习如何使用 Netlify
+    为我们的应用程序设置持续部署。
+- en: Continuous Deployment with Netlify
+  id: totrans-61
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Netlify 进行持续部署
+- en: Netlify is a cloud platform that offers a wide range of services for hosting
+    modern web applications, including hosting, serverless functions APIs, and CI/CD
+    integration. It is free for personal projects while offering a generous free tier
+    for commercial ones.^([1](ch12.html#id1738))
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Netlify 是一个云平台，为托管现代 Web 应用程序提供广泛的服务，包括托管、无服务器函数 API 和 CI/CD 集成。个人项目免费，商业项目提供慷慨的免费层级。^([1](ch12.html#id1738))
+- en: To deploy our Vue project on Netlify, we need to [create a Netlify account](https://oreil.ly/uLHpQ)
+    and log in. Once logged in to the dashboard, we can head to the *Sites* tab and
+    click on the *Add new site* button to import our project from the GitHub provider
+    for automatic deployment, or deploy manually ([Figure 12-7](#figure_ch10_netlify)).
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在 Netlify 上部署我们的 Vue 项目，我们需要[创建一个 Netlify 账户](https://oreil.ly/uLHpQ)并登录。一旦登录到仪表板，我们可以转到
+    *Sites* 标签，并点击 *Add new site* 按钮，从 GitHub 提供者导入我们的项目进行自动部署，或者手动部署（参见[图 12-7](#figure_ch10_netlify)）。
+- en: '![A screenshot showing the Netlify dashboard](assets/lvue_1207.png)'
+  id: totrans-64
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示Netlify仪表板的屏幕截图](assets/lvue_1207.png)'
+- en: Figure 12-7\. Netlify dashboard
+  id: totrans-65
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-7\. Netlify 仪表板
+- en: Next, we select the Git provider for our project (GitHub) and authorize Netlify
+    to access our GitHub account. Once confirmed, we can choose the repository for
+    our project and click on the `Deploy site` button to start the deployment process.
+    After completing the deployment, we can view our site deployment’s status and
+    other details, such as a PR preview on the *Site overview* tab of the dashboard
+    ([Figure 12-8](#figure_ch10_netlify_site)).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们选择我们项目的Git提供者（GitHub），并授权Netlify访问我们的GitHub帐户。确认后，我们可以选择项目的存储库，然后点击`部署站点`按钮开始部署过程。完成部署后，我们可以在仪表板的*站点概述*选项卡上查看我们站点部署的状态及其他详细信息，例如PR预览（[图
+    12-8](#figure_ch10_netlify_site)）。
+- en: '![A screenshot showing the Netlify site overview](assets/lvue_1208.png)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示Netlify站点概述的屏幕截图](assets/lvue_1208.png)'
+- en: Figure 12-8\. Netlify site overview
+  id: totrans-68
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-8\. Netlify 站点概述
+- en: Once deployed successfully, Netlify will provide a temporary URL to access the
+    application. In fact, you can configure your site’s custom domain by navigating
+    to the *Domain Management* section ([Figure 12-9](#figure_ch10_netlify_domain)).
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 成功部署后，Netlify 将提供一个临时URL用于访问应用程序。实际上，您可以通过导航到*域管理*部分（[图 12-9](#figure_ch10_netlify_domain)）配置您站点的自定义域名。
+- en: '![A screenshot showing the Netlify domain settings](assets/lvue_1209.png)'
+  id: totrans-70
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示Netlify域设置的屏幕截图](assets/lvue_1209.png)'
+- en: Figure 12-9\. Netlify domain settings
+  id: totrans-71
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-9\. Netlify 域设置
+- en: By default, once integrated, Netlify will automatically deploy your application
+    whenever a new commit is merged to the `main` branch. Additionally, it will generate
+    a preview build for each pull request. Within this view, you can also configure
+    additional settings such as build command, deployment context for continuous deployment,
+    and environment variables for your application. Netlify also offers build hooks
+    as a unique URL for triggering build and deployment with a third-party service
+    like Github Actions workflow via HTTP requests ([Figure 12-10](#ch11_build_hook)).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，一旦集成，Netlify将在每次将新提交合并到`main`分支时自动部署您的应用程序。此外，它将为每个拉取请求生成预览构建。在此视图中，您还可以配置其他设置，如构建命令、用于持续部署的部署上下文以及应用程序的环境变量。Netlify还提供构建钩子作为唯一URL，可通过HTTP请求触发与GitHub
+    Actions工作流等第三方服务的构建和部署（[图 12-10](#ch11_build_hook)）。
+- en: '![A screenshot showing the build hook settings](assets/lvue_1210.png)'
+  id: totrans-73
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示构建钩子设置的屏幕截图](assets/lvue_1210.png)'
+- en: Figure 12-10\. Build a hook section in Site settings
+  id: totrans-74
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-10\. 站点设置中的构建钩子部分
+- en: Note
+  id: totrans-75
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: You can manually build your application using the `yarn build` command locally,
+    then drag and drop the `dist` folder to the [Netlify app](https://oreil.ly/LInwT)
+    to deploy your application to a temporary URL provided by Netlify.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在本地使用命令`yarn build`手动构建您的应用程序，然后将`dist`文件夹拖放到[Netlify应用程序](https://oreil.ly/LInwT)，以部署您的应用程序到Netlify提供的临时URL。
+- en: Deploying with Netlify CLI
+  id: totrans-77
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Netlify CLI 部署
+- en: Alternatively, we can install the Netlify CLI as a global tool in our local
+    machine, using the command `npm install -g netlify-cli`. With this CLI installed,
+    we can initialize our project for Netlify using the command `netlify init`. This
+    command will prompt us to log in to the relevant account (GitHub) and prepare
+    our project for deployment. Once initialized and ready, we can run the command
+    `netlify deploy` to deploy our project to a temporary URL for previewing or `netlify
+    deploy --prod` to deploy to production directly.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，我们可以将Netlify CLI作为全局工具安装在我们的本地机器上，使用命令`npm install -g netlify-cli`。安装了此CLI后，我们可以使用命令`netlify
+    init`初始化我们的项目以用于Netlify。此命令将提示我们登录相关帐户（GitHub）并准备我们的项目进行部署。初始化并准备就绪后，我们可以运行命令`netlify
+    deploy`将项目部署到临时URL进行预览，或者运行`netlify deploy --prod`直接部署到生产环境。
+- en: We have successfully deployed our first Vue application to Netlify. Other advanced
+    features Netlify offers include serverless functions, form handling, and split
+    testing. You can explore these features per the project’s requirements using [the
+    Netlify official documentation](https://oreil.ly/6X9F6).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已成功将第一个Vue应用程序部署到Netlify。Netlify提供的其他高级功能包括无服务器函数、表单处理和分割测试。您可以根据项目要求使用[Netlify官方文档](https://oreil.ly/6X9F6)来探索这些功能。
+- en: Summary
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 概要
+- en: In this chapter, we have learned about the concept of CI/CD and how to set up
+    a simple CI/CD process for our Vue application using GitHub Actions. We also learned
+    about Netlify and how to automatically deploy our application to Netlify hosting.
+    In the next chapter, we will explore the final aspects of the Vue ecosystem, server-side
+    rendering (SSR) and static site generation (SSG) using Nuxt.js.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们学习了关于CI/CD的概念，以及如何利用GitHub Actions为我们的Vue应用程序建立一个简单的CI/CD流程。我们还了解了Netlify，并学习了如何自动将我们的应用程序部署到Netlify托管平台。在下一章中，我们将探讨Vue生态系统的最后几个方面，即使用Nuxt.js进行服务器端渲染（SSR）和静态站点生成（SSG）。
+- en: ^([1](ch12.html#id1738-marker)) Other alternatives are Azure Static Web Apps
+    and Vercel.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch12.html#id1738-marker)) 其他选择包括Azure静态Web应用和Vercel。

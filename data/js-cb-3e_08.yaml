@@ -1,0 +1,1910 @@
+- en: Chapter 7\. Objects
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章。对象
+- en: There are two broad categories of types in JavaScript. On one side is a small
+    set of *primitive* types, like strings and numbers. On the other side are genuine
+    objects, all of which derive from JavaScript’s `Object`.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 中有两类广泛的类型。一方面是一小组*原始*类型，比如字符串和数字。另一方面是真正的对象，所有这些对象都源自 JavaScript
+    的`Object`。
+- en: JavaScript’s built-in objects are easy to recognize. They have constructors,
+    and you’ll usually instantiate them with the `new` keyword. Basic ingredients
+    like arrays, `Date`, error objects, `Map` and `Set` collections, and `RegExp`
+    regular expressions are all objects.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 的内置对象很容易识别。它们有构造函数，通常会使用`new`关键字实例化它们。像数组、`Date`、错误对象、`Map`和`Set`集合，以及`RegExp`正则表达式等基本组件都是对象。
+- en: JavaScript objects also differ in important ways from the objects you find in
+    traditional object-oriented programming languages. For example, JavaScript allows
+    you to create instances of the base `Object` type, and attach new properties and
+    functions at runtime. In fact, you can take a live object—any object—and modify
+    its members, with no need to respect a class definition.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 对象在重要方面也与传统面向对象编程语言中的对象不同。例如，JavaScript 允许你创建基本`Object`类型的实例，并在运行时附加新属性和函数。事实上，你可以取一个活动对象——任何对象——并修改其成员，而无需遵守类定义。
+- en: In this chapter you’ll take a closer look at the functionality and quirks of
+    JavaScript’s `Object` type. You’ll see how to use the core `Object` features to
+    inspect, extend, and copy objects of all types. And in the next chapter, you’ll
+    go one step further and learn the best practices for formalizing your own custom
+    objects.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，你将更仔细地查看 JavaScript 的`Object`类型的功能和怪癖。你将看到如何使用核心`Object`功能来检查、扩展和复制所有类型的对象。在下一章中，你将进一步学习如何规范自定义对象的最佳实践。
+- en: Checking if an Object Is a Certain Type
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检查对象是否为某种类型
+- en: Problem
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You have a mystery object and you want to determine its type.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你有一个神秘对象，想要确定它的类型。
+- en: Solution
+  id: totrans-8
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `instanceof` operator:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`instanceof`运算符：
+- en: '[PRE0]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'You can test if an object is *not* an instance of some type using the not operator
+    (`!`). But make sure you use parentheses to apply the `!` to the entire `instanceof`
+    condition:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用非运算符（`!`）来测试一个对象是否*不是*某种类型的实例。但确保使用括号将`!`应用于整个`instanceof`条件：
+- en: '[PRE1]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'There’s one gap in the `instanceof` operator. It doesn’t work with primitive
+    values, like numbers, strings, Booleans, `BigInt` values, `null`, and `undefined`.
+    Here’s a demonstration of the problem:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`instanceof`运算符存在一个缺陷。它无法处理原始值，比如数字、字符串、布尔值、`BigInt`值、`null`和`undefined`。以下是问题的演示：'
+- en: '[PRE2]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'The solution is to use the `typeof` operator if you’re testing a variable that
+    might hold one of the primitive data types. Unlike `instanceof`, `typeof` provides
+    you with one of nine predefined string values (as described in [“Checking for
+    an Existing, Nonempty String”](ch02.html#checking_existing_nonempty_string)).
+    If you get a value of `object`, you can use the `instanceof` operator to dig deeper:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你要测试一个可能包含原始数据类型之一的变量，解决方案是使用`typeof`运算符。与`instanceof`不同，`typeof`会为你提供九个预定义的字符串值之一（如[“检查是否存在、非空字符串”](ch02.html#checking_existing_nonempty_string)中所述）。如果得到一个`object`值，你可以使用`instanceof`运算符深入挖掘：
+- en: '[PRE3]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Discussion
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'The `instanceof` operator works by inspecting an object’s *prototype chain*,
+    a concept explained in [“Extra: Prototype Chains”](ch08.html#prototype_chains).
+    Depending on how an object is constructed, there can be several types in the prototype
+    chain (similar to the way an object in a traditional OOP language might inherit
+    from a sequence of classes). For example, every object has the `Object` prototype
+    at the base of its chain, so this is always true:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`instanceof`运算符通过检查对象的*原型链*来工作，这是在[“额外：原型链”](ch08.html#prototype_chains)中解释的一个概念。根据对象的构造方式，原型链中可能有几种类型（类似于传统面向对象编程语言中对象从一系列类继承的方式）。例如，每个对象在其链的基础上都有`Object`原型，因此这总是成立：'
+- en: '[PRE4]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Remember, primitives don’t just include numbers, strings, and Booleans. They
+    encompass the specialized `BigInt` and `Symbol`, and the special values `null`
+    and `undefined`. All of these values will return `false` if you use the `instanceof
+    Object` test.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住，原始值不仅包括数字、字符串和布尔值。它们还包括专门的`BigInt`和`Symbol`，以及特殊值`null`和`undefined`。如果你使用`instanceof
+    Object`测试，所有这些值都会返回`false`。
+- en: Using an Object Literal to Bundle Data
+  id: totrans-21
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用对象字面量来捆绑数据
+- en: Problem
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to group several variables together to create a basic data package.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要将几个变量组合在一起，创建一个基本的数据包。
+- en: Solution
+  id: totrans-24
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the *object literal* syntax to create a new instance of the `Object` type.
+    You don’t use the `new` keyword or even name the `Object` type. Instead, you simply
+    write a set of `{}` braces that encloses a comma-separated list of properties.
+    Each property consists of a property name, followed by a colon, followed by the
+    property value:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用*对象字面量*语法创建`Object`类型的新实例。您不使用`new`关键字，甚至不命名`Object`类型。相反，您只需编写一组`{}`括号，其中包含一个逗号分隔的属性列表。每个属性由属性名称后跟冒号，然后是属性值组成：
+- en: '[PRE5]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Of course, you can add additional properties after creating the object, as
+    with any JavaScript object:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，您可以在创建对象后添加附加属性，就像处理任何JavaScript对象一样：
+- en: '[PRE6]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: This technique works even if you’ve declared your object with `const`, because
+    object literals are *reference types*, not values (unlike structs in other languages).
+    Adding a property changes the object, but it doesn’t change the reference. (On
+    the other hand, assigning the `employee` variable to a new object wouldn’t be
+    allowed in this example, because that operation would change the reference.)
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使您已使用`const`声明对象，此技术也适用，因为对象字面量是*引用类型*，而不是值（与其他语言中的结构体不同）。添加属性会更改对象，但不会更改引用。
+    （另一方面，在此示例中，将`employee`变量分配给新对象是不允许的，因为该操作将更改引用。）
+- en: Discussion
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Object literal syntax gives you the cleanest, most compact way to quickly create
+    a simple object. However, it’s just a shortcut for explicitly creating a new `Object`
+    instance and assigning properties, like this:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量语法为您提供了快速创建简单对象的最清晰、最紧凑的方式。但是，它只是显式创建新`Object`实例并分配属性的快捷方式，就像这样：
+- en: '[PRE7]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'or you can use key-value syntax:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者您可以使用键值语法：
+- en: '[PRE8]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'One of the nicer features of object literal syntax is the way it handles nested
+    objects, like `birthPlace` in this example:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量语法最好的特性之一是它处理嵌套对象的方式，例如本例中的`birthPlace`：
+- en: '[PRE9]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In JavaScript’s eyes, an object literal is an instance of the base `Object`
+    type. This simplicity makes it easy to create an object out of any ad hoc grouping
+    of data, but it also has a cost—your object has no meaningful *identity*.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript的眼中，对象字面量是基本`Object`类型的一个实例。这种简单性使得从任意的临时数据组合创建对象变得容易，但也有代价——您的对象没有有意义的*身份*。
+- en: Yes, you can test if an object has a certain property ([“Checking If an Object
+    Has a Property”](#checking_object_for_property)) or enumerate all its properties
+    ([“Iterating Over All the Properties of an Object”](#iterating_all_object_properties)).
+    But you can’t use `instanceof` to test against a custom object type. In other
+    words, there’s no contract to program against, and no easy way to validate that
+    your objects are what you expect. If you need to use more durable objects that
+    are passed around your code, model complex entities, and include their own methods,
+    you should consider using formal classes ([“Creating a Reusable Class”](ch08.html#using_es6_classes)).
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 是的，您可以测试对象是否具有某个特定属性（[“检查对象是否具有属性”](#checking_object_for_property)），或者枚举其所有属性（[“遍历对象的所有属性”](#iterating_all_object_properties)）。但您不能使用`instanceof`来针对自定义对象类型进行测试。换句话说，没有可编程的合同，也没有简单的方法来验证您的对象是否符合预期。如果您需要使用在代码中传递的更持久的对象、建模复杂实体并包含自己的方法，则应考虑使用正式类（[“创建可重用类”](ch08.html#using_es6_classes)）。
+- en: Note
+  id: totrans-39
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: It might occur to you that you could streamline the object creation process
+    by creating a factory function that accepts parameters and builds the corresponding
+    object. While there’s nothing inherently wrong with this approach, there’s a more
+    powerful and conventional alternative. As soon as you want to build multiple objects
+    with the same structure, consider using classes ([“Creating a Reusable Class”](ch08.html#using_es6_classes)).
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会想到通过创建接受参数并构建相应对象的工厂函数来简化对象创建过程。虽然这种方法本质上没有问题，但有一个更强大和常规的替代方案。一旦您想要使用相同结构构建多个对象，请考虑使用类（[“创建可重用类”](ch08.html#using_es6_classes)）。
+- en: See Also
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: To find all the properties on an object literal, see [“Iterating Over All the
+    Properties of an Object”](#iterating_all_object_properties). To step up to a formal
+    class definition, see [“Creating a Reusable Class”](ch08.html#using_es6_classes).
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查找对象字面量上的所有属性，请参见[“遍历对象的所有属性”](#iterating_all_object_properties)。要升级到正式类定义，请参见[“创建可重用类”](ch08.html#using_es6_classes)。
+- en: 'Extra: Computed Property Names'
+  id: totrans-43
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 额外：计算属性名
+- en: 'As you know, you can add a new property to any JavaScript object in two ways.
+    You can use dot-syntax with property names:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您所知，您可以通过两种方式向任何JavaScript对象添加新属性。您可以使用点语法和属性名称：
+- en: '[PRE10]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Or key-value syntax:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者键值语法：
+- en: '[PRE11]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: These two approaches aren’t equivalent. When you use key-value syntax, the property
+    name is stored as a string, which means you have the opportunity to generate the
+    property name at runtime. This is called a *computed property name*, and it’s
+    important in certain extensibility scenarios. (For example, imagine if you’re
+    fetching some external data and using that to create a matching object.)
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种方法并不等价。当你使用键值语法时，属性名被存储为字符串，这意味着你有机会在运行时生成属性名。这被称为*计算属性名*，在某些可扩展性场景中非常重要。（例如，想象一下，如果你正在获取一些外部数据并使用它来创建匹配的对象。）
+- en: '[PRE12]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Computed property names are always converted to strings. They support characters
+    that wouldn’t be allowed in ordinary variable names, like spaces. For example,
+    this is possible (although it’s a very bad idea):'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算属性名始终转换为字符串。它们支持普通变量名中不允许的字符，如空格。例如，这是可能的（尽管这是一个非常糟糕的主意）：
+- en: '[PRE13]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Object literal syntax also allows you to created computed properties. But because
+    it doesn’t use a format with string key names, you need to enclose each computed
+    property name in square brackets. Here’s what that looks like:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量语法还允许你创建计算属性。但由于它不使用具有字符串键名的格式，你需要用方括号括起每个计算属性名。这是它的样子：
+- en: '[PRE14]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Tip
+  id: totrans-54
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: 'If you’re creating property names dynamically, you may run into a situation
+    where you need to ensure your property name is unique. Various homemade workarounds
+    are possible: checking for the property and adding a sequence number until you
+    get something unique, or just using a GUID (globally unique identifer). But JavaScript
+    provides a built-in solution with the `Symbol` type, which is your best bet (see
+    [“Creating Absolutely Unique Object Property Keys”](#symbol_properties_unique)).'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你动态创建属性名，可能会遇到需要确保属性名唯一的情况。有各种自制的解决方法：检查属性并添加一个序列号直到得到唯一的内容，或者只使用GUID（全局唯一标识符）。但JavaScript提供了一个内置解决方案，即`Symbol`类型，这是你最好的选择（参见[“创建绝对唯一对象属性键”](#symbol_properties_unique)）。
+- en: Checking If an Object Has a Property
+  id: totrans-56
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检查对象是否有属性
+- en: Problem
+  id: totrans-57
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to check at runtime if an object has a given property.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想在运行时检查对象是否具有给定的属性。
+- en: Solution
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `in` operator to look for a property by name:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`in`运算符按名称查找属性：
+- en: '[PRE15]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Discussion
+  id: totrans-62
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: If you attempt to read a property that doesn’t exist, you get the value `undefined`.
+    You could test for `undefined`, but that alone is not an ironclad guarantee that
+    the property doesn’t exist. (It’s technically possible to have a property and
+    set it to `undefined`, in which case the property still exists but your test would
+    miss it.) A better approach to finding properties is using the `in` operator.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果尝试读取一个不存在的属性，则会得到值`undefined`。你可以测试`undefined`，但这并不能完全保证该属性不存在。（技术上讲，可能存在一个属性并将其设置为`undefined`，这种情况下属性仍然存在，但你的测试会漏掉它。）查找属性的更好方法是使用`in`运算符。
+- en: The `in` operator searches an object *and* its prototype chain. That means if
+    you create an object `Dog` that derives from another object `Animal`, an `in`
+    test will return `true` if a property is defined in `Dog` or `Animal`. Alternatively,
+    you can use the `hasOwnProperty()` method, which only searches the current object,
+    and ignores inherited properties.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`in`运算符搜索对象及其原型链。这意味着，如果你创建一个从另一个对象`Animal`派生的对象`Dog`，`in`测试会在`Dog`或`Animal`中定义了属性时返回`true`。或者，你可以使用`hasOwnProperty()`方法，它仅搜索当前对象，忽略继承的属性。'
+- en: '[PRE16]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: For more information about using inheritance, see [“Inheriting Functionality
+    from Another Class”](ch08.html#custom_class_inheritance).
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于使用继承的更多信息，请参见[“从另一个类继承功能”](ch08.html#custom_class_inheritance)。
+- en: See Also
+  id: totrans-67
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: '[“Iterating Over All the Properties of an Object”](#iterating_all_object_properties)
+    shows how to retrieve all the properties of an object into an array. [“Testing
+    for an Empty Object”](#testing_for_empty_object) shows how to test if your object
+    is empty of all data.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“迭代对象的所有属性”](#iterating_all_object_properties)展示了如何将对象的所有属性检索到一个数组中。[“测试空对象”](#testing_for_empty_object)展示了如何测试对象是否为空。'
+- en: Iterating Over All the Properties of an Object
+  id: totrans-69
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 迭代对象的所有属性
+- en: Problem
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to examine all the properties in an object.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想检查对象中的所有属性。
+- en: Solution
+  id: totrans-72
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the static `Object.keys()` method to get an array with the property names
+    for your object. For example, this code:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用静态的`Object.keys()`方法获取包含对象属性名的数组。例如，这段代码：
+- en: '[PRE17]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'creates this console output:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建此控制台输出：
+- en: '[PRE18]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: This technique—examining an object, finding all its properties, and displaying
+    them—is similar to what the `console.log()` method does when you pass it an object.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种技术——检查对象，找到其所有属性并显示它们——与当你向 `console.log()` 方法传递一个对象时的操作类似。
+- en: Discussion
+  id: totrans-78
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Discussion
+- en: When using `Object.keys()`, you retrieve all the property names (also known
+    as *keys*). But you still need to look up the corresponding value in the object.
+    You can’t use the dot syntax to do that (`object.propertyName`) because you have
+    the property as a string. Instead, you use the array-like indexer syntax (`object['propertyName']`).
+    Properties will typically appear in the order they were defined, but JavaScript
+    doesn’t guarantee the order.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Object.keys()` 时，你会检索所有属性名称（也称为*键*）。但你仍需要查找对象中对应的值。你不能使用点语法来做到这一点（`object.propertyName`），因为属性是一个字符串。而是使用类似数组的索引器语法（`object['propertyName']`）。属性通常以定义的顺序出现，但
+    JavaScript 不保证顺序。
+- en: 'The `Object.keys()` method is also commonly used to count the number of properties
+    (or *length*) of an object:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Object.keys()` 方法通常用于计算对象的属性数（或*长度*）：'
+- en: '[PRE19]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The `Object.keys()` method is just one of many possible solutions for reflecting
+    on JavaScript objects. However, it’s a good default starting point because it
+    ignores inherited properties and nonenumerable properties, which is the behavior
+    you want in most scenarios.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Object.keys()` 方法只是反映 JavaScript 对象的许多可能解决方案之一。但它是一个很好的默认起点，因为它忽略继承的属性和不可枚举的属性，这是大多数情况下所希望的行为。'
+- en: 'Another option is to use a `for...in` loop, like this:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个选择是使用 `for...in` 循环，如下所示：
+- en: '[PRE20]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The `for...in` loop travels up the prototype chain to find properties that your
+    object has inherited. In this example, with the object literal named `address`,
+    there’s no difference. However, if you need to reflect on objects often, inadvertently
+    using `for...in` loops when `Object.keys()` would suffice could adversely affect
+    `performance`.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`for...in` 循环沿原型链遍历以查找对象继承的属性。在此示例中，使用名为 `address` 的对象字面量没有区别。然而，如果经常需要反映对象，无意中使用
+    `for...in` 循环而应该使用 `Object.keys()` 可能会对 `performance` 产生不利影响。'
+- en: Note
+  id: totrans-86
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Note
+- en: Contrary to what you might expect, the `for...in` loop has slightly different
+    coverage than the `in` operator. The `in` operator examines *all* properties,
+    including nonenumerable properties, symbol properties, and inherited properties.
+    The `for...in` loop finds inherited properties but ignores nonenumerable properties
+    and symbol properties.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与你可能期望的相反，`for...in` 循环与 `in` 运算符的覆盖范围略有不同。`in` 运算符检查*所有*属性，包括不可枚举的属性、符号属性和继承属性。`for...in`
+    循环找到继承的属性，但忽略不可枚举的属性和符号属性。
+- en: JavaScript also has other, more specialized functions that find different subsets
+    of properties. For example, the `getOwnPropertyNames()` function ignores inherited
+    properties, and the `getOwnPropertyDescriptors()` function ignores inherited properties
+    but also finds nonenumerable properties and symbol properties, which are often
+    used for extensibility (see [“Creating Absolutely Unique Object Property Keys”](#symbol_properties_unique)).
+    [Table 7-1](#enumerate_properties) outlines these different approaches. For even
+    more detailed information, the Mozilla Developer Network has a full accounting
+    of the [different property searching functions](https://oreil.ly/rbd7z).
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 还有其他更专门的函数，用于查找对象的不同子集属性。例如，`getOwnPropertyNames()` 函数忽略继承的属性，而 `getOwnPropertyDescriptors()`
+    函数则忽略继承的属性，但还会找到不可枚举的属性和符号属性，这些通常用于可扩展性（参见 [“Creating Absolutely Unique Object
+    Property Keys”](#symbol_properties_unique)）。[Table 7-1](#enumerate_properties)
+    概述了这些不同的方法。要获取更详细的信息，请参阅 Mozilla 开发者网络有关 [不同属性搜索函数](https://oreil.ly/rbd7z) 的完整信息。
+- en: Table 7-1\. Different ways to find object properties
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7-1\. 查找对象属性的不同方法
+- en: '| Method | Returns | Gets enumerable properties | Gets non-enumerable properties
+    | Gets symbol properties | Includes inherited properties |'
+  id: totrans-90
+  prefs: []
+  type: TYPE_TB
+  zh: '| 方法 | 返回 | 获取可枚举属性 | 获取不可枚举属性 | 获取符号属性 | 包括继承属性 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-91
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| `Object.keys()` | An array of property names | Yes | No | No | No |'
+  id: totrans-92
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.keys()` | 一个属性名称的数组 | 是 | 否 | 否 | 否 |'
+- en: '| `Object.values()` | An array of property values | Yes | No | No | No |'
+  id: totrans-93
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.values()` | 一个属性值的数组 | 是 | 否 | 否 | 否 |'
+- en: '| `Object.entries()` | An array of property arrays, each of which holds a property
+    name and the corresponding value | Yes | No | No | No |'
+  id: totrans-94
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.entries()` | 一个属性数组的数组，每个数组包含一个属性名称和相应的值 | 是 | 否 | 否 | 否 |'
+- en: '| `Object.getOwnPropertyNames()` | An array of property names | Yes | Yes |
+    No | No |'
+  id: totrans-95
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.getOwnPropertyNames()` | 属性名数组 | 是 | 是 | 否 | 否 |'
+- en: '| `Object.getOwnProperty​Sym⁠bols()` | An array of property names | No | No
+    | Yes | No |'
+  id: totrans-96
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.getOwnProperty​Sym⁠bols()` | 属性名数组 | 否 | 否 | 是 | 否 |'
+- en: '| `Object.getOwnProperty​De⁠scriptors()` | An array of property descriptor
+    objects, like when you use `defineProperty()` ([“Customizing the Way a Property
+    Is Defined”](#creating_properties_with_define_property)) | Yes | Yes | Yes | No
+    |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Object.getOwnProperty​De⁠scriptors()` | 属性描述符对象数组，类似于使用 `defineProperty()`
+    时的情况（[“自定义属性定义方式”](#creating_properties_with_define_property)） | 是 | 是 | 是 | 否
+    |'
+- en: '| `Reflect.ownKeys()` | An array of property names | Yes | Yes | Yes | No |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Reflect.ownKeys()` | 属性名数组 | 是 | 是 | 是 | 否 |'
+- en: '| `for...in` loop | Each property name | Yes | No | No | Yes |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| `for...in` 循环 | 每个属性名 | 是 | 否 | 否 | 是 |'
+- en: See Also
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Checking If an Object Has a Property”](#checking_object_for_property) explains
+    how to use the `in` operator to check for a single property.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“检查对象是否具有属性”](#checking_object_for_property) 解释了如何使用 `in` 运算符来检查单个属性。'
+- en: Testing for an Empty Object
+  id: totrans-102
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试空对象
+- en: Problem
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to determine if an object is empty (has no properties).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想确定一个对象是否为空（没有属性）。
+- en: Solution
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Get an array of properties using `Object.keys()`, and check for a `length`
+    of 0:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Object.keys()` 获取属性数组，并检查其 `length` 是否为 0：
+- en: '[PRE21]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Discussion
+  id: totrans-108
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'It’s possible to create an empty object with object literal syntax:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以使用对象字面量语法创建空对象：
+- en: '[PRE22]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'or by creating an instance of `Object` with `new`:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或通过使用 `new` 创建 `Object` 的实例：
+- en: '[PRE23]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Empty objects can also come about from other, less common, methods, such as
+    taking an existing object and removing properties with the `delete` operator:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 空对象也可以通过其他不太常见的方法产生，例如使用 `delete` 运算符删除现有对象的属性：
+- en: '[PRE24]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Because objects are reference types, you can’t just compare one empty object
+    to another. For example, this test won’t recognize that your unknown object is
+    empty:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为对象是引用类型，你不能简单地比较一个空对象和另一个空对象。例如，这个测试无法识别你的未知对象是否为空：
+- en: '[PRE25]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Many JavaScript libraries, like Underscore and Lodash, provide an `isEmpty()`
+    method for checking objects. However, the `Object.keys()` test is just as easy.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多 JavaScript 库，如 Underscore 和 Lodash，提供了用于检查对象是否为空的 `isEmpty()` 方法。但是，使用 `Object.keys()`
+    的测试同样简单。
+- en: Merging the Properties of Two Objects
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 合并两个对象的属性
+- en: Problem
+  id: totrans-119
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You’ve created two simple objects with properties, and you want to combine their
+    data into a single object.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你已经创建了两个带有属性的简单对象，并且想要将它们的数据合并到单个对象中。
+- en: Solution
+  id: totrans-121
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the spread operator (`...`) to expand both objects, and assign them to
+    a new object:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用扩展操作符 (`...`) 扩展两个对象，并将它们赋值给一个新对象：
+- en: '[PRE26]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Discussion
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Merging two objects is an easy operation, but not without potential problems.
+    If both objects have properties with the same name, the properties from the second
+    object (that’s `address` in the previous example) will quietly overwrite the properties
+    from the first object. Here’s a modified version of the example that demonstrates
+    the problem:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 合并两个对象是一个简单的操作，但不是没有潜在问题。如果两个对象都有相同名称的属性，第二个对象（在前面的示例中是 `address`）的属性将悄悄地覆盖第一个对象的属性。以下是演示问题的修改版本的示例：
+- en: '[PRE27]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: In this example, there are two instances of the `country` property. When the
+    two objects are merged, the `customer` object is expanded first, followed by the
+    `address` object. As a result, the `address.country` property overwrites the `customer.country`
+    property.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`country` 属性出现了两次。当两个对象合并时，首先扩展 `customer` 对象，然后是 `address` 对象。因此，`address.country`
+    属性将覆盖 `customer.country` 属性。
+- en: Customizing the Way a Property Is Defined
+  id: totrans-128
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 自定义属性定义方式
+- en: Problem
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You can easily slap a new property onto an object. But sometimes you need to
+    explicitly customize your property so you have more control of how it’s used.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以很容易地给对象添加一个新属性。但有时候你需要显式地定制你的属性，以便更好地控制它的使用方式。
+- en: Solution
+  id: totrans-131
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Instead of creating a property by assigning to it, use the `Object.defineProperty()`
+    method to define it. For example, consider the following object:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要通过简单赋值来创建属性，而是使用 `Object.defineProperty()` 方法来定义它。例如，考虑以下对象：
+- en: '[PRE28]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'Let’s say you want to add the following two properties, with the given characteristics:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们假设你想要添加以下两个属性，并具有以下特征：
+- en: '`type`'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`'
+- en: Initial value set and can’t be changed, can’t be deleted or modified, but can
+    be enumerated
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初始值设置后不能更改，不能删除或修改，但可以枚举
+- en: '`id`'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`id`'
+- en: Initial value set, but can be changed, can’t be deleted or modified, and can’t
+    be enumerated
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置初始值，但可以更改，不能删除或修改，并且不能枚举
+- en: 'Use the following JavaScript:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用以下 JavaScript：
+- en: '[PRE29]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: In this example, attempting to change the read-only property fails silently.
+    More commonly, you’ll be in strict mode, either because your code is in a module
+    (see [“Organizing Your JavaScript Classes with Modules”](ch08.html#using_es6_modules))
+    or because you’ve added the `'use strict';` directive to the top of your JavaScript
+    file. In strict mode, trying to set a read-only property interrupts your code
+    with a `TypeError`.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，尝试更改只读属性会静默失败。更常见的情况是，您将处于严格模式，要么因为您的代码在一个模块中（参见 [“使用 ES6 模块组织您的 JavaScript
+    类”](ch08.html#using_es6_modules)），要么因为您已经在 JavaScript 文件的顶部添加了 `'use strict';`
+    指令。在严格模式下，试图设置只读属性会中断您的代码，并显示 `TypeError`。
+- en: Discussion
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `defineProperty()` is a way of adding a property to an object other than
+    direct assignment that gives you some control over its behavior and state. Even
+    if all you do with `defineProperty()` is set the property name and value, it’s
+    not the same as simply setting the property. That’s because the properties created
+    with `defineProperty()` are read-only and nonenumerable by default.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`defineProperty()` 是一种在对象上添加属性的方式，而不是直接赋值，它使您可以控制属性的行为和状态。即使您使用 `defineProperty()`
+    只是设置属性名称和值，它也不同于简单地设置属性。这是因为使用 `defineProperty()` 创建的属性默认情况下是只读且不可枚举的。'
+- en: 'The `defineProperty()` method takes three arguments: the object you’re setting
+    the property on, the name of the property, and a descriptor object that configures
+    the property. Here’s where things get a bit more interesting. There are actually
+    two types of descriptors you can use. The example in the solution uses a *data
+    descriptor*, which has four details you can set:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`defineProperty()` 方法接受三个参数：您要设置属性的对象、属性的名称以及配置属性的描述符对象。这里事情变得更有趣。实际上，您可以使用两种类型的描述符。解决方案中的示例使用了一个
+    *数据描述符*，它有四个可以设置的细节：'
+- en: '`configurable`'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`configurable`'
+- en: Controls whether the property descriptor can be changed. It’s `false` by default.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制属性描述符是否可以更改。默认为 `false`。
+- en: '`enumerable`'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`enumerable`'
+- en: Controls whether the property can be enumerated. It’s `false` by default.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制属性是否可枚举。默认为 `false`。
+- en: '`value`'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`value`'
+- en: Sets the initial value for the property.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置属性的初始值。
+- en: '`writable`'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`writable`'
+- en: Controls whether the property value can be changed. It’s `false` by default.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制属性值是否可以更改。默认为 `false`。
+- en: 'Instead of using a data descriptor, you can use an *accessor descriptor*, which
+    supports a slightly different set of options:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是使用数据描述符，您可以使用一个 *访问器描述符*，它支持一组略有不同的选项：
+- en: '`configurable`'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`configurable`'
+- en: Same as for a data descriptor
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与数据描述符相同
+- en: '`enumerable`'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`enumerable`'
+- en: Same as for a data descriptor
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与数据描述符相同
+- en: '`get`'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`get`'
+- en: Sets a function to use as a property getter, which returns the property value
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置一个作为属性 getter 使用的函数，它返回属性值
+- en: '`set`'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`set`'
+- en: Sets a function to use as a property setter, which applies the property value
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置一个作为属性 setter 的函数，它应用属性值
+- en: 'Here’s an example that uses `defineProperty()` with an accessor descriptor:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个使用带有访问器描述符的 `defineProperty()` 的示例：
+- en: '[PRE30]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Here `defineProperty()` creates a computed property (`age`) that performs a
+    calculation using a different property (`birthdate`). (You’ll note that you can
+    refer to other instance properties in a setter or getter using `this`.) At this
+    point, the design of the object is becoming a bit too ambitious for ad hoc creation
+    with object literal syntax. You’ll do better using a formal class, which has a
+    more natural way of exposing the same property getter and setter feature ([“Adding
+    Properties to a Class”](ch08.html#custom_class_properties)).
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里的 `defineProperty()` 创建了一个计算属性 (`age`)，它使用另一个属性 (`birthdate`) 进行计算。（你会注意到在
+    setter 或 getter 中可以使用 `this` 引用其他实例属性。）此时，对象的设计变得有点过于雄心勃勃，不适合使用对象字面量语法进行即兴创建。最好使用形式化类，它有更自然的方式来暴露相同的属性
+    getter 和 setter 特性（[“向类添加属性”](ch08.html#custom_class_properties)）。
+- en: You can use `defineProperty()` to *change* an existing property rather than
+    add a new one. In fact, the syntax is exactly the same—the only difference is
+    that the property name you specify already exists in the object. However, there’s
+    one restriction. If the property is set to be nonconfigurable, you’ll get a `TypeError`
+    when you call `defineProperty()` on it.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以使用 `defineProperty()` 来*更改*现有属性，而不是添加新属性。实际上，语法完全相同——唯一的区别在于您指定的属性名称已存在于对象中。但是，有一个限制条件。如果将属性设置为不可配置，则在调用
+    `defineProperty()` 时将会得到 `TypeError`。
+- en: See Also
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: '[“Adding Properties to a Class”](ch08.html#custom_class_properties) explains
+    how properties are set on classes, which partially overlaps with the `defineProperty()`
+    approach. [“Preventing Any Changes to an Object”](#preventing_any_changes_to_an_object)
+    covers freezing an object to prevent property changes.'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“向类添加属性”](ch08.html#custom_class_properties) 解释了如何在类上设置属性，部分重叠了 `defineProperty()`
+    方法的方法。 [“防止对象的任何更改”](#preventing_any_changes_to_an_object) 涵盖了冻结对象以防止属性更改。'
+- en: Preventing Any Changes to an Object
+  id: totrans-168
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 防止对象的任何更改
+- en: Problem
+  id: totrans-169
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You’ve defined your object, and now you want to make sure that its properties
+    aren’t redefined or edited by other code.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您已经定义了对象，并且现在希望确保其属性不会被其他代码重新定义或编辑。
+- en: Solution
+  id: totrans-171
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use `Object.freeze()` to freeze the object against any and all changes:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Object.freeze()` 冻结对象，防止任何和所有更改：
+- en: '[PRE31]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: When you attempt to change a frozen object, one of two things will happen. If
+    strict mode is on, a `TypeError` exception is thrown. If strict mode is off, the
+    operation fails silently—the object is not changed but your code continues to
+    execute. Strict mode is always on in modules (see [“Organizing Your JavaScript
+    Classes with Modules”](ch08.html#using_es6_modules)) or if you add the `'use strict';`
+    directive to the top of your JavaScript file.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您尝试更改冻结对象时，会发生两种情况之一。如果打开了严格模式，则会抛出 `TypeError` 异常。如果未打开严格模式，则操作会静默失败——对象不会更改，但您的代码会继续执行。模块中始终打开严格模式（请参阅
+    [“使用 ES6 模块组织您的 JavaScript 类”](ch08.html#using_es6_modules)），或者在 JavaScript 文件顶部添加
+    `'use strict';` 指令。
+- en: Discussion
+  id: totrans-175
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: As you know, objects are reference types and JavaScript allows you to change
+    them in any way. You can change property values and add or remove properties,
+    even if you’ve declared your object variable with `const`.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您所知，对象是引用类型，JavaScript 允许您以任何方式更改它们。您可以更改属性值，添加或删除属性，即使已使用 `const` 声明了对象变量。
+- en: 'However, JavaScript also includes some static methods in the `Object` class
+    that you can use to lock down your object. You have three choices, listed here
+    from least to most restrictive:'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，JavaScript 还包含了一些静态方法在 `Object` 类中，您可以使用它们来锁定对象。您有三个选择，从最不限制到最严格依次列出如下：
+- en: '`Object.preventExtensions()`'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Object.preventExtensions()`'
+- en: Prevents you from adding new properties. However, you can still set property
+    values. You can also delete properties and configure properties with `Object.getOwnPropertyDescriptor()`.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 防止您添加新属性。但是，您仍然可以设置属性值。您还可以使用 `Object.getOwnPropertyDescriptor()` 删除属性和配置属性。
+- en: '`Object.seal()`'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Object.seal()`'
+- en: Prevents properties from being added, removed, or configured. However, you can
+    still set property values. This is sometimes used to catch assignments to nonexistent
+    properties, which is a silent mistake.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 阻止添加、删除或配置属性。但是，您仍然可以设置属性值。有时用于捕捉对不存在属性的赋值，这是一种静默的错误。
+- en: '`Object.freeze()`'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Object.freeze()`'
+- en: Disallows property modifications of any kind. You can’t configure properties,
+    add new properties, or set property values. The object becomes immutable.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 禁止任何方式的属性修改。您不能配置属性，添加新属性或设置属性值。对象变得不可变。
+- en: If you’re using strict mode (as you always will be, except when writing test
+    code in the console), attempting to change a frozen object throws a `TypeError`
+    exception. If you’re not using strict mode, attempts to change a property will
+    fail silently, leaving the original property values but allowing the code to continue.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用严格模式（除了在控制台编写测试代码时），尝试更改冻结对象会抛出 `TypeError` 异常。如果没有使用严格模式，尝试更改属性会静默失败，保留原始属性值但允许代码继续执行。
+- en: 'You can check if an object is frozen using `Object.isFrozen()`, the companion
+    method:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用 `Object.isFrozen()` 检查对象是否已冻结，这是一个伴随方法：
+- en: '[PRE32]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Intercepting and Changing Actions on an Object with a Proxy
+  id: totrans-187
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 拦截并更改对象上的操作
+- en: Problem
+  id: totrans-188
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to run code when certain actions take place with an object, but you
+    don’t want to put your code *inside* the object.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望在对象发生某些操作时运行代码，但不希望将代码*放在*对象内部。
+- en: Solution
+  id: totrans-190
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'The `Proxy` class allows you to intercept a variety of different actions on
+    any object. The following example uses a proxy to perform validation on an object
+    named `product`. The proxy ensures that code can use a property that doesn’t exist,
+    or use a nonnumeric data type to set a number:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Proxy` 类允许你拦截任何对象上的各种不同操作。下面的示例使用代理在名为 `product` 的对象上执行验证。代理确保代码可以使用不存在的属性，或者使用非数值数据类型来设置数字：'
+- en: '[PRE33]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Tip
+  id: totrans-193
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Once you’ve created a useful proxy that works on one property, you can reuse
+    it to intercept actions on other properties or other objects.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦你创建了一个对单个属性有效的代理，你可以重用它来拦截其他属性或其他对象上的操作。
+- en: Discussion
+  id: totrans-195
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `Proxy` object wraps an object and can be used to *trap* specific actions,
+    and then provide additional or alternative behaviors based the action and the
+    object’s data at the time of the action.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Proxy` 对象包装一个对象，并可用于*拦截*特定操作，然后根据操作和对象在操作时的数据提供额外或替代行为。'
+- en: 'When you create a `Proxy`, you supply two parameters: the object you want to
+    watch, and the handler that can intercept the operations you choose. In the solution
+    shown here, the handler only intercepts property set operations. Each time it
+    intercepts a property set action, it receives the target object, the property
+    that’s being set, and the new property value. The function then tests to see if
+    the property being set is `price`. If so, it then checks to see if it’s a number.
+    If it isn’t, a `TypeError` is thrown. If it is, then the value is checked to make
+    sure it’s greater than zero. If it’s not, then a `RangeError` is thrown. Finally,
+    the handler checks to see if the property is `name`. If it isn’t, the final exception,
+    a `ReferenceError`, is thrown. If none of the error conditions are triggered,
+    then the property is assigned the value, as usual.'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你创建一个`Proxy`时，需要提供两个参数：你想监视的对象和能拦截你选择的操作的处理程序。在这里展示的解决方案中，处理程序仅拦截属性设置操作。每次拦截属性设置动作时，它都会接收目标对象、正在设置的属性以及新的属性值。然后函数会检查正在设置的属性是否是`price`。如果是，则检查它是否是一个数字。如果不是，则抛出`TypeError`。如果是数字，则检查其值是否大于零。如果不是，则抛出`RangeError`。最后，处理程序检查属性是否是`name`。如果不是，则抛出最终的异常`ReferenceError`。如果没有触发任何错误条件，则像往常一样分配属性值。
+- en: The `Proxy` object supports a considerable number of traps, which are listed
+    in [Table 7-2](#proxy_traps). The table lists each trap, followed by the parameters
+    the handler function expects, expected return value, and how it’s triggered.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Proxy` 对象支持大量的陷阱，它们在[表 7-2](#proxy_traps)中列出。该表列出了每个陷阱，随后是处理程序函数预期的参数、预期的返回值以及它是如何触发的。'
+- en: Table 7-2\. Proxy traps
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7-2\. 代理陷阱
+- en: '| Proxy trap | Function parameters | Expected return value | How the trap is
+    triggered |'
+  id: totrans-200
+  prefs: []
+  type: TYPE_TB
+  zh: '| 代理陷阱 | 函数参数 | 预期返回值 | 触发陷阱的方式 |'
+- en: '| --- | --- | --- | --- |'
+  id: totrans-201
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- |'
+- en: '| `getOwnProperty​Descrip⁠tor` | target, name | desc or undefined | `Object.getOwnPropertyDescriptor(proxy,name)`
+    |'
+  id: totrans-202
+  prefs: []
+  type: TYPE_TB
+  zh: '| `getOwnProperty​Descrip⁠tor` | 目标, 名称 | 描述符或未定义 | `Object.getOwnPropertyDescriptor(proxy,name)`
+    |'
+- en: '| `getOwnPropertyNames` | target | string | `Object.getOwnPropertyNames(proxy)`
+    |'
+  id: totrans-203
+  prefs: []
+  type: TYPE_TB
+  zh: '| `getOwnPropertyNames` | 目标 | 字符串 | `Object.getOwnPropertyNames(proxy)` |'
+- en: '| `getPrototypeOf` | target | any | `Object.getPrototypeOf(proxy)` |'
+  id: totrans-204
+  prefs: []
+  type: TYPE_TB
+  zh: '| `getPrototypeOf` | 目标 | 任意类型 | `Object.getPrototypeOf(proxy)` |'
+- en: '| `defineProperty` | target, name, desc | Boolean | `Object.defineProperty(proxy,name,desc)`
+    |'
+  id: totrans-205
+  prefs: []
+  type: TYPE_TB
+  zh: '| `defineProperty` | 目标, 名称, 描述符 | 布尔值 | `Object.defineProperty(proxy,name,desc)`
+    |'
+- en: '| `deleteProperty` | target, name | Boolean | `Object.deleteProperty(proxy,name)`
+    |'
+  id: totrans-206
+  prefs: []
+  type: TYPE_TB
+  zh: '| `deleteProperty` | 目标, 名称 | 布尔值 | `Object.deleteProperty(proxy,name)` |'
+- en: '| `freeze` | target | Boolean | `Object.freeze(target)` |'
+  id: totrans-207
+  prefs: []
+  type: TYPE_TB
+  zh: '| `freeze` | 目标 | 布尔值 | `Object.freeze(target)` |'
+- en: '| `seal` | target | Boolean | `Object.seal(target)` |'
+  id: totrans-208
+  prefs: []
+  type: TYPE_TB
+  zh: '| `seal` | 目标 | 布尔值 | `Object.seal(target)` |'
+- en: '| `preventExtensions` | target | Boolean | `Object.preventExtensions(proxy)`
+    |'
+  id: totrans-209
+  prefs: []
+  type: TYPE_TB
+  zh: '| `preventExtensions` | 目标 | 布尔值 | `Object.preventExtensions(proxy)` |'
+- en: '| `isFrozen` | target | Boolean | `Object.isFrozen(proxy)` |'
+  id: totrans-210
+  prefs: []
+  type: TYPE_TB
+  zh: '| `isFrozen` | 目标 | 布尔值 | `Object.isFrozen(proxy)` |'
+- en: '| `isSealed` | target | Boolean | `Object.isSealed(proxy)` |'
+  id: totrans-211
+  prefs: []
+  type: TYPE_TB
+  zh: '| `isSealed` | 目标 | 布尔值 | `Object.isSealed(proxy)` |'
+- en: '| `isExtensible` | target | Boolean | `Object.isExtensible(proxy)` |'
+  id: totrans-212
+  prefs: []
+  type: TYPE_TB
+  zh: '| `isExtensible` | 目标 | 布尔值 | `Object.isExtensible(proxy)` |'
+- en: '| `has` | target, name | Boolean | name in proxy |'
+  id: totrans-213
+  prefs: []
+  type: TYPE_TB
+  zh: '| `has` | 目标, 名称 | 布尔值 | 名称 in proxy |'
+- en: '| `hasOwn` | target, name | Boolean | `({}).hasOwnProperty.call(proxy,name)`
+    |'
+  id: totrans-214
+  prefs: []
+  type: TYPE_TB
+  zh: '| `hasOwn` | 目标, 名称 | 布尔值 | `({}).hasOwnProperty.call(proxy,name)` |'
+- en: '| `get` | target, name, receiver | any | `receiver[name]` |'
+  id: totrans-215
+  prefs: []
+  type: TYPE_TB
+  zh: '| `get` | 目标, 名称, 接收者 | 任意类型 | `receiver[name]` |'
+- en: '| `set` | target, name, value, receiver | Boolean | `receiver[name] = val`
+    |'
+  id: totrans-216
+  prefs: []
+  type: TYPE_TB
+  zh: '| `set` | 目标, 名称, 值, 接收者 | 布尔值 | `receiver[name] = val` |'
+- en: '| `enumerator` | target | iterator | `for` (name in proxy) (iterator should
+    yield all enumerable own and inherited properties) |'
+  id: totrans-217
+  prefs: []
+  type: TYPE_TB
+  zh: '| `enumerator` | 目标 | 迭代器 | `for` (name in proxy)（迭代器应产生所有可枚举的自有和继承属性） |'
+- en: '| `keys` | target | string | `Object.keys(proxy)` (return array of enumerable
+    own properties only) |'
+  id: totrans-218
+  prefs: []
+  type: TYPE_TB
+  zh: '| `keys` | 目标 | 字符串 | `Object.keys(proxy)`（仅返回可枚举的自有属性的数组） |'
+- en: '| `apply` | target, thisArg, args | any | `proxy(...args)` |'
+  id: totrans-219
+  prefs: []
+  type: TYPE_TB
+  zh: '| `apply` | 目标，thisArg，args | 任何 | `proxy(...args)` |'
+- en: '| `construct` | target, args | any | `new proxy(...args`) |'
+  id: totrans-220
+  prefs: []
+  type: TYPE_TB
+  zh: '| `construct` | 目标，args | 任何 | `new proxy(...args)` |'
+- en: 'Proxies can also wrap built-in objects, such as the `Array` or `Date` object.
+    In the following code, a proxy is used to redefine the semantics of what happens
+    when the code accesses an array. When a `get` operation takes place, the handler
+    checks the value of the array at the given index. If it’s a value of zero (0),
+    a value of `false` is returned; otherwise, a value of `true` is returned:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代理还可以包装内置对象，例如 `Array` 或 `Date` 对象。在以下代码中，代理用于重新定义访问数组时发生的操作语义。当进行 `get` 操作时，处理程序检查给定索引处数组的值。如果它是零（0），则返回
+    `false` 的值；否则返回 `true` 的值：
+- en: '[PRE34]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: The array value at an index of 2 is not zero, so `true` is returned. The same
+    is true for the value at an index of zero. However, the value at the index of
+    1 is zero, so `false` is returned. This behavior holds anytime this array proxy
+    is accessed.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在索引为 2 的数组值不为零时返回 `true`。对于索引为零的值也是如此。然而，索引为 1 的值为零，因此返回 `false`。无论何时访问此数组代理，这种行为都是成立的。
+- en: Cloning an Object
+  id: totrans-224
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 克隆对象
+- en: Problem
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create an exact copy of a custom object.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想创建一个自定义对象的精确副本。
+- en: Solution
+  id: totrans-227
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the spread operator (`...`) to unpack your object into a collection of
+    properties, and put that property list inside brackets `{}` to build a new object:'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用展开操作符 (`...`) 将对象展开为一组属性，并将该属性列表放入大括号 `{}` 中以构建新对象：
+- en: '[PRE35]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Discussion
+  id: totrans-230
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'You might expect that this statement would copy an object:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能期望此语句将复制一个对象：
+- en: '[PRE36]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: This works for primitive types, like strings, numbers, and `BigInt`. But objects
+    are reference types, and assigning an object copies the reference. You end up
+    with two variables (`animal` and `animalCopy`) pointing to the same in-memory
+    object.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这适用于原始类型，如字符串、数字和 `BigInt`。但对象是引用类型，赋值对象会复制引用。最终您会得到两个变量（`animal` 和 `animalCopy`）指向同一个内存对象。
+- en: To properly copy a custom object, you need to create a new object and then iterate
+    over the old one, copying each of its properties. You could do the long way, using
+    the `in` operator ([“Iterating Over All the Properties of an Object”](#iterating_all_object_properties)).
+    But the spread operator offers a better approach, because you can compress the
+    work down to a single clean line of code.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要正确复制自定义对象，您需要创建一个新对象，然后迭代旧对象，复制其每个属性。您可以使用 `in` 操作符（[“迭代对象的所有属性”](#iterating_all_object_properties)）来进行冗长的方式，但展开操作符提供了更好的方法，因为您可以将工作压缩为一行干净的代码。
+- en: When you use the spread operator, you get all the *enumerable* properties of
+    an object. This includes all the properties you create using object literal syntax,
+    or any new property you assign after the fact. However, you can specifically choose
+    to create nonenumerable properties using the `Object.defineProperty()` method
+    (as introduced in [“Customizing the Way a Property Is Defined”](#creating_properties_with_define_property)).
+    Usually, a nonenumerable property is something extra—for example, a piece of data
+    that another service adds as part of some kind of extensibility system.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用展开操作符时，您会获得对象的所有 *可枚举* 属性。这包括使用对象字面量语法创建的所有属性，或者您事后分配的任何新属性。然而，您可以使用 `Object.defineProperty()`
+    方法具体选择创建不可枚举属性（如 [“自定义属性定义方式”](#creating_properties_with_define_property) 所介绍）。通常，不可枚举属性是额外的一些数据，例如另一项服务作为某种可扩展性系统的一部分添加的数据片段。
+- en: Note
+  id: totrans-236
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Usually, you don’t want to copy nonenumerable properties, so it makes sense
+    that the spread operator ignores them. However, other approaches are possible.
+    JavaScript objects have special built-in plumbing, like the `Object.getOwnPropertyDescriptors()`
+    method, that let you find nonenumerable properties. [“Iterating Over All the Properties
+    of an Object”](#iterating_all_object_properties) explains property enumeration
+    in more detail.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，您不希望复制不可枚举属性，因此展开操作符忽略它们是有道理的。然而，也有其他方法可行。JavaScript 对象具有特殊的内置功能，如 `Object.getOwnPropertyDescriptors()`
+    方法，可让您找到不可枚举属性。[“迭代对象的所有属性”](#iterating_all_object_properties) 更详细地解释了属性枚举。
+- en: 'You may also see a slightly older cloning approach that uses the `Object.assign()`
+    method. This is equivalent to using the spread operator:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能还会看到一种稍旧的克隆方法，使用`Object.assign()`方法。这相当于使用展开运算符：
+- en: '[PRE37]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'Either way, these operations perform a *shallow copy*. If your object includes
+    arrays or other objects as properties, these details won’t be copied. Instead,
+    they’ll be *shared* between the original object and the new object. Here’s a demonstration
+    of the issue:'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论哪种方式，这些操作执行的都是*浅拷贝*。如果你的对象包含数组或其他对象作为属性，则这些细节不会被复制。相反，它们将在原始对象和新对象之间*共享*。以下是该问题的演示：
+- en: '[PRE38]'
+  id: totrans-241
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: This isn’t necessarily a problem, depending on what you’re trying to accomplish.
+    But if you want to copy more than one layer deep, you’ll need to consider a different
+    cloning approach that can create a *deep copy* ([“Making a Deep Copy of an Object”](#deep_clone_an_object)).
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这不一定是问题，这取决于你想要实现的目标。但是，如果你想要复制多层深度，你需要考虑一种可以创建*深拷贝*的不同克隆方法（[“深拷贝对象”](#deep_clone_an_object)）。
+- en: See Also
+  id: totrans-243
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Making a Deep Copy of an Object”](#deep_clone_an_object) shows how to take
+    the same basic structure of data (an student object that holds an array) and create
+    a deep copy of it.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“深拷贝对象”](#deep_clone_an_object)展示了如何采取相同的基本数据结构（一个包含数组的学生对象）并创建其深拷贝。'
+- en: Making a Deep Copy of an Object
+  id: totrans-245
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 深拷贝对象
+- en: Problem
+  id: totrans-246
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create an exact copy of a custom object. You want to copy not just
+    the top-level object, but also every object it references.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想创建一个自定义对象的精确副本。你不仅想复制顶层对象，还想复制它引用的每个对象。
+- en: Solution
+  id: totrans-248
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: There is no single solution for deep copying an object. Instead, there are a
+    variety of techniques that developers use, each with its own trade-offs.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有单一的解决方案来深拷贝一个对象。相反，开发者使用各种技术，每种技术都有其自己的权衡。
+- en: The safest approach is to write your own cloning logic that’s specific to the
+    type of object you want to clone. Here’s an example that makes a deep copy of
+    the `student` object introduced in [“Cloning an Object”](#shallow_clone_an_object).
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最安全的方法是编写针对要克隆对象类型的特定克隆逻辑。以下是一个示例，演示了如何对[“克隆对象”](#shallow_clone_an_object)中介绍的`student`对象进行深拷贝。
+- en: '[PRE39]'
+  id: totrans-251
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: The beauty of this approach is that you know the object, so you know how deep
+    you should go. In this example, we know that the `testScores` array holds numbers.
+    Therefore, you know simple cloning with the spread operator is good enough to
+    duplicate it. But if the array held objects, you’d need to decide whether to duplicate
+    all those objects, a technique demonstrated in [“Cloning an Array”](ch05.html#cloning_arrays).
+    Or, if `testScores` was some other type of collection object (like a `Set` or
+    `Map`), you could properly create and fill a new collection of the corresponding
+    type.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的美妙之处在于你了解对象，因此你知道应该深入到多深程度。在这个例子中，我们知道`testScores`数组保存的是数字。因此，你知道简单地使用展开运算符进行克隆就足够了。但是，如果数组包含的是对象，你需要决定是否要复制所有这些对象，这是在[“克隆数组”](ch05.html#cloning_arrays)中演示的技术。或者，如果`testScores`是其他类型的集合对象（如`Set`或`Map`），你可以适当地创建并填充一个相应类型的新集合。
+- en: If you want a generic solution that can deep copy any arbitrary object, your
+    best bet (by far) is to use a prebuilt, pretested routine from a well-known JavaScript
+    library, like Lodash’s `cloneDeep()`, which can be imported separately through
+    the `lodash.clonedeep` module.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想要一个通用解决方案，可以深拷贝任意对象，远远最好的选择是使用一个来自著名JavaScript库的预构建、经过测试的例程，比如Lodash的`cloneDeep()`，可以通过`lodash.clonedeep`模块单独导入。
+- en: Discussion
+  id: totrans-254
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: There has been discussion about built-in serialization and deep copying support
+    in future versions of JavaScript. But right now, deep cloning is a gap you’ll
+    need to patch yourself.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关JavaScript未来版本中内置序列化和深拷贝支持的讨论。但目前，深克隆是一个你需要自行解决的空白。
+- en: 'If you’re making a full-fledged class ([“Creating a Reusable Class”](ch08.html#using_es6_classes)),
+    consider making your custom cloning function a method of the class itself:'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你正在创建一个成熟的类（[“创建可重用类”](ch08.html#using_es6_classes)），考虑将你的自定义克隆函数作为类本身的一个方法：
+- en: '[PRE40]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: This example doesn’t use the spread operator. Instead, it creates a new `Student`
+    object using the constructor. If you use the spread operator, your copy will be
+    an instance of the base `Object` class, not an instance of `Student`. Your copy
+    will still have the same properties as the original, but it won’t appear to be
+    a `Student` if you test it with `instanceof` ([“Checking if an Object Is a Certain
+    Type”](#check_object_type)). It also won’t be able to use any methods you add
+    to the `Student` class. To avoid these issues, you should always create the correct
+    object type for your copies.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例未使用扩展运算符。相反，它使用构造函数创建一个新的`Student`对象。如果使用扩展运算符，你的副本将是基本`Object`类的实例，而不是`Student`类的实例。你的副本仍将具有与原始对象相同的属性，但如果使用`instanceof`测试，它将不会显示为`Student`。它还将无法使用你添加到`Student`类的任何方法。为了避免这些问题，你应始终为你的副本创建正确的对象类型。
+- en: You might wonder whether it’s possible to create your own a generic object-copying
+    routine. The problems are more difficult than they seem, and there are many anti-patterns
+    that are recommended on the web but are likely to cause serious headaches.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想知道是否可能创建自己的通用对象复制例程，你可能会感到疑惑。这些问题比它们看起来更加困难，而且有许多在网络上推荐的反模式很可能会引起严重的头痛。
+- en: A naïve approach with recursive logic will fail catastrophically (with a stack
+    overflow) for self-referencing object chains. A simple example is when an object
+    references another object that references the original object. However, subtler
+    versions are surprisingly common.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于自引用对象链，使用递归逻辑的天真方法会导致灾难性失败（堆栈溢出）。一个简单的例子是，当一个对象引用另一个引用原始对象的对象时。然而，更微妙的版本却出奇地常见。
+- en: Another variation of this problem is if one object has two references to the
+    same object. For example, consider a `ProductCatalog` that has an array of `Product`
+    objects, some of which refer to the same `Supplier` object. A naïve approach will
+    create multiple copies of the `Supplier`, one for each `Product`. A more sophisticated
+    implementation, like Lodash’s `cloneDeep()`, tracks references as it goes to make
+    sure it doesn’t recreate the same object more than once. (The [source for its
+    cloning implementation](https://github.com/lodash/lodash/blob/master/.internal/baseClone.js)
+    is a useful antidote for anyone considering reinventing the wheel.)
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该问题的另一个变体是，如果一个对象有两个对同一对象的引用。例如，考虑一个`ProductCatalog`，其中包含一些对同一个`Supplier`对象的引用的`Product`对象数组。天真的方法将为每个`Product`创建多个`Supplier`副本。更复杂的实现方式，如Lodash的`cloneDeep()`，在进行时跟踪引用，以确保不会多次重建同一对象。（其克隆实现的[源码](https://github.com/lodash/lodash/blob/master/.internal/baseClone.js)对于考虑重复发明轮子的人来说是一个有用的解药。）
+- en: Another commonly recommended cloning approach is to use JSON serialization to
+    convert an object to a string representation and back. This runs into problems
+    with `Date` objects (which become strings), special values like `Infinity`, and
+    custom objects that include functions (which are discarded). Worst of all, you
+    won’t be alerted about the missing information.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个常见推荐的克隆方法是使用JSON序列化将对象转换为字符串表示形式，然后再转换回来。这会在处理`Date`对象（变为字符串）、`Infinity`等特殊值以及包含函数的自定义对象（被丢弃）时遇到问题。最糟糕的是，你不会收到有关缺失信息的警告。
+- en: Note
+  id: totrans-263
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The same considerations come into play if you want to test if two objects are
+    equal. The `===` operator will only tell you if the two variables point to the
+    same object. It returns `false` if you have separate objects with the same data.
+    You could write a generic routine that finds and compares all the properties of
+    any two objects. However, the meaning of equality depends on the type of data
+    you’re comparing, so writing your own `isEqual()` function is always the safest
+    approach.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想测试两个对象是否相等，相同的考虑因素也会发挥作用。`===`运算符只会告诉你两个变量是否指向同一个对象。如果你有包含相同数据的单独对象，它会返回`false`。你可以编写一个通用例程来查找和比较任何两个对象的所有属性。然而，相等的含义取决于你比较的数据类型，因此编写自己的`isEqual()`函数始终是最安全的方法。
+- en: Creating Absolutely Unique Object Property Keys
+  id: totrans-265
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建绝对唯一的对象属性键
+- en: Problem
+  id: totrans-266
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to add a uniquely named property to an object, and you want to be guaranteed
+    that it won’t clash with any other property name.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要给对象添加一个唯一命名的属性，并且保证它不会与任何其他属性名称冲突。
+- en: Solution
+  id: totrans-268
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Create a new property name using the `Symbol` type. Then, use that name to
+    set the property, using key-value syntax:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Symbol`类型创建一个新的属性名称。然后，使用键值语法设置该属性：
+- en: '[PRE41]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Interestingly, you never actually see the unique identifier that the `Symbol`
+    type uses. In this example, here’s the output you’ll get in the console:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是，您实际上从未看到`Symbol`类型使用的唯一标识符。在这个例子中，这是您在控制台中将得到的输出：
+- en: '[PRE42]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'To access a property created with `Symbol`, you need to keep track of the variable
+    that has the property name. You use that to retrieve your value at will:'
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要访问使用`Symbol`创建的属性，您需要跟踪具有属性名称的变量。您可以随时使用它来检索您的值：
+- en: '[PRE43]'
+  id: totrans-274
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: Discussion
+  id: totrans-275
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Property name collisions are not a common event, but they are more common in
+    JavaScript than many other languages. Part of the problem is that properties are
+    always public. That means that if you’re inheriting from another class (see [“Inheriting
+    Functionality from Another Class”](ch08.html#custom_class_inheritance)), you need
+    to be aware of every inherited property and make sure not to use the same name
+    yourself. But the most common cause of naming clashes is if you’re creating some
+    kind of extensibility system or service that needs you to add properties to other
+    people’s objects. In this situation, you won’t know if your properties will conflict
+    with the properties already in that object, because you don’t own the design of
+    that object.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 属性名称冲突并不常见，但在JavaScript中比许多其他语言更常见。问题的一部分是属性始终是公共的。这意味着，如果您从另一个类继承（参见[“从另一个类继承功能”](ch08.html#custom_class_inheritance)），您需要注意每个继承的属性，并确保自己不使用相同的名称。但命名冲突的最常见原因是，如果您正在创建某种可扩展性系统或服务，该系统需要您向其他人的对象添加属性。在这种情况下，您不会知道您的属性是否会与已存在于该对象中的属性冲突，因为您不拥有该对象的设计。
+- en: There are various workarounds you can use to check for properties and generate
+    random names. But the `Symbol` type gives you a quick and effective solution.
+    Every `Symbol` is guaranteed to be unique. You create it by calling the `Symbol()`
+    method. (You don’t call a constructor with `new`, because `Symbol` is a primitive
+    type, not an object.)
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用各种解决方法来检查属性并生成随机名称。但是，`Symbol`类型为您提供了一种快速有效的解决方案。每个`Symbol`都保证是唯一的。您通过调用`Symbol()`方法来创建它（因为`Symbol`是一个原始类型，而不是对象，所以不使用`new`调用构造函数）。
+- en: 'Optionally, you can give your symbol a description, which is useful for debugging:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可选地，您可以为您的符号添加描述，这对调试很有用：
+- en: '[PRE44]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: However, the description is not used to create the `Symbol`. If you create two
+    `Symbol` instances with the same description, there will be two completely separate
+    unique identifiers, which JavaScript stores internally in a global registry of
+    `Symbol` values.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，描述并不用于创建`Symbol`。如果您使用相同的描述创建两个`Symbol`实例，将会有两个完全独立的唯一标识符，这些标识符由JavaScript在全局`Symbol`值注册表中内部存储。
+- en: Creating Enums with Symbol
+  id: totrans-281
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Symbol创建枚举
+- en: Problem
+  id: totrans-282
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to store a small, related group of constants, so you can refer to them
+    by name in your code.
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望存储一小组相关的常量，以便在代码中按名称引用它们。
+- en: Solution
+  id: totrans-284
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Symbol()` to set the value for each constant:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Symbol()`为每个常量设置值：
+- en: '[PRE45]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Discussion
+  id: totrans-287
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An enum (or *enumerated identifier*) is a group of named constants. Enums are
+    useful anytime you have a variable that can only take a small set of allowed values.
+    By using the enum values, you make your code clearer. You also reduce the chance
+    of mistakes (versus using magic numbers), because you won’t forget what each number
+    means and you can’t accidentally use a number that doesn’t have a constant defined
+    for it.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举（或*枚举标识符*）是一组命名常量。枚举在任何时候都很有用，当您有一个只能取一小组允许值的变量时。通过使用枚举值，您使您的代码更清晰。您还减少了出错的机会（与使用魔术数字相比），因为您不会忘记每个数字的含义，并且您不能意外使用没有为其定义常量的数字。
+- en: Note
+  id: totrans-289
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: There’s some debate about the proper convention for the capitalization of constants.
+    The `Math` class puts read-only properties like `Math.PI` and `Math.E` in uppercase.
+    The solution in this example uses initial capitalization for enum constants and
+    the object that wraps them, as in `TrafficLight.Red`.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有关常量大写的适当惯例存在一些争论。例如，`Math`类将只读属性如`Math.PI`和`Math.E`放在大写字母中。此示例中的解决方案使用了首字母大写的枚举常量和包装它们的对象，例如`TrafficLight.Red`。
+- en: 'Often constants are created with numeric values or string values. That’s a
+    particularly good approach if the constant maps to some other useful bit of information,
+    like the unit conversion values shown here:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 常量通常使用数字值或字符串值创建。如果常量映射到其他有用的信息，例如这里显示的单位转换值，那么这是一个特别好的方法：
+- en: '[PRE46]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: If you don’t have a natural unique value to use for your enum constants, consider
+    using a `Symbol`. This saves you from needing to pick your own arbitrary numbers,
+    and the guaranteed uniqueness of every `Symbol` ensures that you can’t substitute
+    any other value. (It also removes the chance that you’ll accidentally use a hard-coded
+    number in some places and a `const` variable in other places, which can lead to
+    bug-causing inconsistencies when you make changes.) The `TrafficLight` example
+    in this recipe uses a `Symbol` for each of its three values.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您没有自然的唯一值可用于枚举常量，请考虑使用`Symbol`。这可以避免您需要选择任意数字，并且每个`Symbol`的保证唯一性确保您无法替换任何其他值。（这还消除了当您进行更改时可能导致错误的一致性问题，比如有些地方使用硬编码的数字，其他地方使用`const`变量。）本示例中的`TrafficLight`示例使用了三个值的`Symbol`。
+- en: The drawback to using `Symbol` is that the underlying value is completely opaque.
+    That’s why the solution in this recipe gives each Symbol a descriptive name, like
+    `Symbol('red')`. That’s the text you’ll see when you log the `Symbol` to the console
+    or convert it to a string. If you don’t supply a descriptive name when you create
+    your `Symbol`, you’ll only see the generic text `"Symbol()"`.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Symbol`的缺点在于其底层值完全不透明。这就是为什么本示例中的解决方案为每个Symbol提供一个描述性名称，例如`Symbol('red')`。当您将`Symbol`记录到控制台或将其转换为字符串时，您将看到这个文本。如果在创建`Symbol`时没有提供描述性名称，您只会看到通用文本`"Symbol()"`。
+- en: See Also
+  id: totrans-295
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: To look closer at the `Symbol` data type, see [“Creating Absolutely Unique Object
+    Property Keys”](#symbol_properties_unique).
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看`Symbol`数据类型的详细信息，请参见[“创建绝对唯一的对象属性键”](#symbol_properties_unique)。

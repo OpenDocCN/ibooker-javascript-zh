@@ -1,0 +1,1707 @@
+- en: Chapter 3\. The Virtual DOM
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第3章 虚拟DOM
+- en: In this chapter, we’ll dive deep into the concept of virtual DOM, sometimes
+    called vDOM, and its significance in React. We’ll also explore how React uses
+    the virtual DOM to make web development easier and more efficient.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将深入探讨虚拟DOM（有时称为vDOM）的概念及其在React中的重要性。我们还将探讨React如何利用虚拟DOM使Web开发更轻松和高效。
+- en: As web applications become more complex, it becomes increasingly difficult to
+    manage the “real DOM,” which is a complex and error-prone process as we’ll see
+    soon enough, and as we crudely covered in [Chapter 1](ch01.html#ch01). React’s
+    virtual DOM provides a solution to this problem.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着Web应用程序变得越来越复杂，管理“真实DOM”变得越来越困难，正如我们很快将看到的那样，以及我们在[第1章](ch01.html#ch01)中粗略涵盖的那样。React的虚拟DOM为此问题提供了解决方案。
+- en: Throughout this chapter, we’ll explore the workings of React’s virtual DOM,
+    its advantages over the real DOM, and how it is implemented. We’ll also cover
+    how React optimizes performance around the real DOM using the virtual DOM and
+    how it all fits together.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨React虚拟DOM的工作原理、其相对真实DOM的优势以及其实现方式。我们还将探讨React如何利用虚拟DOM优化真实DOM的性能，并将所有内容整合在一起。
+- en: Through a series of code examples and detailed explanations, we’ll understand
+    the virtual DOM’s role in React and how to take advantage of its benefits to create
+    robust and efficient web applications. Let’s get started!
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过一系列的代码示例和详细的解释，我们将理解虚拟DOM在React中的作用，以及如何利用其优势创建健壮和高效的Web应用程序。让我们开始吧！
+- en: An Intro to the Virtual DOM
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 虚拟DOM简介
+- en: 'The virtual DOM, like the DOM, is an HTML document modeled as a JavaScript
+    object: this is literally what Document Object Model (DOM) means. The DOM itself
+    is the browser runtime’s model of the document. The virtual DOM is a lightweight
+    copy of this, with the key difference that while the real DOM is made up of `Node`
+    objects, the virtual DOM is made up of plain JS objects that act as descriptions.
+    It allows web developers to create user interfaces in a more efficient and performant
+    way, as we’ll discover in this chapter.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟DOM像DOM一样，是一个以JavaScript对象建模的HTML文档：这确实是文档对象模型（DOM）的含义。DOM本身是浏览器运行时对文档的模型。虚拟DOM是这个模型的一个轻量级副本，其主要区别在于，虽然真实DOM由`Node`对象组成，但虚拟DOM由作为描述的纯JS对象组成。它允许Web开发人员以更高效和更高性能的方式创建用户界面，正如我们将在本章中发现的那样。
+- en: In React, whenever we tell it to make a change to the UI via `setState` or some
+    other mechanism, the virtual DOM is updated first, and then the real DOM is updated
+    to match the changes in the virtual DOM. This process is called *reconciliation*,
+    the subject of [Chapter 4](ch04.html#ch04).
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在React中，每当我们通过`setState`或其他机制告诉它对UI进行更改时，首先更新虚拟DOM，然后更新真实DOM以匹配虚拟DOM中的更改。这个过程称为*协调*，是[第4章](ch04.html#ch04)的主题。
+- en: The reason for updating the virtual DOM first is that updates to the real DOM
+    can be somewhat slow and expensive. We’ll cover this in the next section, but
+    the gist of it is that every time a change is made to the real DOM, the browser
+    has to recalculate the layout of the page, repaint the screen, and perform other
+    operations that can be time-consuming.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先更新虚拟DOM的原因是，更新真实DOM可能会有些慢和昂贵。我们将在下一节中详细讨论这一点，但要点是，每当对真实DOM进行更改时，浏览器必须重新计算页面的布局，重绘屏幕，并执行其他可能耗时的操作。
+- en: 'For example, just reading an element’s `offsetWidth` can trigger a reflow,
+    which is a process where the browser recalculates the layout of all or part of
+    the document, potentially affecting performance and making direct DOM interactions
+    less efficient:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，仅仅读取元素的`offsetWidth`就可以触发重新排列，这是浏览器重新计算文档所有或部分布局的过程，可能会影响性能，并使直接DOM交互不那么高效。
+- en: '[PRE0]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: On the other hand, updating the virtual DOM is much faster because it doesn’t
+    involve any changes to the actual page layout. Instead, it is a simple JavaScript
+    object that can be manipulated quickly and efficiently through various algorithmic
+    approaches that can make the best use of the JavaScript engine available and increase
+    its efficiency over time, decoupled from the browsers and other host environments.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，更新虚拟DOM要快得多，因为它不涉及任何实际页面布局的更改。相反，它是一个简单的JavaScript对象，可以通过各种算法方法快速和高效地操作，这些方法可以充分利用可用的JavaScript引擎，并随着时间的推移增加其效率，与浏览器和其他主机环境解耦。
+- en: When updates are made to the virtual DOM, React uses a diffing algorithm to
+    identify the differences between the old and new versions of the virtual DOM.
+    This algorithm then determines the minimal set of changes required to update the
+    real DOM, and these changes are applied in a batched and optimized way to minimize
+    the performance impact.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当更新虚拟 DOM 时，React 使用一种差异算法来识别旧版本和新版本虚拟 DOM 之间的差异。然后，该算法确定更新真实 DOM 所需的最小变化集，并以批处理和优化的方式应用这些变化，以最小化性能影响。
+- en: In this chapter, we will explore the differences between the virtual DOM and
+    the real DOM, the pitfalls of the real DOM, and how the virtual DOM helps create
+    better user interfaces. We will also dive into React’s implementation of the virtual
+    DOM and the algorithms it uses for efficient updates.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨虚拟 DOM 和真实 DOM 的区别，真实 DOM 的缺陷，以及虚拟 DOM 如何帮助创建更好的用户界面。我们还将深入探讨 React
+    实现的虚拟 DOM 及其用于高效更新的算法。
+- en: The Real DOM
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 真实 DOM
+- en: 'When an HTML page is loaded into a web browser, it is parsed and converted
+    into a tree of nodes and objects—an *object model*—which is the DOM: just a big
+    JavaScript object. The DOM is a live representation of the web page, meaning that
+    it is constantly being updated as users interact with the page.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当一个 HTML 页面被加载到浏览器中时，它会被解析并转换为节点和对象的树状结构，即*对象模型*（DOM）：只是一个大的 JavaScript 对象。DOM
+    是网页的实时表示，意味着它会随着用户与页面的交互而不断更新。
+- en: 'Here is an example of the real DOM for a simple HTML page:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个简单 HTML 页面的真实 DOM 的示例：
+- en: '[PRE1]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'In this example, the real DOM is represented by a tree-like structure that
+    consists of nodes for each HTML element in the page. This is what the tree structure
+    could look like, though it’s oversimplified for the purposes of understanding.
+    The actual DOM has far more properties and methods per node. Still, this should
+    help us understand how a document is modeled as an object:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，真实 DOM 被表示为一个树状结构，每个 HTML 元素在页面中都有相应的节点。这是树结构的简化版本，目的是为了更好地理解。实际 DOM
+    拥有更多每个节点的属性和方法。不过，这应该有助于我们理解文档如何被建模为一个对象：
+- en: '[PRE2]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Each node in the tree represents an HTML element, and it contains properties
+    and methods that allow it to be manipulated through JavaScript. For example, we
+    can use the `document.querySelector()` method to retrieve a specific node from
+    the real DOM and modify its contents:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 树中的每个节点表示一个 HTML 元素，它包含允许通过 JavaScript 进行操作的属性和方法。例如，我们可以使用 `document.querySelector()`
+    方法从真实 DOM 中检索特定节点，并修改其内容：
+- en: '[PRE3]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: In this example, we retrieve the `h1` element with the `class` of `"heading"`
+    using the `document.querySelector()` method. We then modify the contents of the
+    element by setting its `innerHTML` property to `"Updated Heading!"`. This changes
+    the text displayed on the page from `"Welcome to my page!"` to `"Updated Heading!"`.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们使用 `document.querySelector()` 方法检索具有 `"heading"` 类的 `h1` 元素。然后，通过将其
+    `innerHTML` 属性设置为 `"Updated Heading!"`，我们修改了元素的内容。这将把页面上显示的文本从 `"Welcome to my
+    page!"` 修改为 `"Updated Heading!"`。
+- en: That doesn’t seem too complicated, but there are a few things to note here.
+    First, we are using the `document.querySelector()` method to retrieve the element
+    from the real DOM. This method accepts a CSS selector as an argument and returns
+    the first element that matches the selector. In this case, we are passing in the
+    class selector `.heading`, which matches the `h1` element with the `class` of
+    `"heading"`.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这似乎并不复杂，但这里有几点需要注意。首先，我们使用 `document.querySelector()` 方法从真实 DOM 中检索元素。此方法接受
+    CSS 选择器作为参数，并返回与选择器匹配的第一个元素。在这种情况下，我们传入了类选择器 `.heading`，它匹配具有 `"heading"` 类的 `h1`
+    元素。
+- en: There’s a bit of a danger here, because while the `document.querySelector` method
+    is a powerful tool for selecting elements in the real DOM based on CSS selectors,
+    one potential performance issue with this method is that it can be slow when working
+    with large and complex documents. The method has to start at the top of the document
+    and traverse downward to find the desired element, which can be a time-consuming
+    process.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个小小的危险，因为 `document.querySelector` 方法虽然是一个强大的工具，可以根据 CSS 选择器在真实 DOM 中选择元素，但使用该方法可能会存在一个性能问题，特别是在处理大型和复杂文档时。该方法必须从文档顶部开始向下遍历以找到所需的元素，这可能是一个耗时的过程。
+- en: When we call `document.querySelector()` with a CSS selector, the browser has
+    to search the entire document tree for matching elements. This means that the
+    search can be slow, especially if the document is large and has a complex structure.
+    In addition, the browser has to evaluate the selector itself, which can be a complex
+    process, depending on the complexity of the selector.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们使用CSS选择器调用`document.querySelector()`时，浏览器必须搜索整个文档树以找到匹配的元素。这意味着搜索可能会很慢，特别是如果文档很大且结构复杂。此外，浏览器还必须评估选择器本身，这可能是一个复杂的过程，取决于选择器的复杂性。
+- en: In contrast, `document.getElementById` does not require validation like CSS
+    selectors, and has increased specificity since `id` attributes are expected to
+    be unique, so it is generally more efficient.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相比之下，`document.getElementById`不像CSS选择器那样需要验证，并且由于`id`属性预期是唯一的，因此通常更为高效。
+- en: In terms of runtime complexity using Big O notation, `getElementById` is often
+    approximated as (O(1)) in modern browsers, given that they likely employ hashing
+    mechanisms, such as hash tables, for efficient ID→element mapping. While ideal
+    hash table lookups are (O(1)) on average, it’s important to consider that worst-case
+    scenarios, like hash collisions, can lead to longer lookups. Given that browsers
+    don’t really enforce ID uniqueness, these hash collisions can be more than likely.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就运行时间复杂度而言，使用大O符号，`getElementById`在现代浏览器中通常被近似为O(1)，因为它们很可能使用了散列机制，如哈希表，用于高效的ID到元素映射。虽然理想的哈希表查找在平均情况下是O(1)，但重要的是要考虑到最坏情况，如哈希冲突，可能导致更长的查找时间。由于浏览器实际上并不强制ID的唯一性，这些哈希冲突是很可能发生的。
+- en: Nevertheless, with advanced hashing functions and resizing strategies in modern
+    browsers, these cases are rare.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，由于现代浏览器中具有高级的散列函数和调整大小策略，这些情况很少发生。
+- en: Note
+  id: totrans-29
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: For those of us who didn’t go to computer school and maybe don’t understand
+    Big O, it’s a handy tool used by developers to gauge how fast or slow a piece
+    of code will run, especially as the amount of data the code has to work with increases.
+    Essentially, Big O notation gives a high-level understanding of algorithms in
+    terms of both time complexity (how the execution time grows with the size of the
+    input) and space complexity (how the amount of memory used grows with the size
+    of the input). It’s often expressed using terms like (O(1)), (O(n)), (O(n n)),
+    or (O(n²) ), where (n) is the size of the input. So when developers talk about
+    code being “efficient” or “scalable,” they’re often referring to these Big O values,
+    aiming for algorithms with lower time and space complexity to ensure that their
+    software remains performant even as it handles more and more data.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们这些没有上过计算机学校的人，也许不太理解大O符号，这是开发人员用来衡量一段代码运行速度快慢的一个方便工具，特别是当代码要处理的数据量增加时。基本上，大O符号提供了算法的高层次理解，涵盖了时间复杂度（随着输入规模增加而执行时间增长的情况）和空间复杂度（随着输入规模增加而内存使用量增长的情况）。通常用O(1)、O(n)、O(n
+    log n)或O(n²)等术语来表示，其中n是输入的大小。因此，当开发人员谈论代码“高效”或“可扩展”时，他们通常指的就是这些大O值，目标是选择时间和空间复杂度较低的算法，以确保他们的软件在处理越来越多的数据时仍然性能良好。
+- en: Also, since IDs are supposed to be unique, they’re not really well suited to
+    having multiple reusable components on a page. This is where `querySelector` shines,
+    as it can be used to select multiple elements with the same class name, for example.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，由于ID应该是唯一的，它们并不太适合在页面上有多个可重复使用的组件。这就是`querySelector`发挥作用的地方，它可以用于选择具有相同类名的多个元素，例如。
+- en: That said, `querySelector`, which can accept a broad range of CSS selectors,
+    has a variable complexity. In the worst-case scenario, where the method may need
+    to traverse the entire DOM to ensure a match or the absence thereof, its complexity
+    can be (O(n)), where (n) is the number of elements in the DOM. However, the actual
+    runtime can be less than (O(n)) for more specific selectors or if a match is found
+    early in the DOM tree. That said, there’s still the added computational cost of
+    parsing and validating the selectors themselves.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，`querySelector`可以接受广泛的CSS选择器范围，其复杂性是可变的。在最坏的情况下，该方法可能需要遍历整个DOM以确保匹配或不存在匹配项，其复杂度可以是O(n)，其中n是DOM中的元素数量。然而，如果选择器更为具体或者在DOM树中早期找到匹配项，实际运行时间可以低于O(n)。然而，仍然需要额外的计算成本来解析和验证选择器本身。
+- en: It’s worth noting that the performance difference between `document.getElementById`
+    and `document.querySelector` may be negligible in small documents or when searching
+    for elements in specific areas of the document tree. However, in larger and more
+    complex documents, the difference can become more pronounced.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，在小型文档或者在文档树的特定区域搜索元素时，`document.getElementById` 和 `document.querySelector`
+    之间的性能差异可能微乎其微。然而，在更大更复杂的文档中，这种差异可能变得更加明显。
+- en: Some would say that this whole “CPU efficiency” argument is overblown, and that
+    it’s not worth worrying about. While this may or may not be true, no one can question
+    the additional value that React’s virtual DOM provides with being able to componentize
+    logic and avoid worrying about managing state in an environment as volatile as
+    the DOM. We say the DOM is volatile because it is affected by so many things,
+    including user interactions, network requests, client-side scripts, and other
+    events that can cause it to change at any time. React, through the virtual DOM,
+    protects us from this environment using the virtual DOM.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有人会说，整个“CPU效率”论点被夸大了，并且不值得担心。这可能是真的，也可能不是，但没有人可以质疑React虚拟DOM在组件化逻辑和避免在如此易变的DOM环境中管理状态方面所提供的附加价值。我们说DOM易变，是因为它受到许多因素的影响，包括用户交互、网络请求、客户端脚本和其他可能随时更改它的事件。通过虚拟DOM，React保护我们免受这种环境的影响。
+- en: We’re diving deep into these nuanced details because to be truly fluent with
+    React, it’s important to understand the overall complexity of the DOM. Working
+    intelligently with the DOM is no small feat, and with React, we have a choice
+    to either navigate this minefield ourselves and occasionally step on landmines,
+    or to use a tool that helps us navigate the DOM safely using the virtual DOM.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们深入探讨这些微妙的细节，因为要真正精通React，理解DOM的整体复杂性是很重要的。智能地使用DOM并不是一件小事，而使用React，我们可以选择是自己在其中航行并偶尔踩中地雷，还是使用一种工具来安全地使用虚拟DOM来导航DOM。
+- en: While we’ve discussed some small nuances in how we select elements here, we
+    haven’t had an opportunity to dive deeper into the pitfalls of working with the
+    DOM directly. Let’s do this quickly to fully understand the value that React’s
+    virtual DOM provides.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们已经讨论了在这里选择元素的一些细微差别，但我们还没有机会深入探讨直接使用DOM的风险。让我们快速地做一下，以充分理解React虚拟DOM所提供的价值。
+- en: Pitfalls of the Real DOM
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 实际DOM的缺陷
+- en: The real DOM has several pitfalls that can make it difficult to build a high-performance
+    web application. Some of these pitfalls include performance issues, cross-browser
+    compatibility, and security vulnerabilities, where manipulating the DOM directly
+    could present cross-site scripting (XSS) vulnerabilities.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际DOM存在一些缺陷，这些缺陷可能使构建高性能Web应用程序变得困难。其中一些缺陷包括性能问题、跨浏览器兼容性和安全漏洞，直接操作DOM可能会引发跨站脚本（XSS）漏洞。
+- en: Performance
+  id: totrans-39
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 性能
+- en: One of the biggest issues with the real DOM is its performance. Whenever a change
+    is made to the DOM, such as adding or removing an element, or changing the text
+    or attributes of an element, the browser has to recalculate the layout and repaint
+    the affected parts of the page. This can be a slow and resource-intensive process,
+    especially for large and complex web pages.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际DOM的最大问题之一是其性能。每当对DOM进行更改，比如添加或删除元素，或者更改元素的文本或属性时，浏览器都必须重新计算布局并重绘页面的受影响部分。对于大型和复杂的网页，这可能是一个缓慢且资源密集的过程。
+- en: As mentioned earlier, reading a DOM element’s `offsetWidth` property may seem
+    like a simple operation, but it can actually trigger a costly recalculation of
+    the layout by the browser. This is because `offsetWidth` is a computed property
+    that depends on the layout of the element and its ancestors, which means that
+    the browser needs to ensure that the layout information is up-to-date before it
+    can return an accurate value.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如前面提到的，阅读DOM元素的`offsetWidth`属性可能看起来是一个简单的操作，但实际上它可能会触发浏览器进行昂贵的布局重新计算。这是因为`offsetWidth`是一个计算属性，依赖于元素及其祖先的布局，这意味着浏览器需要确保布局信息是最新的，才能返回准确的值。
+- en: In the worst-case scenario, reading an element’s `offsetWidth` property with
+    Big O notation would be estimated as (O(n)). This is because accessing this property
+    can potentially trigger a reflow in the browser, which involves recalculating
+    layout positions for a number of elements on the page. In this context, (n) represents
+    the number of DOM elements affected by the reflow. Even though the direct property
+    access is quick, the associated side effects, like a reflow, can make the operation
+    scale with the number of elements on the page.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在最坏的情况下，用大O符号表示读取元素的`offsetWidth`属性的时间复杂度将被估算为（O(n)）。这是因为访问此属性可能会触发浏览器的重新布局，涉及页面上多个元素的布局位置重新计算。在这个上下文中，（n）代表受重新布局影响的DOM元素数量。尽管直接属性访问很快，但相关的副作用，如重新布局，可能会使操作随着页面上元素数量的增加而扩展。
+- en: 'If you’re looking to avoid the potential reflow triggered by accessing layout
+    properties like `offsetWidth`, we can employ certain techniques to make the operation
+    more performant. Here’s one approach using the `getBoundingClientRect()` method,
+    which can batch layout reads and writes:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想避免像`offsetWidth`这样的布局属性可能引发的重新布局问题，我们可以采用一些技巧来提升操作性能。以下是一种方法，利用`getBoundingClientRect()`方法可以批量进行布局读取和写入操作：
+- en: '[PRE4]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: By using `getBoundingClientRect()`, we retrieve multiple layout properties in
+    a single call, reducing the chances of triggering multiple reflows. Additionally,
+    by batching reading and writing operations separately, we can further minimize
+    *layout thrashing*, which is the repeated and unnecessary recalculations of layout
+    caused by frequent interleaved reading and writing of layout properties (see [Figure 3-1](#figure3-1)).
+    This thrashing can significantly degrade the performance of a web page, leading
+    to a sluggish user experience. By strategically accessing layout properties and
+    batching our operations, we can keep our web interactions smooth and responsive.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用`getBoundingClientRect()`，我们可以在一次调用中检索多个布局属性，从而减少触发多次重新布局的可能性。此外，通过分批次分别读取和写入操作，我们可以进一步减少*布局抖动*，即由于频繁交叉读写布局属性导致的重复和不必要的布局重新计算（见[图 3-1](#figure3-1)）。这种抖动会显著降低网页的性能，导致用户体验迟钝。通过策略性地访问布局属性和批量操作，我们可以保持网页交互的流畅和响应。
+- en: '![layout thrashing](assets/frea_0301.png)'
+  id: totrans-46
+  prefs: []
+  type: TYPE_IMG
+  zh: '![布局抖动](assets/frea_0301.png)'
+- en: Figure 3-1\. Layout thrashing
+  id: totrans-47
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 3-1\. 布局抖动
+- en: However, even `getBoundingClientRect()` can cause a reflow if there are pending
+    layout changes. The key to performance here is to minimize the number of times
+    you force the browser to recalculate layout, and when you do, try to retrieve
+    as much information as you need in one go.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，即使使用`getBoundingClientRect()`也可能在存在待处理的布局更改时引发重新布局。在这里的关键是尽量减少强制浏览器重新计算布局的次数，而且在这样做时，尽量一次性获取尽可能多的信息。
+- en: React handles all of this for us out of the box using the virtual DOM as an
+    intermediate layer between real DOM operations.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用虚拟DOM作为真实DOM操作之间的中间层，从而为我们自动处理所有这些。
+- en: 'Consider the following example, where we have a simple HTML document with a
+    single `div` element:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑以下例子，其中我们有一个包含单个`div`元素的简单HTML文档：
+- en: '[PRE5]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: When we load this document in a browser and open the developer console, we can
+    see that the `offsetWidth` property of the `div` element is logged to the console.
+    However, what we don’t see is the behind-the-scenes work that the browser has
+    to do to compute the value of `offsetWidth`.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在浏览器中加载这个文档并打开开发者控制台时，我们可以看到`div`元素的`offsetWidth`属性被记录在控制台中。然而，我们看不到浏览器在计算`offsetWidth`值时所做的幕后工作。
+- en: To understand this work, we can use the Performance panel in our developer tools
+    to record a timeline of the browser’s activities as it loads and renders the page.
+    When we do that, we can see that the browser is performing several layout and
+    paint operations as it processes the document. In particular, we can see that
+    there are two layout operations that correspond to reading `offsetWidth` in the
+    script.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解这项工作，我们可以使用开发工具中的性能面板记录浏览器加载和渲染页面时的活动时间轴。通过这样做，我们可以看到浏览器在处理文档时执行了几个布局和绘制操作。特别是，我们可以看到有两个布局操作对应于脚本中读取`offsetWidth`的操作。
+- en: Each of these layout operations takes some time to complete (in this case, about
+    2 ms), even though they are just reading the value of a property. This is because
+    the browser needs to ensure that the layout information is up-to-date before it
+    can return an accurate value, which requires it to perform a full layout of the
+    document. Although 2 milliseconds might not seem like a big deal, at scale it
+    adds up.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个布局操作都需要一些时间来完成（在这种情况下大约为2毫秒），即使它们只是读取属性值。这是因为浏览器需要确保布局信息是最新的，然后才能返回准确的值，这需要它执行整个文档的完整布局。尽管2毫秒可能看起来不算什么大不了的事情，但在规模上会累积起来。
+- en: In general, we should be careful when reading layout-dependent properties like
+    `offsetWidth`, because they can cause unexpected performance problems. If we need
+    to read the value of such properties multiple times, we should consider caching
+    the value in a variable to avoid triggering unnecessary layout recalculations.
+    Alternatively, we can use the `requestAnimationFrame` API to defer the reading
+    of the property until the next animation frame, when the browser has already performed
+    the necessary layout calculations.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，当读取像 `offsetWidth` 这样依赖于布局的属性时，我们应该小心，因为它们可能导致意外的性能问题。如果我们需要多次读取这些属性的值，我们应考虑将该值缓存到变量中，以避免触发不必要的布局重新计算。或者，我们可以使用
+    `requestAnimationFrame` API 将属性的读取延迟到下一个动画帧中，此时浏览器已执行了必要的布局计算。
+- en: 'To understand more about accidental performance issues with the real DOM, let’s
+    take a look at some examples. Consider the following HTML document:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解更多关于真实DOM的意外性能问题，请看一些示例。考虑以下HTML文档：
+- en: '[PRE6]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Suppose we want to add a new item to the list using JavaScript. We might write
+    the following code:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设我们要使用JavaScript向列表中添加新项目。我们可能会编写以下代码：
+- en: '[PRE7]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Notice we’re using `getElementById` instead of `querySelector` here because:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意这里我们使用 `getElementById` 而不是 `querySelector`，因为：
+- en: We know the ID
+  id: totrans-61
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们知道ID是什么。
+- en: We know the performance trade-offs
+  id: totrans-62
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们知道性能的权衡。
+- en: Let’s keep going.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们继续。
+- en: This code selects the `ul` element with the ID `"list"`, creates a new `li`
+    element, sets its text content to `"Item 4"`, and appends it to the list. When
+    we run this code, the browser has to recalculate the layout and repaint the affected
+    parts of the page to display the new item.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码选择具有ID `"list"` 的 `ul` 元素，创建一个新的 `li` 元素，将其文本内容设置为 `"Item 4"`，并将其附加到列表中。当我们运行此代码时，浏览器必须重新计算布局并重新绘制页面的受影响部分，以显示新项目。
+- en: 'This process can be slow and resource intensive, especially for larger lists.
+    For example, suppose we have a list with 1,000 items, and we want to add a new
+    item to the end of the list. We might write the following code:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个过程可能会很慢且资源密集，特别是对于更大的列表。例如，假设我们有一个包含1,000个项目的列表，并且我们想在列表的末尾添加一个新项目。我们可能会编写以下代码：
+- en: '[PRE8]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: When we run this code, the browser has to recalculate the layout and repaint
+    the entire list, even though only one item has been added. This can take a significant
+    amount of time and resources, especially on slower devices or with larger lists.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们运行此代码时，浏览器必须重新计算布局并重新绘制整个列表，即使只添加了一个项目。这可能需要大量的时间和资源，特别是在较慢的设备或较大的列表上。
+- en: 'To further illustrate this issue, consider the following example:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进一步说明这个问题，请考虑以下示例：
+- en: '[PRE9]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In this example, we have a list with three items and a button that highlights
+    the second item when clicked. When the button is clicked, the browser has to recalculate
+    the layout and repaint the entire list, even though only one item has changed.
+    This can cause a noticeable delay or flicker in the UI, which can be frustrating
+    for users.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们有一个包含三个项目和一个按钮的列表，当点击按钮时会突出显示第二个项目。当点击按钮时，浏览器必须重新计算布局并重新绘制整个列表，即使只有一个项目发生了变化。这可能导致UI中可见的延迟或闪烁，这对用户来说可能很烦人。
+- en: Overall, the performance issues of the real DOM can be a significant challenge
+    for us, especially when dealing with large and complex web pages. While there
+    are techniques for mitigating these issues, such as optimizing selectors, using
+    event delegation, batching read/write DOM operations, or using CSS animations,
+    they can be complex and difficult to implement.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，真实DOM的性能问题对我们来说可能是一个重大挑战，特别是在处理大型和复杂的网页时。虽然有一些技术可以减轻这些问题，比如优化选择器、使用事件委托、批处理读写DOM操作或使用CSS动画，但它们可能会很复杂且难以实现。
+- en: As a result, many of us have turned to the virtual DOM as a solution to these
+    issues. The virtual DOM allows us to create UIs that are more efficient and performant
+    by abstracting away the complexities of the real DOM and providing a more lightweight
+    way of representing the UI.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们许多人已经将虚拟 DOM 视为解决这些问题的方案。虚拟 DOM 使我们能够通过抽象出真实 DOM 的复杂性并提供更轻量级的 UI 表示方式，创建更高效和性能更好的
+    UI。
+- en: But…is it really necessary to save a few milliseconds? Well, CPU/processing
+    performance is a critical factor that can greatly impact the success of an application.
+    In today’s digital age, where users expect fast and responsive websites, it’s
+    essential for us web developers to prioritize CPU efficiency to ensure that our
+    applications run smoothly and responsively. An excellent article titled [“Milliseconds
+    make millions”](https://oreil.ly/BtXCh) on the Google web develpment blog adds
+    further credibility to these claims.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是… 是否真的有必要为了节省几毫秒？嗯，CPU/处理性能是一个关键因素，可以极大地影响应用程序的成功。在今天数字化的时代，用户期望快速响应的网站，因此我们作为
+    Web 开发者，优化 CPU 效率以确保应用程序平稳、响应迅速是至关重要的。Google Web 开发博客上的一篇优秀文章[“毫秒决定百万”](https://oreil.ly/BtXCh)进一步证明了这些说法的可信度。
+- en: Direct DOM manipulation that triggers layout recalculation (called reflows)
+    and repaints can lead to increased CPU usage and processing times, which can cause
+    delays and even crashes for users. This can be particularly problematic for users
+    on low-powered devices, such as smartphones or tablets, which may have limited
+    processing power and memory. In many parts of the world, users may be accessing
+    our web apps on older or less capable devices, which can further compound the
+    problem.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接 DOM 操作可能触发布局重新计算（称为 reflows）和重绘，从而增加 CPU 使用率和处理时间，这可能导致用户的延迟甚至崩溃。对于处理能力有限的设备（如智能手机或平板电脑）上的用户尤其成问题，这些设备可能具有有限的处理能力和内存。在世界的许多地方，用户可能正在使用较老或较不具备能力的设备访问我们的
+    Web 应用程序，这可能进一步加剧问题。
+- en: By prioritizing CPU efficiency, we can create applications that are accessible
+    to users on a wide range of devices, regardless of their processing power or memory.
+    This can lead to increased engagement, higher conversion rates, and ultimately,
+    a more successful online presence.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过优化 CPU 效率，我们可以创建适用于各种设备用户的应用程序，无论其处理能力或内存如何。这可以提高用户参与度，增加转化率，最终实现更成功的在线存在。
+- en: React’s virtual DOM has enabled building CPU-efficient web applications; using
+    its efficient rendering algorithms can help minimize processing times and improve
+    overall performance.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的虚拟 DOM 已经实现了构建 CPU 效率高的 Web 应用程序；使用其高效的渲染算法有助于减少处理时间并提高整体性能。
+- en: Cross-browser compatibility
+  id: totrans-77
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 跨浏览器兼容性
+- en: Another issue with the real DOM is cross-browser compatibility. Different browsers
+    model documents differently, which can lead to inconsistencies and bugs in web
+    applications. This was far more common when React was released and is far less
+    common now. Still, this can and did make it difficult for developers to create
+    web applications that work seamlessly across different browsers and platforms.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 真实 DOM 的另一个问题是跨浏览器兼容性。不同的浏览器对文档的建模方式不同，这可能导致 Web 应用程序中的不一致性和 bug。React 发布时这种情况更为普遍，现在已经少见。但这确实曾经使开发者难以创建在不同浏览器和平台上无缝运行的
+    Web 应用程序。
+- en: One of the primary issues with cross-browser compatibility is that certain DOM
+    elements and attributes may not be supported by all browsers. As a result, we
+    had to spend additional time and effort implementing workarounds and fallbacks
+    to ensure that applications function correctly on all target platforms.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 跨浏览器兼容性的主要问题之一是，并非所有浏览器都支持特定的 DOM 元素和属性。因此，我们不得不花费额外的时间和精力实现解决方案和回退机制，以确保应用程序在所有目标平台上正确运行。
+- en: 'This is exactly what React solves using its synthetic event system. `SyntheticEvent`
+    is a wrapper around browsers’ native events, designed to ensure consistency across
+    different browsers. It addresses inconsistencies between browsers using the following
+    mechanisms:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这正是 React 使用其合成事件系统解决的问题。`SyntheticEvent` 是对浏览器原生事件的包装，旨在确保在不同浏览器中的一致性。它通过以下机制解决浏览器之间的不一致性：
+- en: Unified interface
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 统一的界面
+- en: 'In raw JavaScript, handling browser events can be tricky due to inconsistencies.
+    For instance, accessing event properties might differ across browsers. Some might
+    use `event.target`, while others use `event.srcElement`. `SyntheticEvent` abstracts
+    these differences, providing a consistent way to interact with events and ensuring
+    that developers don’t have to write browser-specific code:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在原始的 JavaScript 中，由于不一致性，处理浏览器事件可能会很棘手。例如，访问事件属性可能因浏览器而异。有些浏览器可能使用 `event.target`，而其他浏览器则使用
+    `event.srcElement`。`SyntheticEvent` 抽象了这些差异，提供了一种一致的交互方式，确保开发者无需编写特定于浏览器的代码：
+- en: '[PRE10]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: By wrapping native events into the `SyntheticEvent` system, React shields developers
+    from many of the inconsistencies and quirks of the native browser event systems.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过将原生事件包装到 `SyntheticEvent` 系统中，React 保护开发者免受原生浏览器事件系统的许多不一致性和怪癖的困扰。
+- en: Event delegation
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件委托
+- en: Instead of attaching event listeners directly to elements, React listens for
+    events at the root level. This approach sidesteps issues where some events might
+    not be available on certain elements in older browsers.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 并不直接将事件侦听器附加到元素上，而是在根级别监听事件。这种方法避开了在旧版本浏览器中某些元素可能不支持某些事件的问题。
+- en: Cross-functional enhancements
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 跨功能增强
+- en: 'One of the areas where native browser events exhibit inconsistencies is in
+    how they handle certain events across different input elements. A notable example
+    is the `onChange` event:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 原生浏览器事件表现出不一致性的一个领域是它们如何在不同输入元素上处理某些事件。一个显著的例子是 `onChange` 事件：
+- en: 'In raw JavaScript, the behavior of the `onChange` event differs between input
+    types:'
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在原始的 JavaScript 中，`onChange` 事件的行为在输入类型之间有所不同：
+- en: For `<input type="text">`, the `onChange` event in some browsers might trigger
+    only after the input loses focus, rather than immediately upon value change.
+  id: totrans-90
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于 `<input type="text">` 元素，在某些浏览器中，`onChange` 事件可能仅在输入框失去焦点后触发，而不是在值更改时立即触发。
+- en: For `<select>`, it might trigger whenever an option is selected, even if it’s
+    the same as the previous one.
+  id: totrans-91
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于 `<select>` 元素，每当选择选项时可能会触发事件，即使选项与先前的选项相同。
+- en: In other cases, especially in older browsers, the `onChange` event might not
+    trigger reliably for all user interactions on certain form elements.
+  id: totrans-92
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在其他情况下，特别是在旧版浏览器中，某些表单元素的 `onChange` 事件可能无法可靠触发所有用户交互。
+- en: 'React’s `SyntheticEvent` system normalizes the behavior of the `onChange` event
+    across these input elements. In React:'
+  id: totrans-93
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: React 的 `SyntheticEvent` 系统规范了这些输入元素上 `onChange` 事件的行为。在 React 中：
+- en: The `onChange` event for a text input (`<input type="text">`) consistently fires
+    with every keystroke, giving real-time feedback.
+  id: totrans-94
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 文本输入框 (`<input type="text">`) 的 `onChange` 事件在每次击键时都会触发，提供实时反馈。
+- en: For `<select>`, it reliably triggers whenever a new option is chosen.
+  id: totrans-95
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于 `<select>` 元素，每当选择新选项时，它可靠地触发。
+- en: React ensures that `onChange` provides a consistent experience across other
+    form elements as well.
+  id: totrans-96
+  prefs:
+  - PREF_IND
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: React 确保 `onChange` 事件在其他表单元素上也提供一致的体验。
+- en: By doing so, React frees developers from dealing with these native inconsistencies,
+    allowing them to focus on their application logic without worrying about browser-specific
+    quirks.
+  id: totrans-97
+  prefs:
+  - PREF_IND
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 通过这种方式，React 使开发者摆脱了处理这些原生不一致性的困扰，让他们可以专注于应用逻辑，而不必担心特定于浏览器的怪癖。
+- en: Access to native events
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 访问原生事件
+- en: If developers need the original browser event, it’s available via `event.native​Event`,
+    ensuring flexibility without sacrificing the benefits of the abstraction.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果开发者需要原始的浏览器事件，则可以通过 `event.nativeEvent` 获得，确保灵活性而不牺牲抽象化的好处。
+- en: In essence, `SyntheticEvent` offers a stable event system, ironing out the quirks
+    and differences of native browser events. This is just one specific way that React
+    uses its virtual DOM to provide conveniences to UI development.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总之，`SyntheticEvent` 提供了一个稳定的事件系统，消除了原生浏览器事件的怪异和差异。这只是 React 利用其虚拟 DOM 提供便利的一个具体方式。
+- en: So far, we’ve been discussing how working with the DOM directly can cause performance
+    issues and cross-browser compatibility problems. Let’s now explore a way to natively
+    get around these issues in a more performant manner using document fragments,
+    which can be considered something of a native precursor to understanding React’s
+    virtual DOM.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们一直在讨论直接操作 DOM 可能导致性能问题和跨浏览器兼容性问题。现在让我们探讨一种更高效的本地方法来处理这些问题，即使用文档片段，这可以被认为是理解
+    React 虚拟 DOM 的一种本地前提。
+- en: Document Fragments
+  id: totrans-102
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 文档片段
+- en: As we’ve seen, direct manipulation of the DOM can be performance intensive,
+    especially when multiple changes are involved. Every time the DOM is updated,
+    the browser may need to perform layout recalculations, repaint the UI, and update
+    the view, which can slow down the application. This is where document fragments
+    come into play.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如我们所见，直接操作 DOM 可能会消耗大量性能，特别是涉及多个变更时。每次更新 DOM，浏览器可能需要进行布局重新计算、UI 重绘和视图更新，这可能会减慢应用程序的运行速度。这就是文档片段发挥作用的地方。
+- en: A *document fragment* is a lightweight container that holds DOM nodes. It acts
+    like a temporary staging area where you can make multiple changes without affecting
+    the main DOM. Once you’re done, you can append the document fragment to the DOM,
+    triggering a single reflow and repaint. Document fragments are very close to React’s
+    virtual DOM in this way.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*文档片段* 是一个轻量级容器，用于保存 DOM 节点。它的作用类似于一个临时的暂存区，你可以在其中进行多个更改，而不影响主 DOM。完成后，可以将文档片段附加到
+    DOM 中，触发一次回流和重绘。在这一点上，文档片段与 React 的虚拟 DOM 非常相似。'
+- en: 'Because document fragments are lightweight containers that allow us to batch
+    updates, they present a number of performance benefits:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为文档片段是轻量级容器，允许我们批量更新，所以它们带来了多种性能优势：
+- en: Batched updates
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 批量更新
+- en: Instead of making multiple individual updates to the live DOM, you can batch
+    all your changes in a document fragment. This means only one reflow and repaint
+    occurs, regardless of how many elements or changes you’ve made inside the fragment.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是对实时 DOM 进行多次单独的更新，你可以将所有更改批量处理在文档片段中。这意味着只进行一次回流和重绘，而不管在片段内部做了多少元素或更改。
+- en: Memory efficiency
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内存效率
+- en: When nodes are added to a document fragment, they’re removed from their current
+    parent in the DOM. This can help in optimizing memory usage, especially when reordering
+    large sections of a document.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当节点添加到文档片段时，它们会从 DOM 中当前的父节点中移除。这有助于优化内存使用，特别是在重新排序大型文档部分时。
+- en: No redundant rendering
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 没有冗余的渲染
+- en: Since the document fragment is not part of the active document tree, changes
+    to it don’t affect the live document, and styles and scripts aren’t applied until
+    the fragment is appended to the actual DOM. This avoids redundant style recalculations
+    and script executions.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于文档片段不是活动文档树的一部分，对其进行的更改不会影响实时文档，并且样式和脚本直到片段附加到实际 DOM 之后才会应用。这避免了冗余的样式重新计算和脚本执行。
+- en: 'Consider a scenario where you need to add multiple list items to a list:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个场景，你需要向列表中添加多个列表项：
+- en: '[PRE11]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: In this example, the 100 list items are first appended to the document fragment.
+    Only when all items are added does the fragment get appended to the main list.
+    This results in a single update to the live DOM instead of 100 separate updates.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，首先将 100 个列表项附加到文档片段中。只有在所有项目都添加完毕后，片段才会附加到主列表中。这样就只需一次更新实时 DOM，而不是 100
+    次单独的更新。
+- en: In this way, document fragments offer a way to efficiently manipulate the DOM
+    by batching multiple changes together, thus reducing the number of costly reflows
+    and repaints. For developers aiming for optimal performance in their web applications,
+    leveraging document fragments can lead to smoother interactions and faster render
+    times.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式，文档片段提供了一种有效地批量处理多个更改来操作 DOM 的方式，从而减少昂贵的回流和重绘次数。对于希望在其 Web 应用程序中实现最佳性能的开发人员来说，利用文档片段可以实现更流畅的交互和更快的渲染时间。
+- en: 'React’s virtual DOM can be likened to an advanced implementation of the document
+    fragment concept. Here’s a brief connection:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的虚拟 DOM 可以被类比为文档片段概念的高级实现。以下是一个简短的联系：
+- en: Batched updates
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 批量更新
+- en: Similar to document fragments, React’s virtual DOM batches multiple changes
+    together. Instead of directly altering the live DOM on every state or prop change,
+    React compiles these changes in the virtual DOM first.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于文档片段，React 的虚拟 DOM 将多个变更批量处理在一起。不是在每次状态或属性变化时直接修改实时 DOM，而是先在虚拟 DOM 中编译这些变更。
+- en: Efficient diffs
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 高效的差异比较
+- en: React then determines the differences (or “diffs”) between the current virtual
+    DOM and the real DOM. This diffing process ensures that only the necessary changes
+    are made to the real DOM, analogous to how document fragments reduce direct DOM
+    manipulations.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，React 确定当前虚拟 DOM 与实际 DOM 之间的差异（或“差异”）。这个差异过程确保只对实际 DOM 进行必要的更改，类似于文档片段如何减少直接的
+    DOM 操作。
+- en: Single render
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单一渲染
+- en: Once the diffs are identified, React updates the actual DOM in a single batch,
+    much like appending a fully populated document fragment. This minimizes costly
+    reflows and repaints.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦识别出差异，React 就会在单个批处理中更新实际 DOM，类似于附加完整填充的文档片段。这最小化了昂贵的回流和重绘。
+- en: In essence, while document fragments offer a way to group and optimize a set
+    of changes before updating the live DOM, React’s virtual DOM takes this a step
+    further by intelligently diffing and batching updates across the entire application’s
+    UI, ensuring maximal efficiency in rendering. Moreover, React turns all of this
+    document fragment stuff into an implementation detail that we as everyday developers
+    need not concern ourselves with, enabling us to build our products with more focus.
+    With that, let’s look at how the virtual DOM works in detail.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本质上，尽管文档片段提供了在更新实时 DOM 之前对一组更改进行分组和优化的方法，但 React 的虚拟 DOM 更进一步，通过智能差异化和批量更新整个应用程序的
+    UI，确保渲染的最大效率。此外，React 将所有这些文档片段的内容转化为我们作为日常开发人员无需关注的实现细节，使我们能够更专注地构建我们的产品。接下来，让我们详细了解虚拟
+    DOM 的工作原理。
+- en: How the Virtual DOM Works
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 的工作原理
+- en: The virtual DOM is a technique that helps to mitigate the pitfalls of the real
+    DOM. By creating a virtual representation of the DOM in memory, changes can be
+    made to the virtual representation without directly modifying the real DOM, similar
+    to document fragments. This allows the framework or library to update the real
+    DOM in a more efficient and performant way, without causing the browser to do
+    any work in recomputing the layout of the page and repainting the elements.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 是一种技术，有助于减轻真实 DOM 的缺陷。通过在内存中创建 DOM 的虚拟表示，可以对虚拟表示进行更改，而无需直接修改真实 DOM，类似于文档片段。这使得框架或库能够以更高效和更具性能的方式更新真实
+    DOM，而不会导致浏览器重新计算页面布局和重绘元素。
+- en: The virtual DOM also helps to improve the authoring experience of elements and
+    their updates by providing a consistent API that abstracts away the differences
+    between different browser implementations of the real DOM. For example, if `document.appendChild`
+    is different in another runtime, it doesn’t matter when using JSX and the virtual
+    DOM. This makes it easier for developers to create web applications that work
+    seamlessly across different browsers and platforms.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 还通过提供一个一致的 API 来抽象不同浏览器实现之间的真实 DOM 差异，从而帮助改进元素和其更新的编写体验。例如，如果在另一个运行时中
+    `document.appendChild` 不同，那么在使用 JSX 和虚拟 DOM 时就不重要。这使得开发人员能够更轻松地创建能够在不同浏览器和平台上无缝运行的
+    Web 应用程序。
+- en: React uses the virtual DOM to build user interfaces. In this section, we will
+    explore how React’s implementation of the virtual DOM works.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用虚拟 DOM 来构建用户界面。在本节中，我们将探讨 React 虚拟 DOM 的实现原理。
+- en: React Elements
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: React 元素
+- en: In React, user interfaces are represented as a tree of *React elements*, which
+    are lightweight representations of a component or HTML element. They are created
+    using the `React.createElement` function and can be nested to create complex user
+    interfaces.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 中，用户界面被表示为 *React 元素* 的树，这些元素是组件或 HTML 元素的轻量级表示。它们是使用 `React.createElement`
+    函数创建的，可以嵌套以创建复杂的用户界面。
+- en: 'Here is an example of a React element:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是一个 React 元素的示例：
+- en: '[PRE12]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This creates a React element that represents a `<div>` element with a `className`
+    of `my-class` and the text content `Hello, world!`.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这创建了一个表示具有 `className` 为 `my-class` 和文本内容 `Hello, world!` 的 `<div>` 元素的 React
+    元素。
+- en: 'From here, we can see the actual created element if we use `console.log(element)`.
+    It looks like this:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里，我们可以看到如果使用 `console.log(element)`，实际创建的元素是这样的：
+- en: '[PRE13]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This is a representation of a React element. React elements are the smallest
+    building blocks of a React application, and they describe what should appear on
+    the screen. Each element is a plain JavaScript object that describes the component
+    it represents, along with any relevant props or attributes.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 React 元素的一种表示。React 元素是 React 应用程序的最小构建块，它描述了应该出现在屏幕上的内容。每个元素是一个简单的 JavaScript
+    对象，描述了它所表示的组件，以及任何相关的 props 或属性。
+- en: 'The React element shown in the code block is represented as an object with
+    several properties:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码块中显示的 React 元素表示为具有多个属性的对象：
+- en: '`$$typeof`'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`$$typeof`'
+- en: 'This is a symbol used by React to ensure that an object is a valid React element.
+    In this case, it is `Symbol(react.element)`. `$$typeof` can have other values,
+    depending on the type of the element:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 React 使用的一个符号，用来确保一个对象是有效的 React 元素。在这种情况下，它是 `Symbol(react.element)`。`$$typeof`
+    可以有其他值，取决于元素的类型：
+- en: '`Symbol(react.fragment)`'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Symbol(react.fragment)`'
+- en: When the element represents a React fragment.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素表示React片段时。
+- en: '`Symbol(react.portal)`'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Symbol(react.portal)`'
+- en: When the element represents a React portal.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素表示React门户时。
+- en: '`Symbol(react.profiler)`'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Symbol(react.profiler)`'
+- en: When the element represents a React profiler.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素表示React性能分析器时。
+- en: '`Symbol(react.provider)`'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Symbol(react.provider)`'
+- en: When the element represents a React context provider.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当元素表示React上下文提供程序时。
+- en: In general, `$$typeof` serves as a type marker that identifies the type of the
+    React element. We’ll cover more of these in more detail later in the book.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，`$$typeof`用作类型标记，标识React元素的类型。我们将在本书的后续部分详细讨论这些内容。
+- en: '`type`'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`'
+- en: This property represents the type of the component that the element represents.
+    In this case, it is `"div"`, indicating that this is a `<div>` DOM element, called
+    a “host component.” The `type` property of a React element can be either a string
+    or a function (or a class, but we don’t talk about that because it’s being phased
+    out). If it is a string, it represents the HTML tag name, like `"div"`, `"span"`,
+    `"button"`, etc. When it is a function, it represents a custom React component,
+    which is essentially just a JavaScript function that returns JSX.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性表示元素表示的组件类型。在本例中，它是`"div"`，表示这是一个`<div>`DOM元素，称为“主机组件”。React元素的`type`属性可以是字符串或函数（或类，但我们不讨论它，因为它正在被逐步淘汰）。如果是字符串，则表示HTML标签名称，如`"div"`，`"span"`，`"button"`等。当它是一个函数时，它表示一个自定义React组件，实质上只是一个返回JSX的JavaScript函数。
+- en: 'Here is an example of an element with a custom component type:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个具有自定义组件类型的元素的示例：
+- en: '[PRE14]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'In this case, the type property of `myElement` is `MyComponent`, which is a
+    function that defines a custom component. The value of `myElement` as a React
+    element object would be:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，`myElement`的`type`属性为`MyComponent`，这是一个定义自定义组件的函数。作为React元素对象，`myElement`的值将是：
+- en: '[PRE15]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Note that type is set to the `MyComponent` function, which is the type of the
+    component that the element represents, and `props` contains the props passed to
+    the component, in this case `{ text: "Hello, world!" }`.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '注意，类型设置为`MyComponent`函数，该函数是元素表示的组件类型，而`props`包含传递给组件的属性，在本例中为`{ text: "Hello,
+    world!" }`。'
+- en: 'When React encounters an element with a function type, it will invoke that
+    function with the element’s `props`, and the return value will be used as the
+    element’s `children`, in this case, a `div`. This is how custom React components
+    are rendered: React continually goes deeper and deeper and deeper with elements
+    until scalar values are reached, which are then rendered as text nodes, or if
+    `null` or `undefined` is reached, nothing is rendered.'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当React遇到具有函数类型的元素时，它将使用该函数调用元素的`props`，并将返回值用作元素的`children`，在本例中是一个`div`。这就是如何渲染自定义React组件的方式：React会不断地深入遍历元素，直到达到标量值，然后将它们呈现为文本节点，或者如果达到`null`或`undefined`，则不会呈现任何内容。
+- en: 'Here is an example of an element with a string type:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个具有字符串类型的元素的示例：
+- en: '[PRE16]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: In this case, the type property of `myElement` is `"div"`, which is a string
+    that represents an HTML tag name. When React encounters an element with a string
+    type, it will create a corresponding HTML element with that tag name and render
+    its children within that element.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，`myElement`的`type`属性为`"div"`，这是一个表示HTML标签名的字符串。当React遇到具有字符串类型的元素时，它将创建一个相应的HTML元素，并在该元素内部呈现其子元素。
+- en: '`ref`'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ref`'
+- en: This property lets the parent component request a reference to the underlying
+    DOM node. It is generally used in cases where direct manipulation of the DOM is
+    necessary. In this case, the `ref` is `null`.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性允许父组件请求对底层DOM节点的引用。通常在需要直接操作DOM的情况下使用。在本例中，`ref`为`null`。
+- en: '`props`'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`props`'
+- en: 'This property is an object that contains all of the attributes and props that
+    were passed to the component. In this case, it has two properties: `className`
+    and `children`. `className` specifies the class name of the element, and `children`
+    contains the content of the element.'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性是一个对象，包含传递给组件的所有属性和props。在本例中，它有两个属性：`className`指定元素的类名，`children`包含元素的内容。
+- en: '`_owner`'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`_owner`'
+- en: This property, only accessible in nonproduction builds of React, is used internally
+    by React to track the component that created this element. This information is
+    used to determine which component should be responsible for updating the element
+    when its props or state change.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性仅在 React 的非生产版本中可访问，它用于内部跟踪创建此元素的组件。这些信息用于确定在其 props 或状态更改时应由哪个组件负责更新元素。
+- en: 'Here is an example that demonstrates how the `_owner` property is used:'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个示例，演示了 `_owner` 属性的使用方式：
+- en: '[PRE17]'
+  id: totrans-166
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: In this example, the `Child` component creates a React element representing
+    a `<div>` element with the text `"Hello, world!"`. The `_owner` property of this
+    element is set to the `Parent` component, which is the component that created
+    the `Child` component.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`Child` 组件创建一个表示 `<div>` 元素的 React 元素，并带有文本 `"Hello, world!"`。此元素的 `_owner`
+    属性设置为创建 `Child` 组件的 `Parent` 组件。
+- en: React uses this information to determine which component should be responsible
+    for updating the element when its props or state change. In this case, if the
+    `Parent` component updates its state or receives new props, React will update
+    the `Child` component and its associated element.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 使用这些信息来确定在其 props 或状态更改时应由哪个组件负责更新元素。在这种情况下，如果 `Parent` 组件更新其状态或接收新的 props，则
+    React 将更新 `Child` 组件及其关联的元素。
+- en: It’s important to note that the `_owner` property is an internal implementation
+    detail of React and should not be relied upon in application code.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意 `_owner` 属性是 React 的内部实现细节，不应依赖于应用程序代码。
+- en: '`_store`'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`_store`'
+- en: The `_store` property of a React element object is an object that is used internally
+    by React to store additional data about the element. The specific properties and
+    values stored in `_store` are not part of the public API and should not be accessed
+    directly.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 元素对象的 `_store` 属性是一个对象，由 React 内部使用，用于存储有关元素的额外数据。存储在 `_store` 中的具体属性和值不是公共
+    API 的一部分，不应直接访问。
+- en: 'Here’s an example of what the `_store` property might look like:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是 `_store` 属性可能的一个示例：
+- en: '[PRE18]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: As you can see, `_store` includes various properties such as `validation`, `key`,
+    `originalProps`, `props`, `_self`, `_source`, `_owner`, `_isStatic`, and `_warned​Abou⁠tRefsInRender`.
+    These properties are used by React internally to track various aspects of the
+    element’s state and context.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您所见，`_store` 包括各种属性，如 `validation`、`key`、`originalProps`、`props`、`_self`、`_source`、`_owner`、`_isStatic`
+    和 `_warnedAboutRefsInRender`。这些属性由 React 内部使用，用于跟踪元素状态和上下文的各个方面。
+- en: For example, `_source` in development mode is used to track the filename and
+    line number where the element was created, which can be helpful for debugging.
+    `_owner` is used to track the component that created the element, as discussed
+    earlier. And `props` and `originalProps` are used to store the props passed to
+    the component.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，在开发模式下，`_source` 用于跟踪创建元素的文件名和行号，这对于调试非常有帮助。`_owner` 用于跟踪创建元素的组件，如前所述。`props`
+    和 `originalProps` 用于存储传递给组件的 props。
+- en: Again, it’s important to note that `_store` is an internal implementation detail
+    of React and should not be accessed directly in application code, and for this
+    exact reason, we will refrain from going deeper here.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次强调，需要注意 `_store` 是 React 的内部实现细节，不应在应用程序代码中直接访问，因此我们在这里不会深入讨论。
+- en: Virtual DOM Versus Real DOM
+  id: totrans-177
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 与真实 DOM
+- en: The `React.createElement` function and the DOM’s built-in `createElement` method
+    are similar in that they both create new elements; however, `React.createElement`
+    creates React elements and `document.createElement` creates DOM nodes. They’re
+    vastly different in their implementation, but conceptually they’re similar.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.createElement` 函数和 DOM 的内置 `createElement` 方法类似，它们都创建新元素；但是，`React.createElement`
+    创建 React 元素，而 `document.createElement` 创建 DOM 节点。它们在实现上有很大差异，但在概念上是相似的。'
+- en: '`React.createElement` is a function provided by React that creates a new virtual
+    element in memory, whereas `document.createElement` is a method provided by the
+    DOM API that creates a new element also in memory until it is attached to the
+    DOM with APIs like `document.appendChild` or similar. Both functions take a tag
+    name as their first argument, while `React.createElement` takes additional arguments
+    to specify props and children.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`React.createElement` 是 React 提供的一个函数，用于在内存中创建新的虚拟元素，而 `document.createElement`
+    是 DOM API 提供的一个方法，也是在内存中创建新元素，直到使用诸如 `document.appendChild` 或类似的 API 将其附加到 DOM
+    中。这两个函数的第一个参数都是标签名，而 `React.createElement` 还接受额外的参数来指定 props 和子元素。'
+- en: 'For example, let’s compare how we’d create a `<div>` element using both methods:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们比较如何使用两种方法创建 `<div>` 元素：
+- en: '[PRE19]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'The virtual DOM in React is similar in concept to the real DOM in that both
+    represent a tree-like structure of elements. When a React component is rendered,
+    React creates a new virtual DOM tree, compares it to the previous virtual DOM
+    tree, and calculates the minimum number of changes needed to update the old tree
+    to match the new. This is known as the *reconciliation process*. Here’s an example
+    of how this might work in a React component:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 中的虚拟 DOM 与真实 DOM 在概念上类似，两者都表示元素的树状结构。当渲染 React 组件时，React 创建一个新的虚拟 DOM
+    树，将其与先前的虚拟 DOM 树进行比较，并计算更新旧树以匹配新树所需的最小变更。这称为 *协调过程*。以下是 React 组件中如何工作的示例：
+- en: '[PRE20]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'For clarity, this component can also be expressed like so:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了清晰起见，此组件也可以这样表达：
+- en: '[PRE21]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: In the `createElement` calls, the first argument is the name of the HTML tag
+    or React component, the second argument is an object of properties (or `null`
+    if no properties are needed), and any additional arguments represent child elements.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `createElement` 调用中，第一个参数是 HTML 标签或 React 组件的名称，第二个参数是属性对象（如果不需要属性，则为 `null`），任何额外的参数表示子元素。
+- en: 'When the component is first rendered, React creates a virtual DOM tree like
+    so:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当首次渲染组件时，React 创建一个类似于以下的虚拟 DOM 树：
+- en: '[PRE22]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'When the button is clicked, React creates a new virtual DOM tree that looks
+    like this:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当按钮被点击时，React 创建一个新的虚拟 DOM 树，看起来像这样：
+- en: '[PRE23]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: React then calculates that only the text content of the `h1` element needs to
+    be updated, and updates only that part of the real DOM.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 然后计算出只有 `h1` 元素的文本内容需要更新，并且只更新真实 DOM 中的这部分。
+- en: The use of a virtual DOM in React allows for efficient updates to the real DOM,
+    as well as allowing React to work seamlessly with other libraries that also manipulate
+    the DOM directly.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 中使用虚拟 DOM 允许对真实 DOM 进行高效的更新，同时使 React 能够与其他直接操作 DOM 的库无缝协作。
+- en: Efficient Updates
+  id: totrans-193
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 高效更新
+- en: When a React component’s state or props change, React creates a new tree of
+    React elements that represents the updated user interface. This new tree is then
+    compared to the previous tree to determine the minimal set of changes required
+    to update the real DOM using a diffing algorithm.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 React 组件的状态或属性发生变化时，React 创建一个新的 React 元素树，表示更新后的用户界面。然后将此新树与之前的树进行比较，以确定更新真实
+    DOM 所需的最小变更集，使用差分算法。
+- en: This algorithm compares the new tree of React elements with the previous tree
+    and identifies the differences between the two. It is a recursive comparison.
+    If a node has changed, React updates the corresponding node in the real DOM. If
+    a node has been added or removed, React adds or removes the corresponding node
+    in the real DOM.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此算法将新的 React 元素树与之前的树进行比较，并识别两者之间的差异。这是一个递归比较。如果节点已更改，React 将更新真实 DOM 中对应的节点。如果节点已添加或删除，React
+    将在真实 DOM 中添加或删除相应的节点。
+- en: Diffing involves comparing the new tree with the old one node by node to find
+    out which parts of the tree have changed.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Diffing 涉及逐个比较新旧树以找出哪些部分发生了变化。
+- en: 'React’s diffing algorithm is highly optimized and aims to minimize the number
+    of changes that need to be made to the real DOM. The algorithm works as follows:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的差分算法经过高度优化，旨在最小化需要对真实 DOM 进行的更改数量。算法工作如下：
+- en: If the nodes at the root level of the two trees are different, React will replace
+    the entire tree with the new one.
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果两个树的根级节点不同，React 将用新树替换整个树。
+- en: If the nodes at the root level are the same, React will update the attributes
+    of the node if they have changed.
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果根级节点相同，且节点的属性已更改，React 将更新节点的属性。
+- en: If the children of a node are different, React will update only the children
+    that have changed. React does not re-create the entire subtree; it only updates
+    the nodes that have changed.
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果节点的子节点不同，React 将只更新已更改的子节点。React 不会重新创建整个子树，只会更新已更改的节点。
+- en: If the children of a node are the same, but their order has changed, React will
+    reorder the nodes in the real DOM without actually re-creating them.
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果节点的子节点相同，但其顺序已更改，React 将重新排序真实 DOM 中的节点，而不实际重新创建它们。
+- en: If a node is removed from the tree, React will remove it from the real DOM.
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果从树中移除了节点，React 将从真实 DOM 中移除它。
+- en: If a new node has been added to the tree, React will add it to the real DOM.
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果树中添加了新节点，React 将其添加到真实 DOM 中。
+- en: If a node’s type has changed (e.g., from a `div` to a `span`), React will remove
+    the old node and create a new node of the new type.
+  id: totrans-204
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果节点类型已更改（例如，从 `div` 更改为 `span`），React 将删除旧节点并创建新类型的新节点。
+- en: If the node has a `key` prop, React uses it to know if it should replace the
+    node or not. It can be useful when you need to reset the state of the components.
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果节点具有 `key` 属性，React 将使用它来确定是否应替换节点。当您需要重置组件的状态时，这将非常有用。
+- en: React’s diffing algorithm is efficient and allows React to update the real DOM
+    quickly and with minimal changes. This helps to improve the performance of React
+    applications and makes it easier to build complex, dynamic user interfaces.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 的差异算法是高效的，允许 React 快速更新真实 DOM 并进行最小的更改。这有助于提高 React 应用程序的性能，并使构建复杂动态用户界面变得更加容易。
+- en: Unnecessary rerenders
+  id: totrans-207
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 不必要的重新渲染
+- en: 'While React’s diffing algorithm indeed plays a crucial role in efficiently
+    updating the real DOM by minimizing the changes needed, there’s a common challenge
+    that developers may encounter: unnecessary rerenders.'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 React 的差异算法确实在有效地通过最小化所需的更改来更新真实 DOM 中扮演了关键角色，但开发者可能会遇到一个常见挑战：不必要的重新渲染。
+- en: 'This is the way React works by design: when a component’s state changes, React
+    rerenders the component and all of its descendants. By rerendering, we mean that
+    React calls each function component recursively, passing each function component
+    its props as an argument. React does not skip components whose props have not
+    changed, but calls all function components that are children of a parent whose
+    state or props change. This is because React doesn’t know which components depend
+    on the state of the component that changed, so it has to rerender all of them
+    to ensure that the UI stays consistent.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是 React 的设计方式：当组件的状态更改时，React 重新渲染组件及其所有后代。重新渲染意味着 React 递归调用每个函数组件，将其 props
+    作为参数传递给每个函数组件。React 不会跳过其 props 没有更改的组件，而是调用所有因为父组件的状态或 props 改变而变化的子组件。这是因为 React
+    不知道依赖于更改的组件的状态的哪些组件，因此必须重新渲染它们以确保 UI 保持一致。
+- en: 'This can present some significant performance challenges, especially when dealing
+    with large and complex user interfaces. For example, `ChildComponent` in the following
+    snippet will rerender every time the `ParentComponent`’s state changes, even if
+    the props passed to `ChildComponent` do not:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能会带来一些显著的性能挑战，特别是在处理大型和复杂的用户界面时。例如，在下面的片段中，`ChildComponent` 每次 `ParentComponent`
+    的状态更改时都会重新渲染，即使传递给 `ChildComponent` 的 props 没有变化：
+- en: '[PRE24]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'In this example:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中：
+- en: '`ParentComponent` has a state variable `count` that is incremented every time
+    the button is clicked.'
+  id: totrans-213
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`ParentComponent` 具有一个状态变量 `count`，每次单击按钮时增加。'
+- en: '`ChildComponent` receives a static prop called `message`. Since this prop doesn’t
+    change, ideally, we wouldn’t want `ChildComponent` to rerender every time `Parent​Component`’s
+    state changes.'
+  id: totrans-214
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`ChildComponent` 接收一个名为 `message` 的静态 prop。由于此 prop 不会更改，理想情况下，我们不希望 `ChildComponent`
+    每次 `ParentComponent` 的状态更改时都重新渲染。'
+- en: However, due to React’s default behavior, `ChildComponent` will rerender every
+    time the `ParentComponent` rerenders, which happens on every state change.
+  id: totrans-215
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 然而，由于 React 的默认行为，`ChildComponent` 在每次 `ParentComponent` 重新渲染时也会重新渲染，而这种情况在每次状态更改时都会发生。
+- en: This is inefficient because `ChildComponent` does not depend on the `count`
+    state from `ParentComponent`.
+  id: totrans-216
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 这是低效的，因为 `ChildComponent` 并不依赖于 `ParentComponent` 的 `count` 状态。
+- en: 'Since `ChildComponent`’s props and state haven’t changed, the render was pointless:
+    it presumably returned the same result as last time, so this was wasted effort.'
+  id: totrans-217
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 由于 `ChildComponent` 的 props 和 state 没有变化，渲染是无意义的：它可能返回了与上次相同的结果，因此这是多余的努力。
+- en: This is the problem that we often need to optimize, especially in larger applications
+    where many components might be rerendering unnecessarily, leading to potential
+    performance issues. Addressing this issue requires a thoughtful approach to managing
+    component rerenders, ensuring that changes in state or props at a higher level
+    in the component hierarchy do not result in widespread, unnecessary rerenders
+    among descendant components. Through mindful structuring of components and judicious
+    use of React’s optimization features like `memo` and `useMemo`, developers can
+    better manage rerenders and maintain high performance in their applications.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们经常需要优化的问题，特别是在较大的应用程序中，许多组件可能会不必要地重新渲染，从而可能导致性能问题。解决这个问题需要思考如何管理组件重新渲染，确保在组件层次结构的更高级别的状态或属性变化不会导致后代组件普遍而不必要的重新渲染。通过合理构建组件和使用React的优化功能如`memo`和`useMemo`，开发人员可以更好地管理重新渲染，并保持应用程序的高性能。
+- en: We cover this in more detail in [Chapter 5](ch05.html#ch05).
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在[第五章](ch05.html#ch05)中更详细地讨论这一点。
+- en: Chapter Review
+  id: totrans-220
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 章节复习
+- en: Throughout this chapter, we have explored the differences between the real DOM
+    and the virtual DOM in web development, as well as the advantages of using the
+    latter in React.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章中，我们探讨了在Web开发中真实DOM与虚拟DOM的差异，以及在React中使用后者的优势。
+- en: We first talked about the real DOM and its limitations, such as slow rendering
+    times and cross-browser compatibility issues, which can make it difficult for
+    developers to create web applications that work seamlessly across different browsers
+    and platforms. To illustrate this, we examined how to create a simple web page
+    using the real DOM APIs, and how these APIs can quickly become unwieldy and difficult
+    to manage as the complexity of the page increases.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先讨论了真实DOM及其限制，例如渲染时间慢和跨浏览器兼容性问题，这些问题可能会使开发人员难以创建能够在不同浏览器和平台上无缝工作的Web应用程序。为了说明这一点，我们分析了如何使用真实DOM
+    API创建简单的网页，以及随着页面复杂性增加，这些API如何迅速变得笨重和难以管理。
+- en: Next, we dove into the virtual DOM and how it addresses many of the limitations
+    of the real DOM. We explored how React leverages the virtual DOM to improve performance
+    by minimizing the number of updates needed to the real DOM, which can be expensive
+    in terms of rendering time. We also looked at how React uses elements to compare
+    the virtual DOM with the previous version and calculate the most efficient way
+    to update the real DOM.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们深入研究了虚拟DOM及其如何解决真实DOM的许多限制。我们探讨了React如何利用虚拟DOM通过减少对真实DOM的更新来提高性能，这在渲染时间方面非常昂贵。我们还看到了React如何使用元素来比较虚拟DOM与先前版本，并计算更新真实DOM的最有效方式。
+- en: To illustrate the benefits of the virtual DOM, we examined how to create the
+    same simple web page using React components. We compared this approach to the
+    real DOM approach and saw how React components were more concise and easier to
+    manage, even as the complexity of the page increased.
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了说明虚拟DOM的好处，我们分析了如何使用React组件创建相同的简单网页。我们将这种方法与真实DOM方法进行了比较，并看到随着页面复杂性的增加，React组件更加简洁和易于管理。
+- en: We also looked at the differences between `React.createElement` and `document.createElement`,
+    and we saw how we could create components using JSX, which provides a syntax similar
+    to HTML, making it easier to reason about the structure of the virtual DOM.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还探讨了`React.createElement`与`document.createElement`之间的区别，以及如何使用JSX创建组件，JSX提供类似HTML的语法，使得更容易理解虚拟DOM的结构。
+- en: Finally, we looked at how React’s diffing algorithm can lead to unnecessary
+    rerenders, which can be a significant performance challenge, especially when dealing
+    with large and complex user interfaces, and alluded to [Chapter 5](ch05.html#ch05),
+    where we’ll explore how we can optimize this by using React’s `memo` and `useMemo`
+    features.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们讨论了React的差异算法如何导致不必要的重新渲染，尤其是在处理大型和复杂用户界面时，这可能是一个重要的性能挑战，并提到了[第五章](ch05.html#ch05)，在那里我们将探讨如何通过使用React的`memo`和`useMemo`功能来优化这一问题。
+- en: Overall, we have learned about the benefits of using the virtual DOM in web
+    development, and how React leverages this concept to make building web applications
+    easier and more efficient.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，我们了解了在Web开发中使用虚拟DOM的好处，以及React如何利用这一概念使构建Web应用程序变得更加轻松和高效。
+- en: Review Questions
+  id: totrans-228
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 复习问题
+- en: 'Let’s take a moment to answer the following questions:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们花点时间回答以下问题：
+- en: What is the DOM, and how does it compare to the virtual DOM?
+  id: totrans-230
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 什么是DOM，它与虚拟DOM有什么区别？
+- en: What are document fragments, and how are they similar and different to React’s
+    virtual DOM?
+  id: totrans-231
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 文档片段是什么，它们与 React 的虚拟 DOM 在哪些方面相似和不同？
+- en: What are some issues with the DOM?
+  id: totrans-232
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: DOM 存在哪些问题？
+- en: How does the virtual DOM provide a faster way of performing user interface updates?
+  id: totrans-233
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 如何提供更快的用户界面更新方式？
+- en: How does React rendering work? What potential problems can arise from this?
+  id: totrans-234
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: React 渲染是如何工作的？由此可能引发的潜在问题是什么？
+- en: Up Next
+  id: totrans-235
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 接下来
+- en: In [Chapter 4](ch04.html#ch04), we will dive deep into React reconciliation
+    and its Fiber architecture.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [第四章](ch04.html#ch04)，我们将深入探讨 React 协调和其 Fiber 架构。

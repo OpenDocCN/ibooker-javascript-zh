@@ -1,0 +1,725 @@
+- en: Chapter 16\. Create, Read, Update, and Delete Operations
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 16 章\. 创建、读取、更新和删除操作
+- en: I love paper notebooks and keep one with me at nearly all times. Usually they
+    are relatively inexpensive and I quickly fill them with half-formed thoughts.
+    Not long ago I purchased a pricier hardback notebook, with a lovely cover and
+    fancy paper stock. At the time of purchase, I had grand ambitions of the types
+    of sketches and planning that would happen within that notebook, but it sat completely
+    empty on my desk for months. Eventually, I put it on a shelf and went back to
+    my standard notebook brand.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我喜欢纸质笔记本，并几乎随身携带一本。通常它们比较便宜，我很快就会用半成品的想法填满它们。不久前，我购买了一本价格较高的硬面笔记本，带有可爱的封面和精美的纸张。购买时，我对这本笔记本的素描和规划有着宏大的抱负，但它在我桌子上空了几个月。最终，我把它放在书架上，又回到了我的标准笔记本品牌。
+- en: Much like my fancy notebook, our app is useful only if our users are able to
+    interact with it. You may recall from our API development that the Notedly application
+    is a “CRUD” (create, read, update, and delete) application. An authenticated user
+    can create new notes, read notes, update the content of a note or a note’s status
+    as a favorite, and delete a note. In this chapter, we’ll implement all of this
+    functionality within our web user interface. To accomplish these tasks, we’ll
+    be writing GraphQL mutations and queries.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像我的精美笔记本一样，我们的应用程序只有在用户能够与之交互时才有用。您可能还记得我们的 API 开发中，Notedly 应用程序是一个“CRUD”（创建、读取、更新和删除）应用程序。经过身份验证的用户可以创建新的笔记、读取笔记、更新笔记内容或将笔记标记为喜欢，并删除笔记。在本章中，我们将在我们的
+    Web 用户界面中实现所有这些功能。为了完成这些任务，我们将编写 GraphQL 突变和查询。
+- en: Creating New Notes
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建新笔记
+- en: Currently we have the means to view notes, but not a way to create them. This
+    is akin to having a notebook without a pen. Let’s add the ability for users to
+    create new notes. We’ll do this by creating a `textarea` form in which users can
+    write the note. When the user submits the form, we’ll perform a GraphQL mutation
+    to create the note in our database.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前我们能够查看笔记，但无法创建它们。这就像有了一个没有笔的笔记本一样。让我们添加用户创建新笔记的能力。我们将通过创建一个 `textarea` 表单来实现这一点，用户可以在其中编写笔记。当用户提交表单时，我们将执行
+    GraphQL 突变来在我们的数据库中创建笔记。
+- en: 'To begin, let’s create the `NewNote` component at *src/pages/new.js*:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们在 *src/pages/new.js* 中创建 `NewNote` 组件：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Next, let’s set up the new route in our *src/pages/index.js* file:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们在 *src/pages/index.js* 文件中设置新的路由：
+- en: '[PRE1]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: We know that we’ll be both creating new notes as well as updating existing notes.
+    To accommodate this behavior, let’s create a new component called `NoteForm`,
+    which will serve as the markup and React state for note form editing.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们知道我们既将创建新的笔记，又将更新现有的笔记。为了适应这种行为，让我们创建一个名为 `NoteForm` 的新组件，它将用作笔记表单编辑的标记和 React
+    状态。
+- en: 'We’ll create a new file at *src/components/NoteForm.js*. The component will
+    consist of a form element containing a text area along with some minimal styles.
+    The functionality will be much like our `UserForm` component:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在 *src/components/NoteForm.js* 中创建一个新文件。该组件将包含一个表单元素，其中包含一个文本区域以及一些最小的样式。其功能将类似于我们的
+    `UserForm` 组件：
+- en: '[PRE2]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Next, we will need to reference our `NoteForm` component in our `NewNote` page
+    component. In *src/pages/new.js*:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要在我们的 `NewNote` 页面组件中引用我们的 `NoteForm` 组件。在 *src/pages/new.js* 中：
+- en: '[PRE3]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: With these updates, navigating to *http://localhost:1234/new* will display our
+    form ([Figure 16-1](#web_note_form)).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更新，访问 *http://localhost:1234/new* 将显示我们的表单（参见[图 16-1](#web_note_form)）。
+- en: '![A screenshot of the note form component](assets/jsev_1601.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![笔记表单组件的截图](assets/jsev_1601.png)'
+- en: Figure 16-1\. Our NewNote component presents the user with a large text area
+    and Save button
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 16-1\. 我们的 NewNote 组件展示了一个大的文本区域和保存按钮
+- en: 'With the form complete, we can go about writing our mutation to create the
+    new note. In *src/pages/new.js*:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表单完成后，我们可以开始编写我们的突变以创建新的笔记。在 *src/pages/new.js* 中：
+- en: '[PRE4]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: In the previous code we are performing a `newNote` mutation when the form is
+    submitted. If the mutation is successful, the user is redirected to the individual
+    note page. You may notice that the `newNote` mutation requests quite a bit of
+    data. This matches the data requested by the `note` mutation, ideally updating
+    Apollo’s cache for quick navigation to the individual note component.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述代码中，当提交表单时，我们执行 `newNote` 突变。如果突变成功，用户将被重定向到个别笔记页面。您可能注意到 `newNote` 突变请求了相当多的数据。这与
+    `note` 突变请求的数据相匹配，理想情况下更新 Apollo 的缓存以快速导航到个别笔记组件。
+- en: 'As mentioned earlier, Apollo aggressively caches our queries, which is helpful
+    for speeding up our application’s navigation. Unfortunately, this also means a
+    user could visit a page and not see an update they’ve just made. We can manually
+    update Apollo’s cache, but an easier way to accomplish this is to use Apollo’s
+    `refetchQueries` feature to intentionally update the cache when performing a mutation.
+    To do this, we’ll need access to our prewritten queries. Up until now, we’ve been
+    including them at the top of a component file, but let’s move them to their own
+    *query.js* file. Create a new file at */src/gql/query.js* and add each of our
+    note queries as well as our `IS_LOGGED_IN` query:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前所述，Apollo 对我们的查询进行了积极的缓存，这有助于加快我们应用的导航速度。不幸的是，这也意味着用户可能访问页面时看不到他们刚刚做出的更新。我们可以手动更新
+    Apollo 的缓存，但更简单的方法是使用 Apollo 的 `refetchQueries` 功能，在执行变异时有意更新缓存。为此，我们需要访问我们预写的查询。到目前为止，我们一直将它们包含在组件文件的顶部，但让我们将它们移到它们自己的
+    *query.js* 文件中。在 */src/gql/query.js* 创建一个新文件，并添加每一个我们的笔记查询以及我们的 `IS_LOGGED_IN`
+    查询：
+- en: '[PRE5]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Reusable Queries and Mutations
+  id: totrans-22
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 可重用的查询和变异
+- en: Moving forward, we will keep all of our queries and mutations separate from
+    our components This will allow us to easily reuse them in our application and
+    is also useful for [mocking](https://oreil.ly/qo9uE) during testing.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 未来，我们将保持所有的查询和变异与我们的组件分开，这将允许我们在应用程序中轻松重用它们，并且在测试期间也是有用的 [mocking](https://oreil.ly/qo9uE)。
+- en: 'Now in *src/pages/new.js* we can request that our mutation refetch the `GET_NOTES`
+    query by importing the query and adding the `refetchQueries` option:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/pages/new.js* 中，我们可以请求我们的变异通过导入查询并添加 `refetchQueries` 选项来重新获取 `GET_NOTES`
+    查询：
+- en: '[PRE6]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Our final step will be to add a link to our */new* page, so that users can
+    easily navigate to it. In the *src/components/Navigation.js* file, add a new link
+    item as follows:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的最后一步将是在 */new* 页面添加一个链接，以便用户可以轻松导航到它。在 *src/components/Navigation.js* 文件中，添加一个新的链接项如下：
+- en: '[PRE7]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: With this, our users are able to navigate to the new note page, type a note,
+    and save the note to the database.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这样，我们的用户可以导航到新笔记页面，输入笔记，并将笔记保存到数据库中。
+- en: Reading User Notes
+  id: totrans-29
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 读取用户笔记
+- en: Our application is currently capable of reading our note feed as well as individual
+    notes, but we are not yet querying the notes of authenticated users. Let’s write
+    two GraphQL queries to create a feed of notes by the user as well as their favorites.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的应用程序目前能够读取我们的笔记源以及单个笔记，但我们尚未查询经过身份验证用户的笔记。让我们编写两个 GraphQL 查询，以创建用户的笔记源以及他们的收藏夹。
+- en: 'In *src/gql/query.js*, add a `GET_MY_NOTES` query and update the exports like
+    so:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/gql/query.js* 中，添加一个 `GET_MY_NOTES` 查询，并像这样更新导出：
+- en: '[PRE8]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now in *src/pages/mynotes.js*, import the query and display the notes using
+    the `NoteFeed` component:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/pages/mynotes.js* 中，导入查询并使用 `NoteFeed` 组件显示笔记：
+- en: '[PRE9]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'We can repeat this process to make the “favorites” page. First, in *src/gql/query.js*:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以重复这个过程来制作“收藏夹”页面。首先，在 *src/gql/query.js* 中：
+- en: '[PRE10]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Now, in *src/pages/favorites.js*:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/pages/favorites.js* 中：
+- en: '[PRE11]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Finally, let’s update our *src/pages/new.js* file to refetch the `GET_MY_NOTES`
+    query, to ensure that a cached list of user notes is updated when the note is
+    created. In *src/pages/new.js*, first update the GraphQL query import statement:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们更新我们的 *src/pages/new.js* 文件，重新获取 `GET_MY_NOTES` 查询，以确保在创建笔记时更新用户笔记的缓存列表。在
+    *src/pages/new.js* 中，首先更新 GraphQL 查询的导入语句：
+- en: '[PRE12]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'And then update the mutation:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后更新变异：
+- en: '[PRE13]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: With these changes, we now can perform all of the read operations within our
+    application.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更改，我们现在可以在应用程序中执行所有的读操作。
+- en: Updating Notes
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 更新笔记
+- en: Currently once a user writes a note, they have no way to make an update to it.
+    To address this, we want to enable note editing in our application. Our GraphQL
+    API has an `updateNote` mutation, which accepts a note ID and content as parameters.
+    If the note exists in the database, the mutation will update the stored content
+    with the content sent in the mutation.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，一旦用户写下一条笔记，他们就没有办法对其进行更新。为了解决这个问题，我们希望在我们的应用程序中启用笔记编辑。我们的 GraphQL API 有一个
+    `updateNote` 变异，它接受笔记 ID 和内容作为参数。如果数据库中存在该笔记，则变异将使用变异中发送的内容更新存储的内容。
+- en: In our application, we can create a route at */edit/NOTE_ID* that will place
+    the existing note content in a form `textarea`. When a user clicks Save, we’ll
+    submit the form and perform the `updateNote` mutation.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的应用程序中，我们可以创建一个在 */edit/NOTE_ID* 的路由，该路由将在一个表单 `textarea` 中放置现有笔记内容。当用户点击保存时，我们将提交表单并执行
+    `updateNote` 变异。
+- en: Let’s create a new route where our notes will be edited. To begin, we can make
+    a duplicate of our *src/pages/note.js* page and name it *edit.js*. For now, this
+    page will simply display the note.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们创建一个新的路由，用于编辑我们的笔记。首先，我们可以复制我们的 *src/pages/note.js* 页面，并命名为 *edit.js*。目前，这个页面将简单地显示笔记内容。
+- en: 'At *src/pages/edit.js*:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/edit.js* 中：
+- en: '[PRE14]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Now, we can make the page navigable by adding it to our routes in *src/pages/index.js*:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以通过将其添加到 *src/pages/index.js* 中的路由来使页面可导航：
+- en: '[PRE15]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: With this, if you navigate to a note page at */note/ID* and swap it for */edit/ID*
+    you’ll see a render of the note itself. Let’s change this so that it instead displays
+    the note content presented in a form’s `textarea`.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您导航到 */note/ID* 的笔记页面并将其替换为 */edit/ID*，您将看到笔记本身的渲染。让我们改变这个，使其显示在表单的 `textarea`
+    中呈现的笔记内容。
+- en: 'In *src/pages/edit.js*, remove the import statement of the `Note` component
+    and replace it with the `NoteForm` component:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/edit.js* 中，删除 `Note` 组件的导入语句，并替换为 `NoteForm` 组件：
+- en: '[PRE16]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Now we can update our `EditNote` component to use our editing form. We can pass
+    the content of the note to our form component by using the `content` property.
+    Though our GraphQL mutation will accept updates only from the original author,
+    we can also limit displaying the form to the note’s author, to avoid confusing
+    other users.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以更新我们的 `EditNote` 组件以使用我们的编辑表单。我们可以通过 `content` 属性将笔记内容传递给我们的表单组件。尽管我们的
+    GraphQL 变更仅接受原始作者的更新，我们也可以限制将表单显示给笔记作者，以避免混淆其他用户。
+- en: 'First, add a new query to the *src/gql/query.js* file to get the current user,
+    their user ID, and a list of favorited note IDs:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在 *src/gql/query.js* 文件中添加一个新的查询来获取当前用户、他们的用户 ID 和收藏的笔记 ID 列表：
+- en: '[PRE17]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'In *src/pages/edit.js*, import the `GET_ME` query and include a user check:'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/edit.js* 中，导入 `GET_ME` 查询并包含用户检查：
+- en: '[PRE18]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'We are now able to edit a note in the form, but clicking the button does not
+    yet save our changes. Let’s write our GraphQL `updateNote` mutation. Similar to
+    our file of queries, let’s create a file to hold our mutations. In *src/gql/mutation*,
+    add the following:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们能够在表单中编辑笔记，但是点击按钮还不能保存我们的更改。让我们编写我们的 GraphQL `updateNote` 变更。与我们的查询文件类似，让我们创建一个文件来保存我们的变更。在
+    *src/gql/mutation* 中添加以下内容：
+- en: '[PRE19]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: With our mutation written, we can import it and update our component code to
+    call the mutation when the button is clicked. To do this, we will add a `useMutation`
+    hook. When the mutation is complete, we’ll redirect the user to the note page.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写完我们的变更后，我们可以导入它并更新我们的组件代码，以在单击按钮时调用变更。为此，我们将添加一个 `useMutation` 钩子。当变更完成时，我们将重定向用户到笔记页面。
+- en: '[PRE20]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Finally, we’ll want to display an “Edit” link to users, but only if they are
+    the author of the note. In our application, we will need to check to ensure that
+    the ID of the current user matches the ID of the note author. To implement this
+    behavior, we’ll be touching several components.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们希望为用户显示一个“编辑”链接，但只有当他们是笔记的作者时才显示。在我们的应用程序中，我们需要检查确保当前用户的 ID 是否与笔记作者的 ID
+    匹配。为了实现这种行为，我们将涉及多个组件。
+- en: Now we could implement our functionality directly within the `Note` component,
+    but let’s instead create a component specifically for logged-in user interactions
+    at *src/components/NoteUser.js*. In this React component we will perform a GraphQL
+    query for the current user ID and provide a routable link to the edit page. With
+    this information, we can begin by including our required libraries and setting
+    up a new React component. Within the React component, we will include an edit
+    link, which will route the user to the edit page for the note. For now, the user
+    will see this link regardless of who owns the note.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在 `Note` 组件中直接实现我们的功能，但是我们可以创建一个专门用于已登录用户交互的组件，位于 *src/components/NoteUser.js*。在这个
+    React 组件中，我们将为当前用户 ID 执行 GraphQL 查询，并提供一个链接到编辑页面的路由。有了这些信息，我们可以开始包含所需的库并设置一个新的
+    React 组件。在 React 组件内部，我们将包含一个编辑链接，该链接将路由用户到笔记的编辑页面。目前，无论谁拥有这条笔记，用户都将看到此链接。
+- en: 'Update *src/components/NoteUser.js* as follows:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新 *src/components/NoteUser.js* 如下：
+- en: '[PRE21]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Next, we will update our `Note` component to perform a local `isLoggedIn` state
+    query. We can then conditionally render our `NoteUser` component based on the
+    logged-in state of the user.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将更新我们的 `Note` 组件以执行本地的 `isLoggedIn` 状态查询。然后，我们可以根据用户的登录状态有条件地渲染我们的 `NoteUser`
+    组件。
+- en: 'Let’s first import the GraphQL libraries to perform the query along with our
+    `NoteUser` component. In *src/components/Note.js*, add the following at the top
+    of the file:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先导入 GraphQL 库以执行查询以及我们的 `NoteUser` 组件。在 *src/components/Note.js* 中，将以下内容添加到文件顶部：
+- en: '[PRE22]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Now, we can update our JSX component to check the logged-in state. If the user
+    is logged in, we’ll display the `NoteUser` component; otherwise, we’ll display
+    the favorite count.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以更新我们的 JSX 组件以检查登录状态。如果用户已登录，我们将显示 `NoteUser` 组件；否则，我们将显示收藏计数。
+- en: '[PRE23]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Unauthenticated Edits
+  id: totrans-73
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 未经身份验证的编辑
+- en: Though we will be hiding the edit link in the UI, users could still navigate
+    to a note’s edit screen without being the note owner. Thankfully, our GraphQL
+    API is designed to prevent anyone but the note owner from editing the note’s content.
+    Though we won’t be doing it in this book, a good additional step would be to update
+    the *src/pages/edit.js* component to redirect a user if they are not the note
+    owner.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们将在 UI 中隐藏编辑链接，但用户仍然可以导航到笔记的编辑屏幕，而不必是笔记所有者。幸运的是，我们的 GraphQL API 设计为阻止除笔记所有者以外的任何人编辑笔记内容。尽管我们不会在本书中这样做，但一个很好的额外步骤将是更新
+    *src/pages/edit.js* 组件，以便如果用户不是笔记所有者，则重定向用户。
+- en: With this change, logged-in users are able to see an edit link at the top of
+    each note. Clicking the link will navigate to an edit form, regardless of who
+    is the owner of the note. Let’s address this by updating our `NoteUser` component
+    to query for the current user’s ID and display the edit link only if it matches
+    the ID of the note author.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个变化，已登录用户可以在每个笔记顶部看到一个编辑链接。点击链接将导航到一个编辑表单，无论笔记的所有者是谁。让我们通过更新 `NoteUser` 组件来解决这个问题，查询当前用户的
+    ID 并仅在与笔记作者的 ID 匹配时显示编辑链接。
+- en: 'First in *src/components/NoteUser.js*, add the following:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先在 *src/components/NoteUser.js* 中添加以下内容：
+- en: '[PRE24]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: With this change, only the note’s original author will see the edit link in
+    the UI ([Figure 16-2](#web-edit-link)).
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着这个变化，只有笔记的原作者会在 UI 中看到编辑链接（[图 16-2](#web-edit-link)）。
+- en: '![A screenshot of the edit link](assets/jsev_1602.png)'
+  id: totrans-79
+  prefs: []
+  type: TYPE_IMG
+  zh: '![编辑链接的屏幕截图](assets/jsev_1602.png)'
+- en: Figure 16-2\. Only the note’s author will see the edit link
+  id: totrans-80
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 16-2\. 只有笔记的作者会看到编辑链接
+- en: Deleting Notes
+  id: totrans-81
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 删除笔记
+- en: 'Our CRUD application is still missing the ability to delete a note. We can
+    write a button UI component that, when clicked, will perform a GraphQL mutation,
+    deleting the note. Let’s start by creating a new component at *src/components/DeleteNote.js*.
+    Since we will be performing a redirect within a nonroutable component, we will
+    use React Router’s `withRouter` higher-order component:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 CRUD 应用程序仍然缺少删除笔记的功能。我们可以编写一个按钮 UI 组件，当点击时，将执行 GraphQL 变异，删除该笔记。让我们从创建一个新组件开始，位于
+    *src/components/DeleteNote.js*。由于我们将在不可路由的组件内执行重定向，因此我们将使用 React Router 的 `withRouter`
+    高阶组件：
+- en: '[PRE25]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Now, we can write our mutation. Our GraphQL API has a `deleteNote` mutation,
+    which returns a boolean of `true` if the note is deleted. When the mutation completes,
+    we’ll redirect the user to the */mynotes* page of our application.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以编写我们的变异。我们的 GraphQL API 有一个 `deleteNote` 变异，如果笔记被删除，则返回 `true`。当变异完成时，我们将重定向用户到我们应用程序的
+    */mynotes* 页面。
+- en: 'First, in *src/gql/mutation.js*, write the mutation as follows:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在 *src/gql/mutation.js* 中，编写如下变异：
+- en: '[PRE26]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Now in *src/components/DeleteNote*, add the following:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/components/DeleteNote* 中，添加以下内容：
+- en: '[PRE27]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Now, we can import the new `DeleteNote` component within our *src/components/NoteUser.js*
+    file, displaying it only to a note’s author:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以在 *src/components/NoteUser.js* 文件中导入新的 `DeleteNote` 组件，并仅显示给笔记的作者：
+- en: '[PRE28]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: With this mutation written, logged-in users are now able to delete a note with
+    the click of a button.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个变异，已登录用户现在可以通过点击按钮删除笔记。
+- en: Toggling Favorites
+  id: totrans-92
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 切换收藏夹
+- en: 'The last piece of user functionality missing from our application is the ability
+    to add and remove “favorite” notes. Let’s follow our pattern of creating a component
+    for this feature and integrating it into our application. First, create a new
+    component at *src/components/FavoriteNote.js*:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们应用程序中缺失的最后一部分用户功能是添加和删除“收藏”笔记的功能。让我们遵循我们创建此功能的模式，将其创建为一个组件并集成到我们的应用程序中。首先，在
+    *src/components/FavoriteNote.js* 中创建一个新组件：
+- en: '[PRE29]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Before we add any functionality, let’s go ahead and incorporate this component
+    into our *src/components/NoteUser.js* component. First, import the component:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在添加任何功能之前，让我们继续将此组件合并到 *src/components/NoteUser.js* 组件中。首先，导入组件：
+- en: '[PRE30]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Now, within our JSX, include a reference to the component. You may recall that
+    when we wrote our `GET_ME` query, we included a list of favorited note IDs, which
+    we’ll make use of here:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在我们的 JSX 中包含对组件的引用。您可能还记得，当我们编写 `GET_ME` 查询时，我们包括了一组收藏的笔记 ID，我们将在这里使用它：
+- en: '[PRE31]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: You’ll notice that we’re passing three properties to our `FavoriteNote` component.
+    First is our `me` data, which will include the current user’s ID as well as a
+    list of notes favorited by that user. Second, the `noteID` of the current note.
+    And finally is the `favoriteCount`, which is the current total number of user
+    favorites.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会注意到我们将三个属性传递给我们的 `FavoriteNote` 组件。首先是我们的 `me` 数据，其中包括当前用户的ID以及用户收藏的注释列表。其次是当前注释的
+    `noteID`。最后是 `favoriteCount`，即当前用户收藏的总数。
+- en: Now we can return to our *src/components/FavoriteNote.js* file. In this file,
+    we’ll store the current number of favorites as state and check to see if the current
+    note ID is in the existing list of user favorites. We’ll change the text that
+    the user sees based on the state of the user’s favorite. When the user clicks
+    the button, it will call our `toggleFavorite` mutation, which will either add
+    or remove the favorite from the user’s list. Let’s begin by updating the component
+    to use state to control the click functionality.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以返回到我们的 *src/components/FavoriteNote.js* 文件。在这个文件中，我们将以状态形式存储当前收藏的数量，并检查当前注释ID是否在用户收藏列表中。我们将根据用户收藏的状态更改用户看到的文本。当用户点击按钮时，它将调用我们的
+    `toggleFavorite` 变更，这将从用户的列表中添加或移除收藏。让我们开始更新组件，以使用状态来控制点击功能。
+- en: '[PRE32]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: With the preceding changes we’re updating the state when a user clicks, but
+    we’re not yet calling our GraphQL mutation. Let’s complete this component by writing
+    the mutation and adding it to the component. The result is shown in [Figure 16-3](#user_actions_final).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前述更改中，当用户点击时我们正在更新状态，但我们尚未调用我们的GraphQL变更。让我们通过编写变更并将其添加到组件中来完成此组件。结果显示在 [图 16-3](#user_actions_final)
+    中。
+- en: 'In *src/gql/mutation.js*:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/gql/mutation.js* 文件中：
+- en: '[PRE33]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'In *src/components/FavoriteNote.js*:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/components/FavoriteNote.js* 文件中：
+- en: '[PRE34]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: '![A screenshot of the application with links to create, update, read, and delete
+    a note.](assets/jsev_1603.png)'
+  id: totrans-107
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个应用程序的截图，包含创建、更新、读取和删除注释的链接。](assets/jsev_1603.png)'
+- en: Figure 16-3\. A logged-in user will be able to create, read, update, and delete
+    notes
+  id: totrans-108
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 16-3\. 登录用户将能够创建、读取、更新和删除注释
+- en: Conclusion
+  id: totrans-109
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we’ve turned our site into a fully functioning CRUD (create,
+    read, update, delete) application. We are now able to implement GraphQL queries
+    and mutations based on the state of a signed-in user. The ability to build user
+    interfaces that integrate CRUD user interactions will provide a solid foundation
+    for building all sorts of web applications. With this functionality, we’ve completed
+    the MVP (minimum viable product) of our app. In the next chapter, we’ll deploy
+    the application to a web server.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将我们的网站转变为一个完全功能的CRUD（创建、读取、更新、删除）应用程序。我们现在可以根据登录用户的状态实现GraphQL查询和变更。能够构建集成CRUD用户交互的用户界面将为构建各种Web应用程序提供坚实的基础。有了这个功能，我们已经完成了我们应用的MVP（最小可行产品）。在下一章中，我们将把应用部署到Web服务器上。

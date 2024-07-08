@@ -1,0 +1,1784 @@
+- en: Chapter 10\. Security
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第十章 安全性
+- en: Security is an important concern for all applications, especially those exposed
+    to a network. Traditionally, the biggest vulnerability to affect web applications
+    is the humble SQL injection attack. This attack was perpetrated for many years
+    by a prevalence of bad documentation and libraries that required users to manually
+    build SQL query strings. Thankfully, the programming community has evolved significantly
+    over the past decade, and you’d be hard-pressed to find a modern library or tutorial
+    that promotes query string concatenation.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安全性对所有应用程序都是一个重要问题，特别是那些面临网络的应用程序。传统上，影响 Web 应用程序最大的漏洞是简单的 SQL 注入攻击。多年来，这种攻击一直由于文档不良和库要求用户手动构建
+    SQL 查询字符串而广泛存在。幸运的是，过去十年中，编程社区已经显著发展，你很难找到一个现代化的库或教程，它们会推广查询字符串的串联。
+- en: Still, SQL injection remains one of the highest risks when it comes to application
+    security and is ranked number one on the [OWASP Top Ten list](https://owasp.org/www-project-top-ten/).
+    SQL injection attacks are so highly documented, and vulnerable edge cases in database
+    libraries come with big enough warning signs, that I won’t bother covering them
+    in this chapter.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，SQL 注入仍然是应用程序安全性最高风险之一，在 [OWASP 十大安全风险](https://owasp.org/www-project-top-ten/)
+    中排名第一。SQL 注入攻击已经有很多详细的文档，并且数据库库中的脆弱边缘情况足够引起注意，因此我不打算在本章中详细讨论它们。
+- en: There are, however, some new and unique challenges that seem to be intrinsic
+    to the Node.js platform, challenges that aren’t as widely understood. There is
+    even some relatively recent tooling that helps automate the discovery and patching
+    of these vulnerabilities. These challenges and tools are the focus of this chapter.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，有一些新的独特挑战似乎是 Node.js 平台固有的，这些挑战并没有得到广泛理解。甚至还有一些相对较新的工具可以帮助自动发现和修补这些漏洞。这些挑战和工具是本章的重点。
+- en: One of these challenges is determining an application’s attack surface. Traditionally,
+    attacks come from external sources, like an attacker sending a malicious request
+    over the network. But what happens when an attacker writes malicious code that
+    makes its way into a package that your application depends on?
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中一个挑战是确定应用程序的攻击面。传统上，攻击来自外部来源，比如攻击者通过网络发送恶意请求。但是当攻击者编写的恶意代码进入您的应用程序依赖的包时会发生什么呢？
+- en: Before diving into individual security issues, it’s important to come up with
+    a checklist to help identify the health of disparate applications. This is especially
+    true at an organization that uses many different microservices to power an application.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在深入研究各个安全问题之前，制定一个检查清单以帮助识别不同应用程序的健康状态非常重要。这一点在那些使用多种微服务来驱动应用程序的组织中尤为重要。
+- en: Wrangling Repositories
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 维护代码库
+- en: A common pattern for building backend systems is to represent various domains
+    of an application using microservices. This usually happens by creating separate
+    version control repositories, initializing a new module structure, and then adding
+    JavaScript files, either by scratch or by emulating patterns used in other repositories.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建后端系统的常见模式是使用微服务来表示应用程序的各个领域。通常通过创建单独的版本控制代码库、初始化新的模块结构，然后添加 JavaScript 文件来实现。这可以从头开始，也可以模仿其他代码库中使用的模式。
+- en: In these situations, there’s usually a 1:N ownership between teams and repositories,
+    although sometimes there are a few popular projects that multiple teams contribute
+    to. Other times, some repositories end up orphaned and without a clear owner.
+    I’ve personally worked at companies where several teams collectively own a few
+    dozen microservices.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这些情况下，团队和代码库通常是一对多的所有关系，尽管有时会有几个受欢迎的项目，多个团队会共同贡献。其他时候，一些代码库可能会变成孤立无主，没有明确的所有者。我个人曾在一些公司工作过，几个团队共同拥有几十个微服务。
+- en: The teams that own these projects have different priorities. Sometimes a team
+    puts a lot of emphasis on keeping projects up to date and keeping security patches
+    applied. Other times, a project’s *package-lock.json* may remain untouched for
+    months or years at a time.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 拥有这些项目的团队有不同的优先事项。有时候，一个团队非常重视保持项目的最新状态和应用安全补丁。其他时候，一个项目的 *package-lock.json*
+    可能会长时间不被改动。
+- en: It’s sometimes necessary to designate an engineer to take ownership of the health
+    of all Node.js projects across an organization. I usually volunteer to take on
+    this role when I join a company. Doing so both helps keep things under control
+    for the company and helps me get familiar with the company’s microservices and
+    how they interoperate.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时候，需要指定一位工程师负责整个组织中所有 Node.js 项目的健康状态。当我加入一家公司时，我通常会自愿承担这个角色。这样做不仅有助于公司保持控制，还帮助我熟悉公司的微服务及其相互操作方式。
+- en: A pattern that I’ve adopted, and that I recommend you consider as well, is to
+    first hunt down the different services used by the company and to maintain a spreadsheet
+    of all the different encountered services.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我采用了一个模式，也建议你考虑一下，首先追踪公司使用的不同服务，并维护一个包含所有遇到的不同服务的电子表格。
+- en: 'Even though applications might run in a few different paradigms (Kubernetes
+    over here, a dedicated VPS over there, and a sprinkle of Lambda), organizations
+    usually keep all their code organized using a single version control service.
+    This tool is the best place to get a list of services. GitHub, for example, provides
+    the ability to list repositories by language:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使应用程序可能在几种不同的范例（这里是 Kubernetes，那里是专用的 VPS，还有一点 Lambda）下运行，组织通常仍然会使用单一版本控制服务来组织其所有代码。这个工具是获取服务列表的最佳地点。例如，GitHub
+    提供了按语言列出仓库的功能：
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Once you obtain a list of repositories in your organization, you’ll need to
+    narrow entries down until you have a list of only active Node.js services. Make
+    a new row in the sheet for every service you find. Be sure to track any relevant
+    information you can in the sheet, such as a link to the repo, the team that owns
+    the repo, the deployment medium, and most importantly, the version of Node.js
+    that the project runs on.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您获取了组织中的仓库列表，就需要缩小条目，直到您只有一份活跃的 Node.js 服务列表。为您找到的每项服务在表格中创建一个新行。确保在表格中跟踪您能够的任何相关信息，例如指向仓库的链接，拥有仓库的团队，部署媒介，以及最重要的是项目运行的
+    Node.js 版本。
+- en: I like to keep track of some other information as well, such as the versions
+    of important packages used by the project. For example, the name and version of
+    the web server package, and if applicable, the version of any integral packages
+    that are maintained by the organization. The web server is important to track
+    because, as far as security goes, it’s the main entry and exit point for an HTTP
+    server. It’s often the most complex part of an application, and so is one of the
+    more likely components to expose a security vulnerability.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我还喜欢跟踪一些其他信息，比如项目使用的重要软件包的版本。例如，Web 服务器软件包的名称和版本，以及适用的情况下，组织维护的任何重要软件包的版本。跟踪
+    Web 服务器很重要，因为在安全方面，它是 HTTP 服务器的主要进出口。它通常是应用程序中最复杂的部分，因此是最有可能暴露安全漏洞的组件之一。
+- en: Some organizations choose to publish internal packages for communicating with
+    vital services, instead of documenting and exposing the protocol used to communicate
+    with the service. For example, a company might have an account package published
+    as `@corp/acct`. Keeping track of these internal packages is also important since
+    it may drive decisions on what features to deprecate and drop in the account service.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些组织选择发布用于与重要服务通信的内部软件包，而不是记录和公开用于与服务通信的协议。例如，公司可能已发布一个名为 `@corp/acct` 的账户软件包。跟踪这些内部软件包同样重要，因为它可能影响到在账户服务中停用和放弃哪些功能的决策。
+- en: '[Table 10-1](#table_node_services) is an example of some of the information
+    that could be tracked in such a spreadsheet.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 10-1](#table_node_services) 是这种电子表格中可能跟踪的信息的一个示例。'
+- en: Table 10-1\. Example Node.js service spreadsheet
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10-1\. Node.js 服务电子表格示例
+- en: '| Service | Team | Node.js version | Deployment | Server | Account package
+    |'
+  id: totrans-19
+  prefs: []
+  type: TYPE_TB
+  zh: '| 服务 | 团队 | Node.js 版本 | 部署 | 服务器 | 账户包 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-20
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| gallery | Selfie | v10.3.1 | Beanstalk | express@v3.1.1 | @corp/acct@v1.2.3
+    |'
+  id: totrans-21
+  prefs: []
+  type: TYPE_TB
+  zh: '| 画廊 | 自拍 | v10.3.1 | Beanstalk | express@v3.1.1 | @corp/acct@v1.2.3 |'
+- en: '| profile | Profile | v12.1.3 | Kubernetes | @hapi/hapi@14.3.1 | @corp/acct@v2.1.1
+    |'
+  id: totrans-22
+  prefs: []
+  type: TYPE_TB
+  zh: '| 档案 | 档案 | v12.1.3 | Kubernetes | @hapi/hapi@14.3.1 | @corp/acct@v2.1.1 |'
+- en: '| resizer | Selfie | v12.13.1 | Lambda | N/A | N/A |'
+  id: totrans-23
+  prefs: []
+  type: TYPE_TB
+  zh: '| 调整器 | 自拍 | v12.13.1 | Lambda | N/A | N/A |'
+- en: '| friend-finder | Friends | v10.2.3 | Kubernetes | fastify@2.15.0 | @corp/acct@v2.1.1
+    |'
+  id: totrans-24
+  prefs: []
+  type: TYPE_TB
+  zh: '| 朋友查找 | 朋友 | v10.2.3 | Kubernetes | fastify@2.15.0 | @corp/acct@v2.1.1 |'
+- en: In this table the *Service* column contains the common name of the project.
+    This could be the name of the GitHub repository, the name of the service as it
+    identifies itself on the network, or ideally both. The *Team* column contains
+    the team that owns the project. Even though multiple teams may contribute to a
+    project, it usually has some concept of an owner.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个表格中，*服务*列包含项目的通用名称。这可以是GitHub存储库的名称，它在网络上标识自己的服务名称，或者理想情况下两者兼有。*团队*列包含拥有项目的团队。尽管可能有多个团队为项目做出贡献，但通常会有一个所有者的概念。
+- en: The *Node.js version* column is self-explanatory, though it can sometimes be
+    difficult to find the exact version of Node.js being used, like when running a
+    service on AWS Lambda. In these situations, you may have to log the `process.version`
+    value to obtain an accurate result. The *Deployment* column conveys information
+    about how the process is deployed and managed, like running as a Kubernetes pod
+    or via AWS Beanstalk.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Node.js版本*列不言自明，但有时可能很难找到确切的Node.js版本，比如在AWS Lambda上运行服务时。在这些情况下，您可能需要记录`process.version`值以获得准确的结果。*部署*列传达有关进程如何部署和管理的信息，例如作为Kubernetes
+    pod或通过AWS Beanstalk运行。'
+- en: The *Server* column contains information about the web server package, notably
+    the name and version. Finally, the *Account package* contains information about
+    an internal `@corp/acct` package, which for this fictional organization happens
+    to be very important.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*服务器*列包含有关Web服务器包的信息，特别是名称和版本。最后，*账户包*包含关于内部`@corp/acct`包的信息，对于这个虚构的组织来说，这个包非常重要。'
+- en: Now that the list is compiled, it’s time to go through and highlight any of
+    the entries that are out of date. For example, if the current *Long-Term Support
+    (LTS)* version of Node.js is v14, then that means Node.js v12 is probably in maintenance
+    mode and Node.js v10 and earlier are no longer being updated. Update the *Node.js
+    version* column to mark services in active LTS as green, services in maintenance
+    as yellow, and services that are older as red. [“Upgrading Node.js”](#ch_security_sec_node)
+    has information about how to handle outdated versions of Node.js.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在列表已编制完成，是时候逐个检查并突出显示任何已过时的条目了。例如，如果当前*长期支持（LTS）*版本的Node.js是v14，那么意味着Node.js
+    v12可能处于维护模式，Node.js v10及更早的版本已不再更新。更新*Node.js版本*列，将活跃LTS的服务标记为绿色，维护中的服务标记为黄色，而老旧的服务标记为红色。[“升级Node.js”](#ch_security_sec_node)
+    包含有关如何处理过时版本Node.js的信息。
+- en: The same thing applies to package columns, such as web servers and internal
+    modules. For those, you might need to come up with your own color-coding system.
+    The Express and Fastify web servers, for example, rarely release new major versions,
+    so perhaps only the current major version should be green. The Hapi framework,
+    on the other hand, goes through major versions much more quickly, and perhaps
+    the two most recent major versions deserve a green background. [“Upgrading Dependencies”](#ch_security_sec_deps)
+    covers solutions for automating package upgrades.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于包含web服务器和内部模块等包列也适用相同原则。对于这些，您可能需要制定自己的颜色编码系统。例如，Express和Fastify web服务器很少发布新的主要版本，因此可能只有当前主要版本应标记为绿色。另一方面，Hapi框架发布主要版本的频率较快，可能最近的两个主要版本值得标记为绿色背景。[“升级依赖项”](#ch_security_sec_deps)
+    包括自动化包升级的解决方案。
+- en: Tip
+  id: totrans-30
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: I encourage you to do some detective work and assemble such a spreadsheet for
+    the services in your organization. You’ll have a much better understanding of
+    your application once you’re done. This sheet will be a great source of information
+    when it comes to reducing tech debt.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我鼓励您进行一些侦探工作，并为组织中的服务汇编这样的电子表格。完成后，您将更好地理解您的应用程序。在减少技术债务时，此表格将是信息的重要来源。
+- en: Recognizing Attack Surface
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 识别攻击面
+- en: Most attacks seem to happen at the fringes of an application where one paradigm
+    meets another. Some common examples of this include converting an incoming HTTP
+    request into a JavaScript object, taking a modified object and serializing it
+    into an SQL query, and taking an object and generating an HTML document from it.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数攻击似乎发生在应用程序的边缘，即一个范式遇到另一个范式的地方。一些常见的例子包括将传入的HTTP请求转换为JavaScript对象，将修改后的对象序列化为SQL查询，以及将对象生成HTML文档。
+- en: Traditionally, attacks for a service usually come through the “front door,”
+    which is to say, the part of an application that is exposed to an external consumer.
+    With an HTTP service, this means incoming HTTP requests; with a worker process,
+    this might mean the queue that it receives messages from; and with a daemon that
+    converts uploaded HTML files to a PDF, the front door might be considered the
+    filesystem.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统上，服务的攻击通常通过“前门”进行，也就是说，暴露给外部消费者的应用程序部分。对于 HTTP 服务来说，这意味着传入的 HTTP 请求；对于工作进程来说，这可能意味着它从中接收消息的队列；对于将上传的
+    HTML 文件转换为 PDF 的守护进程来说，前门可以被认为是文件系统。
+- en: These situations are straightforward to think about. Your application is essentially
+    a castle with a big gateway in the front, so it makes sense that you should post
+    guards there. When it comes to protecting an HTTP application, it’s then important
+    to ensure the protocol isn’t being tampered with, the data being passed in isn’t
+    larger than expected, and unanticipated parameters should be ignored. The [Helmet](https://helmetjs.github.io/)
+    npm package provides a middleware implementing several security best-practices
+    for an HTTP server that you may find beneficial.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些情况很容易理解。你的应用程序本质上是一个有着巨大前门的城堡，因此在那里设置警卫是有意义的。当涉及到保护 HTTP 应用程序时，确保协议没有被篡改，传递的数据没有超出预期，并且未预料到的参数应该被忽略是非常重要的。[Helmet](https://helmetjs.github.io/)
+    npm 包提供了一个中间件，实施了几个安全最佳实践，适用于 HTTP 服务器，这可能对你有益。
+- en: The reality is that a much deeper attack surface exists inside modern applications,
+    especially those built with Node.js. It just so happens that your castle might
+    have a traitor lurking in the shadows. But first, let’s concentrate on the front
+    door.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代应用程序内部存在更深的攻击面，特别是使用 Node.js 构建的应用程序。恰巧你的城堡可能隐藏着一个潜在的叛徒。但首先，让我们集中在前门上。
+- en: Parameter Checking and Deserialization
+  id: totrans-37
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参数检查和反序列化
+- en: An application must always verify that input received from an external source
+    is acceptable. Sometimes the source of this input is obvious, such as the body
+    of an HTTP `POST` request. Other times it’s not so obvious, like with individual
+    HTTP headers.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序必须始终验证来自外部来源的输入是否合法。有时这些输入的来源是显而易见的，比如 HTTP `POST` 请求的正文。其他时候则不那么明显，比如个别的
+    HTTP 标头。
+- en: Attacks that happen with parameter parsing and object deserialization are present
+    in most platforms. But there are a few that seem to be more prevalent in Node.js
+    applications, and in my opinion this is because JavaScript is such a loosely typed
+    language and because calling `JSON.parse()` is just so easy. With other platforms,
+    an application might have a `User` class and be provided with a JSON string that
+    represents a user. That user class might have a few properties on it like `name:string`
+    and `age:integer`. In that case, deserializing a JSON representation of a user
+    can be done by streaming the JSON document through a deserializer, picking the
+    expected properties, ignoring anything that isn’t relevant, and never using more
+    memory than is required to represent `name` and `age`.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 出现在大多数平台上的参数解析和对象反序列化的攻击也存在。但有几种攻击似乎在 Node.js 应用程序中更为普遍，在我看来，这是因为 JavaScript
+    是一种弱类型语言，而且调用`JSON.parse()`是如此容易。在其他平台上，一个应用程序可能有一个`User`类，并且提供了一个表示用户的 JSON 字符串。该用户类可能有几个属性，比如`name:string`和`age:integer`。在这种情况下，可以通过将
+    JSON 文档流经反序列化器、选择预期的属性、忽略任何不相关的内容，并且永远不使用超过表示`name`和`age`所需的内存来反序列化用户的 JSON 表示。
+- en: 'That said, with JavaScript, the approach you’re more likely to see in an application
+    looks like this:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 话虽如此，使用 JavaScript，在应用程序中更有可能看到的方法如下：
+- en: '[PRE1]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: This approach has a few shortcomings. First, what if an attacker sends a massive
+    JSON object, perhaps several megabytes? In that case, the application will slow
+    down when it hits the `JSON.parse()` method, and it’s also going to use several
+    megabytes of memory. What happens if an attacker sends in hundreds of requests
+    in parallel, each with massive JSON objects? In that case, the attacker may cause
+    server instances to become unresponsive and crash, resulting in a *denial of service*
+    attack.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法有一些缺点。首先，如果攻击者发送一个庞大的 JSON 对象，也许是几兆字节？在这种情况下，当应用程序调用`JSON.parse()`方法时会变慢，并且还会使用几兆字节的内存。如果攻击者并行发送数百个请求，每个请求都有庞大的
+    JSON 对象会发生什么？在这种情况下，攻击者可能导致服务器实例无响应并崩溃，从而导致*拒绝服务*攻击。
+- en: One way to fix this is to enforce a maximum request size when receiving request
+    bodies. Every popular web framework supports this to some degree. For example,
+    the Fastify framework supports a `bodyLimit` configuration flag that defaults
+    to 1MB. The `body-parser` middleware package used by Express supports a `limit`
+    flag that does the same thing, defaulting to 100KB.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复这个问题的一种方法是在接收请求体时强制执行最大请求大小限制。每个流行的Web框架在某种程度上都支持这一点。例如，Fastify框架支持一个`bodyLimit`配置标志，默认为1MB。Express使用的`body-parser`中间件支持一个`limit`标志，功能相同，默认为100KB。
+- en: There are other issues when working with deserialized objects. One such issue
+    is unique to JavaScript and is called *Prototype Pollution*, which is an attack
+    where a JSON payload contains a property named `__proto__` that can be used to
+    overwrite an object’s prototype. Calling `obj.__proto__ = foo` is equivalent to
+    `Object.setPrototypeOf(obj, foo)` and is a dangerous shorthand that probably shouldn’t
+    exist but still does to support legacy code. This attack was big news in 2018
+    and was patched in several popular libraries, but it still pops up in application
+    code and libraries today when copying properties from one object to another.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理反序列化对象时会遇到其他问题。其中一个问题是JavaScript特有的，称为*原型污染*，这是一种攻击，其中JSON负载包含一个名为`__proto__`的属性，可以用来覆盖对象的原型。调用`obj.__proto__
+    = foo`等同于`Object.setPrototypeOf(obj, foo)`，是一个危险的速记法，尽管不应存在但仍然存在以支持遗留代码。这种攻击在2018年引起了轰动，并在几个流行的库中得到了修复，但在今天的应用代码和库中仍然会出现。
+- en: '[Example 10-1](#ex_prototype_pollution) is a distilled version of the prototype
+    pollution attack.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 10-1](#ex_prototype_pollution)是原型污染攻击的精简版本。'
+- en: Example 10-1\. *prototype-pollution.js*
+  id: totrans-46
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例10-1\. *prototype-pollution.js*
+- en: '[PRE2]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: In this example, an attack provides a request object with a `__proto__` property
+    that is itself another object. In this object, the `isAdmin` property is set to
+    true. The application code relies on this field to know if a privileged user made
+    a request. The application receives the request and parses the request JSON into
+    an object named `obj`. At this point the object has a property on it named `__proto__`,
+    though it doesn’t have the invalid prototype set just yet; luckily `JSON.parse()`
+    isn’t able to directly override an object’s prototype. Next, the application checks
+    to see if the `obj.isAdmin` field has been set, which is one way of ensuring a
+    user didn’t override the property. This check isn’t triggered, and the code continues.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，攻击者提供了一个带有`__proto__`属性的请求对象，它本身是另一个对象。在这个对象中，`isAdmin`属性被设置为true。应用代码依赖于这个字段来确定是否有特权用户发出了请求。应用程序接收请求并将请求JSON解析为名为`obj`的对象。此时对象上有一个名为`__proto__`的属性，尽管它还没有设置无效的原型；幸运的是`JSON.parse()`无法直接覆盖对象的原型。接下来，应用程序检查`obj.isAdmin`字段是否已设置，这是确保用户未覆盖属性的一种方法。这个检查没有触发，代码继续执行。
+- en: Next, the application performs a shallow clone of the request object and returns
+    the result. The `shallowClone()` method makes the clone by iterating every property
+    of the object and assigns it to a new object. This is where the vulnerability
+    lies. The `clone['__proto__']` assignment is what causes the prototype to get
+    overridden. In this case, the prototype for the resulting `user` object is set
+    to the attacker-supplied `{"isAdmin":true}` object. When the application later
+    checks the property, it results in the user’s permissions being elevated to that
+    of an administrator.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，应用程序对请求对象执行浅克隆并返回结果。`shallowClone()`方法通过迭代对象的每个属性并将其赋值给新对象来进行克隆。这就是漏洞所在。`clone['__proto__']`赋值导致原型被覆盖。在这种情况下，生成的`user`对象的原型被设置为攻击者提供的`{"isAdmin":true}`对象。稍后应用程序检查该属性时，结果是用户权限被提升为管理员权限。
+- en: This might seem a little far-fetched at first. But this actually affected many
+    different applications and lead to security patches to at least dozens of npm
+    packages. With the way modern Node.js applications are built, one third-party
+    middleware is parsing request objects and another middleware is cloning objects,
+    and all of that happens behind the scenes before application controller logic
+    finally gets access to the parsed JSON representation. Due to all this movement
+    of data between hard-to-see corners of the application, it can be difficult for
+    developers to keep track of what a complex Node.js application is actually doing.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一开始可能看起来有些牵强。但这实际上影响了许多不同的应用程序，并导致了至少几十个 npm 包的安全补丁。在现代 Node.js 应用程序构建方式中，一个第三方中间件正在解析请求对象，另一个中间件正在克隆对象，所有这些都在应用程序控制器逻辑最终访问解析后的
+    JSON 表示之前在幕后发生。由于数据在应用程序的难以察看的角落之间频繁移动，开发人员很难跟踪复杂的 Node.js 应用程序实际在做什么。
+- en: Malicious npm Packages
+  id: totrans-51
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 恶意 npm 包
+- en: Another attack surface skips the front door entirely. This one comes from within
+    the application itself, through the “supply chain,” by way of maliciously crafted
+    npm packages. These attacks can affect other platforms as well, but so far it
+    seems to be a problem that affects the npm package repository the most for a few
+    reasons. Package repositories of the past weren’t as easy to publish to as npm
+    is. There is also no enforcement that code published to version control must match
+    the code deployed in an npm package, meaning the easy-to-audit code in a GitHub
+    repository might not represent code deployed in a tarball at package install time.
+    While the ease to publish and the dynamic nature of JavaScript contributed to
+    the popularity of Node.js and npm, they have undoubtedly left a security scar.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个攻击面完全绕过了前门。这个攻击来自应用程序内部，通过“供应链”，通过恶意构造的 npm 包。这些攻击也可能影响其他平台，但迄今为止，似乎这是影响
+    npm 包仓库最多的问题之一，原因有几个。过去的包仓库并不像 npm 那样容易发布。还没有强制规定，发布到版本控制的代码必须与在安装包时部署的代码匹配，这意味着
+    GitHub 仓库中易于审核的代码可能不代表 tarball 安装时部署的代码。尽管发布的便利性和 JavaScript 的动态特性促成了 Node.js
+    和 npm 的流行，但它们无疑给安全留下了伤痕。
+- en: Saying that packages can be used as an attack vector might sound overly cautious,
+    but it has actually been done on several occasions.^([1](ch10.html#idm46291173349672))
+    Sometimes a malicious package is installed via *typo squatting*, which is where
+    a package is named after a typo of a popular package. Sometimes it’s a completely
+    new package promising features that other packages don’t deliver. Sometimes it’s
+    much scarier than that, where a maintainer of a popular package accepts a PR introducing
+    a subtle security flaw, or the maintainer gives ownership of the package to an
+    attacker while assuming they’re well-meaning.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 声称包可以被用作攻击向量可能听起来过于谨慎，但事实上已经多次发生过。有时恶意包是通过*错别字占用*安装的，即将包命名为流行包的错别字。有时它是一个完全新的包，承诺其他包不提供的功能。有时它比这更可怕，例如，流行包的维护者接受引入微妙安全漏洞的
+    PR，或者维护者将包的所有权交给了一个攻击者，而假定他们是好心的。
+- en: At any rate, malicious packages will make their way into applications. One of
+    the most important things Node.js developers can do to reduce the risk of getting
+    one of these malicious packages is to keep the number of dependencies to a minimum,
+    favor packages maintained by reputable authors, and prefer dependencies with fewer
+    subdepenencies.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论如何，恶意包将进入应用程序。Node.js 开发人员减少获取这些恶意包风险的最重要方法之一是尽量减少依赖项数量，支持由知名作者维护的包，并倾向于具有较少子依赖关系的依赖项。
+- en: One approach that some organizations try is to manually audit packages and maintain
+    an allow-list of package versions. Unfortunately, this is a very difficult task
+    to take on, and often requires a whole team to perform audits, a privilege only
+    afforded by larger tech companies. By manually reviewing which packages may be
+    used within an organization, developers are often trapped, their tickets blocked
+    while waiting on package approval requests. Also, manually auditing a package
+    doesn’t guarantee that it is free of all vulnerabilities. Even so, approved packages
+    probably don’t pin their subdependency versions, and unless application developers
+    are explicitly pinning them in a *package-lock.json* file, there’s no guarantee
+    that a new malicious package won’t sneak in.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些组织尝试的方法是手动审核软件包并维护软件包版本的允许列表。不幸的是，这是一个非常困难的任务，并且通常需要整个团队进行审计，这是只有大型科技公司才能享有的特权。通过手动审查可以在组织内部使用哪些软件包，开发人员经常陷入困境，他们的工单被阻塞，因为等待软件包批准请求。此外，手动审核软件包并不能保证其免受所有漏洞的影响。即使如此，批准的软件包可能不会固定其子依赖版本，除非应用程序开发人员明确在*package-lock.json*文件中固定它们，否则不能保证新的恶意软件包不会潜入。
+- en: A common misconception with malicious packages is that they are only dangerous
+    if they directly touch user data as it flows through an application—and that deeply
+    nested utility modules aren’t of much risk. In reality, any module that is loaded
+    within a Node.js application has the ability to modify any core Node.js API in
+    any way that it sees fit.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与恶意包的常见误解是，只有当它们直接触及通过应用程序流动的用户数据时才具有危险性，而深度嵌套的实用程序模块并没有太多风险。实际上，任何在Node.js应用程序中加载的模块都有能力以任何它认为合适的方式修改任何核心Node.js
+    API。
+- en: '[Example 10-2](#ex_malicious_module) depicts a Node.js module that, once required,
+    intercepts any filesystem writes and transmits it to a third-party service.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 10-2](#ex_malicious_module) 描述了一个Node.js模块，一旦被需要，就会拦截任何文件系统写入并将其传输到第三方服务。'
+- en: Example 10-2\. *malicious-module.js*
+  id: totrans-58
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-2\. *malicious-module.js*
+- en: '[PRE3]'
+  id: totrans-59
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: This module replaces the existing `fs.writeFile` method with a new one that
+    proxies requests to the original method. But it also takes the filename and data
+    arguments from the method and transmits them to a third-party service listening
+    at `example.org:9876`. In this case, no matter how deeply nested the module is,
+    it still intercepts calls to a core Node.js API.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此模块将现有的`fs.writeFile`方法替换为一个新的方法，该方法代理请求到原始方法。但它还会从该方法获取文件名和数据参数，并将它们传输到监听`example.org:9876`的第三方服务。在这种情况下，无论模块嵌套多深，它都会拦截对核心Node.js
+    API的调用。
+- en: This approach can be used to wrap other modules as well. For example, it can
+    be easily modified to wrap a database package like `pg` and transmit payloads
+    representing writes to a Postgres database table any time it contains a field
+    named *password*.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此方法也可以用来包装其他模块。例如，可以轻松修改以包装像`pg`这样的数据库包，并在包含名为*password*的字段时传输表示写入到Postgres数据库表的有效负载。
+- en: Application Configuration
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 应用程序配置
+- en: Applications are configured by setting various key/value pairs that are used
+    by code. These values can be things like the path to a directory for writing temporary
+    files, the number of items to grab from a queue, or the hostname for a Redis instance.
+    At first glance, such configuration values might not look like they have much
+    to do with security, but configuration often contains more sensitive information.
+    For example, it might include a Postgres connection username and password, or
+    an API key for a GitHub account.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序通过设置各种键/值对来进行配置，这些键/值对由代码使用。这些值可以是如写入临时文件目录的路径、从队列中抓取的项数，或者Redis实例的主机名。乍看之下，这些配置值可能看起来与安全性关系不大，但配置通常包含更敏感的信息。例如，可能包括Postgres连接的用户名和密码，或者GitHub账户的API密钥。
+- en: When dealing with sensitive configuration values, it’s important to keep them
+    not only out of the hands of an attacker, but also away from anyone in an organization
+    who doesn’t need access. One rule of thumb is to treat every repository like it
+    could be open sourced tomorrow, as well as to consider any credentials that have
+    been checked in as being compromised. Employee laptops can get stolen, after all.
+    But how can an application be built while keeping credentials out of the codebase?
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理敏感配置值时，重要的是不仅要将其远离攻击者的手中，还要远离组织中任何不需要访问的人。一个经验法则是将每个仓库都视为明天可能开源的仓库，并考虑任何已经检入的凭据为已被泄露。员工的笔记本可能会被盗，毕竟。但是，在保持凭据远离代码库的同时，如何构建应用程序呢？
+- en: Environment Variables
+  id: totrans-65
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 环境变量
+- en: 'The best way to keep configuration out of an application’s codebase is to provide
+    such values via environment variables. This way, a compromised code repository
+    shouldn’t lead to sensitive data being stolen. Run the following two commands
+    as a quick refresher on how environment variables work:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将配置保持在应用程序代码库之外的最佳方法是通过环境变量提供这些值。这样一来，即使代码库受到损害，也不会导致敏感数据被窃取。通过以下两个命令快速刷新一下环境变量的工作原理：
+- en: '[PRE4]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: This example creates a simple *app-env-var.js* file that prints a configuration
+    value and then executes the file while providing an environment variable. With
+    this approach, the environment variables are never written to disk.^([2](ch10.html#idm46291173180200))
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本示例创建了一个简单的 *app-env-var.js* 文件，该文件打印一个配置值，然后在提供环境变量的同时执行该文件。通过这种方法，环境变量永远不会写入磁盘。^([2](ch10.html#idm46291173180200))
+- en: There’s a very useful side effect of using environment variables to configure
+    an application—the application can be redeployed without needing to be built again!
+    Many service deployment tools, including Kubernetes, allow you to change environment
+    variables and deploy the application again using the same Docker image build.
+    This saves time by not requiring you to go through the process of changing a configuration
+    value in code, making a pull request, letting the tests run, etc.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用环境变量配置应用程序的一个非常有用的副作用是，可以重新部署应用程序而无需重新构建！许多服务部署工具（包括Kubernetes）允许您更改环境变量并使用相同的Docker镜像构建再次部署应用程序。这节省了时间，因为您不需要通过更改代码中的配置值、创建拉取请求、运行测试等流程。
+- en: Environment variables are set once, before an application first runs, and are
+    then considered static throughout the lifetime of the process. Any values that
+    need to be changed dynamically require a different tool to access the configuration
+    values—tools such as Etcd are often used for keeping track of information that
+    doesn’t change frequently but can change at runtime, such as the hostnames of
+    database servers.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 环境变量在应用程序首次运行之前设置一次，然后在进程的整个生命周期中被视为静态。需要动态更改的任何值都需要使用不同的工具来访问配置值，例如Etcd等工具通常用于跟踪不经常更改但在运行时可能更改的信息，例如数据库服务器的主机名。
+- en: The only real downside to this approach is that a developer has to set several
+    environment variables before running an application locally. Depending on how
+    the application is built, it may either conveniently crash when first executed
+    or later, when a database tries to connect to a server named *undefined*.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的唯一真正缺点是，开发人员在本地运行应用程序之前必须设置多个环境变量。根据应用程序的构建方式，可能会在首次执行时方便地崩溃，或者稍后在尝试连接到名为
+    *undefined* 的服务器的数据库时崩溃。
+- en: 'When designing an application that reads environment variables, consider crashing
+    immediately if any required values are missing and printing a message that can
+    help the developer. Here’s an example of a helpful termination message:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在设计读取环境变量的应用程序时，考虑如果缺少任何必需的值，立即崩溃并打印一条可以帮助开发者的消息。这里有一个有用的终止消息示例：
+- en: '[PRE5]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: One way to make things easier for developers is to create an “env file,” which
+    is a file containing key/value pairs that are exported. By sourcing this file
+    in the shell, the different environment variable pairs are loaded for the terminal
+    session. With this approach, the env file should never be checked into the repository.
+    It can either be added to the repository’s *.gitignore* file if it’s a file that
+    multiple engineers are likely to use, or it can be added to a particular engineer’s
+    global git ignore file if only one engineer uses it.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了让开发人员更容易，一种方法是创建一个“env文件”，这是一个包含导出键/值对的文件。通过在shell中源化此文件，不同的环境变量对将加载到终端会话中。使用这种方法，env文件不应该被提交到代码库中。如果这是多位工程师可能使用的文件，则可以将其添加到代码库的
+    *.gitignore* 文件中；如果只有一个工程师使用，则可以将其添加到特定工程师的全局git忽略文件中。
+- en: Create a new file named *dev.env* and add the content from [Example 10-3](#ex_env_file)
+    to it. This is an example of an env file that contains a single entry.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为 *dev.env* 的新文件，并将来自[示例 10-3](#ex_env_file)的内容添加到其中。这是一个包含单个条目的env文件的示例。
+- en: Example 10-3\. *dev.env*
+  id: totrans-76
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-3\. *dev.env*
+- en: '[PRE6]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'This file is named *dev.env* to indicate that it contains environment variable
+    configuration for the development environment. By default, the values in the file
+    are not available in your terminal, but once the file has been sourced, they will
+    stick around until manually removed or until the terminal session exits. Run the
+    following commands to prove this:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件名为*dev.env*，表示它包含开发环境的环境变量配置。默认情况下，文件中的值在终端中不可用，但一旦文件被源化，它们将一直保留，直到手动删除或终端会话退出。运行以下命令来证明这一点：
+- en: '[PRE7]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Running the `node` command several times after the file has been sourced should
+    result in the same message appearing.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在文件被源化后多次运行`node`命令应该会导致相同的消息出现。
+- en: Note
+  id: totrans-81
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Sourcing subsequent env files will overwrite the previous values, but only if
+    they’ve been set in the new file. Be sure to define the same environment variables
+    in every env file; otherwise, you’ll end up with values for multiple environments.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 源化后续的环境文件将覆盖先前的值，但仅在新文件中设置了它们的情况下。务必在每个环境文件中定义相同的环境变量；否则，你将得到多个环境的值。
+- en: With this approach, you’re back at square one where a compromised developer
+    laptop leads to compromised credentials. That said, if the contents of the repository
+    are compromised (or a temporary contractor gets access), the environment variables
+    are still safe.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方法，当开发者的笔记本受到威胁时，你又回到了原点，会导致凭证泄露的问题。话虽如此，如果仓库内容被泄露（或者临时承包商获取了访问权限），环境变量仍然是安全的。
+- en: Configuration Files
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 配置文件
+- en: In most applications I’ve encountered, configuration files are used as a grab
+    bag to store any and all configuration values. Anything that is traditionally
+    represented as full-caps constants might get moved into these files. The usual
+    pattern is to have a separate configuration file for each environment, such as
+    *config/staging.js* and *config/production.js*. With this approach, applications
+    usually hard-code information like hostnames and ports on a per-environment basis.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我遇到的大多数应用程序中，配置文件被用作存储任何和所有配置值的抓包。传统上表示为全大写常量的任何内容可能会被移到这些文件中。通常的模式是为每个环境都有一个单独的配置文件，例如*config/staging.js*和*config/production.js*。通过这种方法，应用程序通常会按每个环境硬编码信息，例如主机名和端口。
+- en: This approach violates the security concerns outlined previously, but that doesn’t
+    mean the pattern can’t be leveraged in other ways. Storing information that doesn’t
+    include credentials and hostnames remains acceptable, especially when an application
+    needs to behave separately in different environments. The best way to securely
+    use configuration files is to have them read sensitive information from environment
+    variables.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法违反了先前概述的安全问题，但这并不意味着该模式不能以其他方式利用。存储不包括凭据和主机名的信息仍然是可以接受的，特别是当应用程序需要在不同环境中表现出不同行为时。安全使用配置文件的最佳方式是从环境变量中读取敏感信息。
+- en: Packages like `config` and `nconf` provide a mechanism for loading and merging
+    configuration from different files based on the current environment. Personally,
+    I feel that using such packages is usually overkill and can instead be replaced
+    with a few lines of code, like what you’re about to implement.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像`config`和`nconf`这样的包提供了一种机制，根据当前环境从不同的文件中加载和合并配置。就我个人而言，我认为使用这些包通常是杀鸡用牛刀，可以用你即将实现的几行代码来代替。
+- en: A module for performing application configuration should do a few things. First,
+    it should determine the current environment by inspecting the standard `NODE_ENV`
+    environment variable. Next, it should load a configuration file specific to the
+    current environment. Finally, as a convenience it should also load a fallback
+    configuration file that contains default values to be applied if missing in the
+    environment-specific file. The fallback file is useful for items that are always
+    configured the same way in each environment, like loading the same `REDIS` environment
+    variable.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于执行应用程序配置的模块应该执行几项任务。首先，它应该通过检查标准的`NODE_ENV`环境变量来确定当前环境。接下来，它应该加载特定于当前环境的配置文件。最后，作为便利，它还应该加载一个备用配置文件，其中包含如果在特定环境文件中缺少的默认值。备用文件对于每个环境中始终以相同方式配置的项目非常有用，例如加载相同的`REDIS`环境变量。
+- en: 'Run the following commands to create a new directory named *configuration*,
+    initialize a new npm project inside of it, and then create some configuration
+    files for a few environments:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令来创建一个名为*configuration*的新目录，在其中初始化一个新的npm项目，然后为几个环境创建一些配置文件：
+- en: '[PRE8]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: The *config/index.js* file is required by application code to access configuration
+    values. It exports a single object representing configuration key/value pairs.
+    The *config/default.js* file contains the fallback configuration values. The remaining
+    three files are environment-specific.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序代码需要通过引入 *config/index.js* 文件来访问配置值。它导出一个表示配置键/值对的单个对象。*config/default.js*
+    文件包含备用配置值。其余三个文件是特定于环境的。
+- en: Next, modify the *config/default.js* file and add the content from [Example 10-4](#ex_config_default)
+    to it.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，修改 *config/default.js* 文件，并将来自 [示例 10-4](#ex_config_default) 的内容添加到其中。
+- en: Example 10-4\. *configuration/config/default.js*
+  id: totrans-93
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-4\. *configuration/config/default.js*
+- en: '[PRE9]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In this default configuration file, the `REDIS` connection string defaults to
+    loading the value provided by the `REDIS` environment variable. The `WIDGETS_PER_BATCH`
+    configuration, presumably related to business logic, defaults to a conservative
+    value of 2\. Finally, the `MAX_WIDGET_PAYLOAD` value is a number representing
+    either the `PAYLOAD` environment variable or a value representing 1 megabyte.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个默认配置文件中，`REDIS` 连接字符串默认加载由 `REDIS` 环境变量提供的值。与业务逻辑相关的 `WIDGETS_PER_BATCH`
+    配置默认为保守值 2\. 最后，`MAX_WIDGET_PAYLOAD` 值是一个数字，表示 `PAYLOAD` 环境变量或表示 1MB 的值。
+- en: These values are provided to any caller by exporting a single top-level object.
+    This means that configuration files could also be exposed using JSON or YAML,
+    though the former makes it difficult to add comments, and both of them require
+    some sort of explicit syntax for reading and coercing environment variables.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些值通过导出一个顶级对象提供给任何调用者。这意味着配置文件也可以使用 JSON 或 YAML 进行公开，尽管前者很难添加注释，而且两者都需要某种显式语法来读取和强制转换环境变量。
+- en: Next, modify the *config/development.js* file, adding the content from [Example 10-5](#ex_config_development).
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，修改 *config/development.js* 文件，添加来自 [示例 10-5](#ex_config_development) 的内容。
+- en: Example 10-5\. *configuration/config/development.js*
+  id: totrans-98
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-5\. *configuration/config/development.js*
+- en: '[PRE10]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: The development configuration file defines three entries. The first is `ENV`
+    and is a convenience that allows an application to get the current environment
+    by reading `CONFIG.ENV` instead of `process.env.NODE_ENV`. Next up is the `REDIS`
+    value, which overwrites the same value from the default configuration file. In
+    this case, the value defaults to connecting to a Redis instance on the local machine.
+    However, if the user does choose to provide a `REDIS` environment value, it will
+    still be honored. The final configuration value, `MAX_WIDGET_PAYLOAD`, also overrides
+    the default value, setting it to `Infinity`.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发配置文件定义了三个条目。第一个是 `ENV`，它是一种便利，允许应用程序通过读取 `CONFIG.ENV` 而不是 `process.env.NODE_ENV`
+    来获取当前环境。接下来是 `REDIS` 值，它覆盖了默认配置文件中的相同值。在这种情况下，该值默认连接到本地机器上的 Redis 实例。然而，如果用户选择提供
+    `REDIS` 环境值，它仍将被尊重。最后一个配置值 `MAX_WIDGET_PAYLOAD` 也覆盖了默认值，将其设置为 `Infinity`。
+- en: Tip
+  id: totrans-101
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: While it’s possible to access `process.env` throughout an application’s codebase,
+    doing so makes it difficult for an engineer to find and understand every environment
+    variable that an application uses. Centralizing all environment variable reads
+    to a single *config/* directory can make them self-documenting.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然可以在应用程序的整个代码库中访问 `process.env`，但这样做会使工程师难以找到和理解应用程序使用的每个环境变量。将所有环境变量读取集中到一个
+    *config/* 目录可以使它们自说明。
+- en: 'For this example, the contents of *config/production.js* and *config/staging.js*
+    aren’t too important. Each of them should export the appropriately named `ENV`
+    configuration value, and maybe override another setting like `WIDGETS_PER_BATCH`.
+    One thing worth considering is that, with a production application, the staging
+    and production environments should be very similar. By keeping them similar, you’re
+    able to find issues in staging before they reach production. For example, one
+    might choose to use a single queue in staging and two queues in production in
+    order to reduce costs. However, with such a configuration, a bug in the code where
+    messages are always removed from queue #1 would not be encountered in staging
+    and would fail in production.'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个示例，*config/production.js* 和 *config/staging.js* 的内容并不是特别重要。它们各自应该导出相应命名的
+    `ENV` 配置值，并可能覆盖另一个设置，比如 `WIDGETS_PER_BATCH`。 值得考虑的一件事是，对于生产应用程序，分期和生产环境应该非常相似。
+    通过保持它们的相似性，您可以在生产之前在分期环境中发现问题。 例如，一个人可能选择在分期中使用单个队列，在生产中使用两个队列以减少成本。 然而，使用这样的配置，如果代码中总是从队列＃1中删除消息，则在分期中不会遇到问题，并且在生产中将失败。
+- en: Next, modify the *config/index.js* file to look like [Example 10-6](#ex_config_index).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，修改 *config/index.js* 文件以看起来像 [示例 10-6](#ex_config_index)。
+- en: Example 10-6\. *configuration/config/index.js*
+  id: totrans-105
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 10-6\. *configuration/config/index.js*
+- en: '[PRE11]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '[![1](assets/1.png)](#co_security_CO1-1)'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_security_CO1-1)'
+- en: Shallow merge of configuration files
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浅合并配置文件
+- en: This file merges the top-level properties from the *config/default.js* configuration
+    file with the appropriate configuration file for the current environment and then
+    exports the merged values. If the configuration file can’t be found, then the
+    module prints an error and the application exits with a nonzero status code. Since
+    an application presumably can’t run without any configuration, and assuming the
+    configuration is read early in the startup process, it’s then appropriate to display
+    an error and terminate the process. It’s better to fail immediately than to fail
+    once an application handles its first HTTP request.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件将来自 *config/default.js* 配置文件的顶级属性与当前环境的适当配置文件中的值进行合并，然后导出合并后的值。 如果找不到配置文件，则模块会打印错误并且应用程序退出并显示非零状态代码。
+    由于应用程序可能无法在没有任何配置的情况下运行，并且假设配置是在启动过程的早期读取的，因此显示错误并终止进程是合适的。 最好立即失败，而不是在应用程序处理其第一个HTTP请求时失败。
+- en: 'The configuration settings can then be accessed by requiring the config file
+    from a Node.js module. For example, the code to connect to a Redis instance might
+    look like this:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，可以通过从Node.js模块要求配置文件来访问配置设置。 例如，连接到Redis实例的代码可能如下所示：
+- en: '[PRE12]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: By using this approach, sensitive configuration settings are kept off disk and
+    out of version control, developers are free to run their application locally using
+    sensible defaults, environment variable access is done in a central location,
+    and per-environment configuration can be maintained. By using a simple configuration
+    loader like *config/index.js*, the application doesn’t depend on another npm package.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方法，敏感配置设置被保持在磁盘之外和版本控制之外，开发人员可以自由地使用合理的默认值在本地运行其应用程序，环境变量访问是在一个中心位置完成的，并且可以维护每个环境配置。
+    通过使用像 *config/index.js* 这样的简单配置加载器，应用程序不依赖于另一个npm包。
+- en: Secrets Management
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 机密管理
+- en: '*Secrets management* is a technique for storing and retrieving sensitive values.
+    This typically includes credentials like usernames, passwords, and API keys. Tools
+    that implement secrets management keep the values hidden by default, usually requiring
+    a mechanism to decrypt and view them. This behavior is a little different than
+    how environment variables are treated, where interfaces often keep them visible.'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*机密管理* 是一种存储和检索敏感值的技术。 这通常包括像用户名，密码和API密钥这样的凭据。 实现机密管理的工具通常默认隐藏这些值，通常需要一种解密和查看它们的机制。
+    这种行为与环境变量处理方式有些不同，其中界面通常保持它们可见。'
+- en: Secrets management software provides a mechanism for an application to retrieve
+    the secrets at runtime. These secrets can be provided in a few ways, such as having
+    the application request them from a service. Often the most convenient method
+    is by injecting them as environment variables, an approach that doesn’t require
+    application changes.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 机密管理软件提供了一种应用程序在运行时检索机密的机制。 这些机密可以通过几种方式提供，例如通过应用程序从服务请求它们。 最方便的方法通常是将它们作为环境变量注入，这种方法不需要应用程序更改。
+- en: 'Kubernetes supports secrets management and can provide it by either mounting
+    a file in the container that contains the secret value, or by environment variable.
+    Defining secrets using Kubernetes is similar to defining other resources. One
+    way to do it is by creating a YAML file with the secret. The following is an example
+    of how the Redis connection string might be made into a secret:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubernetes支持秘密管理，并可以通过将包含秘密值的文件挂载到容器或通过环境变量提供秘密。使用Kubernetes定义秘密类似于定义其他资源。一种方法是通过创建一个YAML文件来定义秘密。以下是将Redis连接字符串转换为秘密的示例：
+- en: '[PRE13]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: A YAML file can be used to define several secrets. In this case, there’s only
+    one secret defined as *redisprod:redisconn*. With other secrets it might make
+    sense to keep them separated, like when dealing with separate username and password
+    values. Applying this file adds the secret to the Kubernetes cluster. The file
+    can then be destroyed, and with it, any plain-text versions of the secret.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以使用YAML文件定义多个秘密。在这种情况下，只定义了一个秘密，即 *redisprod:redisconn*。对于其他秘密，将它们分开可能是有意义的，例如处理单独的用户名和密码值时。应用此文件将秘密添加到Kubernetes集群中。然后可以销毁该文件，以及其中的任何明文秘密。
+- en: 'Later, when defining a pod in another YAML file, the secret can be referenced
+    when defining the environment variables in the `spec.template.spec.containers`
+    section. The following is an example of what one of these env vars might look
+    like:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 稍后，在另一个YAML文件中定义Pod时，可以在`spec.template.spec.containers`部分定义环境变量时引用该秘密。以下是其中一个这些环境变量可能的示例：
+- en: '[PRE14]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: In this case, the `REDIS` environment variable pulls its value from the *redisprod:redisconn*
+    secret. When Kubernetes launches the container, it first retrieves the secret,
+    then decrypts the value, and finally provides it to the application.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`REDIS`环境变量从 *redisprod:redisconn* 秘密中提取其值。当Kubernetes启动容器时，首先检索秘密，然后解密该值，最后提供给应用程序。
+- en: Upgrading Dependencies
+  id: totrans-122
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 更新依赖项
+- en: Any Node.js project with a sufficient number of dependencies will eventually
+    contain known vulnerabilities. This is especially true if the project doesn’t
+    frequently update its dependencies. The thought that a project can “change” while
+    the code is at rest almost sounds counterintuitive, but the important keyword
+    is that these are “known” vulnerabilities. The vulnerabilities were present when
+    the dependency was first added to the project—it’s just that you, and presumably
+    the package’s maintainer, learned about the vulnerabilities later.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何具有足够多依赖项的Node.js项目最终都会包含已知的漏洞。如果项目不经常更新其依赖项，这一点尤其明显。项目在静止状态下可以“改变”的想法似乎有些违反直觉，但关键词是“已知”漏洞。这些漏洞在依赖项首次添加到项目时就存在——只是你和包的维护者后来才了解到这些漏洞。
+- en: One way to help avoid vulnerabilities in packages is to keep them constantly
+    updated. Theoretically, package authors continually learn better practices, and
+    vulnerabilities are always being reported, so keeping packages up to date should
+    help. That said, at one point, an application is functioning properly, and by
+    updating packages there is the risk that a subtle breaking change is introduced.
+    Ideally, package authors follow SemVer (covered in [“Modules, Packages, and SemVer”](ch06.html#ch_deployments_sec_guts)),
+    but that doesn’t always happen. Certainly, other vulnerabilities could be introduced
+    in new releases. The old adage is “If it ain’t broke, don’t fix it.”
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 帮助避免软件包漏洞的一种方法是保持其不断更新。理论上，软件包作者不断学习更好的实践，并且漏洞一直在被报告，因此保持软件包的更新应该会有所帮助。话虽如此，一旦应用程序正常运行，通过更新软件包可能会引入微妙的破坏性变化的风险。理想情况下，软件包作者遵循语义化版本（在[“模块、软件包和语义化版本”](ch06.html#ch_deployments_sec_guts)中有介绍），但这并非总是发生。当然，新版本中可能会引入其他漏洞。有句老话说：“如果它没坏，就不要修复它。”
+- en: Any change made to an application’s dependencies will require a new round of
+    testing, so continuously keeping dependency versions on the bleeding edge would
+    require a lot of work. A complex app might have newer versions of dependencies
+    released every few hours! Not updating dependencies at all will result in an application
+    that’s full of vulnerabilities and a nightmare to update. Some sort of middle
+    ground must be reached.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何对应用程序依赖项的更改都将需要进行新一轮测试，因此持续保持依赖版本在前沿将需要大量工作。一个复杂的应用可能每隔几个小时就会发布新版本的依赖项！完全不更新依赖项将导致应用程序充满漏洞，且更新起来是一场噩梦。必须达成某种折中。
+- en: One approach is to only update packages if they introduce a new feature, performance
+    boost, or vulnerability fix that will specifically benefit the application. Other
+    packages that are vital, such as the main web server or framework used by an application,
+    are also worthy of common updates to make future refactors easier.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个方法是仅在更新包含新功能、性能提升或特定受益于应用程序的漏洞修复的情况下更新包。其他重要的包，如主要的 Web 服务器或应用程序使用的框架，也值得进行常规更新，以便未来的重构更容易进行。
+- en: When you do decide to update packages, consider making changes piecemeal. If
+    a project has 20 dependencies that should be upgraded, then break them up over
+    several pull requests. For larger widespread changes, like changing the web server,
+    only change that one dependency in a PR if you can (while also making any required
+    application changes). For dependencies that are tightly coupled, like a database
+    library and an SQL query builder, it might make sense to combine them in a PR.
+    For other changes that don’t have as big of an application impact, such as dev
+    dependencies, upgrading several of them in a single pull request might be fine
+    (assuming there aren’t too many code changes involved).
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你决定更新包时，考虑逐步进行更改。如果一个项目有 20 个需要升级的依赖项，那么可以将它们分解成几个拉取请求。对于更大范围的更改，比如更改 Web 服务器，如果可能的话，只在一个
+    PR 中更改一个依赖项（同时进行所需的应用程序更改）。对于紧密耦合的依赖项，比如数据库库和 SQL 查询构建器，可能将它们组合在一个 PR 中是有意义的。对于没有那么大应用程序影响的其他更改，比如开发依赖项，在一个拉取请求中升级几个依赖项可能也是可以接受的（假设没有涉及太多代码更改）。
+- en: Warning
+  id: totrans-128
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Reviewers won’t be able to find bugs if a pull request contains too many changes.
+    It’s almost impossible to associate code changes with dependency changes if unrelated
+    upgrades are combined.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个拉取请求包含太多的更改，审阅者将无法找到 bug。如果没有关联的升级被合并，几乎不可能将代码更改与依赖项更改关联起来。
+- en: npm manages a database^([3](ch10.html#idm46291172781992)) of known vulnerabilities
+    and has a web page for reporting vulnerable packages. Snyk also maintains their
+    [Vulnerability DB for npm packages](https://snyk.io/vuln?type=npm) service. In
+    this section, you’ll work with tools that automatically compare an application’s
+    dependencies to npm’s vulnerability database.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: npm 管理着一个已知漏洞的数据库^([3](ch10.html#idm46291172781992))，并且有一个用于报告易受攻击包的网页。Snyk
+    还维护了他们的 [npm 包漏洞数据库](https://snyk.io/vuln?type=npm) 服务。在本节中，你将使用自动比较应用程序依赖项与 npm
+    漏洞数据库的工具。
+- en: Automatic Upgrades with GitHub Dependabot
+  id: totrans-131
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 GitHub Dependabot 进行自动升级
+- en: 'GitHub has multiple automated security services that can be enabled on a given
+    repository. They offer support for several platforms, including Node.js projects
+    that consume npm packages. To enable these services, visit the Settings tab on
+    a repository you are an administrator of, click the Security & analysis tab, and
+    then enable the different security features offered. GitHub has three services
+    as of this writing: *Dependency graph*, *Dependabot alerts*, and *Dependabot security
+    updates*. Each service depends on the service before it. A repository will benefit
+    from automated pull requests that upgrade dependencies as a result of enabling
+    these services.'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GitHub 拥有多个自动化安全服务，可以在给定仓库上启用。它们支持多个平台，包括消耗 npm 包的 Node.js 项目。要启用这些服务，请访问你是管理员的仓库的“设置”选项卡，点击“安全性与分析”选项卡，然后启用提供的不同安全功能。截至本文写作时，GitHub
+    有三项服务：*依赖图*、*Dependabot 警报* 和 *Dependabot 安全更新*。每个服务都依赖于前一个服务。启用这些服务后，仓库将受益于自动拉取请求，用于升级依赖项。
+- en: Dependabot is a GitHub service that creates pull requests that update known
+    vulnerabilities in your dependencies. [Figure 10-1](#fig_github_security) is a
+    screenshot of a banner that appears at the top of a repository when known vulnerabilities
+    have been discovered.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Dependabot 是 GitHub 的一个服务，它会创建拉取请求来更新你的依赖项中已知的漏洞。[图 10-1](#fig_github_security)
+    是一个截图，显示了当已知漏洞被发现时，在仓库顶部会出现的横幅。
+- en: '![GitHub displaying an alert that a project contains known vulnerabilities](assets/dsnj_1001.png)'
+  id: totrans-134
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GitHub 显示警报，项目包含已知漏洞](assets/dsnj_1001.png)'
+- en: Figure 10-1\. The dreaded GitHub dependency vulnerability
+  id: totrans-135
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-1\. 令人头痛的 GitHub 依赖性漏洞
+- en: Dependabot currently doesn’t support changing application code. This means it’s
+    impossible for Dependabot to create a pull request for every vulnerability. For
+    example, if package `foobar@1.2.3` contains a vulnerability and the only fix is
+    in `foobar@2.0.0`, then Dependabot won’t create a pull request since the SemVer
+    change suggests that a breaking API change was made. That said, the GitHub UI
+    still displays a banner and provides contextual information about vulnerable packages.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，Dependabot 不支持更改应用程序代码。这意味着 Dependabot 不可能为每个漏洞创建一个拉取请求。例如，如果包 `foobar@1.2.3`
+    存在漏洞，并且唯一的修复方法在 `foobar@2.0.0` 中，那么 Dependabot 不会创建拉取请求，因为 SemVer 变更表明存在破坏性 API
+    更改。尽管如此，GitHub UI 仍会显示横幅，并提供有关易受影响包的上下文信息。
+- en: Any continuous integration tests enabled on the repository will still run against
+    Dependabot pull requests. This should help provide confidence that a particular
+    upgrade is safe. That said, when it comes to pull requests for packages that are
+    extremely integral to your application, you might be better off making the change
+    locally.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储库上启用的任何持续集成测试仍将针对 Dependabot 拉取请求运行。这应该有助于确保特定升级是安全的。尽管如此，在涉及到对您的应用程序极为重要的包的拉取请求时，您最好在本地进行更改。
+- en: With Dependabot security updates enabled on your repository, you’ll occasionally
+    receive pull requests. [Figure 10-2](#fig_github_dependabot_pr) is a screenshot
+    of what one of these pull requests looks like.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的存储库启用 Dependabot 安全更新后，您偶尔会收到拉取请求。[图 10-2](#fig_github_dependabot_pr) 是这些拉取请求的屏幕截图。
+- en: '![Dependabot creating a pull request](assets/dsnj_1002.png)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Dependabot 创建拉取请求](assets/dsnj_1002.png)'
+- en: Figure 10-2\. Automatic Dependabot pull request
+  id: totrans-140
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-2\. 自动 Dependabot 拉取请求
+- en: A Dependabot pull request provides a list of commands that you can trigger by
+    replying to it. Dependabot won’t continuously rebase a pull request on the master
+    branch as commits are merged. Instead, you can reply with the **`@dependabot rebase`**
+    command to trigger a rebase. The pull request also includes contextual information
+    about the vulnerability being fixed, such as content from a changelog and even
+    git commits between the currently installed version of the package and the version
+    being upgraded to.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Dependabot 拉取请求提供了一系列命令列表，您可以通过回复来触发这些命令。Dependabot 不会在提交合并时连续地将拉取请求重新基于主分支进行重置。相反，您可以通过回复
+    **`@dependabot rebase`** 命令来触发重新基于的操作。该拉取请求还包含了有关正在修复的漏洞的上下文信息，例如来自变更日志的内容，甚至是当前安装版本和升级版本之间的
+    git 提交。
+- en: The Dependabot pull request makes it very convenient to merge a package upgrade
+    and also provides a lot of useful information about the vulnerability. Sadly,
+    it only works for a subset of situations where a package upgrade is required.
+    For the other situations. you need a more manual approach.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Dependabot 拉取请求非常方便，可以合并包的升级，并提供有关漏洞的大量有用信息。不幸的是，它仅适用于需要包升级的某些情况。对于其他情况，您需要更多的手动方法。
+- en: Manual Upgrades with npm CLI
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 npm CLI 进行手动升级
+- en: Dependabot simplifies package upgrades in some situations, but more often than
+    not, you’ll need to take the manual approach. The npm CLI provides a few subcommands
+    to help make this process easier.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些情况下，Dependabot 简化了包升级的过程，但更多时候，您需要采取手动方法。npm CLI 提供了一些子命令来帮助简化这个过程。
+- en: 'Run the following commands to create a new directory named *audit*, create
+    a new npm project, and install some packages with known vulnerabilities:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令以创建一个名为 *audit* 的新目录，创建一个新的 npm 项目，并安装一些已知漏洞的包：
+- en: '[PRE15]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Once the `npm install` command finishes, it should display some messages. When
+    I run the command, I get the following messages, though by the time you run these
+    commands, you might see even more:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`npm install`命令完成后，应显示一些消息。当我运行该命令时，虽然你可能在运行这些命令时看到更多的消息，但我得到以下消息：
+- en: '[PRE16]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'The first command you should know prints a list of outdated packages. This
+    helps find packages that are candidates for an upgrade, though not necessarily
+    which packages are vulnerable. Run the following command to get a list of outdated
+    packages:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个你应该知道的命令会打印一个过时包的列表。这有助于找到需要升级的包，尽管不一定能找出哪些包有漏洞。运行以下命令以获取过时包的列表：
+- en: '[PRE17]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '[Table 10-2](#table_npm_outdated_output) contains the results that I get back
+    from this command.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 10-2](#table_npm_outdated_output) 包含了我从这个命令中得到的结果。'
+- en: Table 10-2\. Example `npm outdated` output
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10-2\. 示例 `npm outdated` 输出
+- en: '| Package | Current | Wanted | Latest | Location |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| Package | Current | Wanted | Latest | Location |'
+- en: '| --- | --- | --- | --- | --- |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- |'
+- en: '| hoek | 4.2.0 | 4.2.1 | 6.1.3 | audit |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| hoek | 4.2.0 | 4.2.1 | 6.1.3 | audit |'
+- en: '| js-yaml | 3.9.1 | 3.14.0 | 3.14.0 | audit |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| js-yaml | 3.9.1 | 3.14.0 | 3.14.0 | audit |'
+- en: Note that the versions and packages you see may be different since new packages
+    are released all the time. The *current* column states the version of the package
+    that is currently installed. The *wanted* column states the greatest version of
+    the package that is satisfied by the *package.json* SemVer range, which will differ
+    over time as newer packages are published. The *latest* column lists the most
+    recent version of the package available on npm. The final *location* column lets
+    you know where the package is located.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，你看到的版本和软件包可能不同，因为新的软件包会不断发布。*当前* 列显示当前安装的软件包版本。*wanted* 列显示 *package.json*
+    SemVer 范围所满足的最高版本，随着时间的推移，随着新的软件包发布，这将会有所不同。*latest* 列显示了npm上可用的最新软件包版本。最后的 *location*
+    列告诉你软件包的位置。
+- en: The `npm audit` subcommand,^([4](ch10.html#idm46291172466040)) on the other
+    hand, provides a list of packages installed in the current project that have known
+    security vulnerabilities.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，`npm audit` 子命令^([4](ch10.html#idm46291172466040)) 提供了当前项目中安装的已知安全漏洞的软件包列表。
+- en: 'The npm CLI, by default, provides vulnerability warnings about packages being
+    installed. This happens not only when a vulnerable package is installed directly,
+    like you’ve just done, but also when any packages are installed. Run the following
+    two commands to discard the current *node_modules* directory and to reinstall
+    everything from scratch:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，npm CLI 会提醒你有关安装的软件包存在漏洞的警告。这不仅发生在直接安装有漏洞的软件包时，就像你刚刚做的那样，还发生在安装任何软件包时。运行以下两个命令以丢弃当前的
+    *node_modules* 目录，并从头开始重新安装所有内容：
+- en: '[PRE18]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'You should see the same vulnerability warnings printed again. But these vulnerability
+    messages only warn in aggregate and don’t list individual offending packages.
+    To get more detailed information, you need to run another command:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该会再次看到相同的漏洞警告。但是这些漏洞消息仅作为总体警告，并不列出单个有问题的软件包。要获取更详细的信息，你需要运行另一个命令：
+- en: '[PRE19]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: This command displays even more details about the vulnerabilities. It goes through
+    the entire list of vulnerable packages and displays their known vulnerabilities.
+    [Table 10-3](#table_npm_audit_output) contains the information I see when running
+    the command.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令显示了有关漏洞的更多详细信息。它会遍历所有有漏洞的软件包列表，并显示它们的已知漏洞。运行该命令时，[表格 10-3](#table_npm_audit_output)
+    包含了我看到的信息。
+- en: Table 10-3\. Example `npm audit` output
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表格 10-3\. `npm audit` 示例输出
+- en: '| Level | Type | Package | Dependency of | Path | More info |'
+  id: totrans-165
+  prefs: []
+  type: TYPE_TB
+  zh: '| 级别 | 类型 | 软件包 | 依赖关系 | 路径 | 更多信息 |'
+- en: '| --- | --- | --- | --- | --- | --- |'
+  id: totrans-166
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- |'
+- en: '| Moderate | Denial of Service | js-yaml | js-yaml | js-yaml | [*https://npmjs.com/advisories/788*](https://npmjs.com/advisories/788)
+    |'
+  id: totrans-167
+  prefs: []
+  type: TYPE_TB
+  zh: '| 中等 | 拒绝服务 | js-yaml | js-yaml | js-yaml | [*https://npmjs.com/advisories/788*](https://npmjs.com/advisories/788)
+    |'
+- en: '| High | Code Injection | js-yaml | js-yaml | js-yaml | [*https://npmjs.com/advisories/813*](https://npmjs.com/advisories/813)
+    |'
+  id: totrans-168
+  prefs: []
+  type: TYPE_TB
+  zh: '| 高 | 代码注入 | js-yaml | js-yaml | js-yaml | [*https://npmjs.com/advisories/813*](https://npmjs.com/advisories/813)
+    |'
+- en: '| Moderate | Prototype Pollution | hoek | hoek | hoek | [*https://npmjs.com/advisories/566*](https://npmjs.com/advisories/566)
+    |'
+  id: totrans-169
+  prefs: []
+  type: TYPE_TB
+  zh: '| 中等 | 原型污染 | hoek | hoek | hoek | [*https://npmjs.com/advisories/566*](https://npmjs.com/advisories/566)
+    |'
+- en: 'In my case, there are three known vulnerabilities: two in the `js-yaml` package
+    and one in the `hoek` package. npm has four levels of vulnerability severity:
+    low, moderate, high, and critical. These are an estimate of how much the vulnerability
+    might affect your application. The *type* column provides a short classification
+    for the vulnerability; the first is a *Denial of Service* attack that may crash
+    an application and has earned a moderate severity. The *Code Injection* attack
+    is much more dangerous and can lead to situations like stolen passwords and, therefore,
+    is labeled as high. The third, *Prototype Pollution*, is also considered moderate.'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，已知存在三个漏洞：两个在 `js-yaml` 软件包中，一个在 `hoek` 软件包中。npm 具有四个漏洞严重性级别：低、中等、高和严重。这些级别估计了漏洞可能影响应用程序的程度。*类型*
+    列为漏洞提供了一个简短的分类；第一个是 *拒绝服务* 攻击，可能会导致应用程序崩溃，并被评为中等严重性。*代码注入* 攻击则更为危险，可能导致像密码被盗这样的情况，并因此被标记为高级别。第三个
+    *原型污染* 也被视为中等。
+- en: The *package* column states the package that the vulnerability is in, the *dependency
+    of* column states the parent package, and the *path* column provides the full
+    logical path to the offending package. The *patched in* column, if present, gives
+    a version range that is known to fix the package. In the case of these results,
+    the npm audit has determined that the first two `js-yaml`-related vulnerabilities
+    can be fixed automatically, while the third `hoek` package must be fixed manually.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*软件包* 列指出漏洞所在的软件包，*依赖项* 列指出父软件包，*路径* 列提供了有问题的软件包的完整逻辑路径。 *修补版本* 列（如果存在）给出了已知可以修复该软件包的版本范围。在这些结果中，npm
+    审核已确定可以自动修复前两个与 `js-yaml` 相关的漏洞，而第三个 `hoek` 软件包必须手动修复。'
+- en: 'The npm output also displays a command that you can run to update the package,
+    if appropriate. Run the following command, which is what the npm audit has recommended
+    to fix the first two vulnerabilities:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: npm 输出还显示了一个命令，您可以运行此命令来更新软件包（如果适用）。运行以下命令，这是 npm 审核建议用于修复前两个漏洞的命令：
+- en: '[PRE20]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Doing so upgrades the package to a known-good version that should still be compatible
+    with the SemVer range specified in the *package.json* file. In my case, the dependency
+    for `js-yaml@^3.9.1` was changed in both *package.json* and *package-lock.json*
+    to use `js-yaml@^3.14.0`.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做将软件包升级到已知良好的版本，该版本应仍与 *package.json* 文件中指定的 SemVer 范围兼容。在我的情况下，`js-yaml@^3.9.1`
+    的依赖性在 *package.json* 和 *package-lock.json* 中都更改为使用 `js-yaml@^3.14.0`。
+- en: 'At this point, if you were to run the **`npm audit`** command a second time,
+    you would only see the `hoek` package listed. Unfortunately, `npm audit` won’t
+    provide a recommendation to fix this package. But based on the version range listed
+    in the *patched in* column, it’s known that the package is fixed in version `4.2.1`.
+    Run the following command to manually fix the vulnerable package:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一点上，如果您再次运行 **`npm audit`** 命令，您只会看到列出的 `hoek` 软件包。不幸的是，`npm audit` 不会提供修复此软件包的建议。但基于
+    *修补版本* 列中列出的版本范围，已知软件包在版本 `4.2.1` 中已修复。运行以下命令手动修复这个有漏洞的软件包：
+- en: '[PRE21]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: In my case, the package went from being `hoek@^4.2.0` to `hoek@^4.2.1`.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，软件包从 `hoek@^4.2.0` 升级到 `hoek@^4.2.1`。
+- en: The `npm audit` command can be adapted slightly to only list vulnerabilities
+    that exceed a certain severity level. Also note that the `npm audit` command returns
+    a non-zero status code if a vulnerable package has been encountered. This could
+    be used as part of a nightly cron job to keep an eye on the health of an application.
+    However, it shouldn’t be used as part of a continuous integration test, as packages
+    that have become vulnerable and that are installed on the master branch shouldn’t
+    cause pull requests to fail that don’t introduce the faulty package.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`npm audit` 命令可以稍作调整，仅列出超过某个严重级别的漏洞。还请注意，如果遇到有漏洞的软件包，`npm audit` 命令会返回非零状态代码。这可以作为每晚定时任务的一部分来监视应用程序的健康状况。但不应将其用作持续集成测试的一部分，因为已成为有漏洞并安装在主分支上的软件包不应导致不引入有问题软件包的拉取请求失败。'
+- en: 'Here’s a version of the command that can be used to fail a check when non-dev
+    dependencies have a vulnerability that is considered high or greater:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个命令的版本，用于在非开发依赖项具有被视为高级或更高级别漏洞时失败检查：
+- en: '[PRE22]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Unfortunately, you will sometimes encounter packages that do have a vulnerability
+    but do not have a patched version published.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，有时您会遇到存在漏洞但尚未发布修补版本的软件包。
+- en: Unpatched Vulnerabilities
+  id: totrans-182
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 未修补的漏洞
+- en: At some point in your career, you may discover a vulnerability in a package
+    that is maintained by a third party. While it may be tempting to immediately tweet
+    your findings to the world, doing so will only put applications that depend on
+    the package at risk—yours included! Instead, it’s best to send the author of the
+    package a private message disclosing the vulnerability and the steps required
+    to exploit it. This is a form of [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure),
+    where someone is given time to fix a vulnerability before letting hackers know
+    about it.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在职业生涯的某个阶段，您可能会发现由第三方维护的软件包中存在漏洞。虽然立即在社交媒体上公布您的发现可能很诱人，但这样做只会使依赖于该软件包的应用程序（包括您自己的应用程序）面临风险！相反，最好向软件包的作者发送一条私信，披露漏洞和利用它所需的步骤。这是一种[负责任的披露](https://en.wikipedia.org/wiki/Responsible_disclosure)形式，在通知黑客之前给予修复漏洞的时间。
+- en: To make this process easier, npm has a page where you can [report a security
+    vulnerability](https://www.npmjs.com/advisories/report). This page asks for your
+    contact information, the name of the package, and the version range affected by
+    the vulnerability. It also contains a description field that you should use to
+    provide a proof of concept of an attack using the package. If you don’t provide
+    it, then someone from npm will email you to ask for a proof of concept. Once npm
+    verifies the vulnerability, it will contact the author and mark the offending
+    packages as vulnerable.
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了简化这个过程，npm有一个页面，您可以报告[安全漏洞](https://www.npmjs.com/advisories/report)。此页面要求提供您的联系信息、包的名称以及受漏洞影响的版本范围。它还包含一个描述字段，您应该使用它来提供使用该包进行攻击的概念验证。如果您没有提供，那么npm的某人将会给您发送电子邮件以请求概念验证。一旦npm验证了漏洞，它将联系作者，并标记有问题的包为脆弱的。
+- en: If you know how to fix the issue, creating a pull request could certainly expedite
+    the process, but doing so might be a little too public. You can also generate
+    a “patch” that can be mailed to the author (or provided in the security report
+    description) of the fix by running **`git diff --patch`**—assuming you’ve made
+    the changes in a local repository clone. The package is much more likely to get
+    patched if you provide an example of both how to break it and how to fix it.
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您知道如何修复问题，创建一个拉取请求肯定可以加快进程，但这样做可能会太过公开。您还可以生成一个“补丁”，通过运行**`git diff --patch`**将其发送给作者（或在安全报告描述中提供）以修复问题，假设您在本地存储库克隆中进行了更改。如果您提供了如何破坏它和如何修复它的示例，该包更有可能被修补。
+- en: 'Whether you discovered the vulnerability in the first place or someone else
+    made it public, you’re still stuck in the same boat: you need to shield your application
+    from the threat of the vulnerability. If a fixed version of the package is released
+    and it’s a direct dependency, then the best thing to do is update the dependency
+    and deploy. If the vulnerable package is a subdependency, then you might get lucky
+    if its parent dependency uses a version range.'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论是您首次发现漏洞还是其他人公开了它，您仍然陷入同样的困境：需要保护应用程序免受漏洞威胁。如果包的修复版本已发布，并且它是直接依赖项，则最好的做法是更新依赖项并部署。如果易受攻击的包是子依赖项，则如果其父依赖项使用版本范围，则您可能会有好运。
+- en: You may end up in situations where you can’t simply swap out the vulnerable
+    package. Perhaps the package is fundamentally insecure and can’t be fixed. Perhaps
+    the package is no longer maintained and nobody is available to fix it.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会陷入无法简单替换易受攻击包的情况。也许该包从根本上是不安全的，无法修复。也许该包已经不再维护，没有人可以修复它。
+- en: When this happens, you have a few choices. If you have direct control of how
+    information is passed into a package and you know how it fails, such as when calling
+    `foo.run(user_input)` with a number instead of a string, then you can wrap the
+    call to that function within your app and coerce the value into the acceptable
+    type, use a regular expression to remove bad inputs, etc. Make the code change,
+    add a “TODO” comment to remove the wrapper when the package finally upgrades,
+    and deploy.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当这种情况发生时，您有几种选择。如果您可以直接控制信息如何传递到一个包中，并且知道它是如何失败的，比如调用`foo.run(user_input)`时使用数字而不是字符串，那么您可以在应用程序中包装该函数调用，并将值强制转换为可接受的类型，使用正则表达式去除不良输入等。进行代码更改，添加一个“TODO”注释，以便在包最终升级时删除包装，并部署。
+- en: If the package is a direct dependency and is abandoned and vulnerable, then
+    you might want to look for another package that does the same thing. You can also
+    fork the package, apply a fix, and publish it under a new name on npm. Then, modify
+    the *package.json* to use your forked package.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果该包是直接依赖项并且已被弃用且有漏洞，则您可能希望寻找另一个执行相同功能的包。您还可以分叉该包，应用修复并在npm上以新名称发布。然后，修改*package.json*以使用您的分叉包。
+- en: 'Several years ago a vulnerability in a query string parsing package made the
+    news. An attacker could provide an HTTP request with an array query parameter
+    containing a large index like so: `a[0][999999999]=1`. The package then created
+    an extremely large array (instead of using another representation like an object)
+    and would crash the process. An application that my team owned was affected by
+    this. The fix was fairly straight forward but was, unfortunately, several dependency
+    levels deep. A colleague of mine stayed up half the night working with maintainers
+    of each of the dependencies, getting them to release new versions that no longer
+    relied on a vulnerable package.'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 几年前，一个解析查询字符串的包中发现了一个漏洞。攻击者可以提供包含大索引的数组查询参数的 HTTP 请求，如 `a[0][999999999]=1`。然后该包创建了一个极大的数组（而不是使用对象等其他表示方式），导致进程崩溃。我们团队拥有的一个应用程序受到了影响。修复方法相对比较直接，但不幸的是，依赖层级较深。我的一位同事通宵与每个依赖项的维护者合作，促使他们发布不再依赖受影响包的新版本。
+- en: Vulnerabilities are harder to manage when they deal with protocols. Sure, if
+    a package deals with function calls much deeper in an application, you can intercept
+    calls and sanitize data. But when they’re located at the most shallow layers of
+    the application, like packages loaded by a framework to parse HTTP, then you might
+    be able to rely on a reverse proxy to sanitize the request. For example, while
+    your application might use a framework that’s vulnerable to a slow `POST` attack
+    (breaking the request body into small pieces and sending each piece over a long
+    period of time), HAProxy can be configured to prevent this attack by terminating
+    the connection, freeing up server resources.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理涉及协议的漏洞更加困难。如果一个包处理应用程序中更深层次的函数调用，你可以拦截调用并清理数据。但如果漏洞位于应用程序最浅层，例如由框架加载用于解析
+    HTTP 的包时，可能需要依赖反向代理来清理请求。例如，尽管你的应用程序可能使用的框架容易受到慢 `POST` 攻击的影响（将请求主体分割成小块，并在长时间内发送每个块），但可以配置
+    HAProxy 来终止连接以防止此类攻击，从而释放服务器资源。
+- en: Upgrading Node.js
+  id: totrans-192
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 升级 Node.js
+- en: Vulnerabilities are occasionally discovered in Node.js releases. For example,
+    at some point both the Node.js v12 and v14 release lines were vulnerable to [CVE-2020-8172](https://oreil.ly/lUoVq)
+    and [CVE-2020-11080](https://oreil.ly/mw2IP), two vulnerabilities that affect
+    the built-in `http` module. A fix was implemented in both release lines, released
+    as v12.18.0 and v14.4.0\. Security fixes are often implemented in a minor SemVer
+    release for the current release line and then backported to the active LTS release
+    line and, if applicable, the LTS release that’s in maintenance.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 发布版本偶尔会发现漏洞。例如，Node.js v12 和 v14 发布系列在某些时候都存在 [CVE-2020-8172](https://oreil.ly/lUoVq)
+    和 [CVE-2020-11080](https://oreil.ly/mw2IP) 这两个漏洞，这两个漏洞影响了内置的 `http` 模块。这些问题在 v12.18.0
+    和 v14.4.0 版本中得到了修复。安全修复通常在当前发布系列的次要 SemVer 版本中实施，并后移至活跃的 LTS 发布系列以及可能的维护 LTS 发布系列。
+- en: It’s important to stay up to date on Node.js security releases. But aside from
+    security updates, Node.js releases also come with new features and performance
+    updates. Upgrading is generally a good idea, but it does come with some caveats,
+    which is why most organizations don’t immediately jump on the latest release.
+    Notably there could be regressions with performance, or even compatibility; Node.js
+    is good at following SemVer, but sometimes dependencies use private internal APIs
+    that change.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 保持 Node.js 安全发布的最新状态非常重要。除了安全更新外，Node.js 发布还带来了新功能和性能更新。通常建议升级，但也需注意一些注意事项，这也是大多数组织不会立即升级到最新版本的原因。尤其是性能可能会出现退化，或者兼容性问题；Node.js
+    虽然遵循 SemVer，但有时依赖项使用的是私有内部 API，可能会发生变化。
+- en: Generally, when an application switches to a newer Node.js version, the application
+    needs to be tested again. Of course, normal tests should pass, but it often requires
+    that an engineer perform manual acceptance tests to be sure. The bigger the *node_modules*
+    directory is, the more likely an application is to have an issue with compatibility
+    with a new version of the Node.js runtime.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，当应用程序切换到较新的 Node.js 版本时，需要重新进行测试。当然，正常测试应该通过，但通常需要工程师执行手动验收测试以确保。`node_modules`
+    目录越大，应用程序与 Node.js 运行时新版本的兼容性问题就越可能出现。
+- en: Node.js LTS Schedule
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Node.js LTS 日程安排
+- en: The versioning approach used by Node.js is inspired by an old practice of the
+    Linux kernel. Odd versions of releases (v13, v11) represent a sort of beta, where
+    package authors can check compatibility. The code in an odd release will eventually
+    make it into the next even release. Odd Node.js releases should never be used
+    in a production environment. As an example of when to use them, v13 release was
+    useful for me when writing this book while I waited for v14 to be released.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 使用的版本控制方法受到 Linux 内核旧实践的启发。奇数版本（v13、v11）代表一种类似测试版的阶段，包的作者可以检查兼容性。奇数版本中的代码最终会进入下一个偶数版本。不应将奇数版本的
+    Node.js 用于生产环境。例如，写作本书时，v13 版本对我来说很有用，因为等待 v14 发布。
+- en: Even release versions of Node.js are known as *LTS* (Long-Term Support) releases.
+    LTS versions of Node.js go through a few different phases. For the first phase,
+    the release is marked as “Current.” Once six months have passed, the release becomes
+    “Active” for about a year. Once the year has passed, the release enters the “Maintenance”
+    phase. During this time, certain new features for the next Current release, most
+    notably security patches, are back ported into the LTS release.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 的偶数发布版本被称为 *LTS*（长期支持）版本。Node.js 的 LTS 版本经历几个不同的阶段。在第一个阶段，发布被标记为“Current”。六个月后，发布变为“Active”，大约持续一年。一年后，发布进入“Maintenance”阶段。在此期间，将某些新特性，尤其是安全补丁，回溯到下一个“Current”发布的
+    LTS 版本中。
+- en: This concept is also inspired by the Linux kernel. The LTS releases are important
+    because organizations need to be able to run their applications for a while. Upgrading
+    the version of Node.js that an application runs on is easier if the major version
+    remains constant. [Figure 10-3](#fig_node_lts_schedule) is an example of the Node.js
+    LTS release schedule as of July 2020, generated before Node.js v14 reached the
+    active phase.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个概念也受到 Linux 内核的启发。 LTS 发布非常重要，因为组织需要能够长时间运行他们的应用程序。如果主要版本保持不变，升级应用程序运行的 Node.js
+    版本就会更容易。[Figure 10-3](#fig_node_lts_schedule) 是截至 2020 年 7 月的 Node.js LTS 发布时间表的示例，生成于
+    Node.js v14 达到“Active”阶段之前。
+- en: '![Node.js LTS Release Schedule](assets/dsnj_1003.png)'
+  id: totrans-200
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Node.js LTS 发布时间表](assets/dsnj_1003.png)'
+- en: Figure 10-3\. Node.js LTS release schedule^([5](ch10.html#idm46291172234120))
+  id: totrans-201
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-3\. Node.js LTS 发布时间表^([5](ch10.html#idm46291172234120))
+- en: Once a major release is finished with the maintenance phase, it reaches *end
+    of life*. When this happens there will be no new releases for that major version,
+    including any bug fixes or security patches.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦一个主要版本结束维护阶段，它就达到了 *生命周期结束*。这时将不会有该主要版本的新发布，包括任何错误修复或安全补丁。
+- en: Upgrade Approach
+  id: totrans-203
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 升级方法
+- en: Organizations that build Node.js microservices often end up with a collection
+    of applications spanning many versions of Node.js. In many cases, there either
+    aren’t policies for keeping applications on modern Node.js runtime versions or
+    keeping the runtime updated is a technical debt that just doesn’t get prioritized.
+    These situations are dangerous and can lead to a compromised application.^([6](ch10.html#idm46291172230392))
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建 Node.js 微服务的组织通常会涉及跨多个 Node.js 版本的应用程序集合。在许多情况下，这些组织可能没有保持应用程序在现代 Node.js
+    运行时版本上的策略，或者保持运行时更新可能成为一种未优先考虑的技术债务。这些情况很危险，可能导致应用程序受损。^([6](ch10.html#idm46291172230392))
+- en: The approach I like to take is to first divide services into three generation
+    categories. The first generation consists of applications running on the current
+    LTS line, such as those running on Node.js v14\. The second generation services
+    are those running on the previous maintenance LTS version, such as Node.js v12\.
+    The third generation consists of everything else, such as Node.js v10 (very old)
+    or v13 (a non-LTS release line). These can be thought of as the current, maintenance,
+    and naughty generations.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我喜欢采取的方法首先是将服务分为三代类别。第一代包括运行在当前 LTS 线上的应用程序，如运行在 Node.js v14 上的应用程序。第二代服务是运行在前一个维护
+    LTS 版本上的应用程序，如 Node.js v12。第三代包括其他所有内容，如 Node.js v10（非常旧）或 v13（非 LTS 发布线）。这些可以被视为当前、维护和“不良”代。
+- en: Any applications in the naughty generation must be upgraded. This is the highest
+    priority of work. These applications should be upgraded all the way to the current
+    LTS release, ideally the most recent major and minor version. Migrating them to
+    the maintenance LTS doesn’t make a lot of sense since that version won’t be supported
+    as long.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有 naughty generation 中的应用程序必须升级。这是最重要的工作优先级。这些应用程序应该升级到当前 LTS 发布版本，最好是最新的主要和次要版本。将它们迁移到维护
+    LTS 并不太合理，因为该版本的支持时间不会太长。
+- en: It might be painful to update an application directly from a naughty Node.js
+    version to the most recent version. For example, an application using Node.js
+    v10.2.3 might be very incompatible with Node.js v14.4.0\. Instead, it may be easier
+    to jump between a few different versions of Node.js. One approach that can simplify
+    this process is to jump to the highest version of each LTS release, starting with
+    the release the application is currently using until the most recent version is
+    attained. In this case, it might mean upgrading from v10.2.3 to v10.21.0, then
+    v12.18.2, and finally v14.4.0.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接从 naughty Node.js 版本直接升级到最新版本可能会很痛苦。例如，使用 Node.js v10.2.3 的应用程序可能与 Node.js
+    v14.4.0 完全不兼容。相反，跳转到几个不同的 Node.js 版本可能更容易。可以简化此过程的一种方法是跳转到每个 LTS 发布的最高版本，从当前使用的版本开始，直到达到最新版本。在这种情况下，可能意味着从
+    v10.2.3 升级到 v10.21.0，然后是 v12.18.2，最后是 v14.4.0。
+- en: With this approach, the application can be retested at each different version
+    for compatibility. This will help break the upgrade process into smaller steps
+    and make the process easier. Along the way you’ll probably have to run the application,
+    look for errors, and upgrade npm packages or change code as appropriate. Read
+    through the Node.js changelog for notes about breaking changes in major releases
+    and new features in minor releases to aid the process. Make a new commit each
+    time you fix compatibility with a Node.js release. Once you finally reach the
+    latest Node.js version, you can then craft a pull request containing the separate
+    commits. This helps reviewers understand how code and package changes correlate
+    to Node.js releases.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 采用这种方法，可以在每个不同的版本上重新测试应用程序以确保兼容性。这有助于将升级过程分解为较小的步骤，使整个过程更加容易。在此过程中，您可能需要运行应用程序，查找错误，并根据需要升级
+    npm 包或更改代码。阅读 Node.js 更新日志，了解主要版本中的重大变更和次要版本中的新功能，以帮助这一过程。每次修复与 Node.js 版本的兼容性后，都应创建一个新的提交。一旦最终达到最新的
+    Node.js 版本，然后可以编写包含各个单独提交的拉取请求。这有助于审阅者理解代码和包变更与 Node.js 版本的关联性。
+- en: As time goes on, you’ll need to keep the remaining Node.js applications updated.
+    Applications in the maintenance generation don’t need to be upgraded to the current
+    generation. Instead, wait until a new LTS is released. Once that happens, applications
+    in the maintenance generation are technically now in the naughty generation. They
+    should then be upgraded to use the current Node.js release. Applications that
+    were in the current generation are now in the maintenance generation. Again, they
+    can wait until another LTS is released. This alternating approach to mass updating
+    applications by generation has served me well.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着时间的推移，您需要保持剩余的Node.js应用程序更新。维护期间的应用程序无需升级到当前版本。相反，请等待新的 LTS 版本发布。一旦发布了新的 LTS
+    版本，维护期间的应用程序从技术上来说现在是“naughty generation”。然后应将它们升级以使用当前的 Node.js 发布版本。当前代的应用程序现在处于维护期。同样，它们可以等待下一个
+    LTS 版本的发布。按代别批量更新应用程序的这种交替方法对我很有帮助。
+- en: Using tools like [nvm](https://github.com/nvm-sh/nvm) (Node Version Manager)
+    or [nodenv](https://github.com/nodenv/nodenv) simplifies the process of switching
+    between multiple Node.js versions on your local development machine. The first,
+    nvm, uses a more manual approach in which you choose the version of Node.js used
+    in your current shell session. On the other hand, nodenv uses a *.node-version*
+    file to automatically set the Node.js runtime version as you change directories
+    in your terminal. This file can be checked into application repositories to automate
+    switching of Node.js runtimes.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用像 [nvm](https://github.com/nvm-sh/nvm)（Node Version Manager）或 [nodenv](https://github.com/nodenv/nodenv)
+    这样的工具可以简化在本地开发机器上多个 Node.js 版本之间切换的过程。首先，nvm 使用更手动的方法，在当前 shell 会话中选择要使用的 Node.js
+    版本。另一方面，nodenv 使用 *.node-version* 文件，在终端中更改目录时自动设置 Node.js 运行时版本。可以将此文件检入应用程序仓库，以自动化切换
+    Node.js 运行时。
+- en: ^([1](ch10.html#idm46291173349672-marker)) Some of the dozens of known malicious
+    packages include *getcookies*, *crossenv*, *mongose*, and *babelcli*.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch10.html#idm46291173349672-marker)) 已知的几十种恶意包括*getcookies*、*crossenv*、*mongose*和*babelcli*。
+- en: ^([2](ch10.html#idm46291173180200-marker)) Technically, your shell is probably
+    writing every command you run to a history file, but production process launchers
+    won’t have this problem.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch10.html#idm46291173180200-marker)) 从技术上讲，您的shell可能会将您运行的每个命令写入历史文件，但是生产过程中的启动器不会出现此问题。
+- en: ^([3](ch10.html#idm46291172781992-marker)) This database originated from the
+    Node Security Project and is managed by npm since acquiring ^Lift.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch10.html#idm46291172781992-marker)) 此数据库源自Node安全项目，并由npm在收购^Lift后进行管理。
+- en: ^([4](ch10.html#idm46291172466040-marker)) GitHub acquired npm relatively recently
+    as of the writing of this book. Both npm audit and Dependabot existed before the
+    acquisition, and I expect the two products to evolve and merge in the coming years.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch10.html#idm46291172466040-marker)) 自从本书编写时，GitHub最近收购了npm。在此收购之前，npm
+    audit和Dependabot已存在，我预计这两个产品将在未来几年融合发展。
+- en: ^([5](ch10.html#idm46291172234120-marker)) Image courtesy of Colin Ihrig under
+    Apache License 2.0.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch10.html#idm46291172234120-marker)) 图片由Colin Ihrig根据Apache License 2.0提供。
+- en: ^([6](ch10.html#idm46291172230392-marker)) If you ever spot this happening,
+    I encourage you to step in and spearhead the upgrade process.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch10.html#idm46291172230392-marker)) 如果您发现这种情况发生，请您介入并带头推动升级过程。

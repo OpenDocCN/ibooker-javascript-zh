@@ -1,0 +1,678 @@
+- en: Chapter 12\. Building a Web Client with React
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第12章。使用React构建Web客户端
+- en: 'The original idea behind hypertext was to take related documents and link them
+    together: if academic paper A references academic paper B let’s make it easy to
+    click something and navigate between them. In 1989, a software engineer at CERN
+    named Tim Berners-Lee had the idea to combine hypertext with networked computers,
+    making it easy for someone to make these connections regardless of the location
+    of the documents. Every cat photo, news article, tweet, streaming video, job search
+    site, and restaurant review is indebted to the simple idea of globally linking
+    documents.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 超文本背后的最初想法是将相关文档链接在一起：如果学术论文A引用学术论文B，让点击导航至它们之间变得容易。1989年，CERN的软件工程师Tim Berners-Lee提出了将超文本与网络化计算机结合起来的想法，使得任何人都能轻松地进行这些连接，无论文档位于何处。每张猫照片、新闻文章、推文、流媒体视频、职位搜索网站和餐厅评论都深受全球链接文档这一简单想法的影响。
+- en: At its heart, the web remains a medium for linking documents together. Each
+    page is HTML, rendered in a web browser, with CSS for styling and JavaScript for
+    enhancements. Today, we use these technologies to build everything from personal
+    blogs and small brochure sites to complex interactive applications. The underlying
+    advantage is that the web provides universal access. All anyone needs is a web
+    browser on a web-connected device, creating an inclusive-by-default environment.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在其核心，Web仍然是连接文档的媒介。每个页面都是HTML，在Web浏览器中呈现，使用CSS进行样式化，JavaScript进行增强。今天，我们使用这些技术来构建从个人博客和小手册网站到复杂交互式应用程序的一切。其根本优势在于Web提供了普遍访问。任何人只需在连接到Web的设备上使用Web浏览器，即可创建一个默认包容性的环境。
+- en: What We’re Building
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 我们正在构建什么
+- en: In the upcoming chapters we’ll build the web client for our social note application,
+    Notedly. Users will be able to create and sign in to an account, write notes in
+    Markdown, edit their notes, view a feed of other users’ notes, and “favorite”
+    other users’ notes. To accomplish all of this, we’ll be interacting with our GraphQL
+    server API.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接下来的章节中，我们将为我们的社交笔记应用程序Notedly构建Web客户端。用户将能够创建并登录账户，在Markdown中编写笔记，编辑他们的笔记，查看其他用户笔记的动态，并“收藏”其他用户的笔记。为了实现所有这些功能，我们将与我们的GraphQL服务器API进行交互。
+- en: 'In our web application:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的Web应用程序中：
+- en: Users will be able to create notes, as well as read, update, and delete the
+    notes they’ve created.
+  id: totrans-6
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户将能够创建笔记，以及阅读、更新和删除他们创建的笔记。
+- en: Users will be able to view a feed of notes created by other users, and read
+    individual notes created by others, though they will not be able to update or
+    delete them.
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户将能够查看其他用户创建的笔记动态，并阅读其他用户创建的单个笔记，尽管他们将无法对其进行更新或删除。
+- en: Users will be able to create an account, log in, and log out.
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户将能够创建账户、登录和注销。
+- en: Users will be able to retrieve their profile information as well as the public
+    profile information of other users.
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户将能够检索他们的个人资料信息以及其他用户的公共个人资料信息。
+- en: Users will be able to favorite the notes of other users as well as retrieve
+    a list of their favorites.
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 用户将能够收藏其他用户的笔记，并检索他们收藏的列表。
+- en: These features will cover a lot of ground, but we’ll be breaking them into small
+    chunks throughout this portion of the book. Once you’ve learned to build a React
+    application with all of these features, you’ll be able to apply the tools and
+    techniques toward building all sorts of rich web applications.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些功能将涵盖很多内容，但我们将在本书的这一部分中分解它们为小块。一旦你学会使用所有这些功能构建React应用程序，你将能够将这些工具和技术应用于构建各种丰富的Web应用程序。
+- en: How We’re Going to Build This
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 如何构建这个项目
+- en: As you’ve probably guessed, to build this application we’ll be using React as
+    a client-side JavaScript library. Additionally, we’ll be querying data from our
+    GraphQL API. To aid in the querying, mutating, and caching of data, we’ll make
+    use of [Apollo Client](https://oreil.ly/hAG_X). Apollo Client comprises a collection
+    of open source tools for working with GraphQL. We’ll be using the React version
+    of the library, but the team at Apollo has also developed Angular, Vue, Scala.js,
+    Native iOS, and Native Android integrations.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你可能猜到的那样，为了构建这个应用程序，我们将使用React作为客户端JavaScript库。此外，我们将从我们的GraphQL API查询数据。为了帮助查询、变更和缓存数据，我们将使用[Apollo
+    Client](https://oreil.ly/hAG_X)。Apollo Client包括一系列用于处理GraphQL的开源工具。我们将使用该库的React版本，但Apollo团队还开发了Angular、Vue、Scala.js、Native
+    iOS和Native Android集成。
+- en: Other GraphQL Client Libraries
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 其他GraphQL客户端库
+- en: While we’ll be using Apollo in this book, it is far from the only GraphQL client
+    option available. Facebook’s [Relay](https://relay.dev) and Formiddable’s [urql](https://oreil.ly/q_deu)
+    are two popular alternatives.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管本书中我们将使用Apollo，但这并不是唯一可用的GraphQL客户端选项。Facebook的[Relay](https://relay.dev)和Formiddable的[urql](https://oreil.ly/q_deu)是另外两个流行的选择。
+- en: Additionally, we’ll be using [Parcel](https://parceljs.org) as our code bundler.
+    A code bundler allows us to write JavaScript using features that may not be available
+    in a web browser (e.g., newer language features, code modules, minificiation)
+    and packages them for use in the browser environment. Parcel is a configuration-free
+    alternative to application build tools like [Webpack](https://webpack.js.org).
+    It offers a lot of nice features such as code splitting and automatically updating
+    the browser during development (aka *hot module replacement*), but without the
+    need to set up a build chain. As you saw in the previous chapter, [`create-react-app`](https://oreil.ly/dMQyk)
+    also offers a zero-configuration initial setup, using Webpack behind the scenes,
+    but Parcel allows us to build our application from the ground up, in a way that
+    I find ideal for learning.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，我们将使用[Parcel](https://parceljs.org)作为我们的代码打包工具。代码打包工具允许我们使用在Web浏览器中可能不可用的JavaScript功能（例如，较新的语言特性、代码模块、代码最小化），并将它们打包以在浏览器环境中使用。Parcel是一个无需配置的替代应用构建工具，如[Webpack](https://webpack.js.org)。它提供了许多好用的功能，如代码分割和开发过程中的自动更新浏览器（也称为*热模块替换*），但无需设置构建链。正如你在前一章节中看到的，[`create-react-app`](https://oreil.ly/dMQyk)也提供了一个零配置的初始设置，使用Webpack在后台工作，但Parcel允许我们从头开始构建我们的应用程序，这种方式对于学习来说是理想的。
+- en: Getting Started
+  id: totrans-17
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 开始入门
+- en: 'Before we can start development, we need to make a copy of the project starter
+    files to our machine. The [project’s source code](https://github.com/javascripteverywhere/web)
+    contains all of the scripts and references to third-party libraries that we will
+    need to develop our application. To clone the code to your local machine, open
+    the terminal, navigate to the directory where you keep your projects, and `git
+    clone` the project repository. If you’ve worked through the API chapters, you
+    may also have already create a *notedly* directory to keep the project code organized:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们开始开发之前，我们需要将项目起始文件复制到我们的机器上。[项目源代码](https://github.com/javascripteverywhere/web)包含了我们开发应用所需的所有脚本和第三方库的引用。要将代码克隆到本地机器上，请打开终端，导航到你项目存储的目录，并`git
+    clone`项目仓库。如果你已经完成了API章节，可能已经创建了一个*notedly*目录来保持项目代码的组织：
+- en: '[PRE0]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Installing Third-Party Dependencies
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 安装第三方依赖
+- en: By making a copy of the book’s starter code and running `npm install` in the
+    directory, you avoid having to again run `npm install` for any of the individual
+    third-party dependencies.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过复制书籍的起始代码并在目录中运行`npm install`，你可以避免再次为任何单独的第三方依赖运行`npm install`。
+- en: 'The code is structured as follows:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码结构如下：
+- en: '*/src*'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*/src*'
+- en: This is the directory where you should perform your development as you follow
+    along with the book.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是你应该在跟随书籍进行开发时执行的目录。
+- en: '*/solutions*'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*/solutions*'
+- en: This directory contains the solutions for each chapter. If you get stuck, these
+    are available for you to consult.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此目录包含每章节的解决方案。如果你遇到困难，可以参考这些解决方案。
+- en: '*/final*'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*/final*'
+- en: This directory contains the final working project.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此目录包含最终的工作项目。
+- en: 'Now that you have the code on your local machine, you’ll need to make a copy
+    of the project’s *.env* file. This file is a place to keep the variables unique
+    to the environment we are working in. For example, when working locally we’ll
+    be pointing to a local instance of our API, but when we deploy our app we’ll point
+    to our remotely deployed API. To make a copy of the sample *.env* file, type the
+    following into your terminal, from the *web* directory:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经在本地机器上获取了代码，你需要复制项目的*.env*文件。这个文件是用来存放特定于我们工作环境的变量的地方。例如，当我们在本地工作时，我们将指向本地实例的API，但当我们部署应用时，我们将指向远程部署的API。要复制示例*.env*文件，请在终端中从*web*目录输入以下内容：
+- en: '[PRE1]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: You should now see an *.env* file in the directory. You don’t yet need to do
+    anything with this file, but we’ll be adding information to it as we progress
+    through the development of our API backend. The *.gitignore* file included with
+    the project will ensure that you do not inadvertently commit your *.env* file.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你应该在目录中看到一个*.env*文件。你目前不需要对这个文件做任何操作，但随着我们开发API后端，我们将逐步向其中添加信息。项目附带的*.gitignore*文件将确保你不会意外地提交*.env*文件。
+- en: Help, I Don’t See the .env File!
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 帮助，我看不到.env文件！
+- en: By default, operating systems hide files that start with a period, as these
+    are typically used by the system, not end users. If you don’t see the *.env* file,
+    try opening the directory in your text editor. The file should be visible in the
+    file explorer of your editor. Alternately, typing `ls -a` into your terminal window
+    will list the files in the current working directory.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，操作系统会隐藏以点开头的文件，因为这些文件通常是系统使用的，而不是用户使用的。如果你看不到*.env*文件，请尝试在你的文本编辑器中打开该目录。该文件应该在编辑器的文件浏览器中可见。或者，你可以在终端窗口中输入`ls
+    -a`来列出当前工作目录中的文件。
+- en: Building Out the Web Application
+  id: totrans-34
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 构建Web应用程序
+- en: 'With our starter code cloned locally, we’re ready to build out our React web
+    application. Let’s first take a look at our *src/index.html* file. This looks
+    like a standard, yet completely empty, HTML file, but note the following two lines:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了我们本地克隆的起始代码，我们准备构建我们的React Web应用程序。让我们首先查看我们的*src/index.html*文件。这看起来像是一个标准的但完全空白的HTML文件，但请注意以下两行：
+- en: '[PRE2]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: These two lines are incredibly important to our React application. The `root
+    <div>` will provide the container for our entire application. Meanwhile, the *App.js*
+    file will be the entry point to our JavaScript application.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两行对我们的React应用程序非常重要。`root <div>`将为整个应用程序提供容器。与此同时，*App.js*文件将是我们JavaScript应用程序的入口点。
+- en: 'Now we can begin to develop our React application in our *src/App.js* file.
+    If you followed along with the React introduction in the previous chapter, this
+    may all feel familiar. In *src/App.js* we begin by importing the `react` and `react-dom`
+    libraries:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在我们的*src/App.js*文件中开始开发我们的React应用程序了。如果你在上一章节的React介绍中跟随操作，这可能会感觉很熟悉。在*src/App.js*中，我们首先导入了`react`和`react-dom`库：
+- en: '[PRE3]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Now we will create a function, named `App`, that will return the contents of
+    our application. For now, this will simply be two lines of HTML contained within
+    a `<div>` element:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将创建一个名为`App`的函数，它将返回我们应用程序的内容。目前，这将简单地是包含在一个`<div>`元素中的两行HTML：
+- en: '[PRE4]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: What’s With All of the divs?
+  id: totrans-42
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为什么这么多的div标签？
+- en: If you’re just starting out with React, you may wonder about the tendency to
+    surround components with `<div>` tags. React components must be contained with
+    a parent element, which often is a `<div>` tag, but could also be any other appropriate
+    HTML tag such as `<section>`, `<header>`, or `<nav>`. If a containing HTML tag
+    feels extraneous, we can instead use `<React.Fragment>` or empty `<>` tags to
+    contain the components in our JavaScript code.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你刚开始学习React，你可能会对围绕组件使用`<div>`标签的倾向感到奇怪。React组件必须包含在父元素中，这通常是一个`<div>`标签，但也可以是任何其他适当的HTML标签，比如`<section>`、`<header>`或`<nav>`。如果包含HTML标签感觉多余，我们可以在JavaScript代码中使用`<React.Fragment>`或空的`<>`标签来包含组件。
+- en: 'Finally, we will instruct React to render our application within the element
+    with an ID of `root` by adding the following:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将指示React在具有ID为`root`的元素中渲染我们的应用程序，通过添加以下内容：
+- en: '[PRE5]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The full content of our *src/App.js* file should now be:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们*src/App.js*文件的完整内容现在应该是：
+- en: '[PRE6]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: With this complete, let’s take a look in our web browser. Start your local development
+    server by typing **`npm run dev`** in your terminal application. Once the code
+    is bundled, visit *http://localhost:1234* to view the page ([Figure 12-1](#hello_notedly)).
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成后，让我们在网页浏览器中查看一下。通过在终端应用程序中输入**`npm run dev`**来启动本地开发服务器。一旦代码被打包，访问*http://localhost:1234*来查看页面（参见[图 12-1](#hello_notedly)）。
+- en: '![A screenshot of our React application running in the browser](assets/jsev_1201.png)'
+  id: totrans-49
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们在浏览器中运行的React应用程序的屏幕截图](assets/jsev_1201.png)'
+- en: Figure 12-1\. Our initial React application running in the browser
+  id: totrans-50
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-1\. 我们在浏览器中运行的初始React应用程序
+- en: Routing
+  id: totrans-51
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 路由
+- en: One of the defining features of the web is being able to link documents together.
+    Similarly, for our application we’ll want users to be able to navigate between
+    screens or pages. In an HTML rendered application, this would involve creating
+    multiple HTML documents. Whenever a user navigates to a new document, the entire
+    document will reload, even if there are shared aspects, such as a header or footer,
+    on the two pages.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 网页的一个显著特点是能够链接文档。类似地，对于我们的应用程序，我们希望用户能够在屏幕或页面之间导航。在HTML渲染的应用程序中，这将涉及创建多个HTML文档。每当用户导航到新文档时，整个文档将重新加载，即使两个页面有共享的部分，如页眉或页脚。
+- en: In JavaScript applications we can make use of client-side routing. In many ways,
+    this will be similar to HTML linking. A user will click a link, the URL will update,
+    and they will navigate to a new screen. The difference is that our application
+    will only update the page with the content that has changed. The experience will
+    be smooth and “app-like,” meaning that there will not be a visible refresh of
+    the page.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 应用程序中，我们可以利用客户端路由。在许多方面，这与 HTML 链接类似。用户将点击链接，URL 将更新，然后他们将导航到新的屏幕。不同之处在于，我们的应用程序将仅更新已更改内容的页面。体验会非常流畅和“应用程序般”，这意味着页面不会出现可见的刷新。
+- en: 'In React, the most commonly used routing library is [React Router](https://oreil.ly/MhQQR).
+    This library enables us to add routing capabilities to React web applications.
+    To introduce routing to our application, let’s first create a *src/pages* directory
+    and add the following files:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 中，最常用的路由库是 [React Router](https://oreil.ly/MhQQR)。这个库使我们能够为 React Web
+    应用程序添加路由功能。要向我们的应用程序引入路由，让我们首先创建一个 *src/pages* 目录，并添加以下文件：
+- en: '*/src/pages/index.js*'
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/src/pages/index.js*'
+- en: '*/src/pages/home.js*'
+  id: totrans-56
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/src/pages/home.js*'
+- en: '*/src/pages/mynotes.js*'
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/src/pages/mynotes.js*'
+- en: '*/src/pages/favorites.js*'
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*/src/pages/favorites.js*'
+- en: Our *home.js*, *mynotes.js*, and *favorites.js* files will be our individual
+    page components. We can create each of them with some initial content and an `effect`
+    hook, which will update the document title when a user navigates to the page.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 *home.js*、*mynotes.js* 和 *favorites.js* 文件将是我们的各个页面组件。我们可以为每个组件创建一些初始内容和一个
+    `effect` 钩子，当用户导航到页面时更新文档标题。
+- en: 'In *src/pages/home.js*:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/home.js*：
+- en: '[PRE7]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'In *src/pages/mynotes.js*:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/mynotes.js*：
+- en: '[PRE8]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'In *src/pages/favorites.js*:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/favorites.js*：
+- en: '[PRE9]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: useEffect
+  id: totrans-66
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: useEffect
+- en: In the preceding examples we’re using React’s `useEffect` hook to set the title
+    of the page. Effect hooks allow us to include side effects in our components,
+    updating something that is not related to the component itself. If you are interested,
+    React’s documentation provides a deep dive into [effect hooks](https://oreil.ly/VkpTZ).
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述示例中，我们使用了 React 的 `useEffect` 钩子来设置页面的标题。Effect 钩子允许我们在组件中包含副作用，更新与组件本身无关的内容。如果您感兴趣，React
+    的文档提供了对 [effect hooks](https://oreil.ly/VkpTZ) 的深入介绍。
+- en: 'Now, in *src/pages/index.js* we’ll import React Router and the methods necessary
+    for web browser routing with the `react-router-dom` package:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在 *src/pages/index.js* 中，我们将导入 React Router 和与 `react-router-dom` 包一起进行Web浏览器路由所需的方法：
+- en: '[PRE10]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Next, we’ll import the page components that we just created:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将导入刚刚创建的页面组件：
+- en: '[PRE11]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Finally, we’ll designate each of the page components that we created as routes
+    with a specific URL. Note the use of `exact` for our “Home” route, which will
+    ensure the home component is rendered only for the root URL:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将为我们创建的每个页面组件指定特定的 URL 作为路由。请注意我们在“Home”路由中使用 `exact`，这将确保只为根 URL 渲染主页组件：
+- en: '[PRE12]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Our complete *src/pages/index.js* file should now look as follows:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们完整的 *src/pages/index.js* 文件现在应该如下所示：
+- en: '[PRE13]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Finally, we can update the *src/App.js* file to use our routes by importing
+    the routes and rendering the components:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以更新 *src/App.js* 文件，通过导入路由和渲染组件来使用我们的路由：
+- en: '[PRE14]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Now if you manually update the URL in your web browser, you should be able to
+    view each component. For example, type **`http://localhost:1234/favorites`** to
+    render the “favorites” page.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您在Web浏览器中手动更新URL，您应该能够查看每个组件。例如，输入 **`http://localhost:1234/favorites`**
+    来渲染“favorites”页面。
+- en: Linking
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 链接
+- en: We’ve created our pages, but we’re missing the key component of linking them
+    together. So let’s add some links to the other pages from our home page. To do
+    so, we’ll use React Router’s `Link` component.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经创建了我们的页面，但我们缺少将它们链接在一起的关键组件。因此，让我们从主页添加一些链接到其他页面。为此，我们将使用 React Router 的
+    `Link` 组件。
+- en: 'In *src/pages/home.js*:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/home.js*：
+- en: '[PRE15]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: With this we’re able to navigate our application. Clicking one of the links
+    on the home page will navigate to the corresponding page component. Core browser
+    navigation functions, such as the back and forward buttons, will continue to work
+    as well.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个，我们就能够在我们的应用程序中导航。点击主页上的链接将导航到相应的页面组件。核心浏览器导航功能，如后退和前进按钮，仍将继续工作。
+- en: UI Components
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 用户界面组件
+- en: We’ve successfully created individual page components and can navigate between
+    them. As we build out our pages, they will have several shared user interface
+    elements, such as a header and sitewide navigation. Rewriting these each time
+    they are used wouldn’t be very efficient (and would get quite annoying). Instead,
+    we can write reusable interface components and import them into our interface
+    wherever we need them. In fact, thinking of our UI as composed of tiny components
+    is one of the core tenants of React, and was my breakthrough in grasping the framework.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经成功地创建了各自的页面组件，并可以在它们之间导航。随着我们构建页面，它们将具有几个共享的用户界面元素，例如头部和全站导航。每次重写它们将不会很有效（而且会变得非常烦人）。相反，我们可以编写可重用的界面组件，并将它们导入到我们的界面中，无论我们何时需要它们。实际上，将我们的
+    UI 视为由小组件组成是 React 的核心思想之一，并且这是我理解该框架的突破口。
+- en: We’ll start by creating header and navigation components for our application.
+    First, let’s create a new directory within our *src* directory called *components*.
+    Within the *src/components* directory, we’ll create two new files called *Header.js*
+    and *Navigation.js*. React components must be capitalized, so we’ll follow the
+    common convention of capitalizing the filename as well.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从为应用程序创建头部和导航组件开始。首先，在我们的 *src* 目录中创建一个名为 *components* 的新目录。在 *src/components*
+    目录中，我们将创建两个新文件，分别命名为 *Header.js* 和 *Navigation.js*。React 组件必须大写开头，因此我们将遵循大写文件名的常见约定。
+- en: 'Let’s begin by writing the header component in *src/components/Header.js*.
+    To do so, we’ll import our *logo.svg* file and add the corresponding markup for
+    our component:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从 *src/components/Header.js* 中编写头部组件开始。为此，我们将导入我们的 *logo.svg* 文件，并为我们的组件添加相应的标记：
+- en: '[PRE16]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'For our navigation component we’ll import React Router’s `Link` functionality
+    and mark up an unordered list of links. In *src/components/Navigation.js*:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们的导航组件，我们将导入 React Router 的 `Link` 功能，并标记一个链接的无序列表。在 *src/components/Navigation.js*
+    中：
+- en: '[PRE17]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'In screenshots you’ll see that I’ve also included emoji characters as navigation
+    icons. If you’d like to do the same, the accessible markup for including emoji
+    characters is as follows:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在屏幕截图中，您将看到我还包含了表情符号作为导航图标。如果您也想这样做，那么包含表情符号的可访问标记如下所示：
+- en: '[PRE18]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: With our header and navigation components complete, we can now use them within
+    our application. Let’s update our *src/pages/home.js* file to include the components.
+    We will first import them and then include the component within our JSX markup.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 头部和导航组件完成后，我们现在可以在应用程序中使用它们。让我们更新我们的 *src/pages/home.js* 文件以包含这些组件。我们首先将它们导入，然后在
+    JSX 标记中包含组件。
+- en: 'Our *src/pages/home.js* will now look as follows ([Figure 12-2](#web_components)):'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 *src/pages/home.js* 现在将如下所示（[图 12-2](#web_components)）：
+- en: '[PRE19]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '![A screenshot of our web application, featuring the imported components](assets/jsev_1202.png)'
+  id: totrans-96
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们的 Web 应用程序的屏幕截图，展示了导入的组件](assets/jsev_1202.png)'
+- en: Figure 12-2\. With React components we’re able to easily compose shareable UI
+    features
+  id: totrans-97
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 12-2\. 使用 React 组件，我们能够轻松地组合可共享的 UI 特性。
+- en: This is everything we need in order to be able to create shareable components
+    across our application. For more on using components within a UI, I highly recommend
+    reading the React documentation page [“Thinking in React”](https://oreil.ly/n6o1Z).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们需要的一切，以便能够在应用程序中创建可共享的组件。关于在 UI 中使用组件，我强烈推荐阅读 React 文档页面 [“在 React 中思考”](https://oreil.ly/n6o1Z)。
+- en: Conclusion
+  id: totrans-99
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: The web remains an unparalleled medium for distributing applications. It couples
+    universal access with a developer’s ability to deploy real-time updates. In this
+    chapter we built out the foundation of our JavaScript web application in React.
+    In the next chapter we will add layout and style to the app, using React components
+    and CSS-in-JS.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web 仍然是分发应用程序的无与伦比的媒介。它将普遍访问与开发者实时更新的能力结合在一起。在本章中，我们在 React 中构建了我们 JavaScript
+    Web 应用程序的基础。在下一章中，我们将使用 React 组件和 CSS-in-JS 为应用程序添加布局和样式。

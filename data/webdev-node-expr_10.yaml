@@ -1,0 +1,507 @@
+- en: Chapter 10\. Middleware
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第10章 中间件
+- en: 'By now, we’ve already had some exposure to middleware: we’ve used existing
+    middleware (`body-parser`, `cookie-parser`, `static`, and `express-session`, to
+    name a few), and we’ve even written some of our own (for adding weather data to
+    our template context, configuring flash messages, and our 404 handler). But what
+    is middleware, exactly?'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经接触了一些中间件：我们使用了现有的中间件（`body-parser`、`cookie-parser`、`static` 和 `express-session`
+    等），甚至编写了一些自己的中间件（用于向模板上下文添加天气数据、配置闪存消息以及我们的 404 处理程序）。但是，中间件到底是什么？
+- en: 'Conceptually, *middleware* is a way to encapsulate functionality—specifically,
+    functionality that operates on an HTTP request to your application. Practically,
+    middleware is simply a function that takes three arguments: a request object,
+    a response object, and a `next()` function, which will be explained shortly. (There
+    is also a form that takes four arguments, for error handling, which will be covered
+    at the end of this chapter.)'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从概念上讲，*中间件*是一种封装功能的方式——具体来说，是对应用程序的 HTTP 请求操作的功能。实际上，中间件只是一个接受三个参数的函数：一个请求对象，一个响应对象和一个
+    `next()` 函数，后者将在稍后解释。（还有一种形式接受四个参数，用于错误处理，将在本章末尾介绍。）
+- en: Middleware is executed in what’s known as a *pipeline*. You can imagine a physical
+    pipe, carrying water. The water gets pumped in at one end, and then there are
+    gauges and valves before the water gets where it’s going. The important part about
+    this analogy is that *order matters*; if you put a pressure gauge before a valve,
+    it has a different effect than if you put the pressure gauge after the valve.
+    Similarly, if you have a valve that injects something into the water, everything
+    “downstream” from that valve will contain the added ingredient. In an Express
+    app, you insert middleware into the pipeline by calling `app.use`.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 中间件是在所谓的*管道*中执行的。你可以想象一个物理管道，里面装着水。水从一端泵入，然后在水到达目的地之前会经过仪表和阀门。这个类比的重要之处在于*顺序很重要*；如果你在阀门前放置压力计，与在阀门后放置压力计效果不同。同样地，如果你有一个向水中注入东西的阀门，那么从该阀门“下游”的所有内容都将包含添加的成分。在
+    Express 应用中，你可以通过调用 `app.use` 将中间件插入到管道中。
+- en: Prior to Express 4.0, the pipeline was complicated by your having to link in
+    the *router* explicitly. Depending on where you linked in the router, routes could
+    be linked in out of order, making the pipeline sequence less clear when you mix
+    middleware and route handlers. In Express 4.0, middleware and route handlers are
+    invoked in the order in which they were linked in, making the sequence much clearer.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Express 4.0 之前，通过显式链接路由器来复杂化管道。根据你在何处链接路由器，当你混合中间件和路由处理程序时，路由可能会链接进出顺序不一致，使得管道序列不太清晰。在
+    Express 4.0 中，中间件和路由处理程序按照链接的顺序调用，使得顺序更加清晰。
+- en: It’s common practice to have the last middleware in your pipeline be a catchall
+    handler for any request that doesn’t match any other routes. This middleware usually
+    returns a status code of 404 (Not Found).
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常的做法是在你的管道中将最后一个中间件设置为一个捕获所有请求的处理程序，即任何不匹配其他路由的请求。这个中间件通常返回状态码 404（未找到）。
+- en: 'So how is a request “terminated” in the pipeline? That’s what the `next` function
+    passed to each middleware does: if you *don’t* call `next()`, the request terminates
+    with that middleware.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么请求如何在管道中“终止”呢？这就是传递给每个中间件的 `next` 函数所做的事情：如果你*不*调用 `next()`，请求将在那个中间件中终止。
+- en: Middleware Principles
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 中间件原则
+- en: 'Learning how to think flexibly about middleware and route handlers is key to
+    understanding how Express works. Here are the things you should keep in mind:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 灵活思考中间件和路由处理程序的方式是理解 Express 工作原理的关键。以下是你应该记住的几点：
+- en: Route handlers (`app.get`, `app.post`, etc.—often referred to collectively as
+    `app.METHOD`) can be thought of as middleware that handles only a specific HTTP
+    verb (`GET`, `POST`, etc.). Conversely, middleware can be thought of as a route
+    handler that handles all HTTP verbs (this is essentially equivalent to `app.all`,
+    which handles any HTTP verb; there are some minor differences with exotic verbs
+    such as `PURGE`, but for the common verbs, the effect is the same).
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 路由处理程序（`app.get`、`app.post` 等——通常统称为 `app.METHOD`）可以被视为仅处理特定 HTTP 动词（`GET`、`POST`
+    等）的中间件。相反，中间件可以被视为处理所有 HTTP 动词的路由处理程序（这基本上等同于 `app.all`，处理任何 HTTP 动词；对于像 `PURGE`
+    这样的特殊动词，有一些细微差别，但对于常见动词来说效果相同）。
+- en: Route handlers require a path as their first parameter. If you want that path
+    to match any route, simply use `\*`. Middleware can also take a path as its first
+    parameter, but it is optional (if it is omitted, it will match any path, as if
+    you had specified `*`).
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 路由处理程序需要作为第一个参数的路径。如果你希望该路径匹配任何路由，请简单地使用`\*`。中间件也可以接受路径作为其第一个参数，但这是可选的（如果省略，则将匹配任何路径，就像你指定了`*`一样）。
+- en: Route handlers and middleware take a callback function that takes two, three,
+    or four parameters (technically, you could also have zero or one parameters, but
+    there is no sensible use for these forms). If there are two or three parameters,
+    the first two parameters are the request and response objects, and the third parameter
+    is the `next` function. If there are four parameters, it becomes *error-handling*
+    middleware, and the first parameter becomes an error object, followed by the request,
+    response, and next objects.
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 路由处理程序和中间件接受一个回调函数，该函数接受两个、三个或四个参数（技术上，也可以有零个或一个参数，但这些形式没有合理的用途）。如果有两个或三个参数，第一个参数是请求和响应对象，第三个参数是`next`函数。如果有四个参数，它就成为*错误处理*中间件，第一个参数是错误对象，后面是请求、响应和下一个对象。
+- en: If you *don’t* call `next()`, the pipeline will be terminated, and no more route
+    handlers or middleware will be processed. If you don’t call `next()`, you should
+    send a response to the client (`res.send`, `res.json`, `res.render`, etc.); if
+    you don’t, the client will hang and eventually time out.
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你没有调用`next()`，管道将被终止，不会再处理更多的路由处理程序或中间件。如果你没有调用`next()`，应向客户端发送响应（`res.send`、`res.json`、`res.render`
+    等）；如果不这样做，客户端将挂起并最终超时。
+- en: If you *do* call `next()`, it’s generally inadvisable to send a response to
+    the client. If you do, middleware or route handlers further down the pipeline
+    will be executed, but any client responses they send will be ignored.
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你调用`next()`，向客户端发送响应通常是不可取的。如果这样做，后续的中间件或路由处理程序将被执行，但它们发送的任何客户端响应将被忽略。
+- en: Middleware Examples
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 中间件示例
+- en: 'If you want to see this in action, let’s try some really simple middleware
+    (*ch10/00-simple-middleware.js* in the companion repo):'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想看看它的实际效果，让我们试试一些非常简单的中间件（*ch10/00-simple-middleware.js* 在伴随库中）：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Here we have three examples of middleware. The first one simply logs a message
+    to the console before passing on the request to the next middleware in the pipeline
+    by calling `next()`. Then the next middleware actually handles the request. Note
+    that if we omitted the `res.send` here, no response would ever be returned to
+    the client. Eventually, the client would time out. The last middleware will never
+    execute, because all requests are terminated in the prior middleware.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有三个中间件示例。第一个只是将消息记录到控制台，然后通过调用`next()`将请求传递给管道中的下一个中间件。然后，下一个中间件实际处理请求。注意，如果这里省略了`res.send`，将不会向客户端返回任何响应。最终，客户端会超时。最后一个中间件永远不会执行，因为在前一个中间件中终止了所有请求。
+- en: 'Now let’s consider a more complicated, complete example (*ch10/01-routing-example.js*
+    in the companion repo):'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们考虑一个更复杂的完整示例（*ch10/01-routing-example.js* 在伴随库中）：
+- en: '[PRE1]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Before trying this example, imagine what the result will be. What are the different
+    routes? What will the client see? What will be printed on the console? If you
+    can correctly answer all of those questions, you’ve got the hang of routes in
+    Express! Pay particular attention to the difference between a request to */b*
+    and a request to */c*; in both instances, there was an error, but one results
+    in a 404, and the other results in a 500.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在尝试此示例之前，请想象一下结果会是什么。有哪些不同的路由？客户端会看到什么？控制台上会打印什么？如果你能正确回答所有这些问题，你就掌握了 Express
+    中的路由！特别注意请求到 */b* 和 */c* 的区别；在两种情况下都有错误，但一个会导致 404，另一个会导致 500。
+- en: 'Note that middleware *must* be a function. Keep in mind that in JavaScript,
+    it’s quite easy (and common) to return a function from a function. For example,
+    you’ll note that `express.static` is a function, but we actually invoke it, so
+    it must return another function. Consider the following:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意中间件*必须*是一个函数。请记住，在 JavaScript 中，从函数中返回一个函数非常容易（也很常见）。例如，你会注意到`express.static`是一个函数，但我们实际上调用它，所以它必须返回另一个函数。考虑以下示例：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Note also that a module can export a function, which can in turn be used directly
+    as middleware. For example, here’s a module called *lib/tourRequiresWaiver.js*
+    (Meadowlark Travel’s rock-climbing packages require a liability waiver):'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还要注意，一个模块可以导出一个函数，该函数可以直接用作中间件。例如，这里有一个名为 *lib/tourRequiresWaiver.js* 的模块（Meadowlark
+    Travel 的攀岩套餐需要一份免责声明）：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'We could link this middleware in like so (*ch10/02-item-waiver.example.js*
+    in the companion repo):'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以像这样链接这个中间件（在伴随代码库中的 *ch10/02-item-waiver.example.js* 中）：
+- en: '[PRE4]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'More commonly, though, you would export an object that contains properties
+    that are middleware. For example, let’s put all of our shopping cart validation
+    code in *lib/cartValidation.js*:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更常见的做法是，你会导出一个包含中间件属性的对象。例如，让我们把所有购物车验证代码放在 *lib/cartValidation.js* 中：
+- en: '[PRE5]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Then you could link the middleware in like this (*ch10/03-more-cart-validation.js*
+    in the companion repo):'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后你可以像这样链接中间件（在伴随代码库中的 *ch10/03-more-cart-validation.js* 中）：
+- en: '[PRE6]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Note
+  id: totrans-31
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In the previous example, we have middleware aborting early with the statement
+    `return next()`. Express doesn’t expect middleware to return a value (and it doesn’t
+    do anything with any return values), so this is just a shortened way of writing
+    `next(); return`.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前面的例子中，我们有一个中间件在语句 `return next()` 中提前终止。Express 不期望中间件返回一个值（也不会处理任何返回值），因此这只是写
+    `next(); return` 的一种简化方式。
+- en: Common Middleware
+  id: totrans-33
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 常见中间件
+- en: While there are thousands of middleware projects on npm, there are a handful
+    that are common and fundamental, and at least some of these will be found in every
+    non-trivial Express project. Some of this middleware was so common that it was
+    actually bundled with Express, but it has long since been moved into individual
+    packages. The only middleware still bundled with Express itself is `static`.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 npm 上有成千上万的中间件项目，但其中只有少数几个是常见且基础的，至少在每个非平凡的 Express 项目中都能找到一些。其中一些中间件曾经如此常见，以至于它们实际上被捆绑到
+    Express 中，但长久以来已被移至单独的包中。目前仅有与 Express 本身捆绑的中间件是 `static`。
+- en: 'This list attempts to cover the most common middleware:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个列表试图涵盖最常见的中间件：
+- en: '`basicauth-middleware`'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`basicauth-middleware`'
+- en: Provides basic access authorization. Keep in mind that basic auth offers only
+    the most basic security, and you should use basic auth *only* over HTTPS (otherwise,
+    usernames and passwords are transmitted in the clear). You should use basic auth
+    only when you need something quick and easy *and* you’re using HTTPS.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供基本的访问授权。请记住，基本认证只提供最基本的安全性，你应该仅在 HTTPS 下使用基本认证（否则用户名和密码将明文传输）。你应该仅在需要快速简单且使用
+    HTTPS 时才使用基本认证。
+- en: '`body-parser`'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`body-parser`'
+- en: Provides parsing for HTTP request bodies. Provides middleware for parsing both
+    URL-encoded and JSON-encoded bodies, as well as others.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供 HTTP 请求体的解析。提供解析 URL 编码和 JSON 编码体以及其他类型的中间件。
+- en: '`busboy`, `multiparty`, `formidable`, `multer`'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`busboy`、`multiparty`、`formidable`、`multer`'
+- en: All of these middleware options parse request bodies encoded with `multipart/form-data`.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些中间件选项解析使用 `multipart/form-data` 编码的请求体。
+- en: '`compression`'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`compression`'
+- en: Compresses response data with gzip or deflate. This is a good thing, and your
+    users will thank you, especially those on slow or mobile connections. It should
+    be linked in early, before any middleware that might send a response. The only
+    thing that I recommend linking in before `compress` is debugging or logging middleware
+    (which do not send responses). Note that in most production environments, compression
+    is handled by a proxy like NGINX, making this middleware unnecessary.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 gzip 或 deflate 压缩响应数据。这是一件好事，你的用户会感谢你，尤其是在慢速或移动连接下的用户。应该尽早链接此中间件，以防止其他可能发送响应的中间件。我唯一建议在
+    `compress` 之前链接的是调试或日志记录中间件（它们不发送响应）。请注意，在大多数生产环境中，压缩是由像 NGINX 这样的代理处理的，因此此中间件是不必要的。
+- en: '`cookie-parser`'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cookie-parser`'
+- en: Provides cookie support. See [Chapter 9](ch09.xhtml#ch_cookies_and_sessions).
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供 cookie 支持。参见[第 9 章](ch09.xhtml#ch_cookies_and_sessions)。
+- en: '`cookie-session`'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cookie-session`'
+- en: Provides cookie-storage session support. I do not generally recommend this approach
+    to sessions. It must be linked in after `cookie-parser`. See [Chapter 9](ch09.xhtml#ch_cookies_and_sessions).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供基于 cookie 存储的会话支持。我一般不推荐这种会话方式。必须在 `cookie-parser` 之后链接此中间件。参见[第 9 章](ch09.xhtml#ch_cookies_and_sessions)。
+- en: '`express-session`'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`express-session`'
+- en: Provides session ID (stored in a cookie) session support. Defaults to a memory
+    store, which is not suitable for production and can be configured to use a database
+    store. See [Chapter 9](ch09.xhtml#ch_cookies_and_sessions) and [Chapter 13](ch13.xhtml#ch_persistence).
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供会话 ID（存储在 cookie 中）的会话支持。默认使用内存存储，这在生产环境中并不适用，可以配置为使用数据库存储。参见[第9章](ch09.xhtml#ch_cookies_and_sessions)和[第13章](ch13.xhtml#ch_persistence)。
+- en: '`csurf`'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`csurf`'
+- en: Provides protection against cross-site request forgery (CSRF) attacks. This
+    uses sessions, so it must be linked in after `express-session` middleware. Unfortunately,
+    simply linking in this middleware does not magically protect against CSRF attacks;
+    see [Chapter 18](ch18.xhtml#ch_security) for more information.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供对跨站点请求伪造（CSRF）攻击的防护。这个中间件使用会话，所以必须在`express-session`中间件之后链接。不幸的是，仅仅链接这个中间件并不能自动保护
+    against CSRF 攻击；更多信息请参见[第18章](ch18.xhtml#ch_security)。
+- en: '`serve-index`'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`serve-index`'
+- en: Provides directory listing support for static files. There is no need to include
+    this middleware unless you specifically need directory listing.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为静态文件提供目录列表支持。除非你特别需要目录列表，否则不需要包含此中间件。
+- en: '`errorhandler`'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`errorhandler`'
+- en: Provides stack traces and error messages to the client. I do not recommend linking
+    this in on a production server, as it exposes implementation details, which can
+    have security or privacy consequences. See [Chapter 20](ch20.xhtml#ch_debugging)
+    for more information.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供堆栈跟踪和错误消息给客户端。我不建议在生产服务器上链接此中间件，因为它暴露了实现细节，可能会出现安全或隐私问题。更多信息请参见[第20章](ch20.xhtml#ch_debugging)。
+- en: '`serve-favicon`'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`serve-favicon`'
+- en: Serves the *favicon* (the icon that appears in the title bar of your browser).
+    This is not strictly necessary; you can simply put a *favicon.ico* in the root
+    of your static directory, but this middleware can improve performance. If you
+    use it, it should be linked in high in the middleware stack. It also allows you
+    to designate a filename other than *favicon.ico*.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供 *favicon*（出现在浏览器标题栏中的图标）。这并非绝对必要；你可以简单地在静态目录的根目录中放一个 *favicon.ico*，但这个中间件可以提高性能。如果使用，应该在中间件堆栈中放置得很靠前。它还允许你指定其他文件名而不是
+    *favicon.ico*。
+- en: '`morgan`'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`morgan`'
+- en: Provides automated logging support; all requests will be logged. See [Chapter 20](ch20.xhtml#ch_debugging)
+    for more information.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供自动记录支持；所有请求都将被记录。更多信息请参见[第20章](ch20.xhtml#ch_debugging)。
+- en: '`method-override`'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`method-override`'
+- en: Provides support for the `x-http-method-override` request header, which allows
+    browsers to “fake” using HTTP methods other than `GET` and `POST`. This can be
+    useful for debugging. This is needed only if you’re writing APIs.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供对 `x-http-method-override` 请求头的支持，允许浏览器“伪装”使用 HTTP 方法而不是 `GET` 和 `POST`。这在调试时可能会有用。这只在你编写
+    API 时需要。
+- en: '`response-time`'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`response-time`'
+- en: Adds the `X-Response-Time` header to the response, providing the response time
+    in milliseconds. You usually don’t need this middleware unless you are doing performance
+    tuning.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在响应中添加 `X-Response-Time` 头，提供响应时间（毫秒）。除非进行性能调优，你通常不需要这个中间件。
+- en: '`static`'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`static`'
+- en: Provides support for serving static (public) files. You can link in this middleware
+    multiple times, specifying different directories. See [Chapter 17](ch17.xhtml#ch_static_content)
+    for more details.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供静态（公共）文件服务支持。你可以多次链接此中间件，指定不同的目录。更多细节请参见[第17章](ch17.xhtml#ch_static_content)。
+- en: '`vhost`'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`vhost`'
+- en: Virtual hosts (vhosts), a term borrowed from Apache, makes subdomains easier
+    to manage in Express. See [Chapter 14](ch14.xhtml#ch_routing) for more information.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟主机（vhosts），这个术语是从 Apache 借鉴来的，让 Express 中的子域名更容易管理。更多信息请参见[第14章](ch14.xhtml#ch_routing)。
+- en: Third-Party Middleware
+  id: totrans-68
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第三方中间件
+- en: Currently, there is no comprehensive “store” or index for third-party middleware.
+    Almost all Express middleware, however, will be available on npm, so if you search
+    npm for “Express” and “middleware,” you’ll get a pretty good list. The official
+    Express documentation also contains a useful [list of middleware](http://bit.ly/36UrbnL).
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，还没有一个全面的“商店”或第三方中间件的索引。几乎所有的 Express 中间件都可以在 npm 上找到，所以如果你在 npm 上搜索“Express”和“中间件”，你会得到一个相当不错的列表。官方的
+    Express 文档还包含一个有用的[中间件列表](http://bit.ly/36UrbnL)。
+- en: Conclusion
+  id: totrans-70
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter, we delved into what middleware is, how to write our own, and
+    how it’s processed as part of an Express application. If you’re starting to think
+    that an Express application is simply a collection of middleware, you’re starting
+    to understand Express! Even the route handlers we’ve been using heretofore are
+    just specialized cases of middleware.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们深入探讨了中间件的定义，如何编写自己的中间件，以及它在 Express 应用程序中的处理过程。如果你开始认为 Express 应用程序只是一组中间件的集合，那你就开始理解
+    Express 了！甚至我们迄今为止使用的路由处理程序只是中间件的特殊案例。
+- en: 'In the next chapter, we’ll be looking at another common infrastructure need:
+    sending email (and you had better believe there is going to be some middleware
+    involved!).'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将看到另一个常见的基础设施需求：发送电子邮件（你最好相信这里面会涉及到一些中间件！）。

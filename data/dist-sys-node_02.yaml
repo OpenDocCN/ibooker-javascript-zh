@@ -1,0 +1,1274 @@
+- en: Chapter 1\. Why Distributed?
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第1章 为什么选择分布式？
+- en: Node.js is a self-contained runtime for running JavaScript code on the server.
+    It provides a JavaScript language engine and dozens of APIs, many of which allow
+    application code to interact with the underlying operating system and the world
+    outside of it. But you probably already knew that.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js是一个用于在服务器上运行JavaScript代码的自包含运行时。它提供了一个JavaScript语言引擎和许多API，其中许多允许应用程序代码与底层操作系统及其外部世界进行交互。但你可能已经知道这些了。
+- en: This chapter takes a high-level look at Node.js, in particular how it relates
+    to this book. It looks at the single-threaded nature of JavaScript, simultaneously
+    one of its greatest strengths and greatest weaknesses, and part of the reason
+    why it’s so important to run Node.js in a distributed manner.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章高层次地审视了Node.js，特别是它与本书的关系。它探讨了JavaScript的单线程特性，同时也是其最大优势和最大弱点之一，也是运行Node.js在分布式方式下如此重要的原因之一。
+- en: It also contains a small pair of sample applications that are used as a baseline,
+    only to be upgraded numerous times throughout the book. The first iteration of
+    these applications is likely simpler than anything you’ve previously shipped to
+    production.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它还包含一小组示例应用程序，作为基线，只在书中多次升级。这些应用程序的第一次迭代可能比你之前发布到生产环境的任何东西都要简单。
+- en: If you find that you already know the information in these first few sections,
+    then feel free to skip directly to [“Sample Applications”](#ch_introduction_sec_sample).
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你发现你已经了解这些最初的几节中的信息，那么可以直接跳转到[“示例应用程序”](#ch_introduction_sec_sample)。
+- en: The JavaScript language is transitioning from being a single-threaded language
+    to being a multithreaded language. The [`Atomics`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics)
+    object, for example, provides mechanisms to coordinate communication across different
+    threads, while instances of [`SharedArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer)
+    can be written to and read from across threads. That said, as of this writing,
+    multithreaded JavaScript still hasn’t caught on within the community. JavaScript
+    today *is* multithreaded, but it’s still the nature of the language, and of the
+    ecosystem, to be single-threaded.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript语言正在从单线程语言过渡到多线程语言。例如，[`Atomics`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics)对象提供了在不同线程之间协调通信的机制，而[`SharedArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer)的实例可以跨线程写入和读取。尽管如此，在撰写本文时，多线程JavaScript仍未在社区中得到普及。今天的JavaScript
+    *是* 多线程的，但它仍然是语言及其生态系统的特性是单线程的。
+- en: The Single-Threaded Nature of JavaScript
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JavaScript的单线程特性
+- en: 'JavaScript, like most programming languages, makes heavy use of *functions*.
+    Functions are a way to combine units of related work. Functions can call other
+    functions as well. Each time one function calls another function, it adds frames
+    to the *call stack*, which is a fancy way of saying the stack of currently run
+    functions is getting taller. When you accidentally write a recursive function
+    that would otherwise run forever, you’re usually greeted with a *RangeError: Maximum
+    call stack size exceeded* error. When this happens you’ve reached the maximum
+    limit of frames in the call stack.'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'JavaScript，像大多数编程语言一样，大量使用*函数*。函数是组合相关工作单元的一种方式。函数还可以调用其他函数。每当一个函数调用另一个函数时，它会向*调用堆栈*添加帧，这是说当前运行函数的堆栈正在变得越来越高的一种花哨方式。当你意外地编写了一个本应无限运行的递归函数时，通常会收到*RangeError:
+    Maximum call stack size exceeded*错误。当这种情况发生时，你已经达到了调用堆栈中的帧的最大限制。'
+- en: Note
+  id: totrans-8
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The maximum call stack size is usually inconsequential and is chosen by the
+    JavaScript engine. The V8 JavaScript engine used by Node.js v14 has a maximum
+    call stack size of more than 15,000 frames.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最大调用堆栈大小通常无关紧要，并由JavaScript引擎选择。Node.js v14使用的V8 JavaScript引擎的最大调用堆栈大小超过15,000帧。
+- en: However, JavaScript is different from some other languages in that it does not
+    constrain itself to running within a single call stack throughout the lifetime
+    of a JavaScript application. For example, when I wrote PHP several years ago,
+    the entire lifetime of a PHP script (a lifetime ties directly to the time it takes
+    to serve an HTTP request) correlated to a single stack, growing and shrinking
+    and then disappearing once the request was finished.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，JavaScript 与一些其他语言不同，它不限制自己在 JavaScript 应用程序的整个生命周期中仅在单个调用堆栈内运行。例如，几年前我编写
+    PHP 时，PHP 脚本的整个生命周期（生命周期直接与提供 HTTP 请求的时间相关联）与一个单独的堆栈相关联，随着请求的完成而增长、收缩，然后消失。
+- en: JavaScript handles *concurrency*—performing multiple things at the same time—by
+    way of an event loop. The event loop used by Node.js is covered more in [“The
+    Node.js Event Loop”](#ch_introduction_sec_eventloop), but for now just think of
+    it as an infinitely running loop that continuously checks to see if there is work
+    to perform. When it finds something to do, it begins its task—in this case it
+    executes a function with a new call stack—and once the function is complete, it
+    waits until more work is ready to be performed.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 通过事件循环来处理*并发*——同时执行多个任务。Node.js 使用的事件循环在 [“Node.js 事件循环”](#ch_introduction_sec_eventloop)
+    中有详细介绍，但现在可以将其看作是一个无限运行的循环，不断检查是否有任务要执行。当发现任务时，它开始执行任务——在这种情况下，执行一个新的调用堆栈中的函数——并在函数执行完成后等待更多的工作。
+- en: The code sample in [Example 1-1](#ex_js_stacks) is an example of this happening.
+    First, it runs the `a()` function in the current stack. It also calls the `setTimeout()`
+    function that will queue up the `x()` function. Once the current stack completes,
+    the event loop checks for more work to do. The event loop gets to check for more
+    work to do *only* once a stack is complete. It isn’t, for example, checking after
+    every instruction. Since there’s not a lot going on in this simple program, the
+    `x()` function will be the next thing that gets run after the first stack completes.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例中的代码样本在 [示例 1-1](#ex_js_stacks) 中展示了这种情况。首先，在当前堆栈中运行 `a()` 函数。它还调用了 `setTimeout()`
+    函数，该函数将排队 `x()` 函数。一旦当前堆栈完成，事件循环会检查是否有更多的工作要做。事件循环只有在堆栈完成后才会检查是否有更多工作要做，*并不是*
+    每条指令执行后都检查。由于这个简单程序中没有太多事情发生，所以在第一个堆栈完成后，`x()` 函数将是接下来要运行的内容。
+- en: Example 1-1\. Example of multiple JavaScript stacks
+  id: totrans-13
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-1\. 多个 JavaScript 堆栈的示例
+- en: '[PRE0]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: '[Figure 1-1](#fig_stacks) is a visualization of the preceding code sample.
+    Notice how there are two separate stacks and that each stack increases in depth
+    as more functions are called. The horizontal axis represents time; code within
+    each function naturally takes time to execute.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 1-1](#fig_stacks) 展示了前面代码示例的可视化效果。请注意，有两个独立的堆栈，并且随着调用更多函数，每个堆栈的深度都在增加。水平轴表示时间；每个函数中的代码自然需要一定的时间来执行。'
+- en: '![Two separate stacks, each three frames deep](assets/dsnj_0101.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![两个独立的堆栈，每个堆栈深度为三层](assets/dsnj_0101.png)'
+- en: Figure 1-1\. Visualization of multiple JavaScript stacks
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-1\. 多个 JavaScript 堆栈的可视化
+- en: The `setTimeout()` function is essentially saying, “Try to run the provided
+    function 0ms from now.” However, the `x()` function doesn’t run *immediately*,
+    as the `a()` call stack is still in progress. It doesn’t even run immediately
+    after the `a()` call stack is complete, either. The event loop takes a nonzero
+    amount of time to check for more work to perform. It also takes time to prepare
+    the new call stack. So, even though `x()` was scheduled to run in 0ms, in practice
+    it may take a few milliseconds before the code runs, a discrepancy that increases
+    as application load increases.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`setTimeout()` 函数基本上在说：“试着在 0 毫秒后运行提供的函数。”然而，`x()` 函数并不会*立即*运行，因为 `a()` 调用堆栈仍在进行中。甚至在
+    `a()` 调用堆栈完成后，它也不会立即运行。事件循环需要一定的时间来检查是否有更多工作要执行。还需要时间准备新的调用堆栈。因此，即使 `x()` 被安排在
+    0 毫秒后运行，实际上它可能需要几毫秒才能运行，这种差异随着应用程序负载的增加而增加。'
+- en: Another thing to keep in mind is that functions can take a long time to run.
+    If the `a()` function took 100ms to run, then the earliest you should expect `x()`
+    to run might be 101ms. Because of this, think of the time argument as the earliest
+    time the function can be called. A function that takes a long time to run is said
+    to *block the event loop*—since the application is stuck processing slow synchronous
+    code, the event loop is temporarily unable to process further tasks.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个需要记住的是，函数可能需要很长时间才能运行。如果`a()`函数需要100毫秒运行，那么你应该期望`x()`函数最早可能在101毫秒时运行。因此，请将时间参数视为函数可以被调用的最早时间。需要长时间运行的函数被称为*阻塞事件循环*
+    —— 因为应用程序被困在处理慢同步代码中，事件循环暂时无法处理更多任务。
+- en: Now that call stacks are out of the way, it’s time for the interesting part
+    of this section.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在调用堆栈问题解决了，是时候进入本节的有趣部分了。
+- en: Since JavaScript applications are mostly run in a single-threaded manner, two
+    call stacks won’t exist at the same time, which is another way of saying that
+    two functions cannot run in parallel.^([1](ch01.html#idm46291209446408)) This
+    implies that multiple copies of an application need to be run simultaneously by
+    some means to allow the application to scale.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于JavaScript应用程序主要以单线程方式运行，同一时间不会存在两个调用堆栈，这也是说两个函数不能并行运行的另一种说法。这意味着必须通过某种方式同时运行多个应用程序副本，以允许应用程序进行扩展。
+- en: Several tools are available to make it easier to manage multiple copies of an
+    application. [“The Cluster Module”](ch03.html#ch_scaling_sec_clustering) looks
+    at using the built-in `cluster` module for routing incoming HTTP requests to different
+    application instances. The built-in `worker_threads` module also helps run multiple
+    JavaScript instances at once. The `child_process` module can be used to spawn
+    and manage a full Node.js process as well.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有几种工具可用于更轻松地管理应用程序的多个副本。[“集群模块”](ch03.html#ch_scaling_sec_clustering)介绍了使用内置的`cluster`模块将传入的HTTP请求路由到不同的应用程序实例中。内置的`worker_threads`模块还有助于同时运行多个JavaScript实例。`child_process`模块可用于生成和管理完整的Node.js进程。
+- en: However, with each of these approaches, JavaScript *still* can run only a single
+    line of JavaScript at a time within an application. This means that with each
+    solution, each JavaScript environment still has its own distinct global variables,
+    and no object references can be shared between them.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，使用每种方法时，JavaScript仍然只能在应用程序中一次运行一行JavaScript代码。这意味着每个解决方案中，每个JavaScript环境仍然具有其自己独特的全局变量，并且不能共享任何对象引用。
+- en: Since objects cannot be directly shared with the three aforementioned approaches,
+    some other method for communicating between the different isolated JavaScript
+    contexts is needed. Such a feature does exist and is called *message passing*.
+    Message passing works by sharing some sort of serialized representation of an
+    object/data (such as JSON) between the separate isolates. This is necessary because
+    directly sharing objects is impossible, not to mention that it would be a painful
+    debugging experience if two separate isolates could modify the same object at
+    the same time. These types of issues are referred to as *deadlocks* and *race
+    conditions*.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于对象不能直接在三个前述的方法之间共享，所以需要一些其他方法来在不同隔离的JavaScript上下文之间进行通信。确实存在这样的特性，称为*消息传递*。消息传递通过在不同隔离体之间共享某种对象/数据的序列化表示（如JSON）来工作。这是必要的，因为直接共享对象是不可能的，更不用说如果两个独立的隔离体同时修改同一个对象会是一种痛苦的调试体验。这些问题被称为*死锁*和*竞争条件*。
+- en: Note
+  id: totrans-25
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: By using `worker_threads` it is possible to share memory between two different
+    JavaScript instances. This can be done by creating an instance of `SharedArrayBuffer`
+    and passing it from one thread to another using the same `postMessage(value)`
+    method used for worker thread message passing. This results in an array of bytes
+    that both threads can read and write to at the same time.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`worker_threads`可以实现在两个不同的JavaScript实例之间共享内存。这可以通过创建`SharedArrayBuffer`的实例，并使用用于工作线程消息传递的相同`postMessage(value)`方法将其从一个线程传递到另一个线程来实现。这导致两个线程都可以同时读取和写入的字节数组。
+- en: Overhead is incurred with message passing when data is serialized and deserialized.
+    Such overhead doesn’t need to exist in languages that support proper multithreading,
+    as objects can be shared directly.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当数据被序列化和反序列化时，通过消息传递会产生开销。在支持适当多线程的语言中，不需要这样的开销，因为对象可以直接共享。
+- en: This is one of the biggest factors that necessitates running Node.js applications
+    in a distributed manner. In order to handle scale, enough instances need to run
+    so that any single instance of a Node.js process doesn’t completely saturate its
+    available CPU.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是使得需要以分布式方式运行 Node.js 应用程序的最大因素之一。为了处理规模，需要运行足够多的实例，以便任何单个 Node.js 进程实例不会完全饱和其可用的
+    CPU。
+- en: Now that you’ve looked at JavaScript—the language that powers Node.js—it’s time
+    to look at Node.js itself.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经看过 JavaScript——Node.js 的基础语言——是时候来看看 Node.js 本身了。
+- en: The solution to the surprise interview question is provided in [Table 1-1](#table_interview_order).
+    The most important part is the order that the messages print, and the bonus is
+    the time it takes them to print. Consider your bonus answer correct if you’re
+    within a few milliseconds of the timing.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 惊喜面试问题的解决方案提供在 [表 1-1](#table_interview_order) 中。最重要的部分是消息打印的顺序，而奖励是它们打印的时间。如果您的奖励答案接近几毫秒的话，可以认为您的答案是正确的。
+- en: Table 1-1\. Surprise interview solution
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1-1\. 惊喜面试解决方案
+- en: '| Log | B | E | A | D | C |'
+  id: totrans-32
+  prefs: []
+  type: TYPE_TB
+  zh: '| 日志 | B | E | A | D | C |'
+- en: '| Time | 1ms | 501ms | 502ms | 502ms | 502ms |'
+  id: totrans-33
+  prefs: []
+  type: TYPE_TB
+  zh: '| 时间 | 1ms | 501ms | 502ms | 502ms | 502ms |'
+- en: The first thing that happens is the function to log A is scheduled with a timeout
+    of 0ms. Recall that this doesn’t mean the function will run in 0ms; instead it
+    is scheduled to run as early as 0 milliseconds but after the current stack ends.
+    Next, the log B method is called directly, so it’s the first to print. Then, the
+    log C function is scheduled to run as early as 100ms, and the log D is scheduled
+    to happen as early as 0ms.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发生的第一件事是安排一个在 0 毫秒超时的 log A 日志函数。回想一下，这并不意味着函数将在 0 毫秒内运行；相反，它被安排尽快在当前堆栈结束后运行。接下来直接调用
+    log B 方法，因此它是第一个打印的。然后，安排 log C 函数尽早在 100 毫秒运行，而 log D 安排在 0 毫秒之后尽早运行。
+- en: Then the application gets busy doing calculations with the while loop, which
+    eats up half a second of CPU time. Once the loop concludes, the final call for
+    log E is made directly and it is now the second to print. The current stack is
+    now complete. At this point, only a single stack has executed.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，应用程序忙于计算 while 循环，消耗了半秒钟的 CPU 时间。一旦循环结束，直接进行最后一次 log E 的调用，并且现在是第二个打印。当前堆栈现在已完成。
+- en: Once that’s done, the event loop looks for more work to do. It checks the queue
+    and sees that there are three tasks scheduled to happen. The order of items in
+    the queue is based on the provided timer value and the order that the `setTimeout()`
+    calls were made. So, it first processes the log A function. At this point the
+    script has been running for roughly half a second, and it sees that log A is roughly
+    500ms overdue, and so that function is executed. The next item in the queue is
+    the log D function, which is also roughly 500ms overdue. Finally, the log C function
+    is run and is roughly 400ms overdue.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦完成这些，事件循环将继续寻找更多的工作来做。它检查队列并看到有三个计划要执行的任务。队列中的项目顺序基于提供的计时器值以及 `setTimeout()`
+    调用的顺序。因此，它首先处理 log A 函数。此时脚本已经运行了大约半秒钟，它发现 log A 已经超时大约 500 毫秒，因此执行该函数。队列中的下一个项目是
+    log D 函数，它也大约超时了 500 毫秒。最后，运行 log C 函数，它大约超时了 400 毫秒。
+- en: Quick Node.js Overview
+  id: totrans-37
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Node.js 简介
+- en: Node.js fully embraces the Continuation-Passing Style (CPS) pattern throughout
+    its internal modules by way of *callbacks*—functions that are passed around and
+    invoked by the event loop once a task is complete. In Node.js parlance, functions
+    that are invoked in the future with a new stack are said to be run *asynchronously*.
+    Conversely, when one function calls another function in the same stack, that code
+    is said to run *synchronously*.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 在其内部模块中完全采用了延续传递风格（Continuation-Passing Style，CPS）模式，通过 *回调*——传递和在任务完成后由事件循环调用的函数来实现。在
+    Node.js 术语中，未来被调用的函数与新的堆栈运行被称为 *异步*。相反地，当一个函数在同一堆栈中调用另一个函数时，该代码被称为 *同步* 运行。
+- en: The types of tasks that are long-running are typically I/O tasks. For example,
+    imagine that your application wants to perform two tasks. Task A is to read a
+    file from disk, and Task B is to send an HTTP request to a third-party service.
+    If an operation depends on both of these tasks being performed—an operation such
+    as responding to an incoming HTTP request—the application can perform the operations
+    in parallel, as shown in [Figure 1-2](#fig_seq_par_io). If they couldn’t be performed
+    at the same time—if they had to be run sequentially—then the overall time it takes
+    to respond to the incoming HTTP request would be longer.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 长时间运行的任务通常是 I/O 任务。例如，想象一下您的应用程序想执行两个任务。任务 A 是从磁盘读取文件，任务 B 是向第三方服务发送 HTTP 请求。如果操作依赖于这两个任务的同时执行——例如响应传入的
+    HTTP 请求——则应用程序可以并行执行操作，如 [图 1-2](#fig_seq_par_io) 所示。如果它们不能同时执行——如果它们必须按顺序运行——那么响应传入的
+    HTTP 请求所需的总时间会更长。
+- en: '![Sequential vs Parallel I/O Diagram](assets/dsnj_0102.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![顺序 vs 并行 I/O 图示](assets/dsnj_0102.png)'
+- en: Figure 1-2\. Visualization of sequential versus parallel I/O
+  id: totrans-41
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-2\. 顺序 vs 并行 I/O 的可视化
+- en: At first this seems to violate the single-threaded nature of JavaScript. How
+    can a Node.js application *both* read data from disk *and* make an HTTP request
+    at the same time if JavaScript is single-threaded?
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初，这似乎违反了 JavaScript 的单线程性质。如果 JavaScript 是单线程的，Node.js 应用程序如何*同时*从磁盘读取数据*并且*发起
+    HTTP 请求呢？
+- en: This is where things start to get interesting. Node.js itself *is* multithreaded.
+    The lower levels of Node.js are written in C++. This includes third-party tools
+    like *libuv*, which handles operating system abstractions and I/O, as well as
+    V8 (the JavaScript engine) and other third-party modules. The layer above that,
+    the Node.js binding layer, also contains a bit of C++. It’s only the highest layers
+    of Node.js that are written in JavaScript, such as parts of the Node.js APIs that
+    deal directly with objects provided by userland.^([2](ch01.html#idm46291209353624))
+    [Figure 1-3](#fig_node_layers) depicts the relationship between these different
+    layers.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是事情开始变得有趣的地方。Node.js 本身*是*多线程的。Node.js 的底层是用 C++ 编写的，包括处理操作系统抽象和 I/O 的第三方工具*libuv*，以及
+    V8（JavaScript 引擎）和其他第三方模块。再往上一层是 Node.js 绑定层，也包含一些 C++。只有 Node.js 的最高层是用 JavaScript
+    编写的，比如直接处理用户提供对象的 Node.js API 的部分。^([2](ch01.html#idm46291209353624)) [图 1-3](#fig_node_layers)
+    描绘了这些不同层之间的关系。
+- en: '![Node.js is a combination of C++ and JavaScript](assets/dsnj_0103.png)'
+  id: totrans-44
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Node.js 是 C++ 和 JavaScript 的组合](assets/dsnj_0103.png)'
+- en: Figure 1-3\. The layers of Node.js
+  id: totrans-45
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-3\. Node.js 的层级
+- en: Internally, libuv maintains a thread pool for managing I/O operations, as well
+    as CPU-heavy operations like `crypto` and `zlib`. This is a pool of finite size
+    where I/O operations are allowed to happen. If the pool only contains four threads,
+    then only four files can be read at the same time. Consider [Example 1-3](#ex_libuv_threads)
+    where the application attempts to read a file, does some other work, and then
+    deals with the file content. Although the JavaScript code within the application
+    is able to run, a thread within the bowels of Node.js is busy reading the content
+    of the file from disk into memory.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在内部，libuv 维护一个线程池来管理 I/O 操作，以及像 `crypto` 和 `zlib` 这样的 CPU-heavy 操作。这是一个有限大小的池子，允许进行
+    I/O 操作。如果池子只包含四个线程，那么同时只能读取四个文件。考虑 [示例 1-3](#ex_libuv_threads) 中的情况，应用程序试图读取文件，然后处理文件内容。尽管应用程序中的
+    JavaScript 代码能够运行，但 Node.js 的深层线程正忙于将文件内容从磁盘读取到内存中。
+- en: Example 1-3\. Node.js threads
+  id: totrans-47
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-3\. Node.js 线程
+- en: '[PRE1]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](assets/1.png)](#co_why_distributed__CO1-1)'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_why_distributed__CO1-1)'
+- en: Node.js reads `/etc/passwd`. It’s scheduled by libuv.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 读取 `/etc/passwd`。由 libuv 调度。
+- en: '[![2](assets/2.png)](#co_why_distributed__CO1-3)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_why_distributed__CO1-3)'
+- en: Node.js runs a callback in a new stack. It’s scheduled by V8.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js 在新栈中运行回调。由 V8 调度。
+- en: '[![3](assets/3.png)](#co_why_distributed__CO1-4)'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_why_distributed__CO1-4)'
+- en: Once the previous stack ends, a new stack is created and prints a message.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上一个栈结束后，会创建一个新栈并打印一条消息。
+- en: '[![4](assets/4.png)](#co_why_distributed__CO1-2)'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_why_distributed__CO1-2)'
+- en: Once the file is done reading, libuv passes the result to the V8 event loop.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件读取完成后，libuv 将结果传递给 V8 事件循环。
+- en: Tip
+  id: totrans-57
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: The libuv thread pool size defaults to four, has a max of 1,024, and can be
+    overridden by setting the `UV_THREADPOOL_SIZE=<threads>` environment variable.
+    In practice it’s not that common to modify it and should only be done after benchmarking
+    the effects in a perfect replication of production. An app running locally on
+    a macOS laptop will behave very differently than one in a container on a Linux
+    server.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: libuv 线程池的默认大小为四，最大为 1,024，并且可以通过设置 `UV_THREADPOOL_SIZE=<threads>` 环境变量进行覆盖。在实践中，修改它并不那么常见，应该在完全复制生产环境的完美基准测试之后才这样做。在
+    macOS 笔记本电脑上本地运行的应用程序与在 Linux 服务器上的容器中运行的应用程序表现会有很大的不同。
+- en: 'Internally, Node.js maintains a list of asynchronous tasks that still need
+    to be completed. This list is used to keep the process running. When a stack completes
+    and the event loop looks for more work to do, if there are no more operations
+    left to keep the process alive, it will exit. That is why a very simple application
+    that does nothing asynchronous is able to exit when the stack ends. Here’s an
+    example of such an application:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在内部，Node.js 维护一个需要完成的异步任务列表。此列表用于保持进程运行。当一个栈完成并且事件循环寻找更多工作时，如果没有更多的操作可以保持进程活跃，它将退出。这就是为什么一个完全不做任何异步操作的非常简单的应用程序在栈结束时能够退出的原因。以下是这样一个应用程序的例子：
+- en: '[PRE2]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'However, once an asynchronous task has been created, this is enough to keep
+    a process alive, like in this example:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，一旦创建了一个异步任务，这就足以保持进程活跃，就像这个例子中一样：
+- en: '[PRE3]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: There are many Node.js API calls that result in the creation of objects that
+    keep the process alive. As another example of this, when an HTTP server is created,
+    it also keeps the process running forever. A process that closes immediately after
+    an HTTP server is created wouldn’t be very useful.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有许多 Node.js API 调用会导致创建保持进程活跃的对象。作为这一点的另一个例子，当创建一个 HTTP 服务器时，它也会使进程永远运行下去。在创建
+    HTTP 服务器后立即关闭的进程是没有什么用处的。
+- en: There is a common pattern in the Node.js APIs where such objects can be configured
+    to no longer keep the process alive. Some of these are more obvious than others.
+    For example, if a listening HTTP server port is closed, then the process may choose
+    to end. Additionally, many of these objects have a pair of methods attached to
+    them, `.unref()` and `.ref()`. The former method is used to tell the object to
+    no longer keep the process alive, whereas the latter does the opposite. [Example 1-4](#ex_ref_unref)
+    demonstrates this happening.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Node.js API 中有一个常见的模式，其中这些对象可以被配置为不再保持进程活跃。其中一些比其他的更明显。例如，如果关闭了正在侦听的 HTTP
+    服务器端口，那么进程可能会选择结束。此外，许多这些对象附加了一对方法，`.unref()` 和 `.ref()`。前者用于告诉对象不再保持进程活跃，而后者则相反。[示例 1-4](#ex_ref_unref)演示了这种情况发生。
+- en: Example 1-4\. The common `.ref()` and `.unref()` methods
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-4\. 常见的`.ref()`和`.unref()`方法
+- en: '[PRE4]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: '[![1](assets/1.png)](#co_why_distributed__CO2-1)'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_why_distributed__CO2-1)'
+- en: There is now one asynchronous operation keeping Node.js alive. The process should
+    end in 1,000 seconds.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在有一个异步操作保持 Node.js 活跃。进程应该在 1,000 秒内结束。
+- en: '[![2](assets/2.png)](#co_why_distributed__CO2-2)'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_why_distributed__CO2-2)'
+- en: There are now two such operations. The process should now end in 2,000 seconds.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在有两个这样的操作。进程现在应该在 2,000 秒内结束。
+- en: '[![3](assets/3.png)](#co_why_distributed__CO2-3)'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_why_distributed__CO2-3)'
+- en: The *t1* timer has been unreferenced. Its callback can still run in 1,000 seconds,
+    but it won’t keep the process alive.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*t1* 计时器已被取消引用。它的回调函数仍然可以在 1,000 秒后运行，但不会保持进程活跃。'
+- en: '[![4](assets/4.png)](#co_why_distributed__CO2-4)'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_why_distributed__CO2-4)'
+- en: The *t2* timer has been cleared and will never run. A side effect of this is
+    that it no longer keeps the process alive. With no remaining asynchronous operations
+    keeping the process alive, the next iteration of the event loop ends the process.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*t2* 计时器已被清除，将不会再运行。这样做的一个副作用是不再保持进程活跃。由于没有剩余的异步操作来保持进程活跃，事件循环的下一次迭代将结束进程。'
+- en: 'This example also highlights another feature of Node.js: not all of the APIs
+    that exist in browser JavaScript behave the same way in Node.js. The `setTimeout()`
+    function, for example, returns an integer in web browsers. The Node.js implementation
+    returns an object with several properties and methods.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例还突出了 Node.js 的另一个特性：并非所有在浏览器 JavaScript 中存在的 API 在 Node.js 中都表现相同。例如，`setTimeout()`
+    函数在 Web 浏览器中返回一个整数。Node.js 实现返回一个带有多个属性和方法的对象。
+- en: The event loop has been mentioned a few times, but it really deserves to be
+    looked at in much more detail.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已经多次提到事件循环，但它真的值得更详细地研究。
+- en: The Node.js Event Loop
+  id: totrans-77
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Node.js 事件循环
+- en: Both the JavaScript that runs in your browser and the JavaScript that runs in
+    Node.js come with an implementation of an event loop. They’re similar in that
+    they both schedule and execute asynchronous tasks in separate stacks. But they’re
+    also different since the event loop used in a browser is optimized to power modern
+    single page applications, while the one in Node.js has been tuned for use in a
+    server. This section covers, at a high level, the event loop used in Node.js.
+    Understanding the basics of the event loop is beneficial because it handles all
+    the scheduling of your application code—and misconceptions can lead to poor performance.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你的浏览器中运行的 JavaScript 和 Node.js 中运行的 JavaScript 都带有事件循环的实现。它们类似于在不同栈中调度和执行异步任务。但它们也不同，因为浏览器中使用的事件循环经过优化，用于支持现代单页面应用程序，而
+    Node.js 中的事件循环经过调优，用于服务器使用。本节主要介绍了 Node.js 中使用的事件循环。理解事件循环的基础知识是有益的，因为它处理所有应用程序代码的调度——误解可能导致性能下降。
+- en: As the name implies, the event loop runs in a loop. The elevator pitch is that
+    it manages a queue of events that are used to trigger callbacks and move the application
+    along. But, as you might expect, the implementation is much more nuanced than
+    that. It executes callbacks when I/O events happen, like a message being received
+    on a socket, a file changing on disk, a `setTimeout()` callback being ready to
+    run, etc.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如其名称所示，事件循环在一个循环中运行。简单来说，它管理一系列事件的队列，用于触发回调并推动应用程序。但是，实现比这复杂得多。它在发生 I/O 事件时执行回调，例如在套接字接收到消息时、磁盘上的文件发生变化时、`setTimeout()`
+    回调准备运行时等。
+- en: At a low level, the operating system notifies the program that *something* has
+    happened. Then, libuv code inside the program springs to life and figures out
+    what to do. If appropriate, the message then bubbles up to code in a Node.js API,
+    and this can finally trigger a callback in application code. The event loop is
+    a way to allow these events in lower level C++ land to cross the boundary and
+    run code in JavaScript.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在低级别上，操作系统通知程序*发生了某事*。然后，程序内部的 libuv 代码开始运行并找出该做什么。如果合适，消息会上升到 Node.js API 中的代码，最终可以触发应用程序代码中的回调。事件循环是一种允许这些在更低级别的
+    C++ 环境中的事件越过边界并在 JavaScript 中运行代码的方式。
+- en: Event Loop Phases
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 事件循环阶段
+- en: The event loop has several different phases to it. Some of these phases don’t
+    deal with application code directly; for example, some might involve running JavaScript
+    code that internal Node.js APIs are concerned about. An overview of the phases
+    that handle the execution of userland code is provided in [Figure 1-4](#fig_event_loop).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件循环有几个不同的阶段。其中一些阶段不直接涉及应用程序代码；例如，有些可能涉及运行内部 Node.js API 关心的 JavaScript 代码。提供了处理执行用户代码的概述，详见[图 1-4](#fig_event_loop)。
+- en: 'Each one of these phases maintains a queue of callbacks that are to be executed.
+    Callbacks are destined for different phases based on how they are used by the
+    application. Here are some details about these phases:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些阶段中的每一个都维护一个要执行的回调队列。根据应用程序使用的方式，回调被指定到不同的阶段。以下是关于这些阶段的一些细节：
+- en: Poll
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 轮询
+- en: The poll phase executes I/O-related callbacks. This is the phase that application
+    code is most likely to execute in. When your main application code starts running,
+    it runs in this phase.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 轮询阶段执行与 I/O 相关的回调。这是应用程序代码最有可能执行的阶段。当你的主要应用程序代码开始运行时，它运行在这个阶段。
+- en: Check
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检查
+- en: In this phase, callbacks that are triggered via `setImmediate()` are executed.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此阶段，通过 `setImmediate()` 触发的回调被执行。
+- en: Close
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关闭
+- en: This phase executes callbacks that are triggered via `EventEmitter` `close`
+    events. For example, when a `net.Server` TCP server closes, it emits a `close`
+    event that runs a callback in this phase.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此阶段执行通过 `EventEmitter` 的 `close` 事件触发的回调。例如，当 `net.Server` TCP 服务器关闭时，它会触发一个
+    `close` 事件，在此阶段运行一个回调。
+- en: Timers
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计时器
+- en: Callbacks scheduled using `setTimeout()` and `setInterval()` are executed in
+    this phase.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `setTimeout()` 和 `setInterval()` 调度的回调在此阶段执行。
+- en: Pending
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 挂起
+- en: Special system events are run in this phase, like when a `net.Socket` TCP socket
+    throws an `ECONNREFUSED` error.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 特殊系统事件在此阶段运行，例如当 `net.Socket` TCP 套接字抛出 `ECONNREFUSED` 错误时。
+- en: To make things a little more complicated, there are also two special *microtask
+    queues* that can have callbacks added to them while a phase is running. The first
+    microtask queue handles callbacks that have been registered using `process.nextTick()`.^([3](ch01.html#idm46291203886584))
+    The second microtask queue handles promises that reject or resolve. Callbacks
+    in the microtask queues take priority over callbacks in the phase’s normal queue,
+    and callbacks in the next tick microtask queue run before callbacks in the promise
+    microtask queue.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了使事情变得更复杂一些，还有两个特殊的*微任务队列*，可以在运行阶段期间向它们添加回调。第一个微任务队列处理使用 `process.nextTick()`
+    注册的回调。^([3](ch01.html#idm46291203886584)) 第二个微任务队列处理拒绝或解析的 promise。微任务队列中的回调优先于阶段正常队列中的回调，并且下一个时钟微任务队列中的回调在
+    promise 微任务队列中的回调之前执行。
+- en: '![Five stages of the Node.js event loop: Timers, Pending, Poll, Check, Close](assets/dsnj_0104.png)'
+  id: totrans-95
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Node.js 事件循环的五个阶段：计时器、挂起、轮询、检查、关闭](assets/dsnj_0104.png)'
+- en: Figure 1-4\. Notable phases of the Node.js event loop
+  id: totrans-96
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-4\. Node.js 事件循环的显著阶段
+- en: When the application starts running, the event loop is also started and the
+    phases are handled one at a time. Node.js adds callbacks to different queues as
+    appropriate while the application runs. When the event loop gets to a phase, it
+    will run all the callbacks in that phase’s queue. Once all the callbacks in a
+    given phase are exhausted, the event loop then moves on to the next phase. If
+    the application runs out of things to do but is waiting for I/O operations to
+    complete, it’ll hang out in the poll phase.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序启动时，事件循环也启动，并逐一处理各个阶段。Node.js 在运行应用程序时根据需要将回调添加到不同的队列中。当事件循环进入某个阶段时，将运行该阶段队列中的所有回调。一旦某个阶段的所有回调都执行完毕，事件循环将移动到下一个阶段。如果应用程序没有其他事情可做，但正在等待
+    I/O 操作完成，则会停留在轮询阶段。
+- en: Code Example
+  id: totrans-98
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 示例代码
+- en: Theory is nice and all, but to truly understand how the event loop works, you’re
+    going to have to get your hands dirty. This example uses the poll, check, and
+    timers phases. Create a file named *event-loop-phases.js* and add the content
+    from [Example 1-5](#ex_event_loop_phases) to it.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理论很好，但要真正理解事件循环的工作原理，你必须亲自动手。本例使用了轮询、检查和计时器阶段。创建一个名为 *event-loop-phases.js*
+    的文件，并将[示例 1-5](#ex_event_loop_phases)中的内容添加到其中。
+- en: Example 1-5\. *event-loop-phases.js*
+  id: totrans-100
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-5\. *event-loop-phases.js*
+- en: '[PRE5]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: If you feel inclined, try to guess the order of the output, but don’t feel bad
+    if your answer doesn’t match up. This is a bit of a complex subject.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你感兴趣，可以尝试猜测输出的顺序，但如果你的答案不匹配也不要气馁。这是一个有点复杂的主题。
+- en: The script starts off executing line by line in the poll phase. First, the `fs`
+    module is required, and a whole lot of magic happens behind the scenes. Next,
+    the `setImmediate()` call is run, which adds the callback printing 1 to the check
+    queue. Then, the promise resolves, adding callback 2 to the promise microtask
+    queue. `process.nextTick()` runs next, adding callback 3 to the next tick microtask
+    queue. Once that’s done the `fs.readFile()` call tells the Node.js APIs to start
+    reading a file, placing its callback in the poll queue once it’s ready. Finally,
+    log number 8 is called directly and is printed to the screen.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 脚本从轮询阶段逐行执行。首先，需要 `fs` 模块，并在幕后进行大量操作。接下来，调用 `setImmediate()`，将回调添加到检查队列中，打印数字
+    1。然后，promise 解析，将回调添加到 promise 微任务队列中，回调 2。接着是 `process.nextTick()` 运行，将回调添加到下一个时钟微任务队列中，回调
+    3。完成后，`fs.readFile()` 调用告诉 Node.js API 开始读取文件，并在准备就绪时将其回调放入轮询队列。最后，直接调用日志号 8 并将其打印到屏幕上。
+- en: That’s it for the current stack. Now the two microtask queues are consulted.
+    The next tick microtask queue is always checked first, and callback 3 is called.
+    Since there’s only one callback in the next tick microtask queue, the promise
+    microtask queue is checked next. Here callback 2 is executed. That finishes the
+    two microtask queues, and the current poll phase is complete.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到此为止，当前堆栈结束。现在要查看两个微任务队列。总是首先检查下一个时钟微任务队列，并调用回调 3。由于下一个时钟微任务队列中只有一个回调，因此接下来检查
+    promise 微任务队列。这里执行回调 2。这样完成了两个微任务队列，并且当前轮询阶段也完成了。
+- en: Now the event loop enters the check phase. This phase has callback 1 in it,
+    which is then executed. Both the microtask queues are empty at this point, so
+    the check phase ends. The close phase is checked next but is empty, so the loop
+    continues. The same happens with the timers phase and the pending phase, and the
+    event loop continues back around to the poll phase.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在事件循环进入检查阶段。此阶段包含回调函数1，并执行它。此时，两个微任务队列都为空，因此检查阶段结束。接下来检查关闭阶段，但为空，因此循环继续。定时器阶段和待处理阶段也发生同样的情况，并且事件循环继续回到轮询阶段。
+- en: Once it’s back in the poll phase, the application doesn’t have much else going
+    on, so it basically waits until the file has finished being read. Once that happens
+    the `fs.readFile()` callback is run.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦回到轮询阶段，应用程序没有太多其他操作，因此基本上会等待文件读取完成。一旦完成，将运行`fs.readFile()`回调。
+- en: The number 4 is immediately printed since it’s the first line in the callback.
+    Next, the `setTimeout()` call is made and callback 5 is added to the timers queue.
+    The `setImmediate()` call happens next, adding callback 6 to the check queue.
+    Finally, the `process.nextTick()` call is made, adding callback 7 to the next
+    tick microtask queue. The poll queue is now finished, and the microtask queues
+    are again consulted. Callback 7 runs from the next tick queue, the promise queue
+    is consulted and found empty, and the poll phase ends.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数字4立即打印，因为它是回调中的第一行。接下来调用`setTimeout()`，并将回调函数5添加到定时器队列中。接下来发生`setImmediate()`调用，将回调函数6添加到检查队列中。最后，进行`process.nextTick()`调用，将回调函数7添加到下一个微任务队列中。轮询队列现在已完成，并且再次查询微任务队列。从下一个微任务队列运行回调函数7，承诺队列查询为空，轮询阶段结束。
+- en: Again, the event loop switches to the check phase where callback 6 is encountered.
+    The number is printed, the microtask queues are determined to be empty, and the
+    phase ends. The close phase is checked again and found empty. Finally the timers
+    phase is consulted wherein callback 5 is executed. Once that’s done, the application
+    doesn’t have any more work to do and it exits.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，事件循环切换到检查阶段，在此期间遇到回调函数6。数字被打印，微任务队列确定为空，阶段结束。再次检查关闭阶段发现为空。最后，查询定时器阶段，在此期间执行回调函数5。一旦完成，应用程序没有更多工作可做，因此退出。
+- en: 'The log statements have been printed in this order: 8, 3, 2, 1, 4, 7, 6, 5.'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日志语句按照以下顺序打印出来：8, 3, 2, 1, 4, 7, 6, 5。
+- en: When it comes to `async` functions, and operations that use the `await` keyword,
+    code still plays by the same event loop rules. The main difference ends up being
+    the syntax.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当涉及到`async`函数和使用`await`关键字的操作时，代码仍然遵循相同的事件循环规则。主要区别在于语法。
+- en: 'Here is an example of some complex code that interleaves awaited statements
+    with statements that schedule callbacks in a more straightforward manner. Go through
+    it and write down the order in which you think the log statements will be printed:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是一个复杂代码的示例，它在等待语句与以更直接方式安排回调语句之间交织。仔细检查它，并写下你认为日志语句将被打印的顺序：
+- en: '[PRE6]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'When it comes to `async` functions and statements preceded with `await`, you
+    can almost think of them as being syntactic sugar for code that uses nested callbacks,
+    or even as a chain of `.then()` calls. The following example is another way to
+    think of the previous example. Again, look at the code and write down the order
+    in which you think the log commands will print:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当涉及到`async`函数和以`await`开头的语句时，您几乎可以将它们视为使用嵌套回调或甚至链式`.then()`调用的代码的语法糖。以下示例是思考上一个示例的另一种方式。再次查看代码，并写下您认为日志命令将以哪种顺序打印：
+- en: '[PRE7]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Did you come up with a different solution when you read this second example?
+    Did it seem easier to reason about? This time around, you can more easily apply
+    the same rules about the event loop that have already been covered. In this example
+    it’s hopefully clearer that, even though the resolved promises make it look like
+    the code that follows should be run much earlier, they still have to wait for
+    the underlying `setTimeout()` or `setImmediate()` calls to fire before the program
+    can continue.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您阅读第二个示例时，是否想出了不同的解决方案？它是否看起来更容易理解？这一次，您可以更轻松地应用已经涵盖的关于事件循环的相同规则。在这个示例中，希望更清楚，即使已解决的承诺使得随后的代码看起来应该更早运行，它们仍然必须等待底层的`setTimeout()`或`setImmediate()`调用才能继续执行程序。
+- en: 'The log statements have been printed in this order: 2, 1, 4, 3, 6, 8, 5, 7.'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 日志语句按照以下顺序打印出来：2, 1, 4, 3, 6, 8, 5, 7。
+- en: Event Loop Tips
+  id: totrans-117
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 事件循环技巧
+- en: When it comes to building a Node.js application, you don’t necessarily need
+    to know this level of detail about the event loop. In a lot of cases it “just
+    works” and you usually don’t need to worry about which callbacks are executed
+    first. That said, there are a few important things to keep in mind when it comes
+    to the event loop.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建 Node.js 应用程序时，并不一定需要了解事件循环的这个细节层面。在许多情况下，“它只是工作”，通常无需担心哪些回调首先执行。尽管如此，在涉及事件循环时，还有一些重要的事情需要牢记。
+- en: '*Don’t starve the event loop.* Running too much code in a single stack will
+    stall the event loop and prevent other callbacks from firing. One way to fix this
+    is to break CPU-heavy operations up across multiple stacks. For example, if you
+    need to process 1,000 data records, you might consider breaking it up into 10
+    batches of 100 records, using `setImmediate()` at the end of each batch to continue
+    processing the next batch. Depending on the situation, it might make more sense
+    to offload processing to a child process.'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*不要饿死事件循环。* 在单个堆栈中运行过多代码会使事件循环停滞，并阻止其他回调的触发。解决此问题的一种方法是将CPU密集型操作拆分到多个堆栈中。例如，如果您需要处理1,000条数据记录，您可以考虑将其拆分为100条记录的10批次，并在每个批次结束时使用
+    `setImmediate()` 继续处理下一批次。根据情况，将处理任务分派给子进程可能更合理。'
+- en: 'You should never break up such work using `process.nextTick()`. Doing so will
+    lead to a microtask queue that never empties—your application will be trapped
+    in the same phase forever! Unlike an infinitely recursive function, the code won’t
+    throw a `RangeError`. Instead, it’ll remain a zombie process that eats through
+    CPU. Check out the following for an example of this:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您绝不应该使用 `process.nextTick()` 来分割这样的工作。这样做会导致一个永远不会清空的微任务队列，使您的应用程序永远被困在相同的阶段中！与无限递归函数不同，代码不会抛出
+    `RangeError`，而是会成为一个吃掉CPU资源的僵尸进程。查看以下示例以了解详情：
+- en: '[PRE8]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: In this example, the `setInterval()` represents some asynchronous work that
+    the application performs, such as responding to incoming HTTP requests. Once the
+    `nt_recursive()` function is run, the application ends up with a microtask queue
+    that never empties and the asynchronous work never gets processed. But the alternative
+    version `si_recursive()` does not have the same side effect. Making `setImmediate()`
+    calls within a check phase adds callbacks to the *next* event loop iteration’s
+    check phase queue, not the current phase’s queue.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本例中，`setInterval()` 表示应用程序执行的某些异步工作，例如响应传入的HTTP请求。一旦运行 `nt_recursive()` 函数，应用程序将得到一个永远不会清空的微任务队列，并且异步工作永远不会被处理。但是，替代版本
+    `si_recursive()` 不会产生同样的副作用。在检查阶段内使用 `setImmediate()` 调用会将回调添加到*下一个*事件循环迭代的检查阶段队列中，而不是当前阶段的队列中。
+- en: '*Don’t introduce Zalgo.* When exposing a method that takes a callback, that
+    callback should always be run asynchronously. For example, it’s far too easy to
+    write something like this:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*不要引入 Zalgo。* 在暴露一个接受回调的方法时，该回调应始终异步运行。例如，编写以下代码非常容易：'
+- en: '[PRE9]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'The callback is sometimes called synchronously, like when `count` is set to
+    zero, and sometimes asynchronously, like when `count` is set to one. Instead,
+    ensure the callback is executed in a new stack, like in this example:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 `count` 设置为零时，回调有时会同步调用，有时会异步调用，如下所示。相反，请确保回调在新的堆栈中执行，例如：
+- en: '[PRE10]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'In this case, either using `setImmediate()` or `process.nextTick()` is okay;
+    just make sure you don’t accidentally introduce recursion. With this reworked
+    example, the callback is always run asynchronously. Ensuring the callback is run
+    consistently is important because of the following situation:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，使用 `setImmediate()` 或 `process.nextTick()` 都可以；只需确保不要意外引入递归。通过重新编写的示例，回调始终异步运行。确保回调的一致运行很重要，因为出现以下情况：
+- en: '[PRE11]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This might look a bit contrived, but essentially the problem is that when the
+    callback is sometimes run synchronously and sometimes run asynchronously, the
+    value of `bar` may or may not have been modified. In a real application this can
+    be the difference between accessing a variable that may or may not have been properly
+    initialized.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能看起来有点做作，但问题实质上是，当回调有时同步运行，有时异步运行时，`bar` 的值可能已经被修改，也可能未被修改。在实际应用中，这可能是访问可能已经初始化或未经初始化的变量之间的差异。
+- en: Now that you’re a little more familiar with the inner workings of Node.js, it’s
+    time to build out some sample applications.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你对 Node.js 的内部工作有了更多了解，是时候构建一些样例应用程序了。
+- en: Sample Applications
+  id: totrans-131
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 示例应用程序
+- en: In this section you’ll build a pair of small sample Node.js applications. They
+    are intentionally simple and lack features that real applications require. You’ll
+    then add to the complexity of these base applications throughout the remainder
+    of the book.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一节中，你将构建一对简单的小型 Node.js 应用程序。它们故意简单，并且缺乏真实应用程序所需的功能。然后，你将在本书的其余部分逐渐增加这些基础应用程序的复杂性。
+- en: I struggled with the decision to avoid using *any* third-party packages in these
+    examples (for example, to stick with the internal `http` module), but using these
+    packages reduces boilerplate and increases clarity. That said, feel free to choose
+    whatever your preferred framework or request library is; it’s not the intent of
+    this book to ever prescribe a particular package.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我在决定避免在这些示例中使用*任何*第三方包（例如，坚持使用内部的`http`模块）时曾犹豫不决，但使用这些包可以减少样板代码并增加清晰度。话虽如此，你可以根据自己偏好的框架或请求库进行选择；本书的目的并不是强制使用特定的包。
+- en: By building two services instead of just one, you can combine them later in
+    interesting ways, like choosing the protocol they communicate with or the manner
+    in which they discover each other.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过构建两个服务而不是仅仅一个，你可以以后以有趣的方式将它们组合起来，例如选择它们进行通信的协议或它们相互发现的方式。
+- en: The first application, namely the *recipe-api*, represents an internal API that
+    isn’t accessed from the outside world; it’ll only be accessed by other internal
+    applications. Since you own both the service and any clients that access it, you’re
+    later free to make protocol decisions. This holds true for any internal service
+    within an organization.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个应用程序，即*recipe-api*，代表了一个内部 API，不会被外部世界访问；它只会被其他内部应用程序访问。由于你拥有服务和访问它的任何客户端，因此你以后可以自由地做出协议决策。对于组织内的任何内部服务都适用这一点。
+- en: The second application represents an API that is accessed by third parties over
+    the internet. It exposes an HTTP server so that web browsers can easily communicate
+    with it. This application is called the *web-api*.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个应用程序代表了一个可以通过互联网由第三方访问的 API。它暴露了一个 HTTP 服务器，以便 Web 浏览器可以轻松地与其通信。这个应用程序被称为*web-api*。
+- en: Service Relationship
+  id: totrans-137
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 服务关系
+- en: The *web-api* service is downstream of the *recipe-api* and, conversely, the
+    *recipe-api* is upstream of the *web-api*. [Figure 1-5](#fig_prod_cons) is a visualization
+    of the relationship between these two services.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*web-api* 服务位于*recipe-api*服务的下游，反之亦然，*recipe-api*服务则位于*web-api*服务的上游。[图 1-5](#fig_prod_cons)
+    是这两个服务之间关系的可视化展示。'
+- en: '![Relationship between web-api and recipe-api](assets/dsnj_0105.png)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_IMG
+  zh: '![web-api和recipe-api之间的关系](assets/dsnj_0105.png)'
+- en: Figure 1-5\. The relationship between *web-api* and *recipe-api*
+  id: totrans-140
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-5\. *web-api*和*recipe-api*之间的关系
+- en: Both of these applications can be referred to as servers because they are both
+    actively listening for incoming network requests. However, when describing the
+    specific relationship between the two APIs (arrow B in [Figure 1-5](#fig_prod_cons)),
+    the *web-api* can be referred to as the client/consumer and the *recipe-api* as
+    the server/producer. [Chapter 2](ch02.html#ch_protocols) focuses on this relationship.
+    When referring to the relationship between web browser and *web-api* (arrow A
+    in [Figure 1-5](#fig_prod_cons)), the browser is called the client/consumer, and
+    *web-api* is then called the server/producer.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个应用程序都可以称为服务器，因为它们都在积极地监听着传入的网络请求。然而，在描述这两个 API 之间具体关系时（图 1-5中箭头B），*web-api*可以被称为客户端/消费者，而*recipe-api*则称为服务器/生产者。[第2章](ch02.html#ch_protocols)专注于这种关系。当涉及到浏览器与*web-api*之间的关系（图 1-5中箭头A）时，浏览器被称为客户端/消费者，*web-api*则被称为服务器/生产者。
+- en: Now it’s time to examine the source code of the two services. Since these two
+    services will evolve throughout the book, now would be a good time to create some
+    sample projects for them. Create a *distributed-node/* directory to hold all of
+    the code samples you’ll create for this book. Most of the commands you’ll run
+    require that you’re inside of this directory, unless otherwise noted. Within this
+    directory, create a *web-api/*, a *recipe-api/*, and a *shared/* directory. The
+    first two directories will contain different service representations. The *shared/*
+    directory will contain shared files to make it easier to apply the examples in
+    this book.^([4](ch01.html#idm46291208473736))
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候检查这两个服务的源代码了。由于这两个服务将在本书中不断演变，现在是创建它们的示例项目的好时机。创建一个 *distributed-node/*
+    目录来保存本书中为它们创建的所有代码示例。您运行的大多数命令需要您在此目录中，除非另有说明。在此目录中，创建一个 *web-api/*、一个 *recipe-api/*
+    和一个 *shared/* 目录。前两个目录将包含不同的服务表示。*shared/* 目录将包含共享文件，以便更容易地应用本书中的示例。^([4](ch01.html#idm46291208473736))
+- en: 'You’ll also need to install the required dependencies. Within both project
+    directories, run the following command:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要安装所需的依赖项。在两个项目目录中运行以下命令：
+- en: '[PRE12]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: This creates basic *package.json* files for you. Once that’s done, run the appropriate
+    `npm install` commands from the top comment of the code examples. Code samples
+    use this convention throughout the book to convey which packages need to be installed,
+    so you’ll need to run the init and install commands on your own after this. Note
+    that each project will start to contain superfluous dependencies since the code
+    samples are reusing directories. In a real-world project, only necessary packages
+    should be listed as dependencies.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将为您创建基本的 *package.json* 文件。完成后，请从代码示例的顶部注释中运行适当的 `npm install` 命令。代码示例在本书中使用这种约定来传达需要安装哪些软件包，因此您需要在此之后自行运行初始化和安装命令。请注意，每个项目将开始包含多余的依赖项，因为代码示例正在重用目录。在真实的项目中，应该仅列出必要的包作为依赖项。
+- en: Producer Service
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 生产者服务
+- en: Now that the setup is complete, it’s time to view the source code. [Example 1-6](#ex_producer)
+    is an internal Recipe API service, an upstream service that provides data. For
+    this example it will simply provide static data. A real-world application might
+    instead retrieve data from a database.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 设置完成后，现在是查看源代码的时候了。[示例 1-6](#ex_producer) 是一个内部的 Recipe API 服务，是一个提供数据的上游服务。在这个示例中，它将简单地提供静态数据。真实的应用可能会从数据库中检索数据。
+- en: Example 1-6\. *recipe-api/producer-http-basic.js*
+  id: totrans-148
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-6\. *recipe-api/producer-http-basic.js*
+- en: '[PRE13]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Tip
+  id: totrans-150
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: The first line in these files is known as a *shebang*. When a file begins with
+    this line and is made executable (by running **`` `chmod +x filename.js` ``**),
+    it can be executed by running **`` `./filename.js` ``**. As a convention in this
+    book, any time code contains a shebang, it represents a file used as an entry
+    point for an application.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些文件的第一行被称为 *shebang*。当文件以此行开始，并且通过运行 **`` `chmod +x filename.js` ``** 变得可执行时，可以通过运行
+    **`` `./filename.js` ``** 来执行它。作为本书的惯例，每当代码包含 shebang 时，表示该文件用作应用程序的入口点。
+- en: 'Once this service is ready, you can work with it in two different terminal
+    windows.^([5](ch01.html#idm46291205957864)) Execute the following commands; the
+    first starts the *recipe-api* service, and the second tests that it’s running
+    and can return data:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦此服务准备就绪，您可以在两个不同的终端窗口中使用它。^([5](ch01.html#idm46291205957864)) 执行以下命令；第一个启动
+    *recipe-api* 服务，第二个测试它是否运行并可以返回数据：
+- en: '[PRE14]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'You should then see JSON output like the following (whitespace added for clarity):'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，您应该看到类似以下的 JSON 输出（为了清晰起见添加了空白）：
+- en: '[PRE15]'
+  id: totrans-155
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Consumer Service
+  id: totrans-156
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 消费者服务
+- en: The second service, a public-facing Web API service, doesn’t contain as much
+    data but is more complex since it’s going to make an outbound request. Copy the
+    source code from [Example 1-7](#ex_consumer) to the file located at *web-api/consumer-http-basic.js*.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个服务是一个公共的 Web API 服务，数据量不多，但由于它将进行出站请求，所以更复杂。将源代码从 [示例 1-7](#ex_consumer)
+    复制到位于 *web-api/consumer-http-basic.js* 的文件中。
+- en: Example 1-7\. *web-api/consumer-http-basic.js*
+  id: totrans-158
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 1-7\. *web-api/consumer-http-basic.js*
+- en: '[PRE16]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Make sure that the *recipe-api* service is still running. Then, once you’ve
+    created the file and have added the code, execute the new service and generate
+    a request using the following commands:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 确保 *recipe-api* 服务仍在运行。然后，一旦您创建了文件并添加了代码，执行新服务并使用以下命令生成请求：
+- en: '[PRE17]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'The result of this operation is a superset of the JSON provided from the previous
+    request:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此操作的结果是从上一个请求提供的 JSON 的超集：
+- en: '[PRE18]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: The `pid` values in the responses are the numeric process IDs of each service.
+    These PID values are used by operating systems to differentiate running processes.
+    They’re included in the responses to make it obvious that the data came from two
+    separate processes. These values are unique across a particular running operating
+    system, meaning there should not be duplicates on the same running machine, though
+    there will be collisions across separate machines, virtual or otherwise.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 响应中的`pid`值是每个服务的数值进程ID。这些PID值由操作系统用于区分运行中的进程。它们包含在响应中，以明确数据来自两个独立的进程。这些值在特定运行的操作系统中是唯一的，意味着在同一台运行的机器上不应该有重复，尽管在不同的机器上（无论是实体还是虚拟）可能会发生冲突。
+- en: ^([1](ch01.html#idm46291209446408-marker)) Even a multithreaded application
+    is constrained by the limitations of a single machine.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch01.html#idm46291209446408-marker)) 即使是多线程应用程序也受限于单台机器的限制。
+- en: ^([2](ch01.html#idm46291209353624-marker)) “Userland” is a term borrowed from
+    operating systems, meaning the space outside of the kernel where a user’s applications
+    can run. In the case of Node.js programs, it refers to application code and npm
+    packages—basically, everything not built into Node.js.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch01.html#idm46291209353624-marker)) “Userland”是从操作系统借来的术语，指的是内核之外的空间，用户的应用程序可以在此运行。在Node.js程序中，它指的是应用代码和npm包——基本上是所有非Node.js内建的东西。
+- en: ^([3](ch01.html#idm46291203886584-marker)) A “tick” refers to a complete pass
+    through the event loop. Confusingly, `setImmediate()` takes a tick to run, whereas
+    `process.nextTick()` is more immediate, so the two functions deserve a name swap.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch01.html#idm46291203886584-marker)) “tick”指的是完整通过事件循环的一次过程。令人困惑的是，`setImmediate()`需要一个tick来运行，而`process.nextTick()`更为即时，因此这两个函数应该互换名字。
+- en: ^([4](ch01.html#idm46291208473736-marker)) In a real-world scenario, any shared
+    files should be checked in via source control or loaded as an outside dependency
+    via an npm package.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch01.html#idm46291208473736-marker)) 在实际场景中，任何共享文件都应通过源代码控制进行检入，或者作为外部依赖项通过npm包加载。
+- en: ^([5](ch01.html#idm46291205957864-marker)) Many of the examples in this book
+    require you two run multiple processes, with some acting as clients and some as
+    servers. For this reason, you’ll often need to run processes in separate terminal
+    windows. In general, if you run a command and it doesn’t immediately exit, it
+    probably requires a dedicated terminal.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch01.html#idm46291205957864-marker)) 本书中的许多示例需要您运行多个进程，其中一些作为客户端，一些作为服务器。因此，您经常需要在单独的终端窗口中运行进程。通常情况下，如果运行命令时不立即退出，则可能需要一个专用终端。

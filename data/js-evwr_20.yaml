@@ -1,0 +1,357 @@
+- en: Chapter 19\. Integrating an Existing Web Application with Electron
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第19章\. 将现有 Web 应用集成到 Electron 中
+- en: I tend to accumulate web browser tabs like a child at the beach collects shells.
+    I don’t necessarily set out to collect them, but by the end of the day, I have
+    dozens of tabs open across a few browser windows. I’m not proud of this, but I
+    suspect that I’m not alone. As a result, I use desktop versions of some of my
+    most commonly used web applications. Often, these applications offer no advantage
+    over the web, but the convenience of an independent app makes them easy to access,
+    find, and switch to throughout the day.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我倾向于像孩子在沙滩上收集贝壳一样收集网络浏览器标签。我并不一定打算收集它们，但到了一天结束时，我在几个浏览器窗口中打开了几十个标签。我对此并不感到自豪，但我怀疑我并不孤单。因此，我使用一些我最常用的网络应用程序的桌面版本。通常，这些应用程序在
+    Web 上没有任何优势，但独立应用程序的便利性使它们易于访问、查找和全天切换。
+- en: In this chapter, we’ll look at how we can take an existing web application and
+    wrap it in an Electron shell. Before proceeding, you will need a local copy of
+    our example API and web applications. If you haven’t been following along through
+    the whole book, visit Appendixes [A](app01.html#appendix-api) and [B](app02.html#appendix-web)
+    to run these.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将看看如何将现有的 Web 应用程序封装到 Electron 外壳中。在继续之前，您需要本地存储我们示例 API 和 Web 应用程序的副本。如果您没有从头到尾跟随整本书的话，请访问附录
+    [A](app01.html#appendix-api) 和 [B](app02.html#appendix-web) 运行这些内容。
+- en: Integrating Our Web Application
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 集成我们的 Web 应用程序
+- en: In the previous chapter, we set up our Electron application to load an *index.html*
+    file. Alternately, we can load a specific URL. In our case, we’ll begin by loading
+    the URL of our locally running web application. First, be sure that your web application
+    and API are running locally. Then we can update our *src/index.js* file, first
+    by updating the `nodeIntegration` setting in the `BrowserWindow` to `false`. This
+    will avoid the security risks of a locally running node application accessing
+    an external site.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一章中，我们设置了我们的 Electron 应用程序加载一个 *index.html* 文件。或者，我们可以加载一个特定的 URL。在我们的情况下，我们将首先加载本地运行的
+    Web 应用程序的 URL。首先确保您的 Web 应用程序和 API 在本地运行。然后我们可以更新我们的 *src/index.js* 文件，首先将 `BrowserWindow`
+    中的 `nodeIntegration` 设置为 `false`。这将避免本地运行的 Node 应用程序访问外部站点时的安全风险。
+- en: '[PRE0]'
+  id: totrans-5
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Now, replace the `window.loadFile(''index.html'');` line with the following:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，请将 `window.loadFile('index.html');` 行替换为以下内容：
+- en: '[PRE1]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Running the Web Application
+  id: totrans-8
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 运行 Web 应用程序
+- en: A local instance of your web application will need to be running on the `1234`
+    port. If you’ve been following along with the book, run **`npm start`** from the
+    root of your web application’s directory to start the development server.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您的 Web 应用程序的本地实例需要在 `1234` 端口上运行。如果您一直在跟随本书，从您的 Web 应用程序目录的根目录运行 **`npm start`**
+    启动开发服务器。
+- en: This will instruct Electron to load a URL, rather than a file. Now if you run
+    the app with `npm start`, you’ll see it loaded in an Electron window, with some
+    caveats.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将指示 Electron 加载一个 URL，而不是一个文件。现在，如果您使用 `npm start` 运行应用程序，您会看到它在 Electron 窗口中加载，但有一些注意事项。
+- en: Warnings and Errors
+  id: totrans-11
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 警告和错误
+- en: The Electron browser developer tools and our terminal currently display a large
+    number of warnings and errors. Let’s look at each of these (see [Figure 19-1](#desktop_errors)).
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Electron 浏览器开发工具和我们的终端当前显示了大量的警告和错误。让我们逐个查看这些问题（参见 [图 19-1](#desktop_errors)）。
+- en: '![A screenshot of our application and the errors printed to the developer console](assets/jsev_1901.png)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们的应用程序截图和打印到开发者控制台的错误信息](assets/jsev_1901.png)'
+- en: Figure 19-1\. Our application is running, but displays a large number of errors
+    and warnings
+  id: totrans-14
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 19-1\. 我们的应用程序正在运行，但显示了大量错误和警告
+- en: 'First, our terminal displays a large number of `SyntaxError: Unexpected Token`
+    errors. Additionally, our developer tools show several corresponding warnings
+    stating `DevTools failed to parse SourceMap`. These two errors are related to
+    the way in which Parcel generates source maps and Electron reads them. Unfortunately,
+    with the combination of technologies that we are using, there does not seem to
+    be a reasonable fix for this issue. Our best option is to disable JavaScript source
+    maps. In the application window’s developer tools, click “Settings” and then uncheck
+    “Enable JavaScript source maps” (see [Figure 19-2](#desktop_sourcemaps)).'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '首先，我们的终端显示了大量的 `SyntaxError: Unexpected Token` 错误。此外，我们的开发工具显示了几个相应的警告，说明 `DevTools
+    无法解析 SourceMap`。这两个错误与 Parcel 生成源映射的方式以及 Electron 读取它们的方式有关。不幸的是，考虑到我们使用的技术组合，似乎没有合理的修复此问题的方法。我们的最佳选择是禁用
+    JavaScript 源映射。在应用程序窗口的开发工具中，单击“设置”，然后取消选中“启用 JavaScript 源映射”（参见 [图 19-2](#desktop_sourcemaps)）。'
+- en: '![A screenshot of the developer tools settings](assets/jsev_1902.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![开发工具设置的截图](assets/jsev_1902.png)'
+- en: Figure 19-2\. Disabling source maps will reduce the number of errors and warnings
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 19-2\. 禁用源映射将减少错误和警告的数量
+- en: Now, if you quit and restart the application you’ll no longer see the source
+    map–related issues. This does come with the tradeoff that debugging our client-side
+    JavaScript within Electron may be more difficult, but thankfully we can still
+    access this feature and our application in our web browser.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您退出并重新启动应用程序，您将不再看到与源映射相关的问题。这样做的一个弊端是，在 Electron 中调试我们的客户端 JavaScript
+    可能会更加困难，但幸运的是，我们仍然可以在 web 浏览器中访问此功能和我们的应用程序。
+- en: The final two warnings are related to Electron’s security. We will address these
+    before bundling our application for production, but it’s worth exploring now what
+    these warnings are.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后两个警告与 Electron 的安全性有关。在将应用程序捆绑到生产环境之前，我们将解决这些问题，但现在探索一下这些警告是值得的。
+- en: '`Electron Security Warning (Insecure Resources)`'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Electron 安全警告（不安全资源）`'
+- en: This warning notifies us that we are loading web resources over an *http* connection.
+    In production, we should always load resources over *https* to ensure privacy
+    and security. In development, loading our localhost over *http* is not a problem,
+    as we will be referencing our hosted website, which uses *https* in the bundled
+    application.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此警告通知我们，我们正在通过 *http* 连接加载 web 资源。在生产环境中，我们应始终通过 *https* 加载资源以确保隐私和安全性。在开发过程中，通过
+    *http* 加载本地主机不是问题，因为我们将引用捆绑应用程序中使用 *https* 的托管网站。
+- en: '`Electron Security Warning (Insecure Content-Security-Policy)`'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Electron 安全警告（不安全内容安全策略）`'
+- en: This warning informs us that we have not yet set a Content Security Policy (CSP).
+    A CSP allows us to specify which domains our application is permitted to load
+    resources from, greatly reducing the risk of a cross-site scripting (XSS) attack.
+    Again, this is not a concern during local development, but it’s important in production.
+    We’ll be implementing a CSP later in the chapter.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此警告告诉我们，我们尚未设置内容安全策略（CSP）。CSP 允许我们指定允许我们的应用程序从哪些域加载资源，极大地减少了跨站脚本（XSS）攻击的风险。在本地开发期间，这并不是一个问题，但在生产环境中很重要。我们将在本章后面实施
+    CSP。
+- en: With our errors addressed, we’re ready to set up our application’s configuration
+    file.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理完错误后，我们准备设置应用程序的配置文件。
+- en: Configuration
+  id: totrans-25
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 配置
+- en: When developing locally, we want to be able to run the local version of our
+    web application, but when bundling the app to be used by others, we want it to
+    reference the publicly available URL. We can set up a simple configuration file
+    to handle this.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本地开发时，我们希望能够运行我们的 Web 应用程序的本地版本，但在捆绑应用程序以供他人使用时，我们希望它引用公开可用的 URL。我们可以设置一个简单的配置文件来处理这个问题。
+- en: 'In our *./src* directory, we will add a *config.js* file where we can store
+    application-specific properties. I’ve included a *config.example.js* file, which
+    you can easily copy from the terminal:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的 *./src* 目录中，我们将添加一个 *config.js* 文件，其中我们可以存储特定于应用程序的属性。我已经包含了一个 *config.example.js*
+    文件，您可以轻松从终端复制：
+- en: '[PRE2]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Now we can fill in the properties of our application:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以填写我们应用程序的属性：
+- en: '[PRE3]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Why Not .env?
+  id: totrans-31
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为什么不使用 .env？
+- en: In our previous environments, we’ve used *.env* files to manage environment-specific
+    settings. In this instance, we’re using a JavaScript configuration file because
+    of the way that Electron apps bundle their dependencies.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们之前的环境中，我们使用 *.env* 文件来管理特定环境的设置。在这种情况下，我们使用 JavaScript 配置文件，因为 Electron 应用程序打包它们的依赖项的方式。
+- en: 'Now in our Electron application’s main process, we can use the configuration
+    file to specify which URL we would like to load in development and production.
+    In *src/index.js*, first import the *config.js* file:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在在我们的 Electron 应用程序的主进程中，我们可以使用配置文件来指定在开发和生产中要加载的 URL。在 *src/index.js* 中，首先导入
+    *config.js* 文件：
+- en: '[PRE4]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Now, we can update the `loadURL` functionality to load different URLs for each
+    environment:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以更新 `loadURL` 功能以在每个环境中加载不同的 URL：
+- en: '[PRE5]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: By using a configuration file, we can easily provide Electron with environment-specific
+    settings.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过使用配置文件，我们可以轻松地为 Electron 提供特定环境的设置。
+- en: Content Security Policy
+  id: totrans-38
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 内容安全策略
+- en: As stated earlier in the chapter, a CSP allows us to limit the domains that
+    our application has permission to load resources from. This helps to limit potential
+    XSS and data injection attacks. In Electron, we can specify our CSP settings to
+    help improve the security of the application. To learn more about CSP for both
+    your Electron and web applications, I recommend the [MDN article](https://oreil.ly/VZS1H)
+    on the subject.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如本章前面所述，CSP 允许我们限制应用程序有权限加载资源的域。这有助于限制潜在的 XSS 和数据注入攻击。在 Electron 中，我们可以指定我们的
+    CSP 设置以提高应用程序的安全性。要了解有关 Electron 和 Web 应用程序的 CSP 的更多信息，我建议阅读有关主题的 [MDN 文章](https://oreil.ly/VZS1H)。
+- en: 'Electron provides a built-in API for CSP, but the `electron-util` library offers
+    a simpler and cleaner syntax. At the top of our *src/index.js* file, update the
+    `electron-util` import statement to include `setContentSecurityPolicy`:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Electron 提供了一个内置的 CSP API，但 `electron-util` 库提供了更简单和更清晰的语法。在我们的 *src/index.js*
+    文件顶部更新 `electron-util` 导入语句以包含 `setContentSecurityPolicy`：
+- en: '[PRE6]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Now we can set our CSP for the production version of the application:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以为应用程序的生产版本设置我们的 CSP：
+- en: '[PRE7]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: With our CSP written, we can check for errors using the [CSP Evaluator](https://oreil.ly/1xNK1)
+    tool. If we are intentionally accessing resources at additional URLs, we could
+    add them to our CSP rule set.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用我们编写的 CSP，我们可以使用 [CSP 评估器](https://oreil.ly/1xNK1) 工具检查错误。如果我们有意访问其他 URL 的资源，我们可以将它们添加到我们的
+    CSP 规则集中。
+- en: 'Our final *src/index.js* file will read as follows:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们最终的 *src/index.js* 文件将如下所示：
+- en: '[PRE8]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: With this, we have a working implementation of our web application running within
+    an Electron shell (shown in [Figure 19-3](#final_desktop)).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式，我们已经在 Electron 外壳中实现了我们的 Web 应用程序的工作实现（如 [图 19-3](#final_desktop) 所示）。
+- en: '![A screenshot of our final desktop application](assets/jsev_1903.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们最终的桌面应用程序的截图](assets/jsev_1903.png)'
+- en: Figure 19-3\. Our web application running within an Electron application shell
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 19-3\. 我们的 Web 应用程序在 Electron 应用程序外壳中运行
+- en: Conclusion
+  id: totrans-50
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we integrated an existing web app into an Electron desktop application,
+    which enables us to get a desktop application to market quickly. It’s worth noting
+    that there are tradeoffs to this approach, however, as it offers limited desktop-specific
+    benefits and requires an internet connection to access the full features of the
+    application. For those of us looking to get a desktop application to market soon,
+    these downsides may be worthwhile. In the next chapter, we’ll look at how we can
+    build and distribute an Electron app.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将现有的 Web 应用程序集成到 Electron 桌面应用程序中，这使我们能够快速将桌面应用程序推向市场。值得注意的是，这种方法存在一些权衡之处，因为它提供了有限的桌面特定优势，并且需要互联网连接才能访问应用程序的全部功能。对于那些希望尽快推向市场的人来说，这些缺点可能是值得的。在下一章中，我们将看看如何构建和分发
+    Electron 应用程序。

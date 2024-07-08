@@ -1,0 +1,595 @@
+- en: Chapter 23\. GraphQL and React Native
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第二十三章 GraphQL 和 React Native
+- en: At the Andy Warhol Museum in Pittsburgh, Pennsylvania, there is a permanent
+    installation called “Silver Clouds.” The installation is a sparse room with a
+    dozen or so rectangular foil balloons, each filled with a mix of helium and regular
+    air. The result is that the balloons will stay suspended longer than balloons
+    filled with atmospheric air, but don’t float to the ceiling like helium balloons.
+    Patrons of the museum walk through the museum, playfully batting the balloons
+    to keep them afloat.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在宾夕法尼亚州匹兹堡的安迪·沃霍尔博物馆，有一个永久的装置叫做“银云”。这个装置是一个稀疏的房间，里面有十几个矩形铝箔气球，每个气球里充满了氦气和普通空气的混合物。结果是，这些气球会比充满大气空气的气球悬浮时间更长，但不像氦气气球那样飘向天花板。博物馆的参观者穿过博物馆，轻轻地拍打气球以使它们漂浮。
+- en: Currently, our application is much like the room of “clouds.” It’s enjoyable
+    to playfully click the icons and navigate around the app shell, but in the end
+    it is a mostly empty room (no offense to Mr. Warhol). In this chapter, we’ll begin
+    to fill our application by first exploring how we can display content with React
+    Native’s list views. We’ll then make use of [Apollo Client](https://www.apollographql.com/docs/react)
+    to connect to our data API. Once we’ve connected, we’ll write GraphQL queries,
+    which will display data on an app screen.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们的应用程序就像“云朵”的房间一样。在应用程序外壳中轻松点击图标并导航是愉快的，但最终它是一个大部分是空的房间（不冒犯沃霍尔先生）。在本章中，我们将首先探讨如何使用
+    React Native 的列表视图显示内容来填充我们的应用程序。然后，我们将使用[Apollo Client](https://www.apollographql.com/docs/react)连接到我们的数据
+    API。一旦连接成功，我们将编写 GraphQL 查询，在应用程序屏幕上显示数据。
+- en: Running Our API Locally
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 本地运行我们的 API
+- en: The development of our mobile application will require access to a local instance
+    of our API. If you’ve been following along with the book, you may already have
+    the Notedly API and its database up and running on your machine. If not, I’ve
+    added instructions in the book’s [Appendix A](app01.html#appendix-api) on how
+    to get a copy of the API up and running along with some sample data. If you already
+    have the API running, but would like some additional data to work with, run **`npm
+    run seed`** from the root of the API project directory.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的移动应用程序开发将需要访问我们 API 的本地实例。如果您一直在跟着本书，您可能已经在您的机器上运行了 Notedly API 和其数据库。如果没有，我在本书的[附录
+    A](app01.html#appendix-api)中添加了如何启动 API 并获取一些示例数据的说明。如果您已经运行了 API，但希望获取更多的数据来使用，请从
+    API 项目目录的根目录运行**`npm run seed`**。
+- en: Creating List and Scrollable Content Views
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建列表和可滚动内容视图
+- en: 'Lists are everywhere. In life we keep to-do lists, grocery lists, and guest
+    lists. In applications, lists are one of the most common UI patterns: lists of
+    social media posts, lists of articles, lists of songs, lists of movies, and so
+    on. The list (see what I did there?) goes on and on. It may come as no surprise,
+    then, that React Native makes creating scrollable lists of content a straightforward
+    process.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 列表随处可见。在生活中，我们保持待办事项列表、购物清单和客人名单。在应用程序中，列表是最常见的 UI 模式之一：社交媒体帖子列表、文章列表、歌曲列表、电影列表等等。列表（看我干的什么？）继续无穷无尽。因此，React
+    Native 使得创建可滚动内容列表变得非常简单。
+- en: The two types of lists on React Native are `FlatList` and `SectionList`. A `FlatList`
+    is useful for a large number of items in a single scrollable list. React Native
+    does some helpful things behind the scenes, such as rendering only the items that
+    are initially viewable to improve performance. A `SectionList` is much like a
+    `FlatList`, except that it allows groups of list items to have a header. Think
+    of contacts in a contact list, often grouped alphabetically beneath an alphanumeric
+    header.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Native 上的两种列表类型是`FlatList`和`SectionList`。`FlatList`适用于单个可滚动列表中的大量项目。React
+    Native 在幕后执行一些有用的操作，例如仅渲染最初可见的项目以提高性能。`SectionList`与`FlatList`非常相似，但它允许列表项目的组有一个标题。想象一下联系人列表中的联系人，通常按字母数字顺序分组在一个标题下。
+- en: For our purposes, we’ll be using a `FlatList` to display a list of notes, through
+    which a user can scroll and tap a preview to read the full note. To achieve this,
+    let’s create a new component named `NoteFeed`, which we can use to display the
+    list of notes. For now we’ll use some stand-in data, but we’ll connect it to our
+    API soon.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了我们的目的，我们将使用`FlatList`来显示一个笔记列表，用户可以滚动并点击预览以查看完整的笔记。为了实现这一点，让我们创建一个名为`NoteFeed`的新组件，我们可以用来显示笔记列表。现在我们将使用一些临时数据，但很快我们将把它连接到我们的
+    API。
+- en: To begin, let’s create a new component at *src/components/NoteFeed.js*. We’ll
+    start by importing our dependencies and adding an array of temporary data.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，让我们在*src/components/NoteFeed.js*中创建一个新的组件。我们将首先导入我们的依赖项并添加一个临时数据数组。
+- en: '[PRE0]'
+  id: totrans-10
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Now we can write our component code, which will contain a `FlatList`:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以编写我们的组件代码，其中将包含一个`FlatList`：
+- en: '[PRE1]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'In the preceding code you can see that `FlatList` receives three properties
+    that simplify the process of iterating over the data:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前面的代码中，您可以看到`FlatList`接收了三个属性，简化了遍历数据的过程：
+- en: '`data`'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`'
+- en: This property points to the array of data that the list will contain.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性指向列表将包含的数据数组。
+- en: '`keyExtractor`'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`keyExtractor`'
+- en: Each item in the list must have a unique `key` value. We are using `keyExtractor`
+    to use the unique `id` value as the `key`.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 列表中的每个项必须具有唯一的`key`值。我们正在使用`keyExtractor`将唯一的`id`值作为`key`。
+- en: '`renderItem`'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`renderItem`'
+- en: This property defines what should be rendered within the list. For now we are
+    passing an individual `item` from our `notes` array and displaying it as `Text`.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此属性定义应在列表中呈现什么。目前，我们正在从我们的`notes`数组中传递一个单独的`item`并将其显示为`Text`。
+- en: 'We can view our list by updating our *src/screens/feed.js* component to display
+    the feed:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过更新我们的*src/screens/feed.js*组件来查看我们的列表，以显示该源：
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Let’s move back to our *src/components/NoteFeed.js* file and update `renderItem`
+    to add some spacing between list items using a styled component:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到我们的*src/components/NoteFeed.js*文件，并更新`renderItem`以在样式化组件中添加列表项之间的间距：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'If you preview our app, you’ll see a scrollable list of data. Finally, we can
+    add a separator between our list items. Rather than adding a bottom border via
+    CSS, React Native enables us to pass an `ItemSeparatorComponent` property to our
+    `FlatList`. This gives us fine-grained control to place any type of component
+    as a separator between list elements. It also avoids placing a separator in unwanted
+    places, such as after the last item in the list. For our purposes we’ll add a
+    simple border, created as a styled component `View`:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果预览我们的应用程序，您将看到一个可滚动的数据列表。最后，我们可以在列表项之间添加分隔符。与其通过CSS添加底部边框，React Native允许我们将`ItemSeparatorComponent`属性传递给我们的`FlatList`。这使我们能够精细控制在列表元素之间放置任何类型的组件作为分隔符。它还避免在不需要的位置（例如在列表中的最后一项之后）放置分隔符。出于我们的目的，我们将添加一个简单的边框，作为一个样式化的组件`View`：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Rather than rendering and styling our note’s content directly in our `FlatList`,
+    let’s isolate it within its own component. To do so we’ll introduce a new type
+    of view called `ScrollView`. The functionality of a `ScrollView` is precisely
+    what you’d expect: rather than conforming to the size of the screen, a `ScrollView`
+    will overflow the content, allowing the user to scroll.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 而不是直接在我们的`FlatList`中呈现和样式化笔记内容，让我们将其隔离在其自己的组件中。为此，我们将引入一种称为`ScrollView`的新视图类型。`ScrollView`的功能正是您所期望的：它不会适应屏幕的大小，而是会溢出内容，允许用户滚动。
+- en: 'Let’s create a new component at *src/components/Note.js*:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/components/Note.js*中创建一个新的组件：
+- en: '[PRE5]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Finally, we’ll update our *src/components/NoteFeed.js* component to make use
+    of our new `Note` component by importing it and using it within our `FeedView`.
+    The final component code will be as follows ([Figure 23-1](#flatlist_demo)):'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将更新我们的*src/components/NoteFeed.js*组件，通过导入并在我们的`FeedView`中使用我们的新`Note`组件来使用它。最终组件代码如下（[图23-1](#flatlist_demo)）：
+- en: '[PRE6]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '![A screenshot of the app with a list of data](assets/jsev_2301.png)'
+  id: totrans-31
+  prefs: []
+  type: TYPE_IMG
+  zh: '![应用程序截图，显示数据列表](assets/jsev_2301.png)'
+- en: Figure 23-1\. Using FlatList we can display a list of data
+  id: totrans-32
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图23-1\. 使用`FlatList`我们可以显示数据列表
+- en: With this we’ve laid out a simple `FlatList`. Now let’s make it possible to
+    route from a list item to an individual route.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这种方式，我们已经布置出一个简单的`FlatList`。现在让我们使得从列表项到单独路由的路由成为可能。
+- en: Making a List Routable
+  id: totrans-34
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使列表可路由化
+- en: A very common pattern in mobile applications is to tap an item in a list to
+    view more information or expanded functionality. If you recall from the previous
+    chapter, our feed screen sits atop the note screen in our navigation stack. In
+    React Native we can use the `TouchableOpacity` as a wrapper for making any view
+    respond to user touches. This means that we can wrap the content of our `FeedView`
+    in `TouchableOpacity` and route the user on press, the same way that we previously
+    did with a button. Let’s go ahead and update our *src/components/NoteFeed.js*
+    component to do just that.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 移动应用程序中非常常见的一种模式是点击列表中的项目以查看更多信息或扩展功能。如果您还记得前一章节，我们的feed屏幕位于导航堆栈中的note屏幕之上。在React
+    Native中，我们可以使用`TouchableOpacity`作为使任何视图响应用户触摸的包装器。这意味着我们可以在`FeedView`中包装我们的内容，然后在用户按下时路由用户，就像我们以前用按钮做的那样。让我们更新我们的*src/components/NoteFeed.js*组件来做到这一点。
+- en: 'First, we must update our `react-native` import to include `TouchableOpacity`
+    in *src/components/NoteFeed.js*:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们必须更新我们的`react-native`导入，以在*src/components/NoteFeed.js*中包括`TouchableOpacity`：
+- en: '[PRE7]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Next, we update our component to use `TouchableOpacity`:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们更新我们的组件以使用`TouchableOpacity`：
+- en: '[PRE8]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'We’ll also need to update our *feed.js* screen component to pass the navigation
+    properties to the feed. In *src/screens/feed.js*:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要更新我们的*feed.js*屏幕组件，以将导航属性传递给feed。在*src/screens/feed.js*中：
+- en: '[PRE9]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'With this, we can easily navigate to our generic note screen. Let’s customize
+    that screen so that it displays the ID of the note. You may have noticed that
+    in our `NoteFeed` component navigation, we’re passing an `id` property. In *screens/note.js*
+    we can read the value of that property:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 带有这个功能，我们可以轻松地导航到我们的通用笔记屏幕。让我们定制该屏幕，以显示笔记的ID。您可能已经注意到，在我们的`NoteFeed`组件导航中，我们正在传递一个`id`属性。在*screens/note.js*中，我们可以读取该属性的值：
+- en: '[PRE10]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Now, we’re able to navigate from our list view to a detail page. Next, let’s
+    take a look at how we can integrate data from our API into our application.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以从列表视图导航到详细页面。接下来，让我们看看如何将API中的数据集成到我们的应用程序中。
+- en: GraphQL with Apollo Client
+  id: totrans-45
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Apollo Client的GraphQL
+- en: At this point we are ready to read and display data within our application.
+    We’ll be accessing the GraphQL API that we created in the first portion of the
+    book. Conveniently, we’ll be making use of Apollo Client, the same GraphQL client
+    library from the web portion of the book. Apollo Client offers a number of helpful
+    features to simplify working with GraphQL within JavaScript UI applications. Apollo’s
+    client features include fetching data from a remote API, local caching, GraphQL
+    syntax handling, local state management, and more.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一点上，我们准备好在我们的应用程序中读取和显示数据。我们将访问在书的第一部分创建的GraphQL API。方便地，我们将利用Apollo Client，这是来自书的Web部分相同的GraphQL客户端库。Apollo
+    Client提供了许多有用的功能，以简化在JavaScript UI应用程序中使用GraphQL的工作。Apollo的客户端功能包括从远程API获取数据，本地缓存，GraphQL语法处理，本地状态管理等等。
+- en: 'To get started we’ll first need to set up our configuration file. We’ll store
+    our environment variables in a file called *config.js*. There are several ways
+    to manage environment and configuration variables in React Native, but I’ve found
+    this style of configuration file to be the most straightforward and effective.
+    To get started, I’ve included a *config-example.js* file, which you can copy and
+    edit with our app values. In your terminal application, from the root of the project
+    directory:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始，我们首先需要设置我们的配置文件。我们将环境变量存储在一个名为*config.js*的文件中。在React Native中管理环境和配置变量有几种方法，但我发现这种样式的配置文件是最直接和有效的。为了开始，我已经包含了一个*config-example.js*文件，您可以复制并编辑与我们的应用程序值。在项目目录的根目录下，在您的终端应用程序中：
+- en: '[PRE11]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'From here we can update any `dev` or `prod` environment variables. In our case
+    that will only be a production `API_URI` value:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里，我们可以更新任何`dev`或`prod`环境变量。在我们的情况下，这将只是一个生产`API_URI`值：
+- en: '[PRE12]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: We will now be able to access these two values, based on Expo’s environment,
+    using the `getEnvVars` function. We won’t dive into the rest of the configuration
+    file, but it is well commented if you are interested in exploring this setup further.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以使用`getEnvVars`函数基于Expo的环境访问这两个值。如果您有兴趣进一步探索此设置，配置文件的其余部分不会深入讨论，但有很好的注释。
+- en: 'From here we can connect our client to our API. In our *src/Main.js* file we
+    will set up Apollo by using the Apollo Client library. If you worked through the
+    web portion of the book, this will look very familiar:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里，我们可以将我们的客户端连接到我们的API。在我们的*src/Main.js*文件中，我们将通过使用Apollo Client库设置Apollo。如果您通过书的Web部分工作，这看起来会非常熟悉：
+- en: '[PRE13]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: With this, there won’t be a visible change in our application, but we are now
+    connected to our API. Next, let’s look at how we can query data from that API.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这样做，我们的应用程序不会有可见的变化，但我们现在已连接到我们的API。接下来，让我们看看如何从API查询数据。
+- en: Writing GraphQL Queries
+  id: totrans-55
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 编写GraphQL查询
+- en: Now that we’re connected to our API, let’s query some of the data. We’ll start
+    by querying for all of the notes in our database, to be displayed in our `NoteFeed`
+    list. We’ll then query for individual notes to be displayed in our `Note` detail
+    view.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已连接到我们的API，让我们查询一些数据。我们将首先查询数据库中的所有笔记，以在我们的`NoteFeed`列表中显示。然后，我们将查询单个笔记，以在我们的`Note`详细视图中显示。
+- en: The note Query
+  id: totrans-57
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 笔记查询
+- en: We’ll be using the bulk `note` API query rather than the paginated `noteFeed`
+    query for simplicity and to reduce repetition.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了简化和减少重复，我们将使用批量`note` API查询而不是分页的`noteFeed`查询。
+- en: 'Writing a `Query` component works exactly the same way as in a React web application.
+    In *src/screens/feed.js*, we import the `useQuery` and GraphQL Language (`gql`)
+    libraries like so:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写`Query`组件的工作方式与在React Web应用程序中完全相同。在*src/screens/feed.js*中，我们导入`useQuery`和GraphQL语言（`gql`）库如下：
+- en: '[PRE14]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Next, we compose our query:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们组合我们的查询：
+- en: '[PRE15]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Finally, we update our component to call the query:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们更新我们的组件来调用查询：
+- en: '[PRE16]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'All together, our *src/screens/feed.js* file is written as follows:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 综上所述，我们的*src/screens/feed.js*文件如下所示：
+- en: '[PRE17]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'With our query written, we can update the *src/components/NoteFeed.js* component
+    to use the data passed to it via `props`:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写我们的查询后，我们可以更新*src/components/NoteFeed.js*组件以使用通过`props`传递给它的数据：
+- en: '[PRE18]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: With this change, with Expo running, we will see the data from our local API
+    displayed in a list, as shown in [Figure 23-2](#data_feedview).
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一改变后，使用Expo运行时，我们将在列表中看到来自本地API的数据，如[图 23-2](#data_feedview)所示。
+- en: '![A screenshot of the API data present in the application''s feed view](assets/jsev_2302.png)'
+  id: totrans-70
+  prefs: []
+  type: TYPE_IMG
+  zh: '![应用程序中“Feed”视图中API数据的屏幕截图](assets/jsev_2302.png)'
+- en: Figure 23-2\. Our API data displaying in our feed view
+  id: totrans-71
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 23-2\. 我们的API数据在我们的“Feed”视图中显示
+- en: 'Right now, tapping a note preview in the list will still display a generic
+    note page. Let’s resolve that by making a `note` query in the *src/screens/note.js*
+    file:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，点击列表中的笔记预览仍将显示通用笔记页面。我们将通过在*src/screens/note.js*文件中进行`note`查询来解决这个问题：
+- en: '[PRE19]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Finally, let’s update out *src/components/Note* component file to display the
+    note contents. We’ll add two new dependencies, `react-native-markdown-renderer`
+    and `date-fns`, to parse the Markdown and dates from our API in a more user-friendly
+    way.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们更新我们的*src/components/Note*组件文件，以显示笔记内容。我们将添加两个新依赖项，`react-native-markdown-renderer`
+    和 `date-fns`，以更用户友好的方式解析来自我们的API的Markdown和日期。
+- en: '[PRE20]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: With these changes, we’ll see a list of notes in the application’s feed view.
+    Tapping a note preview will take us to the full, scrollable content of the note
+    (see [Figure 23-3](#api_data_nav)).
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更改，我们将在应用程序的“Feed”视图中看到笔记列表。点击笔记预览将带我们到笔记的完整、可滚动内容（参见[图 23-3](#api_data_nav)）。
+- en: '![Screenshots of the feed list and the note detail screen](assets/jsev_2303.png)'
+  id: totrans-77
+  prefs: []
+  type: TYPE_IMG
+  zh: '![“Feed”列表和笔记详细信息屏幕的截图](assets/jsev_2303.png)'
+- en: Figure 23-3\. With our GraphQL queries written, we can navigate between screens
+    to view note previews and full notes
+  id: totrans-78
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 23-3\. 通过编写我们的GraphQL查询，我们可以在屏幕之间导航以查看笔记预览和完整笔记
+- en: Adding a Loading Indicator
+  id: totrans-79
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加加载指示器
+- en: Currently when data is loading in our application, it flashes the word “Loading”
+    on the screen. This may be effective at conveying the message, but is also a pretty
+    jarring user experience. React Native supplies us with a built-in `ActivityIndicator`,
+    which displays an operating system–appropriate loading spinner. Let’s write a
+    simple component that we can use as a loading indicator across our application.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们的应用程序加载数据时，当前显示“加载”文本。这可能有效地传达了消息，但也是一种相当刺眼的用户体验。React Native为我们提供了一个内置的`ActivityIndicator`，它显示适合操作系统的加载旋转器。让我们编写一个简单的组件，我们可以在整个应用程序中使用作为加载指示器。
+- en: 'Create a file at *src/components/Loading.js* and compose a simple component
+    that displays the activity indicator in the center of the screen:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个文件*src/components/Loading.js*，并编写一个简单的组件，在屏幕中心显示活动指示器：
+- en: '[PRE21]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Now we can replace the “Loading” text in our GraphQL query components. In both
+    *src/screens/feed.js* and *src/screens/note.js*, first import the `Loading` component:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在我们的GraphQL查询组件中替换“加载”文本。首先在*src/screens/feed.js*和*src/screens/note.js*中导入`Loading`组件：
+- en: '[PRE22]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Then, in both files, update the Apollo loading state as follows:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，在这两个文件中，更新Apollo加载状态如下：
+- en: '[PRE23]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: With this, our application will now display a spinning activity indicator when
+    our API data is loading (see [Figure 23-4](#rn_loading)).
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们的应用程序在加载API数据时将显示一个旋转的活动指示器（参见[图23-4](#rn_loading)）。
+- en: '![A screenshot of the application in a loading state](assets/jsev_2304.png)'
+  id: totrans-88
+  prefs: []
+  type: TYPE_IMG
+  zh: '![应用程序加载状态的屏幕截图](assets/jsev_2304.png)'
+- en: Figure 23-4\. Using ActivityIndicator, we can add an operating system–appropriate
+    loading spinner
+  id: totrans-89
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图23-4\. 使用ActivityIndicator，我们可以添加一个与操作系统相匹配的加载旋转器
+- en: Conclusion
+  id: totrans-90
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we first looked at how we can integrate list views into a React
+    Native application, making use of common application UI patterns. From there we
+    configured Apollo Client and integrated the data from our API into the application.
+    With this, we already have everything we need to build many common types of applications,
+    such as a news app or integrating a blog feed from a website. In the next chapter,
+    we’ll add authentication to our app and display user-specific queries.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们首先看了如何将列表视图集成到React Native应用程序中，利用常见的应用程序UI模式。然后我们配置了Apollo Client并将来自API的数据集成到应用程序中。有了这些，我们已经具备了构建许多常见类型应用程序所需的一切，比如新闻应用或从网站集成博客信息。在下一章中，我们将向我们的应用程序添加认证功能，并显示用户特定的查询。

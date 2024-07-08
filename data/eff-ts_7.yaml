@@ -1,0 +1,1273 @@
+- en: Chapter 7\. Writing and Running Your Code
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 7 章：编写和运行您的代码
+- en: 'This chapter is a bit of a grab bag: it covers some issues that come up in
+    writing code (not types) as well as issues you may run into when you run your
+    code.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章内容有点杂乱：涵盖了编写代码时（而不是类型）出现的一些问题，以及在运行代码时可能遇到的问题。
+- en: 'Item 53: Prefer ECMAScript Features to TypeScript Features'
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 53：更喜欢ECMAScript功能而不是TypeScript功能
+- en: The relationship between TypeScript and JavaScript has changed over time. When
+    Microsoft first started work on TypeScript in 2010, the prevailing attitude around
+    JavaScript was that it was a problematic language that needed to be fixed. It
+    was common for frameworks and source-to-source compilers to add missing features
+    like classes, decorators, and a module system to JavaScript. TypeScript was no
+    different. Early versions included home-grown versions of classes, enums, and
+    modules.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着时间的推移，TypeScript和JavaScript之间的关系发生了变化。当微软于2010年开始开发TypeScript时，围绕JavaScript的普遍态度是它是一个有问题的语言，需要修复。常见的框架和源到源编译器通常会向JavaScript添加缺失的功能，如类、装饰器和模块系统。TypeScript也不例外。早期版本包括自制的类、枚举和模块。
+- en: 'Over time TC39, the standards body that governs JavaScript, added many of these
+    same features to the core JavaScript language. And the features they added were
+    not compatible with the versions that existed in TypeScript. This left the TypeScript
+    team in an awkward predicament: adopt the new features from the standard or break
+    existing code?'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着时间的推移，管理JavaScript的标准机构TC39向核心JavaScript语言添加了许多相同的功能。它们添加的功能与TypeScript现有版本不兼容。这使得TypeScript团队陷入尴尬的境地：是采纳标准中的新功能还是打破现有代码？
+- en: 'TypeScript has largely chosen to do the latter and eventually articulated its
+    current governing principle: TC39 defines the runtime while TypeScript innovates
+    solely in the type space.'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript在很大程度上选择了后者，并最终阐明了其当前的统治原则：TC39定义运行时，而TypeScript仅在类型空间中创新。
+- en: There are a few remaining features from before this decision. It’s important
+    to recognize and understand these, because they don’t fit the pattern of the rest
+    of the language. In general, I recommend avoiding them to keep the relationship
+    between TypeScript and JavaScript as clear as possible.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一些在这一决定之前存在的功能。重要的是要认识和理解这些，因为它们与语言的其余部分的关系不符。总体上，我建议避免它们，以尽可能保持TypeScript与JavaScript之间的关系清晰。
+- en: Enums
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 枚举
+- en: 'Many languages model types that can take on a small set of values using *enumerations*
+    or *enums*. TypeScript adds them to JavaScript:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多语言通过*枚举*或*enums*模型化可以取少量值的类型。TypeScript将它们添加到了JavaScript中：
+- en: '[PRE0]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'The argument for enums is that they provide more safety and transparency than
+    bare numbers. But enums in TypeScript have some quirks. There are actually several
+    variants on enums that all have subtly different behaviors:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 枚举的论点是它们比裸数字提供更多的安全性和透明性。但TypeScript中的枚举有一些怪癖。实际上，有几种枚举的变体，它们的行为都有微妙的不同：
+- en: A number-valued enum (like `Flavor`). Any number is assignable to this, so it’s
+    not very safe. (It was designed this way to make bit flag structures possible.)
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数值枚举（如`Flavor`）。任何数字都可以赋值给它，因此不太安全（设计成这样是为了实现位标志结构的可能性）。
+- en: A string-valued enum. This does offer type safety, and also more transparent
+    values at runtime. But it’s not structurally typed, unlike every other type in
+    TypeScript (more on this momentarily).
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 字符串枚举。这提供了类型安全性，同时在运行时也提供了更透明的值。但它不是结构类型化的，不像TypeScript中的其他类型（稍后会详细说明）。
+- en: '`const enum`. Unlike regular enums, const enums go away completely at runtime.
+    If you changed to `const enum Flavor` in the previous example, the compiler would
+    rewrite `Flavor.CHOCOLATE` as `0`. This also breaks our expectations around how
+    the compiler behaves and still has the divergent behaviors between `string` and
+    `number`-valued enums.'
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`const enum`。与常规枚举不同，常量枚举在运行时完全消失。如果在上一个示例中改为`const enum Flavor`，编译器会将`Flavor.CHOCOLATE`重写为`0`。这也打破了我们对编译器行为的预期，同时还存在`string`和`number`值枚举之间的分歧行为。'
+- en: '`const enum` with the `preserveConstEnums` flag set. This emits runtime code
+    for `const enum`s, just like for a regular `enum`.'
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 设置了`preserveConstEnums`标志的`const enum`。这会像常规枚举一样生成运行时代码。
+- en: 'That string-valued enums are nominally typed comes as a particular surprise,
+    since every other type in TypeScript uses structural typing for assignability
+    (see [Item 4](ch01.html#structural)):'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 字符串值枚举是名义上类型化的，这一点特别令人惊讶，因为TypeScript中的每一种类型都使用结构化类型来进行赋值（参见[项目 4](ch01.html#structural)）：
+- en: '[PRE1]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'This has implications when you publish a library. Suppose you have a function
+    that takes a `Flavor`:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在您发布库时有一些影响。假设您有一个接受`Flavor`的函数：
+- en: '[PRE2]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Because a `Flavor` at runtime is really just a string, it’s fine for your JavaScript
+    users to call it with one:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为运行时的`Flavor`实际上只是一个字符串，因此对于您的JavaScript用户来说，使用一个是可以的：
+- en: '[PRE3]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'but your TypeScript users will need to import the `enum` and use that instead:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是您的TypeScript用户需要导入`enum`并使用它代替：
+- en: '[PRE4]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: These divergent experiences for JavaScript and TypeScript users are a reason
+    to avoid string-valued enums.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于JavaScript和TypeScript用户的这些不同体验是避免使用以字符串值为基础的枚举的原因。
+- en: 'TypeScript offers an alternative to enums that is less common in other languages:
+    a union of literal types.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript提供了一个在其他语言中不太常见的枚举的替代方案：字面类型的联合。
+- en: '[PRE5]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'This offers as much safety as the enum and has the advantage of translating
+    more directly to JavaScript. It also offers similarly strong autocomplete in your
+    editor:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这提供了与枚举一样多的安全性，并且直接转换为JavaScript的能力。在编辑器中，它也提供了类似的强大的自动完成功能：
+- en: '[PRE6]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: For more on this approach, see [Item 33](ch04.html#avoid-strings).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要了解更多此方法，请参见[第33项](ch04.html#avoid-strings)。
+- en: Parameter Properties
+  id: totrans-29
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参数属性
+- en: 'It’s common to assign properties to a constructor parameter when initializing
+    a class:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在初始化类时，将属性分配给构造函数参数是很常见的：
+- en: '[PRE7]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'TypeScript provides a more compact syntax for this:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript为此提供了更紧凑的语法：
+- en: '[PRE8]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'This is called a “parameter property,” and it is equivalent to the code in
+    the first example. There are a few issues to be aware of with parameter properties:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这被称为“参数属性”，它等价于第一个示例中的代码。使用参数属性时需要注意一些问题：
+- en: They are one of the few constructs which generates code when you compile to
+    JavaScript (`enum`s are another). Generally compilation just involves erasing
+    types.
+  id: totrans-35
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它们是少数在编译到JavaScript时会生成代码的结构之一（`enum`是另一个）。通常情况下，编译只涉及消除类型。
+- en: Because the parameter is only used in generated code, the source looks like
+    it has unused parameters.
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 因为参数仅在生成的代码中使用，因此源代码看起来好像有未使用的参数。
+- en: A mix of parameter and non-parameter properties can hide the design of your
+    classes.
+  id: totrans-37
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用参数和非参数属性的混合可能会隐藏您的类的设计。
+- en: 'For example:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如：
+- en: '[PRE9]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: This class has three properties (`first`, `last`, `name`), but this is hard
+    to read off the code because only two are listed before the constructor. This
+    gets worse if the constructor takes other parameters, too.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此类具有三个属性（`first`，`last`，`name`），但是仅在构造函数之前列出两个属性使得代码难以阅读。如果构造函数还接受其他参数，则情况会更糟。
+- en: 'If your class consists *only* of parameter properties and no methods, you might
+    consider making it an `interface` and using object literals. Remember that the
+    two are assignable to one another because of structural typing [Item 4](ch01.html#structural):'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的类仅包含参数属性而没有方法，您可能考虑将其制作为一个`interface`并使用对象字面量。请记住，由于结构类型，两者可以互相赋值[第4项](ch01.html#structural)：
+- en: '[PRE10]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Opinions are divided on parameter properties. While I generally avoid them,
+    others appreciate the saved keystrokes. Be aware that they do not fit the pattern
+    of the rest of TypeScript, and may in fact obscure that pattern for new developers.
+    Try to avoid hiding the design of your class by using a mix of parameter and non-parameter
+    properties.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数属性的看法不一。虽然我通常避免使用它们，但其他人欣赏所节省的按键。请注意，它们不符合TypeScript其余部分的模式，并且实际上可能会使新开发者难以理解。尝试避免通过混合使用参数和非参数属性来隐藏类的设计。
+- en: Namespaces and Triple-Slash Imports
+  id: totrans-44
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 命名空间和三斜线导入
+- en: 'Before ECMAScript 2015, JavaScript didn’t have an official module system. Different
+    environments added this missing feature in different ways: Node.js used `require`
+    and `module.exports` whereas AMD used a `define` function with a callback.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在ECMAScript 2015之前，JavaScript没有官方的模块系统。不同的环境以不同的方式添加了这一缺失功能：Node.js使用`require`和`module.exports`，而AMD使用一个带有回调的`define`函数。
+- en: 'TypeScript also filled this gap with its own module system. This was done using
+    a `module` keyword and “triple-slash” imports. After ECMAScript 2015 added an
+    official module system, TypeScript added `namespace` as a synonym for `module`,
+    to avoid confusion:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript还通过自己的模块系统填补了这一空白。这是使用`module`关键字和“三斜线”导入完成的。在ECMAScript 2015添加了官方模块系统之后，TypeScript添加了`namespace`作为`module`的同义词，以避免混淆：
+- en: '[PRE11]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '[PRE12]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Outside of type declarations, triple-slash imports and the `module` keyword
+    are just a historical curiosity. In your own code, you should use ECMASCript 2015–style
+    modules (`import` and `export`). See [Item 58](ch08.html#write-modern-js).
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了类型声明外，三斜线导入和`module`关键字只是历史上的一点奇闻。在你自己的代码中，你应该使用 ECMASCript 2015 风格的模块（`import`
+    和 `export`）。参见 [Item 58](ch08.html#write-modern-js)。
+- en: Decorators
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 装饰器
+- en: 'Decorators can be used to annotate or modify classes, methods, and properties.
+    For example, you could define a `logged` annotation that logs all calls to a method
+    on a class:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 装饰器可以用来注释或修改类、方法和属性。例如，你可以定义一个`logged`注解，记录类中方法的所有调用：
+- en: '[PRE13]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This feature was initially added to support the Angular framework and requires
+    the `experimentalDecorators` property to be set in `tsconfig.json`. Their implementation
+    has not yet been standardized by TC39 at the time of this writing, so any code
+    you write today using decorators is liable to break or become non-standard in
+    the future. Unless you’re using Angular or another framework that requires annotations
+    and until they’re standardized, don’t use TypeScript’s decorators.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个功能最初是为了支持 Angular 框架而添加的，需要在`tsconfig.json`中设置`experimentalDecorators`属性。在我写作这篇文章时，它们的实现尚未被
+    TC39 标准化，因此，今天使用装饰器的任何代码都可能会中断或变得不标准。除非你使用 Angular 或其他需要注解的框架，并且在它们标准化之前，不要使用
+    TypeScript 的装饰器。
+- en: Things to Remember
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 需要记住的事情
+- en: By and large, you can convert TypeScript to JavaScript by removing all the types
+    from your code.
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 大体上来说，你可以通过从代码中移除所有类型来将 TypeScript 转换为 JavaScript。
+- en: Enums, parameter properties, triple-slash imports, and decorators are historical
+    exceptions to this rule.
+  id: totrans-56
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 枚举、参数属性、三斜线导入和装饰器是历史上的例外。
+- en: In order to keep TypeScript’s role in your codebase as clear as possible, I
+    recommend avoiding these features.
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为了尽可能清晰地保持 TypeScript 在你的代码库中的角色，我建议避免使用这些功能。
+- en: 'Item 54: Know How to Iterate Over Objects'
+  id: totrans-58
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 项目 54：了解如何迭代对象
+- en: This code runs fine, and yet TypeScript flags an error in it. Why?
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码运行良好，但 TypeScript 却在其中标记了一个错误。为什么呢？
+- en: '[PRE14]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Inspecting the `obj` and `k` symbols gives a clue:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检查`obj`和`k`这两个符号可以给出一个线索：
+- en: '[PRE15]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'The type of `k` is `string`, but you’re trying to index into an object whose
+    type only has three specific keys: `''one''`, `''two''`, and `''three''`. There
+    are strings other than these three, so this has to fail.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`k`的类型是`string`，但是你试图索引到一个对象中，该对象的类型只有三个特定的键：`''one''`、`''two''`和`''three''`。除了这三个字符串，还有其他字符串，所以这是会失败的。'
+- en: 'Plugging in a narrower type declaration for `k` fixes the issue:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 插入一个更窄的类型声明到`k`中可以修复这个问题：
+- en: '[PRE16]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'So the real question is: why is the type of `k` in the first example inferred
+    as `string` rather than `"one" | "two" | "three"`?'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以真正的问题是：为什么第一个例子中`k`的类型被推断为`string`而不是`"one" | "two" | "three"`？
+- en: 'To understand, let’s look at a slightly different example involving an interface
+    and a function:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了理解，让我们看一个稍微不同的例子，涉及接口和函数：
+- en: '[PRE17]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'It’s the same error as before. And you can “fix” it using the same sort of
+    declaration (`let k: keyof ABC`). But in this case TypeScript is right to complain.
+    Here’s why:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这与之前的错误相同。你可以使用相同类型的声明来“修复”它（`let k: keyof ABC`）。但在这种情况下，TypeScript 是对的。为什么呢？'
+- en: '[PRE18]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: The function `foo` can be called with any value *assignable* to `ABC`, not just
+    a value with “a,” “b,” and “c” properties. It’s entirely possible that the value
+    will have other properties, too (see [Item 4](ch01.html#structural)). To allow
+    for this, TypeScript gives `k` the only type it can be confident of, namely, `string`.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数`foo`可以被调用以赋值给`ABC`的任何值，而不仅仅是具有“a”、“b”和“c”属性的值。这个值完全可能有其他属性（参见 [Item 4](ch01.html#structural)）。为了允许这种情况，TypeScript
+    给`k`赋予了它能确信的唯一类型，即`string`。
+- en: 'Using the `keyof` declaration would have another downside here:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里使用`keyof`声明会有另一个缺点：
+- en: '[PRE19]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: If `"a" | "b" | "c"` is too narrow for `k`, then `string | number` is certainly
+    too narrow for `v`. In the preceding example one of the values is a `Date`, but
+    it could be anything. The types here give a false sense of certainty that could
+    lead to chaos at runtime.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`"a" | "b" | "c"`对于`k`来说太窄，那么`string | number`对于`v`来说肯定也太窄。在前面的例子中，其中一个值是`Date`，但它可以是任何东西。这些类型在这里给出了一种错误的确定性感，可能会在运行时导致混乱。
+- en: 'So what if you just want to iterate over the object’s keys and values without
+    type errors? `Object.entries` lets you iterate over both simultaneously:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么如果你只想在不出现类型错误的情况下遍历对象的键和值呢？`Object.entries`允许你同时遍历这两者：
+- en: '[PRE20]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: While these types may be hard to work with, they are at least honest!
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这些类型可能很难处理，但至少它们是诚实的！
+- en: 'You should also be aware of the possibility of *prototype pollution*. Even
+    in the case of an object literal that you define, for-in can produce additional
+    keys:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你还应该注意*原型污染*的可能性。即使在你定义的对象文字中，for-in也可能产生额外的键：
+- en: '[PRE21]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Hopefully this doesn’t happen in a nonadversarial environment (you should never
+    add enumerable properties to `Object.prototype`), but it is another reason that
+    for-in produces `string` keys even for object literals.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 希望这种情况不会发生在非对抗环境中（你绝不应该向`Object.prototype`添加可枚举属性），但这是for-in即使对于对象文字也产生字符串键的另一个原因。
+- en: 'If you want to iterate over the keys and values in an object, use either a
+    `keyof` declaration (`let k: keyof T`) or `Object.entries`. The former is appropriate
+    for constants or other situations where you know that the object won’t have additional
+    keys and you want precise types. The latter is more generally appropriate, though
+    the key and value types are more difficult to work with.'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果你想迭代对象的键和值，请使用`keyof`声明（`let k: keyof T`）或`Object.entries`。前者适用于常量或其他你知道对象不会有额外键并且需要精确类型的情况。后者更普遍适用，尽管键和值类型更难处理。'
+- en: Things to Remember
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 事项记忆
+- en: 'Use `let k: keyof T` and a for-in loop to iterate objects when you know exactly
+    what the keys will be. Be aware that any objects your function receives as parameters
+    might have additional keys.'
+  id: totrans-83
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '当你确切知道键是什么时，使用`let k: keyof T`和for-in循环来迭代对象。请注意，你的函数接收的任何对象参数可能有额外的键。'
+- en: Use `Object.entries` to iterate over the keys and values of any object.
+  id: totrans-84
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`Object.entries`来迭代任何对象的键和值。
+- en: 'Item 55: Understand the DOM hierarchy'
+  id: totrans-85
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条目55：理解DOM层次结构
+- en: 'Most of the items in this book are agnostic about where you run your TypeScript:
+    in a web browser, on a server, on a phone. This one is different. If you’re not
+    working in a browser, skip ahead!'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本书中大多数项目都不关心在哪里运行你的TypeScript：在浏览器中、服务器上、手机上。但这一章不同。如果你不在浏览器中工作，请跳过！
+- en: The DOM hierarchy is always present when you’re running JavaScript in a web
+    browser. When you use `document.getElementById` to get an element or `document.createElement`
+    to create one, it’s always a particular kind of element, even if you’re not entirely
+    familiar with the taxonomy. You call the methods and use the properties that you
+    want and hope for the best.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你在Web浏览器中运行JavaScript时，DOM层次结构始终存在。当你使用`document.getElementById`获取一个元素或者使用`document.createElement`创建一个元素时，它始终是特定类型的元素，即使你并不完全熟悉其分类。你调用方法并使用你想要的属性，然后希望一切顺利。
+- en: With TypeScript, the hierarchy of DOM elements becomes more visible. Knowing
+    your `Node`s from your `Element`s and `EventTarget`s will help you debug type
+    errors and decide when type assertions are appropriate. Because so many APIs are
+    based on the DOM, this is relevant even if you’re using a framework like React
+    or d3.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用TypeScript，DOM元素的层次结构变得更加可见。了解你的`Node`、`Element`和`EventTarget`有助于你调试类型错误，并决定何时使用类型断言。因为很多API都基于DOM，即使你使用像React或d3这样的框架，这一点也是相关的。
+- en: 'Suppose you want to track a user’s mouse as they drag it across a `<div>`.
+    You write some seemingly innocuous JavaScript:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你想在用户拖动鼠标穿过`<div>`时跟踪其鼠标移动。你写了一些看似无害的JavaScript代码：
+- en: '[PRE22]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'TypeScript’s type checker flags no fewer than 11 errors in these 14 lines of
+    code:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript的类型检查器在这14行代码中标记了不少于11个错误：
+- en: '[PRE23]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: What went wrong? What’s this `EventTarget`? And why might everything be `null`?
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发生了什么？这个`EventTarget`是什么？为什么一切都可能是`null`？
+- en: 'To understand the `EventTarget` errors it helps to dig into the DOM hierarchy
+    a bit. Here’s some HTML:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解`EventTarget`错误，需要深入了解DOM层次结构。这里是一些HTML代码：
+- en: '[PRE24]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'If you open your browser’s JavaScript console and get a reference to the `p`
+    element, you’ll see that it’s an `HTMLParagraphElement`:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你打开浏览器的JavaScript控制台并获取到`p`元素的引用，你会发现它是一个`HTMLParagraphElement`：
+- en: '[PRE25]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'An `HTMLParagraphElement` is a subtype of `HTMLElement`, which is a subtype
+    of `Element`, which is a subtype of `Node`, which is a subtype of `EventTarget`.
+    Here are some examples of types along the hierarchy:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`HTMLParagraphElement`是`HTMLElement`的子类型，后者是`Element`的子类型，后者是`Node`的子类型，后者是`EventTarget`的子类型。以下是层次结构中一些类型的示例：'
+- en: Table 7-1\. Types in the DOM Hierarchy
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表7-1\. DOM层次结构中的类型
+- en: '| Type | Examples |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类型 | 示例 |'
+- en: '| --- | --- |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| EventTarget | `window`, `XMLHttpRequest` |'
+  id: totrans-102
+  prefs: []
+  type: TYPE_TB
+  zh: '| EventTarget | `window`, `XMLHttpRequest` |'
+- en: '| Node | `document`, `Text`, `Comment` |'
+  id: totrans-103
+  prefs: []
+  type: TYPE_TB
+  zh: '| Node | `document`, `Text`, `Comment` |'
+- en: '| Element | *includes HTMLElements, SVGElements* |'
+  id: totrans-104
+  prefs: []
+  type: TYPE_TB
+  zh: '| Element | *包括HTMLElements, SVGElements* |'
+- en: '| HTMLElement | `<i>`, `<b>` |'
+  id: totrans-105
+  prefs: []
+  type: TYPE_TB
+  zh: '| HTMLElement | `<i>`, `<b>` |'
+- en: '| HTMLButtonElement | `<button>` |'
+  id: totrans-106
+  prefs: []
+  type: TYPE_TB
+  zh: '| HTMLButtonElement | `<button>` |'
+- en: 'An `EventTarget` is the most generic of DOM types. All you can do with it is
+    add event listeners, remove them, and dispatch events. With this in mind, the
+    `classList` errors start to make a bit more sense:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`EventTarget` 是 DOM 类型中最通用的类型。你可以做的所有操作只有添加事件监听器、移除它们和分发事件。考虑到这一点，`classList`
+    的错误开始变得更加有意义：'
+- en: '[PRE26]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: As its name implies, an `Event`’s `currentTarget` property is an `EventTarget`.
+    It could even be `null`. TypeScript has no reason to believe that it has a `classList`
+    property. While an `EventTarget`s *could* be an `HTMLElement` in practice, from
+    the type system’s perspective there’s no reason it couldn’t be `window` or `XMLHTTPRequest`.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如其名称所示，`Event` 的 `currentTarget` 属性是一个 `EventTarget`。它甚至可能是 `null`。TypeScript
+    没有理由认为它具有 `classList` 属性。虽然 `EventTarget` 在实践中 *可能* 是 `HTMLElement`，但从类型系统的角度来看，它同样可能是
+    `window` 或 `XMLHTTPRequest`。
+- en: 'Moving up the hierarchy we come to `Node`. A couple of examples of `Node`s
+    that are not `Element`s are text fragments and comments. For instance, in this
+    HTML:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向上移动层次，我们来到 `Node`。一些不是 `Element` 的 `Node` 的例子是文本片段和注释。例如，在这个 HTML 中：
+- en: '[PRE27]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'the outermost element is an `HTMLParagraphElement`. As you can see here, it
+    has `children` and `childNodes`:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最外层的元素是一个 `HTMLParagraphElement`。如你在这里所见，它具有 `children` 和 `childNodes`：
+- en: '[PRE28]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: '`children` returns an `HTMLCollection`, an array-like structure containing
+    just the child `Element`s (`<i>yet</i>`). `childNodes` returns a `NodeList`, an
+    Array-like collection of `Node`s. This includes not just `Element`s (`<i>yet</i>`)
+    but also text fragments (“And,” “it moves”) and comments (“quote from Galileo”).'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`children` 返回一个 `HTMLCollection`，一个类似数组的结构，仅包含子 `Element`（`<i>yet</i>`）。`childNodes`
+    返回一个 `NodeList`，一个类似数组的集合，包含不仅仅是 `Element`（`<i>yet</i>`），还有文本片段（“And,” “it moves”）和注释（“quote
+    from Galileo”）。'
+- en: What’s the difference between an `Element` and an `HTMLElement`? There are non-HTML
+    `Element`s including the whole hierarchy of SVG tags. These are `SVGElement`s,
+    which are another type of `Element`. What’s the type of an `<html>` or `<svg>`
+    tag? They’re `HTMLHtmlElement` and `SVGSvgElement`.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Element` 和 `HTMLElement` 有什么区别？包括整个 SVG 标签层次结构的非 HTML `Element`。这些是 `SVGElement`，另一种
+    `Element` 类型。`<html>` 或 `<svg>` 标签的类型是什么？它们分别是 `HTMLHtmlElement` 和 `SVGSvgElement`。'
+- en: Sometimes these specialized classes will have properties of their own—for example,
+    an `HTMLImageElement` has a `src` property, and an `HTMLInputElement` has a `value`
+    property. If you want to read one of these properties off a value, its type must
+    be specific enough to have that property.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，这些特殊的类会有自己的属性，例如，`HTMLImageElement` 有一个 `src` 属性，而 `HTMLInputElement` 有一个
+    `value` 属性。如果你想从值中读取其中一个属性，它的类型必须足够具体，才能具有该属性。
+- en: 'TypeScript’s type declarations for the DOM make liberal use of literal types
+    to try to get you the most specific type possible. For example:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 对 DOM 的类型声明广泛使用字面类型，以尽可能获取最具体的类型。例如：
+- en: '[PRE29]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'but this is not always possible, notably with `document.getElementById`:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这并不总是可能的，特别是使用 `document.getElementById` 时：
+- en: '[PRE30]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'While type assertions are generally frowned upon ([Item 9](ch02_split_000.html#prefer-declarations-to-assertions)),
+    this is a case where you know more than TypeScript does and so they are appropriate.
+    There’s nothing wrong with this, so long as you know that `#my-div` is a div:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管一般不建议使用类型断言（《[Item 9](ch02_split_000.html#prefer-declarations-to-assertions)》），但这是一种你比
+    TypeScript 更了解的情况，因此它们是合适的。只要你知道 `#my-div` 是一个 div，这没有问题：
+- en: '[PRE31]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: 'with `strictNullChecks` enabled, you will need to consider the case that `document.getElementById`
+    returns `null`. Depending on whether this can really happen, you can either add
+    an if statement or an assertion (`!`):'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 启用了 `strictNullChecks` 后，你需要考虑 `document.getElementById` 返回 `null` 的情况。根据实际情况，你可以添加一个
+    if 语句或一个断言 (`!`)：
+- en: '[PRE32]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: These types are not specific to TypeScript. Rather, they are generated from
+    the formal specification of the DOM. This is an example of the advice of [Item
+    35](ch04.html#consider-codegen) to generate types from specs when possible.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些类型并不特定于 TypeScript。相反，它们是从 DOM 的正式规范生成的。这是《[Item 35](ch04.html#consider-codegen)》建议的一个例子，尽可能地从规范生成类型。
+- en: So much for the DOM hierarchy. What about the `clientX` and `clientY` errors?
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: DOM 层次结构就是这样。那么 `clientX` 和 `clientY` 的错误呢？
+- en: '[PRE33]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: In addition to the hierarchy for `Node`s and `Element`s, there is also a hierarchy
+    for `Event`s. The Mozilla documentation currently lists no fewer than 52 types
+    of `Event`!
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 `Node` 和 `Element` 的层次结构之外，还有 `Event` 的层次结构。Mozilla 文档目前列出了不少于 52 种 `Event`
+    类型！
+- en: 'Plain `Event` is the most generic type of event. More specific types include:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 普通的 `Event` 是最通用的事件类型。更具体的类型包括：
+- en: '`UIEvent`'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`UIEvent`'
+- en: Any sort of user interface event
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何用户界面事件
+- en: '`MouseEvent`'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`MouseEvent`'
+- en: An event triggered by the mouse such as a click
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鼠标点击等由鼠标触发的事件
+- en: '`TouchEvent`'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`TouchEvent`'
+- en: A touch event on a mobile device
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 移动设备上的触摸事件
+- en: '`WheelEvent`'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`WheelEvent`'
+- en: An event triggered by rotating the scroll wheel
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由滚动滚轮触发的事件
+- en: '`KeyboardEvent`'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`KeyboardEvent`'
+- en: A key press
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按键按下
+- en: The problem in `handleDrag` is that the events are declared as `Event`, while
+    `clientX` and `clientY` exist only on the more specific `MouseEvent` type.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`handleDrag`中的问题是事件声明为`Event`，而`clientX`和`clientY`仅存在于更具体的`MouseEvent`类型中。
+- en: 'So how can you fix the example from the start of this item? TypeScript’s declarations
+    for the DOM make extensive use of context ([Item 26](ch03.html#context-inference)).
+    Inlining the mousedown handler gives TypeScript more information to work with
+    and removes most of the errors. You can also declare the parameter type to be
+    `MouseEvent` rather than `Event`. Here’s a version that uses both techniques to
+    fix the errors:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么你应该如何修复本条款开头的示例呢？TypeScript对DOM的声明广泛使用上下文（[条款26](ch03.html#context-inference)）。内联mousedown处理程序为TypeScript提供了更多信息，并消除了大部分错误。你还可以声明参数类型为`MouseEvent`而不是`Event`。以下是使用这两种技术修复错误的版本：
+- en: '[PRE34]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: The `if` statement at the end handles the possibility that there is no `#surface`
+    element. If you know that this element exists, you could use an assertion instead
+    (`div!`). `addDragHandler` requires a non-null `HTMLElement`, so this is an example
+    of pushing `null` values to the perimeter ([Item 31](ch04.html#null-values-to-perimeter)).
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结尾的`if`语句处理了可能没有`#surface`元素的情况。如果你知道这个元素存在，可以使用断言代替（`div!`）。`addDragHandler`需要一个非空的`HTMLElement`，所以这是将`null`值推到边界的示例（[条款31](ch04.html#null-values-to-perimeter)）。
+- en: Things to Remember
+  id: totrans-144
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: The DOM has a type hierarchy that you can usually ignore while writing JavaScript.
+    But these types become more important in TypeScript. Understanding them will help
+    you write TypeScript for the browser.
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: DOM具有一种类型层次结构，在编写JavaScript时通常可以忽略。但在TypeScript中，这些类型变得更加重要。理解它们将帮助你为浏览器编写TypeScript。
+- en: Know the differences between `Node`, `Element`, `HTMLElement`, and `EventTarget`,
+    as well as those between `Event` and `MouseEvent`.
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 了解`Node`、`Element`、`HTMLElement`和`EventTarget`之间的区别，以及`Event`和`MouseEvent`之间的区别。
+- en: Either use a specific enough type for DOM elements and Events in your code or
+    give TypeScript the context to infer it.
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在你的代码中要么使用足够具体的类型来表示DOM元素和事件，要么给TypeScript提供推断的上下文。
+- en: 'Item 56: Don’t Rely on Private to Hide Information'
+  id: totrans-148
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条款56：不要依赖私有属性来隐藏信息
+- en: 'JavaScript has historically lacked a way to make properties of a class private.
+    The usual workaround is a convention of prefixing fields that are not part of
+    a public API with underscores:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript在历史上缺乏一种使类的属性私有化的方法。通常的解决方法是采用一种约定，即用下划线作为不属于公共API部分的字段的前缀：
+- en: '[PRE35]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'But this only discourages users from accessing private data. It is easy to
+    circumvent:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这只会阻止用户访问私有数据。它很容易绕过：
+- en: '[PRE36]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'TypeScript adds `public`, `protected`, and `private` field modifiers that seem
+    to provide some enforcement:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript添加了`public`、`protected`和`private`字段修饰符，似乎提供了一些强制执行：
+- en: '[PRE37]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'But `private` is a feature of the type system and, like all features of the
+    type system, it goes away at runtime (see [Item 3](ch01.html#independent)). Here’s
+    what this snippet looks like when TypeScript compiles it to JavaScript (with `target=ES2017`):'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但`private`是类型系统的一个特性，就像类型系统的所有特性一样，在运行时消失了（见[条款3](ch01.html#independent)）。当TypeScript将其编译为JavaScript（目标为ES2017）时，这段代码片段看起来是这样的：
+- en: '[PRE38]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'The `private` indicator is gone, and your secret is out! Much like the `_private`
+    convention, TypeScript’s access modifiers only discourage you from accessing private
+    data. With a type assertion, you can even access a private property from within
+    TypeScript:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`private`指示器已经消失了，你的秘密暴露了！就像`_private`约定一样，TypeScript的访问修饰符只是阻止你访问私有数据。通过类型断言，你甚至可以从TypeScript内部访问私有属性：'
+- en: '[PRE39]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: In other words, *don’t rely on `private` to hide information!*
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，*不要依赖`private`来隐藏信息！*
+- en: 'So what should you do if you want something more robust? The traditional answer
+    has been to take advantage of one of JavaScript’s most reliable ways to hide information:
+    closures. You can create one in a constructor:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么如果你想要更可靠的东西该怎么办呢？传统的答案是利用JavaScript中最可靠的隐藏信息的方式之一：闭包。你可以在构造函数中创建一个：
+- en: '[PRE40]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'JavaScript offers no way to access the `passwordHash` variable from outside
+    of the constructor of `PasswordChecker`. This does have a few downsides, however:
+    specifically, because `passwordHash` can’t be seen outside the constructor, every
+    method that uses it also has to be defined there. This results in a copy of each
+    method being created for every class instance, which will lead to higher memory
+    use. It also prevents other instances of the same class from accessing private
+    data. Closures may be inconvenient, but they will certainly keep your data private!'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript没有办法从`PasswordChecker`构造函数外部访问`passwordHash`变量。然而，这确实有一些缺点：具体来说，因为`passwordHash`在构造函数外部看不到，每个使用它的方法也必须在那里定义。这导致为每个类实例创建每个方法的副本，这将导致更高的内存使用。它还阻止同一类的其他实例访问私有数据。闭包可能不方便，但它们肯定会保持你的数据私密！
+- en: 'A newer option is to use private fields, a proposed language feature that is
+    solidifying as this book goes to print. In this proposal, to make a field private
+    both for type checking and at runtime, prefix it with a `#`:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新的选择是使用私有字段，这是一个正在稳定的提案语言功能，正在此书印刷时进行。在此提案中，为了使字段在类型检查和运行时都私有化，需要使用`#`作为前缀：
+- en: '[PRE41]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: The `#passwordHash` property is not accessible from outside the class. In contrast
+    to the closure technique, it *is* accessible from class methods and from other
+    instances of the same class. For ECMAScript targets that don’t natively support
+    private fields, a fallback implementation using `WeakMap`s is used instead. The
+    upshot is that your data is still private. This proposal was stage 3 and support
+    was being added to TypeScript as this book went to print. If you’d like to use
+    it, check the TypeScript release notes to see if it’s generally available.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`#passwordHash`属性不能从类外部访问。与闭包技术相比，它确实可以从类方法和同一类的其他实例中访问。对于不本地支持私有字段的ECMAScript目标，将使用`WeakMap`来进行后备实现。结果是你的数据仍然是私有的。此提案处于第3阶段，并且在此书印刷时正在向TypeScript添加支持。如果你想使用它，请查看TypeScript发行说明，以查看其是否普遍可用。'
+- en: Finally, if you are worried about *security*, rather than just encapsulation,
+    then there are others concerns to be aware of such as modifications to built-in
+    prototypes and functions.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，如果你担心*安全性*，而不仅仅是封装，那么还有其他需要注意的问题，比如对内置原型和函数的修改。
+- en: Things to Remember
+  id: totrans-167
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: The `private` access modifier is only enforced through the type system. It has
+    no effect at runtime and can be bypassed with an assertion. Don’t assume it will
+    keep data hidden.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`private`访问修饰符仅通过类型系统强制执行。在运行时没有影响，并且可以通过断言绕过。不要假设它会保持数据隐藏。'
+- en: For more reliable information hiding, use a closure.
+  id: totrans-169
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要实现更可靠的信息隐藏，可以使用闭包。
+- en: 'Item 57: Use Source Maps to Debug TypeScript'
+  id: totrans-170
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第57条：使用源映射调试TypeScript
+- en: When you run TypeScript code, you’re actually running the JavaScript that the
+    TypeScript compiler generates. This is true of any source-to-source compiler,
+    be it a minifier, a compiler, or a preprocessor. The hope is that this is mostly
+    transparent, that you can pretend that the TypeScript source code is being executed
+    without ever having to look at the JavaScript.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你运行TypeScript代码时，实际上是在运行TypeScript编译器生成的JavaScript。对于任何源到源编译器都是如此，无论是缩小器、编译器还是预处理器。希望这基本上是透明的，你可以假装执行TypeScript源代码而无需查看JavaScript。
+- en: This works well until you have to debug your code. Debuggers generally work
+    on the code you’re executing and don’t know about the translation process it went
+    through. Since JavaScript is such a popular target language, browser vendors collaborated
+    to solve this problem. The result is source maps. They map positions and symbols
+    in a generated file back to the corresponding positions and symbols in the original
+    source. Most browsers and many IDEs support them. If you’re not using them to
+    debug your TypeScript, you’re missing out!
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直到你需要调试代码时才会发现这种方法很有效。调试器通常在你执行的代码上工作，并不知道它经历了哪些翻译过程。由于JavaScript是如此流行的目标语言，浏览器供应商合作解决了这个问题。结果就是源映射。它们将生成文件中的位置和符号映射回原始源中相应的位置和符号。大多数浏览器和许多IDE都支持它们。如果你没有使用它们来调试你的TypeScript，那你就错过了！
+- en: 'Suppose you’ve created a small script to add a button to an HTML page that
+    increments every time you click it:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你创建了一个小脚本，用于在HTML页面上添加一个按钮，每次点击它时都会增加：
+- en: '[PRE42]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: If you load this in your browser and open the debugger, you’ll see the generated
+    JavaScript. This closely matches the original source, so debugging isn’t too difficult,
+    as you can see in [Figure 7-1](#efts-07in01).
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在浏览器中加载此文件并打开调试器，您将看到生成的JavaScript。这与原始源代码非常接近，因此调试并不太困难，如图[7-1](#efts-07in01)所示。
+- en: '![efts 07in01](assets/efts_07in01.png)'
+  id: totrans-176
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 07in01](assets/efts_07in01.png)'
+- en: Figure 7-1\. Debugging generated JavaScript using Chrome’s developer tools.
+    For this simple example, the generated JavaScript closely resembles the TypeScript
+    source.
+  id: totrans-177
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. 使用Chrome开发者工具调试生成的JavaScript代码。对于这个简单的示例，生成的JavaScript与TypeScript源代码非常相似。
+- en: 'Let’s make the page more fun by fetching an interesting fact about each number
+    from numbersapi.com:'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过从numbersapi.com获取每个数字的有趣事实，使页面变得更有趣。
+- en: '[PRE43]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: If you open up your browser’s debugger now, you’ll see that the generated source
+    has gotten dramatically more complicated (see [Figure 7-2](#efts-07in02)).
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您现在打开浏览器的调试器，您会看到生成的源代码变得复杂得多（见图[7-2](#efts-07in02)）。
+- en: '![efts 07in02](assets/efts_07in02.png)'
+  id: totrans-181
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 07in02](assets/efts_07in02.png)'
+- en: Figure 7-2\. In this case the TypeScript compiler has generated JavaScript that
+    doesn’t closely resemble the original TypeScript source. This will make debugging
+    more difficult.
+  id: totrans-182
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-2\. 在这种情况下，TypeScript编译器生成的JavaScript与原始的TypeScript源代码并不相似。这会使得调试更加困难。
+- en: To support `async` and `await` in older browsers, TypeScript has rewritten the
+    event handler as a state machine. This has the same behavior, but the code no
+    longer bears such a close resemblance to the original source.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了支持旧版浏览器中的`async`和`await`，TypeScript已将事件处理程序重写为状态机。这具有相同的行为，但代码不再与原始源代码如此相似。
+- en: 'This is where source maps can help. To tell TypeScript to generate one, set
+    the `sourceMap` option in your *tsconfig.json*:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是源映射可以帮助的地方。要告诉TypeScript生成源映射，请在您的*tsconfig.json*中设置`sourceMap`选项：
+- en: '[PRE44]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'Now when you run `tsc`, it generates two output files for each *.ts* file:
+    a *.js* file and a *.js.map* file. The latter is the source map.'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当您运行`tsc`时，它会为每个*.ts*文件生成两个输出文件：一个*.js*文件和一个*.js.map*文件。后者就是源映射。
+- en: With this file in place, a new *index.ts* file appears in your browser’s debugger.
+    You can set breakpoints and inspect variables in it, just as you’d hope (see [Figure 7-3](#efts-07in03)).
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个文件，您在浏览器的调试器中会看到一个新的*index.ts*文件。您可以在其中设置断点并检查变量，就像您希望的那样（见图[7-3](#efts-07in03)）。
+- en: '![efts 07in03](assets/efts_07in03.png)'
+  id: totrans-188
+  prefs: []
+  type: TYPE_IMG
+  zh: '![efts 07in03](assets/efts_07in03.png)'
+- en: Figure 7-3\. When a source map is present, you can work with the original TypeScript
+    source in your debugger, rather than the generated JavaScript.
+  id: totrans-189
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-3\. 当存在源映射时，您可以在调试器中使用原始的TypeScript源代码，而不是生成的JavaScript。
+- en: Note that *index.ts* appears in italics in the file list on the left. This indicates
+    that it isn’t a “real” file in the sense that the web page included it. Rather,
+    it was included via the source map. Depending on your settings, *index.js.map*
+    will contain either a reference to *index.ts* (in which case the browser loads
+    it over the network) or an inline copy of it (in which case no request is needed).
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，在左侧文件列表中*index.ts*以斜体显示。这表示它不是网页包含的“真实”文件。相反，它是通过源映射包含的。根据您的设置，*index.js.map*将包含对*index.ts*的引用（在这种情况下，浏览器通过网络加载它）或者它的内联副本（在这种情况下，不需要请求）。
+- en: 'There are a few things to be aware of with source maps:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 源映射有几点需要注意：
+- en: If you are using a bundler or minifier with TypeScript, it may generate a source
+    map of its own. To get the best debugging experience, you want this to map all
+    the way back to the original TypeScript sources, not the generated JavaScript.
+    If your bundler has built-in support for TypeScript, then this should just work.
+    If not, you may need to hunt down some flags to make it read source map inputs.
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果您正在使用TypeScript与捆绑器或缩小器，它可能会生成自己的源映射。为了获得最佳的调试体验，您希望它能够完整映射回原始的TypeScript源代码，而不是生成的JavaScript。如果您的捆绑器内置支持TypeScript，那么这应该很顺利。如果没有，您可能需要查找一些标志来使其读取源映射输入。
+- en: Be aware of whether you’re serving source maps in production. The browser won’t
+    load source maps unless the debugger is open, so there’s no performance impact
+    for end users. But if the source map contains an inline copy of your original
+    source code, then there may be content that you didn’t intend to publicize. Does
+    the world really need to see your snarky comments or internal bug tracker URLs?
+  id: totrans-193
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 要注意你是否在生产环境中提供源映射。浏览器只有在调试器打开时才会加载源映射，因此对最终用户没有性能影响。但是，如果源映射包含原始源代码的内联副本，那么可能会有一些内容是你不打算公开的。世界真的需要看到你的讽刺评论或内部
+    bug 追踪器的 URL 吗？
+- en: You can also debug NodeJS programs using source maps. This is typically done
+    via your editor or by connecting to your node process from a browser’s debugger.
+    Consult the Node docs for details.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以使用源映射调试 NodeJS 程序。通常通过你的编辑器或通过从浏览器的调试器连接到你的 node 进程来完成。请查阅 Node 文档以获取详细信息。
+- en: The type checker can catch many errors before you run your code, but it is no
+    substitute for a good debugger. Use source maps to get a great TypeScript debugging
+    experience.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型检查器可以在运行代码之前捕获许多错误，但它不能替代一个好的调试器。使用源映射可以获得出色的 TypeScript 调试体验。
+- en: Things to Remember
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 要记住的事情
+- en: Don’t debug generated JavaScript. Use source maps to debug your TypeScript code
+    at runtime.
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不要调试生成的 JavaScript。使用源映射在运行时调试你的 TypeScript 代码。
+- en: Make sure that your source maps are mapped all the way through to the code that
+    you run.
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 确保你的源映射一直映射到你运行的代码。
+- en: Depending on your settings, your source maps might contain an inline copy of
+    your original code. Don’t publish them unless you know what you’re doing!
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 根据你的设置，你的源映射可能包含原始代码的内联副本。除非你知道自己在做什么，否则不要发布它们！

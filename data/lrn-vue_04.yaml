@@ -1,0 +1,1838 @@
+- en: Chapter 4\. Interactions Between Components
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第四章 互动组件之间的交互
+- en: In [Chapter 3](ch03.html#unique_chapter_id_03), we deep-dived into composing
+    a component with lifecycle hooks, computed properties, watchers, methods, and
+    other features. We also learned about the power of slots and how to receive external
+    data from other components using props.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [第三章](ch03.html#unique_chapter_id_03) 中，我们深入探讨了如何使用生命周期钩子、计算属性、观察器、方法及其他功能来组合组件。我们还学习了插槽的强大之处，以及如何使用
+    props 从其他组件接收外部数据。
+- en: Based on that foundation, this chapter guides you on how to build the interactions
+    between components using custom events and provide/inject patterns. It also introduces
+    Teleport API, which allows you to move elements around the DOM tree while keeping
+    their order of appearance inside a Vue component.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于这个基础，本章指导您如何使用自定义事件、provide/inject 模式构建组件之间的交互。还介绍了 Teleport API，允许您在 DOM
+    树中移动元素，同时保持它们在 Vue 组件中出现的顺序。
+- en: Nested Components and Data Flow in Vue
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Vue 中的嵌套组件和数据流
+- en: Vue components can nest other Vue components inside them. This feature is handy
+    in allowing users to organize their code into smaller, manageable, and reusable
+    pieces in a complex UI project. We call nested elements child components and the
+    component containing them their parent component.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 组件可以嵌套其他 Vue 组件。在复杂的 UI 项目中，这个特性非常有用，可以让用户将代码组织成更小、更可管理和可重用的片段。我们将嵌套的元素称为子组件，包含它们的组件称为父组件。
+- en: Data flow in a Vue application is unidirectional by default, which means that
+    the parent component can pass data to its child component but not the other way
+    around. The parent can pass data to the child component using `props` (discussed
+    briefly in [“Exploring the Options API”](ch02.html#ch02_exploring_options)), and
+    the child component can emit events back to the parent component using custom
+    events `emits`. [Figure 4-1](#figure_04_04) demonstrates the data flow between
+    components.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 应用程序中的数据流默认是单向的，这意味着父组件可以向子组件传递数据，但反之则不行。父组件可以使用 `props` 将数据传递给子组件（在 [“探索选项
+    API”](ch02.html#ch02_exploring_options) 中简要讨论），而子组件可以通过自定义事件 `emits` 向父组件发出事件。[图 4-1](#figure_04_04)
+    展示了组件之间的数据流动。
+- en: '![A diagram shows the one-way data flow between components](assets/lvue_0401.png)'
+  id: totrans-6
+  prefs: []
+  type: TYPE_IMG
+  zh: '![图示显示了组件之间单向数据流](assets/lvue_0401.png)'
+- en: Figure 4-1\. One-way data flow in Vue components
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-1 Vue 组件中的单向数据流
+- en: Passing Functions as Props
+  id: totrans-8
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将函数作为 props 传递
+- en: Unlike other frameworks, Vue does not allow you to pass a function as a prop
+    to the child component. Instead, you can bind the function as a custom event emitter
+    (see [“Communication Between Components with Custom Events”](#custom-event-emitters)).
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其他框架不同，Vue 不允许将函数作为 prop 直接传递给子组件。相反，您可以将函数绑定为自定义事件发射器（参见 [“使用自定义事件进行组件间通信”](#custom-event-emitters)）。
+- en: Using Props to Pass Data to Child Components
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 props 将数据传递给子组件
+- en: In the form of an object or array, the `props` field of a Vue component contains
+    all the available data properties that the component can receive from its parent.
+    Each property of `props` is a prop of the target component. To start receiving
+    data from the parent, you need to declare the `props` field in the component’s
+    options object, as shown in [Example 4-1](#example_04_01).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在对象或数组形式下，Vue 组件的 `props` 字段包含了组件可以从父组件接收的所有可用数据属性。每个 `props` 的属性都是目标组件的一个 prop。要开始从父组件接收数据，您需要在组件选项对象中声明
+    `props` 字段，如 [示例 4-1](#example_04_01) 所示。
+- en: Example 4-1\. Defining props in a component
+  id: totrans-12
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-1 在组件中定义 props
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: In [Example 4-1](#example_04_01), the `ChildComponent` component accepts a `name`
+    prop of type `String`. The parent component then can pass data to the child component
+    using this `name` prop, as shown in [Example 4-2](#example_04_02).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 4-1](#example_04_01) 中，`ChildComponent` 组件接受一个类型为 `String` 的 `name` 属性。然后父组件可以使用这个
+    `name` 属性向子组件传递数据，如 [示例 4-2](#example_04_02) 所示。
+- en: Example 4-2\. Passing static data as props to a child component
+  id: totrans-15
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-2 将静态数据作为 props 传递给子组件
+- en: '[PRE1]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: The `ChildComponent` receives a static “Red Sweater” as a `name` value in the
+    previous example. If you want to pass and bind a dynamic data variable to `name`,
+    such as the first element in the `children` list, you can use the `v-bind` attribute,
+    denoted by `:`, as shown in [Example 4-3](#example_04_03).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前面的示例中，`ChildComponent` 收到了一个静态的“Red Sweater”作为 `name` 值。如果您想将动态数据变量（例如 `children`
+    列表中的第一个元素）传递和绑定到 `name`，您可以使用 `v-bind` 属性，即 `:`，如 [示例 4-3](#example_04_03) 所示。
+- en: Example 4-3\. Passing dynamic variables as props to a child component
+  id: totrans-18
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-3 将动态变量作为 props 传递给子组件
+- en: '[PRE2]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: The output for the previous code is the same as passing a static string, `Red
+    Sweater`, to the `name` prop.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前述代码的输出与将静态字符串`Red Sweater`传递给`name`属性相同。
+- en: Note
+  id: totrans-21
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If the `name` prop is not of type `String`, you still need to use the `v-bind`
+    attribute (or `:`) to pass static data to the child component, such as `:name="true"`
+    for `Boolean`, or `:name="["hello", "world"]"` for `Array` type.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`name`属性不是`String`类型，则仍然需要使用`v-bind`属性（或`:`）将静态数据传递给子组件，例如对于`Boolean`类型使用`:name="true"`，或对于`Array`类型使用`:name="["hello",
+    "world"]"`。
+- en: In [Example 4-3](#example_04_03), whenever the value of `children[0]` changes,
+    Vue will also update the `name` prop in the `ChildComponent`, and the child component
+    will re-render its content if needed.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [示例 4-3](#example_04_03) 中，每当`children[0]`的值变化时，Vue也会更新`ChildComponent`中的`name`属性，并且如果需要，子组件将重新呈现其内容。
+- en: If you have more than one prop in the child component, you can follow the same
+    approach and pass each data to the relevant prop. For instance, to pass `name`
+    and `price` of a product to the `ProductComp` component, you can perform this
+    ([Example 4-4](#example_04_04)).
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果子组件中有多个属性，可以采用相同的方法将每个数据传递给相关的属性。例如，要将产品的`name`和`price`传递给`ProductComp`组件，可以执行此操作（[示例 4-4](#example_04_04)）。
+- en: Example 4-4\. Passing multiple props to a child component
+  id: totrans-25
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-4\. 向子组件传递多个属性
+- en: '[PRE3]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: And we can define the `ProductComp` component as in [Example 4-5](#example_04_05).
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以定义`ProductComp`组件如同 [示例 4-5](#example_04_05) 中所示。
+- en: Example 4-5\. Defining multiple props in `ProductComp`
+  id: totrans-28
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-5\. 在`ProductComp`中定义多个属性
+- en: '[PRE4]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'The output will be as follows:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出如下所示：
+- en: '[PRE5]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Alternatively, you can use `v-bind` (*not* `:`) to pass the entire object `user`
+    and have its properties bound to the relevant child component’s props:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，您可以使用`v-bind`（*不是* `:`）来传递整个对象`user`，并将其属性绑定到相关子组件的属性：
+- en: '[PRE6]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Note that only the child component will receive the relevant declared props.
+    Hence, if you have another field, `product.description`, in the parent component,
+    it will not be available for access in the child component.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，只有子组件将接收相关声明的属性。因此，如果在父组件中有另一个字段`product.description`，它将无法在子组件中访问。
+- en: Note
+  id: totrans-35
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'Another approach to declare your component’s `props` is to use an array of
+    strings, each representing the name of the prop it accepts, such as `props: ["name",
+    "price"]`. This approach is practical when you want to prototype a component quickly.
+    However, I strongly recommend you use the object form of `props` and declare all
+    your props with types, as a good practice for code readability and bug prevention.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '另一种声明组件`props`的方法是使用一个字符串数组，每个字符串表示它接受的属性名称，例如`props: ["name", "price"]`。当您想快速原型化一个组件时，这种方法是实用的。然而，我强烈建议您使用`props`的对象形式，并为了代码可读性和错误预防的良好实践，声明所有的属性类型。'
+- en: We have learned how to declare props with types, but how do we validate the
+    data passed to the child’s props when needed? How can we set a fallback value
+    for a prop when no value is passed? Let’s find out next.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了如何声明带有类型的属性，但在需要时如何验证传递给子组件属性的数据？如何在未传递值时为属性设置回退值？让我们接着了解。
+- en: Declaring Prop Types with Validation and Default Values
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 声明带有验证和默认值的属性类型
+- en: 'Back in [Example 4-1](#example_04_01), we declared the `name` prop as a `String`
+    type. Vue will warn if the parent component passes a non-string value to the `name`
+    prop during run-time. However, to be able to enjoy the benefit of Vue’s type validation,
+    we should use the full declaration syntax:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到 [示例 4-1](#example_04_01)，我们声明了`name`属性为`String`类型。在运行时，Vue会警告如果父组件向`name`属性传递了非字符串值。然而，为了能够享受Vue的类型验证带来的好处，我们应该使用完整的声明语法：
+- en: '[PRE7]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'In which:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在其中：
+- en: '`type` is the type of prop. It can be a constructor function (or custom class)
+    or one of the built-in types.'
+  id: totrans-42
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`type` 是属性的类型。它可以是一个构造函数（或自定义类），也可以是内置类型之一。'
+- en: '`default` is the prop’s default value if no value is passed. For types `Object`,
+    `Function`, and `Array`, the default value must be a function that returns the
+    initial value.'
+  id: totrans-43
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`default` 是属性的默认值，如果没有传递值则使用该值。对于`Object`、`Function`和`Array`类型，默认值必须是一个返回初始值的函数。'
+- en: '`required` is a boolean value indicating whether the prop is mandatory. If
+    `required` is `true`, the parent component must pass a value to the prop. By default,
+    all props are optional.'
+  id: totrans-44
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`required` 是一个布尔值，指示属性是否是必需的。如果`required`为`true`，则父组件必须向属性传递一个值。默认情况下，所有属性都是可选的。'
+- en: '`validator` is a function that validates the value passed to the prop, mainly
+    for development debugging.'
+  id: totrans-45
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`validator` 是一个验证传递给属性值的函数，主要用于开发调试。'
+- en: We can declare the `name` prop to be more specific, including a default value,
+    as shown in [Example 4-6](#example_06_04_01).
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以声明更具体的`name`prop，包括一个默认值，如[示例 4-6](#example_06_04_01)所示。
+- en: Example 4-6\. Defining prop as a string with a default value
+  id: totrans-47
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-6\. 将prop定义为具有默认值的字符串
+- en: '[PRE8]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: If the parent component does not pass a value, the child component will fall
+    back to the default value *“Child component”* for the `name` prop.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果父组件没有传递值，则子组件将回退到默认值*“Child component”*。
+- en: We can also set `name` as a mandatory prop for the child component and add a
+    validator for its received data, as shown in [Example 4-7](#example_ch04_05).
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以将`name`设置为子组件的必需prop，并为其接收到的数据添加验证器，如[示例 4-7](#example_ch04_05)所示。
+- en: Example 4-7\. Defining name as required with a prop validator
+  id: totrans-51
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-7\. 使用prop验证器将name定义为必需项
+- en: '[PRE9]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: In this scenario, if the parent component does not pass a value to the `name`
+    prop, or the given value matches *Child component*, Vue will throw a warning in
+    development mode ([Figure 4-2](#figure_ch04_warning)).
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，如果父组件未向`name`prop传递值，或者传递的值匹配*Child component*，Vue将在开发模式下抛出警告（见[图 4-2](#figure_ch04_warning)）。
+- en: '![Screenshot of console warning for failed name prop validation](assets/lvue_0402.png)'
+  id: totrans-54
+  prefs: []
+  type: TYPE_IMG
+  zh: '![控制台警告屏幕截图，因未能验证名称prop而显示](assets/lvue_0402.png)'
+- en: Figure 4-2\. Console warning in development for failed prop validation
+  id: totrans-55
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-2\. 开发环境下控制台警告未能验证prop
+- en: Note
+  id: totrans-56
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: For the `default` field, the `Function` type is a function that returns the
+    initial value of the prop. You can’t use it to pass data back to the parent component
+    or to trigger data changes on the parent level.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于`default`字段，`Function`类型是一个返回prop初始值的函数。您不能使用它将数据传回父组件或在父级上触发数据更改。
+- en: In addition to the built-in types and validation provided by Vue, you can combine
+    a JavaScript `Class` or a function constructor and TypeScript to create your custom
+    prop type. I’ll cover them in the next section.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了Vue提供的内置类型和验证之外，您还可以结合JavaScript的`Class`或函数构造函数和TypeScript来创建自定义的prop类型。我将在下一节中介绍它们。
+- en: Declaring Props with Custom Type Checking
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 声明带有自定义类型检查的props
+- en: 'Using primitive types like `Array`, `String`, or `Object` suits the essential
+    use case. However, as your application grows, primitive types can be too generic
+    to keep your component’s type safe. Take a `PizzaComponent` with the following
+    template code:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用像`Array`、`String`或`Object`这样的原始类型非常适合基本用例。然而，随着您的应用程序的增长，原始类型可能过于通用，无法保证组件的类型安全性。以以下模板代码为例的`PizzaComponent`：
+- en: '[PRE10]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'This component accepts a mandatory `pizza` prop, which is an `Object` containing
+    some details about the `pizza`:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此组件接受一个强制的`pizza`prop，它是一个包含一些有关`pizza`的详细信息的`Object`：
+- en: '[PRE11]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Straightforward enough. However, by declaring `pizza` as an `Object` type, we
+    assume the parent will always pass the suitable object with the appropriate fields
+    (`title`, `image`, `description`, `quantity`, and `price`) required for a `pizza`
+    to render.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接了当。但是，通过将`pizza`声明为`Object`类型，我们假设父组件始终会传递适当的带有所需字段（`title`、`image`、`description`、`quantity`和`price`）的对象给`pizza`以渲染。
+- en: This assumption can lead to a problem. Since `pizza` accepts data of type `Object`,
+    any component that uses `PizzaComponent` can pass any object data to the prop
+    `pizza` without the actual fields needed for a `pizza`, as in [Example 4-8](#example_06_04_02).
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种假设可能会导致问题。由于`pizza`接受`Object`类型的数据，任何使用`PizzaComponent`的组件都可以向`pizza`prop传递任何对象数据，而不必是一个真正用于`pizza`的字段，如[示例 4-8](#example_06_04_02)所示。
+- en: Example 4-8\. Using Pizza component with wrong data
+  id: totrans-66
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-8\. 使用错误数据的Pizza组件
+- en: '[PRE12]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: The preceding code results in a broken UI render of `PizzaComponent`, where
+    only a `description` is available, and the rest of the fields are empty (with
+    a broken image), as shown in [Figure 4-3](#figure_ch04_01_02).
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上述代码导致`PizzaComponent`的UI渲染错误，只有一个`description`可用，其余字段为空（图像损坏），如[图 4-3](#figure_ch04_01_02)所示。
+- en: '![Screenshot of a pizza without title, price, quantity and image rendered](assets/lvue_0403.png)'
+  id: totrans-69
+  prefs: []
+  type: TYPE_IMG
+  zh: '![渲染没有标题、价格、数量和图像的披萨的屏幕截图](assets/lvue_0403.png)'
+- en: Figure 4-3\. Broken UI with no image link and missing fields for a pizza
+  id: totrans-70
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-3\. 没有图像链接和缺少披萨字段导致UI错误
+- en: 'TypeScript won’t be able to detect the data type mismatch here either, as it
+    performs the type checking according to the declared type of `pizza`: the generic
+    `Object`. Another potential problem is that passing `pizza` in the wrong nest
+    properties format can cause the app to crash. Therefore, to avoid such accidents,
+    we use custom type declarations.'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，TypeScript也无法检测到数据类型不匹配，因为它根据`pizza`的声明类型，即通用的`Object`执行类型检查。另一个潜在的问题是，以错误的嵌套属性格式传递`pizza`可能导致应用程序崩溃。因此，为了避免此类事故，我们使用自定义类型声明。
+- en: We can define the `Pizza` class and declare the prop `pizza` of type `Pizza`
+    as shown in [Example 4-9](#example_ch04_07).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以定义`Pizza`类，并声明类型为`Pizza`的prop `pizza`，如[示例 4-9](#example_ch04_07)所示。
+- en: Example 4-9\. Declaring a Pizza custom type
+  id: totrans-73
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-9\. 声明Pizza自定义类型
+- en: '[PRE13]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO1-1)'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO1-1)'
+- en: Declare the type of `pizza` props as `Pizza` directly
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接将`pizza` props的类型声明为`Pizza`
+- en: 'Alternatively, you can use TypeScript’s `interface` or `type` to define your
+    custom type instead of `Class`. However, in such scenarios, you must use type
+    `PropType` from the `vue` package, with the following syntax, to map the declared
+    type to the target prop:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，您可以使用TypeScript的`interface`或`type`来定义自定义类型，而不是`Class`。然而，在这种情况下，您必须使用`vue`包中的`PropType`，并采用以下语法将声明的类型映射到目标prop：
+- en: '[PRE14]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Let’s rewrite the `Pizza` class as an `interface` instead ([Example 4-10](#example_04_08)).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将`Pizza`类重写为`interface`（见[示例 4-10](#example_04_08)）。
+- en: Example 4-10\. Declaring a Pizza custom type using the TypeScript interface
+    API
+  id: totrans-80
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-10\. 使用TypeScript接口API声明Pizza自定义类型
+- en: '[PRE15]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO2-1)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO2-1)'
+- en: Declare the type of `pizza` props as `Pizza` interface with `PropType` help.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`pizza` props的类型声明为带有`PropType`帮助的`Pizza`接口。
+- en: When you use `PizzaComponent` with the wrong data format, TypeScript will detect
+    and highlight the error appropriately.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用错误的数据格式化`PizzaComponent`时，TypeScript将检测并适当地突出显示错误。
+- en: Note
+  id: totrans-85
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Vue performs type validation during run-time, while TypeScript performs type
+    checking during compile-time. Hence, it is a good practice to use both Vue’s type
+    checking and TypeScript’s type checking to ensure your code is bug-free.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue在运行时执行类型验证，而TypeScript在编译时执行类型检查。因此，使用Vue的类型检查和TypeScript的类型检查结合起来，以确保您的代码没有错误是一个很好的实践。
+- en: Declaring Props Using defineProps() and withDefaults()
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用`defineProps()`和`withDefaults()`声明props
+- en: As we learned in [“setup”](ch03.html#setup_hook_03), starting with Vue 3.x,
+    Vue offers `<script setup>` syntax for declaring a functional component without
+    the classic Options API. Within this `<script setup>` block, you can use `defineProps()`
+    to declare props, as shown in [Example 4-11](#example_ch04_09).
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们在[“设置”](ch03.html#setup_hook_03)中学到的，从Vue 3.x开始，Vue提供了`<script setup>`语法，用于声明功能组件，而无需经典的Options
+    API。在这个`<script setup>`块内，你可以使用`defineProps()`来声明props，如[示例 4-11](#example_ch04_09)所示。
+- en: Example 4-11\. Props declaration with `defineProps()` and `<script setup>`
+  id: totrans-89
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-11\. 使用`defineProps()`和`<script setup>`声明props
+- en: '[PRE16]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Thanks to TypeScript, we can also declare the accepted type for `defineProps()`
+    per component with type validation on compile-time, as shown in [Example 4-12](#example_ch04_10).
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多亏了TypeScript，我们还可以声明每个组件接受的`defineProps()`类型，同时在编译时进行类型验证，如[示例 4-12](#example_ch04_10)所示。
+- en: Example 4-12\. Props declaration with `defineProps()` and `TypeScript type`
+  id: totrans-92
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-12\. 使用`defineProps()`和`TypeScript type`声明props
+- en: '[PRE17]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: In this case, to declare the default value of the `message` prop, we need to
+    wrap the `defineProps()` call with `withDefaults()`, as in [Example 4-13](#example_ch04_11).
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，为了声明`message` prop的默认值，我们需要使用`withDefaults()`来包装`defineProps()`调用，如[示例 4-13](#example_ch04_11)所示。
+- en: Example 4-13\. Props declaration with `defineProps()` and `withDefaults()`
+  id: totrans-95
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-13\. 使用`defineProps()`和`withDefaults()`声明props
+- en: '[PRE18]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Using defineProps() with TypeScript Type Checking
+  id: totrans-97
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用`defineProps()`与TypeScript类型检查
+- en: We can’t combine run-time and compile-time type checking when using `defineProps()`.
+    I recommend using `defineProps()` in the approach in [Example 4-11](#example_ch04_09),
+    for better readability and a combination of both Vue and TypeScript type checking.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用`defineProps()`时，我们不能同时结合运行时和编译时类型检查。我建议在[示例 4-11](#example_ch04_09)中采用`defineProps()`的方法，以获得更好的可读性和Vue与TypeScript类型检查的结合。
+- en: We have learned how to declare props for passing raw data in a Vue component,
+    with type checking and validation. Next, we will explore how to pass functions
+    as custom event emitters to a child component.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了如何声明props以传递Vue组件中的原始数据，进行类型检查和验证。接下来，我们将探讨如何将函数作为自定义事件发射器传递给子组件。
+- en: Communication Between Components with Custom Events
+  id: totrans-100
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用自定义事件在组件之间进行通信
+- en: Vue treats data passed to a child component via props as read-only and raw data.
+    One-way data flow ensures that the parent component is the only one that can update
+    the data prop. We often want to update a specific data prop and sync it with the
+    parent component. To do so, we use the `emits` field in the component’s options
+    to declare custom events.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue将通过props将数据传递给子组件，视为只读和原始数据。单向数据流确保只有父组件可以更新数据prop。我们经常希望更新特定的数据prop并将其与父组件同步。为此，我们使用组件选项中的`emits`字段声明自定义事件。
+- en: Take a to-do list, or `ToDoList` component, for instance. This `ToDoList` will
+    use `ToDoItem` as its child component to render a list of tasks with the code
+    in [Example 4-14](#example_ch04_12).
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以待办事项列表或`ToDoList`组件为例。这个`ToDoList`将使用`ToDoItem`作为其子组件，使用示例中的代码渲染任务列表[示例 4-14](#example_ch04_12)。
+- en: Example 4-14\. `ToDoList` component
+  id: totrans-103
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-14\. `ToDoList`组件
+- en: '[PRE19]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: And `ToDoItem` is a component that receives a `task` prop and renders an `input`
+    as a checkbox for the user to mark the task as completed or not. This `input`
+    element receives `task.completed` as its initial value for the `checked` attribute.
+    Let’s look at [Example 4-15](#example_ch04_09_01).
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ToDoItem`是一个组件，接收一个`task`属性，并渲染一个作为复选框的`input`，供用户标记任务是否完成。这个`input`元素将`task.completed`作为其`checked`属性的初始值。让我们看一下[示例 4-15](#example_ch04_09_01)。'
+- en: Example 4-15\. `ToDoItem` component
+  id: totrans-106
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-15\. `ToDoItem`组件
+- en: '[PRE20]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: When a user toggles this `input` checkbox, we want to emit an event called `task-completed-toggle`
+    to inform about the `task.completed` value of the specific task to the parent
+    component. We can do so by first declaring the event in the `emits` field of the
+    component’s options ([Example 4-16](#example_ch04_09_todo_with_emits)).
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户切换此`input`复选框时，我们希望触发名为`task-completed-toggle`的事件，以通知父组件有关特定任务的`task.completed`值。我们可以通过在组件选项的`emits`字段中首先声明事件来实现这一点（[示例 4-16](#example_ch04_09_todo_with_emits)）。
+- en: Example 4-16\. `ToDoItem` component with emits
+  id: totrans-109
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-16\. 带有emits的`ToDoItem`组件
+- en: '[PRE21]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Then, we create a new method `onTaskCompleted` to emit the `task-completed-toggle`
+    event with the new value of `task.completed` from the checkbox and the `task.id`
+    as the event’s payload ([Example 4-17](#example_ch04_09_todo_with_emits2)).
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们创建一个新的方法`onTaskCompleted`来发出`task-completed-toggle`事件，该事件包含复选框的新值`task.completed`和`task.id`作为事件的负载（[示例 4-17](#example_ch04_09_todo_with_emits2)）。
+- en: Example 4-17\. `ToDoItem` component with a method to emit `task-completed-toggle`
+    event
+  id: totrans-112
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-17\. 带有方法来发出`task-completed-toggle`事件的`ToDoItem`组件
+- en: '[PRE22]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Note
+  id: totrans-114
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: We use `defineComponent` to wrap around the component’s options and create a
+    TypeScript-friendly component. Using `define` `Component` is not required for
+    simple components, but you need to use it to access other data properties of `this`
+    inside components’ methods, hooks, or computed properties. Otherwise, TypeScript
+    will throw an error.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`defineComponent`将组件选项包装起来，创建一个与 TypeScript 兼容的组件。对于简单的组件并不需要使用`defineComponent`，但是在组件的方法、钩子或计算属性中访问`this`的其他数据属性时需要使用它。否则，TypeScript
+    将会抛出错误。
+- en: Then we bind the `onTaskCompleted` method to the `input` element’s `change`
+    event, as shown in [Example 4-18](#example_ch04_09_todo_with_emits3).
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将`onTaskCompleted`方法绑定到`input`元素的`change`事件上，如[示例 4-18](#example_ch04_09_todo_with_emits3)所示。
+- en: Example 4-18\. `ToDoItem` component’s updated template
+  id: totrans-117
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-18\. `ToDoItem`组件更新后的模板
+- en: '[PRE23]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Now in the parent component `<ToDoList>` of `ToDoItem`, we can bind the `task-completed-toggle`
+    event to a method using `@` notation, with the template in [Example 4-19](#example_ch04_09_todo_parent).
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在`ToDoItem`的父组件`<ToDoList>`中，我们可以使用`@`符号将`task-completed-toggle`事件绑定到一个方法上，模板在[示例 4-19](#example_ch04_09_todo_parent)中。
+- en: Example 4-19\. `ToDoList` component’s updated template
+  id: totrans-120
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-19\. `ToDoList`组件更新后的模板
+- en: '[PRE24]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: The `onTaskCompleted` method in the parent component `<ToDoList>` will receive
+    the payload of the `task-completed-toggle` event, and update the `task.completed`
+    value of the specific task in the `tasks` array, as in [Example 4-20](#ch04_09_todo_parent_script).
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 父组件`<ToDoList>`中的`onTaskCompleted`方法将接收`task-completed-toggle`事件的负载，并更新`tasks`数组中特定任务的`task.completed`值，就像[示例 4-20](#ch04_09_todo_parent_script)中那样。
+- en: Example 4-20\. `ToDoList` component’s script with a method to handle `task-completed-toggle`
+    event
+  id: totrans-123
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-20\. `ToDoList` 组件的脚本，带有处理 `task-completed-toggle` 事件的方法
+- en: '[PRE25]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: These code blocks will render the page shown in [Figure 4-4](#figure_04_02).
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些代码块将渲染出 [Figure 4-4](#figure_04_02) 中显示的页面。
+- en: '![Screenshot of a to-do list with three tasks, each with a checkbox and task''s
+    title](assets/lvue_0404.png)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有三个任务的待办事项列表的屏幕截图，每个任务都有复选框和任务标题](assets/lvue_0404.png)'
+- en: Figure 4-4\. `ToDoList` component with three items
+  id: totrans-127
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-4\. 带有三个项目的 `ToDoList` 组件
+- en: Vue will update the related data in `ToDoList` and accordingly render the relevant
+    `ToDoItem` component instance. You can toggle the checkbox to mark a to-do item
+    as completed. [Figure 4-5](#figure_04_03) shows we can detect the component’s
+    event using the Vue Devtools.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 将更新 `ToDoList` 中的相关数据，并相应地渲染相关的 `ToDoItem` 组件实例。你可以切换复选框来标记待办事项为完成状态。[Figure 4-5](#figure_04_03)
+    显示了我们可以使用 Vue Devtools 检测组件的事件。
+- en: '![A screenshot of the Vue Devtools showing the event emitted by the +ToDoItem+
+    component](assets/lvue_0405.png)'
+  id: totrans-129
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vue Devtools 屏幕截图，显示由 +ToDoItem+ 组件发出的事件](assets/lvue_0405.png)'
+- en: Figure 4-5\. Mark a to-do item as completed and debug the event emitted using
+    Vue Devtools
+  id: totrans-130
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-5\. 将待办事项标记为完成，并使用 Vue Devtools 调试发出的事件
+- en: Defining Custom Events Using defineEmits()
+  id: totrans-131
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 defineEmits() 定义自定义事件
+- en: 'Similar to [“Declaring Props Using defineProps() and withDefaults()”](#declaring-props-defineProps),
+    within a `<script setup>` code block, you can use `defineEmits()` to define custom
+    events. The `defineEmits()` function accepts the same input parameter type as
+    `emits` accepts:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似于 [“使用 defineProps() 和 withDefaults() 声明 Props”](#declaring-props-defineProps)，在
+    `<script setup>` 代码块中，你可以使用 `defineEmits()` 来定义自定义事件。`defineEmits()` 函数接受与 `emits`
+    相同的输入参数类型：
+- en: '[PRE26]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'It then returns a function instance that we can use to invoke a specific event
+    from the component:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后它返回一个函数实例，我们可以用它来调用组件中的特定事件：
+- en: '[PRE27]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Thus we can write the script section of `ToDoItem` as in [Example 4-21](#example_04_12).
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们可以像 [Example 4-21](#example_04_12) 中那样编写 `ToDoItem` 的脚本部分。
+- en: Example 4-21\. `ToDoItem` component with the custom event using `defineEmits()`
+  id: totrans-137
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-21\. 使用 `defineEmits()` 的 `ToDoItem` 组件，具有自定义事件
+- en: '[PRE28]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Note here we don’t need to use `defineComponent` since there is no `this` instance
+    available within the `<script setup>` code block.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意这里我们不需要使用 `defineComponent`，因为在 `<script setup>` 代码块中没有 `this` 实例可用。
+- en: For better type checking, you can use type-only declaration for the `task-completed-toggle`
+    event instead of a single string. Let’s improve the `emits` declaration in [Example 4-21](#example_04_12)
+    to use type `EmitEvents` as shown in [Example 4-22](#example_04_13).
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了更好的类型检查，你可以对 `task-completed-toggle` 事件使用仅类型声明，而不是单个字符串。让我们改进 [Example 4-21](#example_04_12)
+    中的 `emits` 声明，使用类型 `EmitEvents`，如 [Example 4-22](#example_04_13) 所示。
+- en: Example 4-22\. Custom event using `defineEmits()` and type-only declaration
+  id: totrans-141
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-22\. 使用 `defineEmits()` 和仅类型声明的自定义事件
+- en: '[PRE29]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'This approach helps ensure you bind the correct method to the declared event.
+    As seen for the `task-complete-toggle` event, any event declaration should follow
+    the same pattern:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法有助于确保你将正确的方法绑定到声明的事件上。正如对于 `task-complete-toggle` 事件所见，任何事件声明都应遵循相同的模式：
+- en: '[PRE30]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: In the previous syntax, `e` is the event’s name, and `arguments` are all the
+    inputs passed to the event emitter. In the case of the `task-completed-toggle`
+    event, its emitter’s argument is `task` of type `Task`.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述语法中，`e` 是事件的名称，而 `arguments` 是传递给事件发射器的所有输入。在 `task-completed-toggle` 事件的情况下，其发射器的参数是类型为
+    `Task` 的 `task`。
+- en: '`emits` is a powerful feature that allows you to enable two-way communication
+    between a parent and a child component without breaking the data flow mechanism
+    of Vue. However, `props` and `emits` are only beneficial when you want direct
+    data communication.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`emits` 是一个强大的功能，允许你在不破坏 Vue 数据流机制的情况下，启用父子组件之间的双向通信。然而，`props` 和 `emits` 仅在需要直接数据通信时才有利。'
+- en: You must use a different approach to pass data from a component to its grandchild
+    or descendant. In the next section, we will see how to use the `provide` and `inject`
+    APIs to pass data from a parent component to its child or grandchild component.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你必须使用不同的方法来将数据从组件传递到其孙子或后代。在下一节中，我们将看到如何使用 `provide` 和 `inject` API 将数据从父组件传递到其子组件或孙子组件。
+- en: Communicate Between Components with provide/inject Pattern
+  id: totrans-148
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 provide/inject 模式在组件之间进行通信
+- en: To establish data communication between an ancestor component and its descendants,
+    the `provide/inject` API is a reasonable option. The `provide` field passes data
+    from the ancestor, while `inject` ensures that Vue injects the provided data into
+    any target descendant.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在祖先组件和其后代之间建立数据通信，`provide/inject` API 是一个合理的选择。`provide` 字段从祖先传递数据，而 `inject`
+    确保 Vue 将提供的数据注入到任何目标后代中。
+- en: Using provide to Pass Data
+  id: totrans-150
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `provide` 传递数据
+- en: 'The component’s option field `provide` accepts two formats: a data object or
+    a function.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 组件选项字段 `provide` 接受两种格式：数据对象或函数。
+- en: '`provide` can be an object containing data to inject, with each property representing
+    a (key, value) data type. In the following example, `ProductList` provides a data
+    value, `selectedIds`, with the value `[1]` to all its descendants ([Example 4-23](#example_04_provide)).'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`provide` 可以是一个包含要注入的数据的对象，每个属性表示一个（键，值）数据类型。在下面的示例中，`ProductList` 提供了一个数据值
+    `selectedIds`，其值为 `[1]`，传递给其所有后代（[示例 4-23](#example_04_provide)）。'
+- en: Example 4-23\. Passing `selectedIds` using provide in `ProductList` component
+  id: totrans-153
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-23\. 在 `ProductList` 组件中使用 `provide` 传递 `selectedIds`
+- en: '[PRE31]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Another format type for `provide` is a function that returns an object containing
+    the data available to inject for descendants. A benefit of this format type is
+    we can access the `this` instance and map dynamic data or a component method to
+    the relevant fields of the return object. From [Example 4-23](#example_04_provide),
+    we can rewrite the `provide` field as a function as shown in [Example 4-24](#example_04_provide_function).
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`provide` 的另一种格式类型是一个返回包含可供后代注入的数据的对象的函数。此格式类型的一个好处是可以访问 `this` 实例，并将动态数据或组件方法映射到返回对象的相关字段中。从
+    [示例 4-23](#example_04_provide) 开始，我们可以将 `provide` 字段重写为一个函数，如 [示例 4-24](#example_04_provide_function)
+    所示。'
+- en: Example 4-24\. Passing `selectedIds` using provide in `ProductList` component
+    as a function
+  id: totrans-156
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-24\. 在 `ProductList` 组件中使用 `provide` 传递 `selectedIds` 作为一个函数
+- en: '[PRE32]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Note
+  id: totrans-158
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Unlike `props`, you can pass a function and have the target descendant trigger
+    it using the `provide` field. Doing so enables sending data back up to the parent
+    component. However, Vue considers this approach an anti-pattern, and you should
+    use it cautiously.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与 `props` 不同，您可以传递一个函数，并让目标后代使用 `provide` 字段触发它。这样做可以使数据返回到父组件。然而，Vue 认为这种方法是一种反模式，您应该谨慎使用。
+- en: At this point, our `ProductList` passes some data values to its descendant using
+    `provide`. Next, we must inject the provided values to operate within a descendant.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到此为止，我们的 `ProductList` 使用 `provide` 将一些数据值传递给其后代。接下来，我们必须注入提供的值以在后代中操作。
+- en: Using inject to Receive Data
+  id: totrans-161
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `inject` 接收数据
+- en: 'Like `props`, the `inject` field can accept an array of strings, each representing
+    the provided data key (`inject: [*selectedId*]`) or an object.'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '与 `props` 类似，`inject` 字段可以接受一个字符串数组，每个字符串代表一个提供的数据键（`inject: [*selectedId*]`）或一个对象。'
+- en: 'When using `inject` as an object field, each of its properties is an object,
+    with the key presenting the local data key used within the component and the following
+    properties:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当作为对象字段使用 `inject` 时，其每个属性都是一个对象，键表示组件内部使用的本地数据键，并具有以下属性：
+- en: '[PRE33]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Here, `from` is optional if the property key is the same as the provided key
+    from the ancestor. Take [Example 4-23](#example_04_provide) with the `selectedIds`
+    as the data provided by `ProductList` to its descendants, for instance. We can
+    compute a `ProductComp` that receives the provided data, `selectedIds`, from `ProductList`
+    and rename it to `current` `SelectedIds` to use locally, as shown in [Example 4-25](#example_04_inject).
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，如果属性键与祖先提供的键相同，则 `from` 是可选的。例如，根据 [示例 4-23](#example_04_provide)，`ProductList`
+    向其后代提供的数据 `selectedIds`，我们可以计算一个 `ProductComp`，它从 `ProductList` 接收提供的数据 `selectedIds`
+    并将其重命名为 `currentSelectedIds` 以在本地使用，如 [示例 4-25](#example_04_inject) 所示。
+- en: Example 4-25\. Injecting provided data in `ProductComp`
+  id: totrans-166
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-25\. 在 `ProductComp` 中注入提供的数据
+- en: '[PRE34]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: In this code, Vue will take the value of injected `selectedIds` and assign it
+    to a local data field, `currentSelectedIds`, or use its default value `[]` if
+    there is no injected value.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这段代码中，Vue 将注入的 `selectedIds` 的值赋给一个本地数据字段 `currentSelectedIds`，如果没有注入的值，则使用其默认值
+    `[]`。
+- en: Within the Components section of the Vue tab in the browser’s Developer Tools,
+    when selecting the `ProductComp` from the component tree (the left-side panel),
+    you can debug the indication of the renaming for the injected data (the right-side
+    panel), as shown in [Figure 4-6](#figure_04_05).
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器开发者工具中的 Vue 标签的组件部分中，当从组件树（左侧面板）选择 `ProductComp` 时，您可以调试注入数据的重命名指示（右侧面板），如
+    [图 4-6](#figure_04_05) 所示。
+- en: '![A screenshot shows the Component tab of the Vue tab in the browser''s Develop
+    tools with information about a component''s provided and injected data.](assets/lvue_0406.png)'
+  id: totrans-170
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示浏览器开发工具中Vue标签的组件标签页，显示有关组件提供和注入数据的信息。](assets/lvue_0406.png)'
+- en: Figure 4-6\. Debug the provided and injected data using Vue Devtools
+  id: totrans-171
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-6\. 使用 Vue Devtools 调试 `provide` 和 `inject` 提供和注入的数据
+- en: Note
+  id: totrans-172
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The equivalent hooks in Composition API for `provide/inject` are `provide()`
+    and `inject()`, respectively.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Composition API 中，`provide/inject` 的等效钩子分别为 `provide()` 和 `inject()`。
+- en: Now we understand how to use `provide` and `inject` to pass data between components
+    efficiently without props drilling. Let’s explore how we can render a specific
+    content section of an element to another location in the DOM with the `<Teleport>`
+    component.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们了解如何使用 `provide` 和 `inject` 在组件之间高效地传递数据，避免了 Props 钻取。让我们来探索如何使用 `<Teleport>`
+    组件将元素的特定内容区域渲染到 DOM 的另一个位置。
+- en: Teleport API
+  id: totrans-175
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Teleport API
+- en: Due to styling constraints, we often need to implement a component that contains
+    elements that Vue should render in a different location in the actual DOM for
+    full visual effect. In such cases, we usually need to “teleport” those elements
+    to the desired place by developing a complex solution, resulting in lousy performance
+    impact, time consumption, etc. To solve this “teleport” challenge, Vue offers
+    the `<Teleport>` component.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于样式限制，我们经常需要实现一个包含元素的组件，Vue 应该将其在实际 DOM 中的不同位置进行渲染，以达到完整的视觉效果。在这种情况下，我们通常需要通过开发复杂的解决方案来“传送”这些元素，从而导致性能影响、时间消耗等问题。为了解决这种“传送”挑战，Vue
+    提供了 `<Teleport>` 组件。
+- en: The `<Teleport>` component accepts a prop `to`, which indicates the target container,
+    whether an element’s query selector or the desired HTML element. Suppose we have
+    a `House` component that will have a section of *Sky and clouds* that needs the
+    Vue engine to teleport it to a designated `#sky` DOM element, as in [Example 4-26](#example_04_teleport).
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<Teleport>` 组件接受一个 `to` 属性，该属性指示目标容器，可以是元素的查询选择器或所需的 HTML 元素。假设我们有一个 `House`
+    组件，其中包含需要 Vue 引擎将其传送到指定 `#sky` DOM 元素的 *天空和云* 部分，如 [示例 4-26](#example_04_teleport)
+    中所示。'
+- en: Example 4-26\. House component with `Teleport`
+  id: totrans-178
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-26\. `Teleport` 带有的房屋组件
+- en: '[PRE35]'
+  id: totrans-179
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: In our `App.vue`, we add a `section` element with the target id `sky` above
+    the `House` component, as in [Example 4-27](#example_04_teleport_app).
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的 `App.vue` 中，我们在 `House` 组件上方添加了一个目标 id 为 `sky` 的 `section` 元素，如 [示例 4-27](#example_04_teleport_app)
+    中所示。
+- en: Example 4-27\. Template of `App.vue` with `House` component
+  id: totrans-181
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-27\. `App.vue` 模板，包含 `House` 组件
+- en: '[PRE36]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: '[Figure 4-7](#figure_04_06) shows the code outputs.'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 4-7](#figure_04_06) 显示了代码输出。'
+- en: '![Screenshot displaying two texts in the reverse order](assets/lvue_0407.png)'
+  id: totrans-184
+  prefs: []
+  type: TYPE_IMG
+  zh: '![反转顺序显示两个文本的屏幕截图](assets/lvue_0407.png)'
+- en: Figure 4-7\. Actual display order when using the `Teleport` component
+  id: totrans-185
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-7\. 使用 `Teleport` 组件时的实际显示顺序
+- en: When you inspect the DOM tree using the Elements tab of the browser’s Developer
+    Tools, “Sky and clouds” appears as nested within `<section id="sky">` instead
+    ([Figure 4-8](#figure_04_07)).
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用浏览器开发者工具的元素选项卡检查 DOM 树时，“天空和云”显示为嵌套在 `<section id="sky">` 中，而不是 ([图 4-8](#figure_04_07))。
+- en: '![Screenshot displaying the DOM tree](assets/lvue_0408.png)'
+  id: totrans-187
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示DOM树的屏幕截图](assets/lvue_0408.png)'
+- en: Figure 4-8\. Actual DOM tree when using the Teleport component
+  id: totrans-188
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-8\. 使用 `Teleport` 组件时的实际 DOM 树
+- en: You can also temporarily disable moving the content inside a `<Teleport>` component
+    instance with its Boolean prop `disabled`. This component is handy when you want
+    to keep the DOM tree structure, and Vue should move only the desired content to
+    the target location when needed. An everyday use case for `Teleport` is a modal,
+    which we will implement next.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以通过其布尔属性 `disabled` 暂时禁用 `<Teleport>` 组件实例内部的内容移动。这个组件在你希望保持 DOM 树结构的同时，只在需要时将指定内容移动到目标位置时非常有用。`Teleport`
+    的一个日常使用场景是模态框，接下来我们将实现它。
+- en: Wrapping Both Sections Under a Parent
+  id: totrans-190
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在一个父级下包装两个部分
+- en: The destination component for teleporting must exist in the DOM before mounting
+    `<Teleport>`. In [Example 4-27](#example_04_teleport_app), if you wrap both instances
+    of `section` under a `main` element, the `<Teleport>` component will not work
+    as expected. See [“Rendering Problem Using Teleport”](#rendering-problem-using-teleport)
+    for more details.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在传送到 `<Teleport>` 前，目标组件必须在 DOM 中存在。在 [示例 4-27](#example_04_teleport_app) 中，如果将两个
+    `section` 实例包裹在 `main` 元素中，`<Teleport>` 组件将无法按预期工作。有关更多细节，请参见[“使用 Teleport 时的渲染问题”](#rendering-problem-using-teleport)。
+- en: Implementing a Modal with Teleport and the <dialog> Element
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 Teleport 和 `<dialog>` 元素实现模态框
+- en: A modal is a dialog window that appears on top of a screen and blocks the user’s
+    interaction with the main page. The user must interact with the modal to dismiss
+    it and then returns to the main page.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模态框是一个对话框窗口，出现在屏幕顶部，阻止用户与主页面的交互。用户必须与模态框交互以关闭它，然后返回主页面。
+- en: A modal is very handy in displaying essential notifications that require the
+    user’s full attention and should appear only once.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模态框非常方便地显示需要用户完全注意的重要通知，并且应该只出现一次。
+- en: 'Let’s design a basic modal. Similar to a dialog, a modal should contain the
+    following elements ([Figure 4-9](#figure_04_08)):'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们设计一个基本的模态框。与对话框类似，模态框应包含以下元素（[图 4-9](#figure_04_08)）：
+- en: A backdrop that covers the entire screen where the modal appears on top and
+    blocks the user’s interactions with the current page.
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 背景覆盖整个屏幕，在其上出现模态框，阻止用户与当前页面的交互。
+- en: A modal window that contains the modal’s content, including a `header` with
+    a title and a close button, a `main` content section, and a `footer` section with
+    a default close button. These three sections should be customizable using slots.
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 模态框窗口包含模态框的内容，包括具有标题和关闭按钮的 `header`，一个 `main` 内容部分，以及一个默认关闭按钮的 `footer` 部分。这三个部分可以使用插槽进行自定义。
+- en: '![Screenshot displaying the design of a basic modal.](assets/lvue_0409.png)'
+  id: totrans-198
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示基本模态框设计的截图。](assets/lvue_0409.png)'
+- en: Figure 4-9\. Design of a basic modal
+  id: totrans-199
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-9\. 基本模态框设计
+- en: Based on the preceding design, we implement a `Modal` component template using
+    the `<dialog>` HTML element in [Example 4-28](#example_04_modal).
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 基于上述设计，在 [示例 4-28](#example_04_modal) 中使用 `<dialog>` HTML 元素实现 `Modal` 组件模板。
+- en: Example 4-28\. `Modal` component
+  id: totrans-201
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-28\. `Modal` 组件
+- en: '[PRE37]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'In the preceding code, we use three slot sections to allow the user to customize:'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上述代码中，我们使用三个插槽部分，允许用户进行自定义：
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO3-1)'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO3-1)'
+- en: The modal’s header (`m-header`)
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模态框的标题 (`m-header`)
+- en: '[![2](assets/2.png)](#co_interactions_between_components_CO3-2)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_interactions_between_components_CO3-2)'
+- en: The main content (`m-main`)
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主内容 (`m-main`)
+- en: '[![3](assets/3.png)](#co_interactions_between_components_CO3-3)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_interactions_between_components_CO3-3)'
+- en: The modal’s footer (`m-footer`)
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模态框的页脚 (`m-footer`)
+- en: 'We also bind the `<dialog>` element’s `open` attribute to a local data prop
+    `open` for controlling the modal’s visibility (visible/hidden). In addition, we
+    render the `title` prop as the modal’s default title. Now, let’s implement the
+    `Modal` component’s options, which receive two props: `open` and `title` as in
+    [Example 4-29](#example_04_modal_props).'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还将 `<dialog>` 元素的 `open` 属性绑定到一个名为 `open` 的本地数据属性，用于控制模态框的可见性（显示/隐藏）。此外，我们将
+    `title` 属性渲染为模态框的默认标题。现在，让我们实现 `Modal` 组件的选项，它接收两个 props：`open` 和 `title`，就像 [示例
+    4-29](#example_04_modal_props) 中描述的那样。
+- en: Example 4-29\. Adding props to `Modal` component
+  id: totrans-211
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-29\. 为 `Modal` 组件添加 props
+- en: '[PRE38]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: When a user clicks on the modal’s close button or the “X” button on the header,
+    it should close itself. Since we control the visibility of the modal using the
+    `open` prop, we need to emit a `closeDialog` event with the new value of `open`
+    from the `Modal` component to the parent. Let’s declare `emits` and a `close`
+    method that emits the target event as in [Example 4-30](#example_04_modal_emits).
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击模态框的关闭按钮或标题栏上的“X”按钮时，模态框应关闭自身。由于我们使用 `open` prop 控制模态框的可见性，我们需要在 `Modal`
+    组件中声明 `emits` 和一个 `close` 方法，以发送带有新的 `open` 值的 `closeDialog` 事件，如 [示例 4-30](#example_04_modal_emits)
+    中描述的那样。
+- en: Example 4-30\. Declaring the event `closeDialog` for `Modal` to emit
+  id: totrans-214
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 4-30\. 声明 `Modal` 发出的事件 `closeDialog`
+- en: '[PRE39]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO4-1)'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO4-1)'
+- en: '`emits` with one event, `closeDialog`'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`emits` 一个事件，`closeDialog`'
+- en: '[![2](assets/2.png)](#co_interactions_between_components_CO4-2)'
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_interactions_between_components_CO4-2)'
+- en: '`close` method that emits the `closeDialog` event with the new value of `open`
+    as `false`'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`close` 方法将以 `false` 作为新值发出 `closeDialog` 事件'
+- en: Then we bind it to the relevant action elements in the `<dialog>` element using
+    `@` notation, as shown in [Example 4-31](#example_04_modal_close).
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们使用 `@` 符号将其绑定到 `<dialog>` 元素中的相关动作元素，如 [示例 4-31](#example_04_modal_close)
+    所示。
+- en: Example 4-31\. Binding event listener on click events
+  id: totrans-221
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-31\. 绑定点击事件的事件监听器
+- en: '[PRE40]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO5-1)'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO5-1)'
+- en: '`@click` event handler for the “X” button on the header'
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`@click` 事件处理器用于标题栏上的“X”按钮'
+- en: '[![2](assets/2.png)](#co_interactions_between_components_CO5-2)'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_interactions_between_components_CO5-2)'
+- en: '`@click` event handler for the default close button on the footer'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`@click` 事件处理器用于页脚上的默认关闭按钮'
+- en: 'Next, we need to wrap the `dialog` element with a `<Teleport>` component to
+    move it outside the parent component’s DOM tree. We also pass the `to` prop to
+    the `<Teleport>` component to specify the target location: an HTML element with
+    an id, `modal`. Finally, we bind the `disabled` prop to the component’s `open`
+    value to ensure Vue moves only the modal component content to the desired location
+    when visible ([Example 4-32](#example_04_modal_teleport)).'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要使用 `<Teleport>` 组件将 `dialog` 元素包装起来，以将其移出父组件的 DOM 树。我们还向 `<Teleport>`
+    组件传递 `to` 属性，指定目标位置：一个带有 id 为 `modal` 的 HTML 元素。最后，我们将 `disabled` 属性绑定到组件的 `open`
+    值上，以确保 Vue 仅在可见时将模态组件内容移动到指定位置（[示例 4-32](#example_04_modal_teleport)）。
+- en: Example 4-32\. Using `<Teleport>` component
+  id: totrans-228
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-32\. 使用 `<Teleport>` 组件
+- en: '[PRE41]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO6-1)'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO6-1)'
+- en: '`<Teleport>` component'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`<Teleport>` 组件'
+- en: '[![2](assets/2.png)](#co_interactions_between_components_CO6-2)'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_interactions_between_components_CO6-2)'
+- en: '`to` prop with the target location with id selector `modal`'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`to` 属性与具有 id 选择器 `modal` 的目标位置'
+- en: '[![3](assets/3.png)](#co_interactions_between_components_CO6-3)'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_interactions_between_components_CO6-3)'
+- en: '`disabled` prop with the condition when component’s `open` value is falsy'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当组件的 `open` 值为假值时，带有 `disabled` 属性
+- en: Now let’s try out our `Modal` component in a `WithModalComponent` by adding
+    the following code in [Example 4-33](#with_modal_component_04) to the `WithModalComponent`.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们尝试在 `WithModalComponent` 中使用我们的 `Modal` 组件，通过在 [示例 4-33](#with_modal_component_04)
+    中添加以下代码。
+- en: Example 4-33\. Using modal component in `WithModalComponent`
+  id: totrans-237
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 4-33\. 在 `WithModalComponent` 中使用模态组件
+- en: '[PRE42]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Finally, add a `<div>` element with id `modal` to the `body` element in the
+    `index.html` file:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，在 `index.html` 文件的 `body` 元素中添加一个带有 id 为 `modal` 的 `<div>` 元素：
+- en: '[PRE43]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: '[![1](assets/1.png)](#co_interactions_between_components_CO7-1)'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_interactions_between_components_CO7-1)'
+- en: '`div` element with id `modal`'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 带有 id `modal` 的 `div` 元素
+- en: By doing so, Vue renders the `Modal` component’s content to this `div` with
+    id `modal` whenever the `open` prop is set to `true` ([Figure 4-10](#figure_04_09)).
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做可以使 Vue 在 `open` 属性设置为 `true` 时，将 `Modal` 组件的内容呈现到带有 id 为 `modal` 的此 `div`
+    中（[图 4-10](#figure_04_09)）。
+- en: '![Modal component rendered to the +div+ with id +modal+ when visible](assets/lvue_0410.png)'
+  id: totrans-244
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当可见时，模态组件呈现到带有 id 为 +modal+ 的 +div+ 中](assets/lvue_0410.png)'
+- en: Figure 4-10\. Modal component rendered to the `div` with id `modal` when visible
+  id: totrans-245
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-10\. 当可见时，模态组件呈现到带有 id 为 `modal` 的 `div` 中
+- en: '[Figure 4-11](#figure_04_13) shows how it looks on screen:'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 4-11](#figure_04_13) 展示了它在屏幕上的样子：'
+- en: '![Output of the +WithModalComponent+ when modal is visible](assets/lvue_0411.png)'
+  id: totrans-247
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在 `WithModalComponent` 中，当模态框可见时的输出](assets/lvue_0411.png)'
+- en: Figure 4-11\. Output of the `WithModalComponent` when modal is visible
+  id: totrans-248
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-11\. `WithModalComponent` 在模态框可见时的输出
+- en: And when the `open` prop is `false`, the `div` with id `modal` is empty ([Figure 4-12](#figure_04_10)),
+    and the modal is invisible on screen ([Figure 4-13](#figure_04_14)).
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 `open` 属性为 `false` 时，带有 id `modal` 的 `div` 是空的（[图 4-12](#figure_04_10)），并且模态框在屏幕上是不可见的（[图 4-13](#figure_04_14)）。
+- en: '![Modal component not rendered to the +div+ with id +modal+ when hidden](assets/lvue_0412.png)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当隐藏时，模态组件不呈现到带有 id 为 +modal+ 的 +div+ 中](assets/lvue_0412.png)'
+- en: Figure 4-12\. Modal component not rendered to the `div` with id `modal` when
+    hidden
+  id: totrans-251
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-12\. 当隐藏时，模态组件不呈现到带有 id 为 `modal` 的 `div` 中
+- en: '![Modal component not visible when hidden](assets/lvue_0413.png)'
+  id: totrans-252
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当隐藏时，模态组件不可见](assets/lvue_0413.png)'
+- en: Figure 4-13\. Modal component not visible when hidden
+  id: totrans-253
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-13\. 当隐藏时，模态组件不可见
+- en: 'At this point, you have a working modal component. However, the visual appearance
+    of the modal isn’t exactly as good as we wanted; there should be a dark overlay
+    over the main page content when the modal is visible. Let’s fix this issue using
+    CSS stylings for `::backdrop` selector in the `<style>` section of the modal element:'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到此时，您已经有一个工作的模态框组件。然而，模态框的视觉外观并不完全符合我们的预期；当模态框可见时，主页面内容应该有一个黑暗的遮罩层。让我们通过模态框元素的`<style>`部分中的`::backdrop`选择器来修复这个问题：
+- en: '[PRE44]'
+  id: totrans-255
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'However, this won’t change the appearance of the modal’s backdrop. This behavior
+    is because the browser applies the `::backdrop` CSS selector rules to the dialog
+    only when we open the dialog using `dialog.showModal()` method, and not by changing
+    the `open` attribute. To fix this issue, we need to perform the following modifications
+    in our `Modal` component:'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这不会改变模态框背景的外观。这种行为是因为浏览器仅在我们使用`dialog.showModal()`方法打开对话框时，而不是通过更改`open`属性时，应用`::backdrop`
+    CSS选择器规则到对话框上。为了解决这个问题，我们需要在我们的`Modal`组件中执行以下修改：
+- en: 'Add a direct reference to the `<dialog>` element by assigning a “dialog” value
+    to the `ref` attribute:'
+  id: totrans-257
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通过将“dialog”值分配给`ref`属性，直接引用`<dialog>`元素：
+- en: '[PRE45]'
+  id: totrans-258
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'Trigger `$refs.dialog.showModal()` or `$refs.dialog.close()` on the `dialog`
+    element whenever the `open` prop changes respectively with `watch`:'
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 每当`open`属性变化时，在`dialog`元素上分别触发`$refs.dialog.showModal()`或`$refs.dialog.close()`，使用`watch`：
+- en: '[PRE46]'
+  id: totrans-260
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'Remove the original binding for the `open` attribute of the `<dialog>` element:'
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 移除`<dialog>`元素的原始绑定`open`属性：
+- en: '[PRE47]'
+  id: totrans-262
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Remove the use of the `disabled` attribute in the `<teleport>` component:'
+  id: totrans-263
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 移除`<teleport>`组件中`disabled`属性的使用：
+- en: '[PRE48]'
+  id: totrans-264
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: When opening the modal using the built-in `showModal()` method, the browser
+    will add a `::backdrop` pseudo-element to the actual `<dialog>` element in the
+    DOM, and dynamically moving the element content to the target location will disable
+    this functionality, leaving the modal without the desired backdrop.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用内置的`showModal()`方法打开模态框时，浏览器会在DOM中的实际`<dialog>`元素上添加一个`::backdrop`伪元素，并动态移动元素内容到目标位置会禁用此功能，导致模态框无法显示所需的背景。
+- en: 'We also reposition the modal to the center of the page and on top of other
+    elements by adding the following CSS rules to the `dialog` selector:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还通过将以下CSS规则添加到`dialog`选择器中，将模态框重新定位到页面中心并置于其他元素之上：
+- en: '[PRE49]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: The output will be as shown in [Figure 4-14](#figure_04_11) when the modal is
+    visible.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当模态框可见时，输出将如[图 4-14](#figure_04_11)所示。
+- en: '![Modal component with backdrop and stylings](assets/lvue_0414.png)'
+  id: totrans-269
+  prefs: []
+  type: TYPE_IMG
+  zh: '![具有背景和样式的模态框组件](assets/lvue_0414.png)'
+- en: Figure 4-14\. Modal component with backdrop and stylings
+  id: totrans-270
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-14\. 具有背景和样式的模态框组件
+- en: We have learned how to implement a reusable `Modal` component using `Teleport`
+    and explored different use cases with each of the built-in `<dialog>` element
+    features. We also learned how to use the `::backdrop` CSS selector to style the
+    modal’s backdrop.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了如何使用`Teleport`实现可重用的`Modal`组件，并探索了使用每个内置`<dialog>`元素功能的不同用例。我们还学习了如何使用`::backdrop`
+    CSS选择器为模态框的背景样式。
+- en: As you have noticed, we set the target location `div` for the modal to be a
+    direct child of `body`, outside of the Vue app entry element `<div id="app">`.
+    What happens if we want to move the modal’s target `div` to within the entry component
+    `App.vue` of the Vue application? Let’s find out in the next section.
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您注意到的那样，我们将模态框的目标位置`div`设置为`body`的直接子元素，而不是Vue应用程序入口元素`<div id="app">`之内。如果我们希望将模态框的目标`div`移动到Vue应用程序的入口组件`App.vue`内部会发生什么？让我们在下一节中找出答案。
+- en: Rendering Problem Using Teleport
+  id: totrans-273
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用Teleport渲染时的渲染问题
+- en: 'To understand the problem with using `Teleport` to render the modal inside
+    a child component of the `App.vue` component, let’s first move the `<div id="modal"></div>`
+    from `index.html` to `App.vue`, after the `WithModalComponent` instance:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解在`App.vue`组件的子组件内使用`Teleport`渲染模态框的问题，请首先将`<div id="modal"></div>`从`index.html`移动到`App.vue`之后，位于`WithModalComponent`实例之后：
+- en: '[PRE50]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'After running your application, you can see that the browser doesn’t render
+    the modal despite how often you click on the `Open modal` button. And the console
+    shows the following error:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行应用程序后，您会发现无论您多次点击“打开模态框”按钮，浏览器都不会渲染模态框。控制台显示以下错误：
+- en: '![Error message when rendering modal inside App.vue](assets/lvue_0415.png)'
+  id: totrans-277
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在App.vue中渲染模态框时的错误消息](assets/lvue_0415.png)'
+- en: Figure 4-15\. Console error message when rendering modal inside `App.vue`
+  id: totrans-278
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-15\. 在`App.vue`中渲染模态框时的控制台错误消息
+- en: Due to the Vue rendering order mechanism, the parent waits for the children
+    to render before rendering itself. The children render in the order of appearance
+    in the parent’s `template` section. In this scenario, the `WithModalComponent`
+    renders first. Thus Vue renders the `<dialog>` element and starts moving the component’s
+    content to the target location before rendering the `ParentComponent`. However,
+    since the `ParentComponent` is still waiting for `WithModalComponent` to finish
+    its rendering, the `<div id="modal">` element doesn’t yet exist on the DOM. As
+    a result, Vue can’t locate the target location and perform the right move, and
+    it can’t render the `<dialog>` element inside the `<div id="modal">` element,
+    hence the error.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 Vue 渲染顺序机制，父级在自身渲染之前会等待子级完成渲染。子级按照在父级`template`部分出现的顺序进行渲染。在这种情况下，`WithModalComponent`先渲染。因此，Vue
+    渲染`<dialog>`元素并开始将组件内容移动到目标位置，然后再渲染`ParentComponent`。然而，由于`ParentComponent`仍在等待`WithModalComponent`完成其渲染，因此`<div
+    id="modal">`元素尚不存在于DOM中。因此，Vue 无法定位目标位置并执行正确的移动操作，也无法将`<dialog>`元素渲染到`<div id="modal">`元素内，从而导致错误。
+- en: 'A workaround to bypass this limitation is to put the target element `<div id="modal">`
+    to appear before `WithModalComponent`:'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 绕过此限制的一种解决方法是在`WithModalComponent`之前将目标元素`<div id="modal">`放置出现：
+- en: '[PRE51]'
+  id: totrans-281
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: This solution ensures the target `div` is available before Vue renders the `Modal`
+    element and moves the content. Another approach is to use the `disabled` attribute
+    to postpone the content moving process for `Modal` during rendering until the
+    user clicks on the `Open modal` button. Both options have pros and cons, and you
+    should choose the one that best suits your needs.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此解决方案确保在Vue渲染`Modal`元素并移动内容之前，目标`div`已经可用。另一种方法是在渲染期间使用`disabled`属性推迟`Modal`的内容移动过程，直到用户点击`打开模态框`按钮。这两种选择都有利有弊，您应选择最适合您需求的选项。
+- en: The most common solution is to insert the target element as a direct child of
+    the `body` element and isolate it from the Vue rendering context.
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最常见的解决方案是将目标元素作为`body`元素的直接子元素插入，并使其与Vue渲染上下文隔离。
+- en: A significant benefit of using `<Teleport>` is achieving the maximum visual
+    display effect (such as fullscreen mode, modal, sidebar, etc.) while maintaining
+    the code hierarchy structure, component isolation, and readability.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`<Teleport>`的一个显著优势是在保持代码层次结构、组件隔离和可读性的同时，实现最大的视觉显示效果（如全屏模式、模态框、侧边栏等）。
+- en: Summary
+  id: totrans-285
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 概述
+- en: This chapter explored the concept of different approaches in components’ communication
+    using the built-in Vue features such as `props`, `emits`, and `provide/inject`.
+    We learned how to use these features to pass data and events between components
+    while keeping Vue’s data flow mechanism intact. We also learned how to use Teleport
+    API to render an element outside the parent component’s DOM tree while keeping
+    its appearance order in the parent component’s `<template>`. `<Teleport>` is beneficial
+    for building components that require displaying with alignment to the main page
+    element, such as popups, dialogs, modals, etc.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章探讨了使用内置的 Vue 特性（如`props`、`emits`和`provide/inject`）在组件通信中采用不同方法的概念。我们学习了如何利用这些特性在组件之间传递数据和事件，同时保持
+    Vue 的数据流机制完整。我们还学习了如何使用 Teleport API 将元素渲染到父组件的`<template>`中，但将其显示顺序保持在父组件中。 `<Teleport>`对于构建需要与主页面元素对齐显示的组件非常有益，例如弹出窗口、对话框、模态框等。
+- en: In the next chapter, we will explore more on Composition API and how to use
+    it to compose Vue components together.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将进一步探讨组合 API 及其如何用于组合 Vue 组件。

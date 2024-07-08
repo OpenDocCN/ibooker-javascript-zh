@@ -1,0 +1,3515 @@
+- en: Chapter 6\. Advanced Types
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 6 章\. 高级类型
+- en: TypeScript has a world-class type system that supports powerful type-level programming
+    features that might make even the crotchetiest Haskell programmer jealous. As
+    you by now know, that type system isn’t just incredibly expressive, but also easy
+    to use, and makes declaring type constraints and relationships simple, terse,
+    and most of the time, inferred.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 拥有一个世界级的类型系统，支持强大的类型级编程特性，甚至可能让最顽固的 Haskell 程序员也会嫉妒。正如你现在所知道的，该类型系统不仅极具表现力，而且易于使用，使得声明类型约束和关系变得简单、简洁，并且大多数情况下都能被推断出来。
+- en: We need such an expressive and unusual type system because JavaScript is so
+    dynamic. Modeling things like prototypes, dynamically bound `this`, function overloads,
+    and always-changing objects requires a rich type system and a utility belt of
+    type operators that would make Batman do a double-take.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要这样一个富有表现力且不寻常的类型系统，因为 JavaScript 是如此动态。建模原型、动态绑定的 `this`、函数重载和始终变化的对象等内容需要一个丰富的类型系统和一整套类型操作符，这些让蝙蝠侠都会瞪大眼睛。
+- en: 'I’ll start this chapter with a deep dive into subtyping, assignability, variance,
+    and widening in TypeScript, giving more definition to the intuitions you’ve been
+    developing over the last several chapters. I’ll then cover TypeScript’s control-flow-based
+    typechecking features in more detail, including refinement and totality, and continue
+    with some advanced type-level programming features: keying into and mapping over
+    object types, using conditional types, defining your own type guards, and escape
+    hatches like type assertions and definite assignment assertions. Finally, I’ll
+    cover advanced patterns for squeezing more safety out of your types: the companion
+    object pattern, improving inference for tuple types, simulating nominal types,
+    and safely extending the prototype.'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我将以深入探讨 TypeScript 中的子类型、可赋值性、变异和扩展开始本章，更详细地介绍 TypeScript 基于控制流的类型检查特性，包括细化和全面性，并继续介绍一些高级的类型级编程特性：对象类型的键入和映射、使用条件类型、定义自己的类型保护以及像类型断言和确定赋值断言这样的逃逸口。最后，我将介绍一些高级模式，以提高类型的安全性：伴随对象模式、改进元组类型的推断、模拟名义类型以及安全地扩展原型。
+- en: Relationships Between Types
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型之间的关系
+- en: Let’s begin by taking a closer look at type relations in TypeScript.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从更近距离来看 TypeScript 中的类型关系。
+- en: Subtypes and Supertypes
+  id: totrans-6
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 子类型和超类型
+- en: 'We talked a little about assignability in [“Talking About Types”](ch03.html#talking-about-types).
+    Now that you’ve seen most of the types TypeScript has to offer we can dive deeper,
+    starting from the top: what’s a subtype?'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在[“谈论类型”](ch03.html#talking-about-types)中稍微提到了可赋值性。既然你已经见识了 TypeScript 提供的大部分类型，我们可以更深入地探讨，从顶层开始：什么是子类型？
+- en: '![prts 0601](assets/prts_0601.png)'
+  id: totrans-8
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0601](assets/prts_0601.png)'
+- en: Figure 6-1\. B is a subtype of A
+  id: totrans-9
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-1\. B 是 A 的子类型
+- en: 'If you look back at [Figure 3-1](ch03.html#ch03-type-hierarchy) at the very
+    beginning of Chapter 3, you’ll see what the subtype relations built into TypeScript
+    are. For example:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你回头看[第 3-1 图](ch03.html#ch03-type-hierarchy)，你会看到 TypeScript 内建的子类型关系。例如：
+- en: Array is a subtype of Object.
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组是对象的子类型。
+- en: Tuple is a subtype of Array.
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 元组是数组的子类型。
+- en: Everything is a subtype of `any`.
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一切都是 `any` 的子类型。
+- en: '`never` is a subtype of everything.'
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`never` 是一切的子类型。'
+- en: If you have a class `Bird` that extends `Animal`, then `Bird` is a subtype of
+    `Animal`.
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你有一个扩展 `Animal` 的类 `Bird`，那么 `Bird` 是 `Animal` 的子类型。
+- en: 'From the definition I just gave for subtype, that means:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从我刚给出的子类型的定义来看，这意味着：
+- en: Anywhere you need an Object you can also use an Array.
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你需要对象的地方也可以使用数组。
+- en: Anywhere you need an Array you can also use a Tuple.
+  id: totrans-18
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你需要数组的任何地方也可以使用元组。
+- en: Anywhere you need an `any` you can also use an Object.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你需要 `any` 的地方也可以使用对象。
+- en: You can use a `never` anywhere.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你可以在任何地方使用 `never`。
+- en: Anywhere you need an `Animal` you can also use a `Bird`.
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你需要 `Animal` 的地方也可以使用 `Bird`。
+- en: As you might have guessed, a supertype is the opposite of a subtype.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你所猜测的那样，超类型是子类型的反义词。
+- en: '![prts 0602](assets/prts_0602.png)'
+  id: totrans-23
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0602](assets/prts_0602.png)'
+- en: Figure 6-2\. B is a supertype of A
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-2\. B 是 A 的超类型
+- en: 'Again from the flowchart in [Figure 3-1](ch03.html#ch03-type-hierarchy):'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次来自[图 3-1](ch03.html#ch03-type-hierarchy)中的流程图：
+- en: Array is a supertype of Tuple.
+  id: totrans-26
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组是元组的超类型。
+- en: Object is a supertype of Array.
+  id: totrans-27
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对象是数组的超类型。
+- en: Any is a supertype of everything.
+  id: totrans-28
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Any` 是一切的超类型。'
+- en: Never is a supertype of nothing.
+  id: totrans-29
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`never` 是一无所有的超类型。'
+- en: '`Animal` is a supertype of `Bird`.'
+  id: totrans-30
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Animal` 是 `Bird` 的超类型。'
+- en: This is just the opposite of how subtypes work, and nothing more.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是子类型工作的反向操作，没有更多内容。
+- en: Variance
+  id: totrans-32
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 变异性
+- en: For most types it’s pretty easy to intuit whether or not some type `A` is a
+    subtype of another type `B`. For simple types like `number`, `string`, and so
+    on, you can just look them up in the flowchart in [Figure 3-1](ch03.html#ch03-type-hierarchy),
+    or reason through it (”`number` is contained in the union `number | string`, so
+    it must be a subtype of it”).
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于大多数类型来说，直觉上判断某个类型`A`是否是另一个类型`B`的子类型是相当容易的。对于诸如`number`、`string`等简单类型，你可以在[图 3-1](ch03.html#ch03-type-hierarchy)中查找，或通过推理（“`number`包含在联合类型`number
+    | string`中，因此它必须是它的子类型”）。
+- en: 'But for parameterized (generic) types and other more complex types, it gets
+    more complicated. Consider these cases:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但对于参数化（泛型）类型和其他更复杂的类型，情况就变得更加复杂了。考虑这些情况：
+- en: When is `Array<A>` a subtype of `Array<B>`?
+  id: totrans-35
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Array<A>`何时是`Array<B>`的子类型？'
+- en: When is a shape `A` a subtype of another shape `B`?
+  id: totrans-36
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 当形状`A`何时是另一个形状`B`的子类型？
+- en: 'When is a function `(a: A) => B` a subtype of another function `(c: C) => D`?'
+  id: totrans-37
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '一个函数`(a: A) => B`何时是另一个函数`(c: C) => D`的子类型？'
+- en: 'Subtyping rules for types that contain other types (i.e., things with type
+    parameters like `Array<A>`, shapes with fields like `{a: number}`, or functions
+    like `(a: A) => B`) are harder to reason about, and the answers aren’t as clear-cut.
+    In fact, subtyping rules for these kinds of complex types are a big point of disagreement
+    among programming languages—almost no two languages are alike!'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '对于包含其他类型的类型的子类型规则（即具有类型参数的东西，如`Array<A>`，具有字段的形状如`{a: number}`，或函数如`(a: A)
+    => B`），推理起来更为困难，答案也不那么明确。事实上，关于这些复杂类型的子类型规则是编程语言之间差异的一个重要争议点——几乎没有两种语言是相同的！'
+- en: 'To make the following rules easier to read, I’m going to introduce a few pieces
+    of syntax that let us talk about types a little more precisely and tersely. This
+    syntax is not valid TypeScript; it’s just a way for you and me to share a common
+    language when we talk about types. And don’t worry, I swear the syntax isn’t math:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了使以下规则更易于阅读，我将介绍一些语法片段，让我们能更精确、更简洁地谈论类型。这种语法不是有效的TypeScript；这只是让你和我在谈论类型时使用的一种共同语言。别担心，我保证这种语法不是数学：
+- en: '`A <: B` means "`A` is a subtype of or the same as the type `B`.”'
+  id: totrans-40
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`A <: B`的意思是“`A`是`B`类型的子类型或相同类型。”'
+- en: '`A >: B` means "`A` is a supertype of or the same as the type `B`.”'
+  id: totrans-41
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`A >: B`的意思是“`A`是`B`类型的超类型或相同类型。”'
+- en: Shape and array variance
+  id: totrans-42
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 形状和数组的变化
+- en: 'To get some intuition for why exactly languages disagree on subtyping rules
+    for complex types, let me take you through an example complex type: shapes. Say
+    you have a shape describing a user in your application. You might represent it
+    with a pair of types that look something like this:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要对为什么不同的语言在复杂类型的子类型规则上存在分歧有所直觉，让我通过一个例子复杂类型来带你了解一下：形状。假设您的应用程序中有一个描述用户的形状。您可能用一对看起来像这样的类型表示它：
+- en: '[PRE0]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Now suppose an intern at your company is tasked with writing some code to delete
+    a user. They start it like this:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在假设您公司的一位实习生被要求编写一些代码来删除用户。他们从这样开始：
+- en: '[PRE1]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '`deleteUser` takes an object of type `{id?: number, name: string}`, and it’s
+    passed an `existingUser` of type `{id: number, name: string}`. Notice that the
+    type of the `id` property (`number`) is a *subtype* of the expected type (`number
+    | undefined`). Therefore the entire object `{id: number, name: string}` is a subtype
+    of `{id?: number, name: string}`, so TypeScript lets it fly.'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`deleteUser`接受一个类型为`{id?: number, name: string}`的对象，并且传递了一个类型为`{id: number,
+    name: string}`的`existingUser`。请注意，`id`属性的类型（`number`）是预期类型（`number | undefined`）的*子类型*。因此整个对象`{id:
+    number, name: string}`是`{id?: number, name: string}`的子类型，因此TypeScript允许它通过。'
+- en: 'Do you see the safety issue here? It’s a subtle one: after passing an `ExistingUser`
+    to `deleteUser`, TypeScript doesn’t know that the user’s `id` has been deleted,
+    so if we read `existingUser.id` after deleting it with `deleteUser(existingUser)`,
+    TypeScript still thinks `existingUser.id` is of type `number`!'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你能看到这里的安全问题吗？这是一个微妙的问题：在将`ExistingUser`传递给`deleteUser`后，TypeScript不知道用户的`id`已经被删除了，所以如果我们在用`deleteUser(existingUser)`删除后仍然读取`existingUser.id`，TypeScript仍然认为`existingUser.id`的类型是`number`！
+- en: 'Clearly, using an object type in a place where something expects its supertype
+    can be unsafe. So why does TypeScript allow it? In general, TypeScript is not
+    designed to be perfectly safe; instead, its type system tries to strike a balance
+    between catching real mistakes and being easy to use, without you needing to get
+    a degree in programming language theory to understand why something is an error.
+    This specific case of unsafety is a practical one: since destructive updates (like
+    deleting a property) are relatively rare in practice, TypeScript is lax and lets
+    you assign an object to a place where its supertype is expected.'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，在某个期望其超类型的位置使用对象类型可能是不安全的。那么为什么 TypeScript 允许呢？一般来说，TypeScript 并不是设计为完全安全的；相反，它的类型系统试图在捕捉真正的错误和易用性之间取得平衡，而不需要你去攻读编程语言理论学位来理解为什么某些事情是错误的。这种特定的不安全情况是实用的：因为在实践中破坏性更新（比如删除属性）相对较少，TypeScript
+    是宽松的，允许你将对象赋给期望其超类型的位置。
+- en: What about the opposite direction—can you assign an object to a place where
+    its subtype is expected?
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么相反的情况呢——你可以将一个对象分配给期望其子类型的位置吗？
+- en: 'Let’s add a new type for a legacy user, then delete a user of that type (imagine
+    you’re adding types to code your coworker wrote before you started using TypeScript):'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们为旧用户添加一个新类型，然后删除一个属于该类型的用户（假设你要在开始使用 TypeScript 之前为同事编写的代码添加类型）。
+- en: '[PRE2]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: When we pass a shape with a property whose type is a supertype of the expected
+    type, TypeScript complains. That’s because `id` is a `string | number |` `undefined`,
+    and `deleteUser` only handles the case of an `id` that’s a `number | undefined`.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们传递一个具有属性类型为期望类型的超类型的形状时，TypeScript 会抱怨。这是因为 `id` 是 `string | number | undefined`，而
+    `deleteUser` 只处理 `id` 是 `number | undefined` 的情况。
+- en: 'TypeScript’s behavior is as follows: if you expect a shape, you can also pass
+    a type with property types that are `<:` their expected types, but you cannot
+    pass a shape with property types that are supertypes of their expected types.
+    When talking about types, we say that TypeScript shapes (objects and classes)
+    are *covariant* in their property types. That is, for an object `A` to be assignable
+    to an object `B`, each of its properties must be `<:` its corresponding property
+    in `B`.'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的行为如下：如果你期望一个形状，你也可以传递具有其属性类型为 `<:` 其期望类型的类型，但你不能传递具有其属性类型为其期望类型的超类型的形状。当谈论类型时，我们说
+    TypeScript 的形状（对象和类）在其属性类型方面是*协变*的。也就是说，要使对象 `A` 能够分配给对象 `B`，它的每个属性必须是其在 `B` 中对应属性的
+    `<:`。
+- en: 'More generally, covariance is just one of four sorts of variance:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更一般地说，协变只是四种变性之一：
+- en: '*Invariance*'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*不变*'
+- en: You want exactly a `T`.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要确切地一个 `T`。
+- en: '*Covariance*'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*协变*'
+- en: You want a `<:T`.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要一个 `<:T`。
+- en: '*Contravariance*'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*逆变*'
+- en: You want a `>:T`.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要一个 `>:T`。
+- en: '*Bivariance*'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*双变性*'
+- en: You’re OK with either `<:T` or `>:T`.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以接受 `<:T` 或者 `>:T`。
+- en: 'In TypeScript, every complex type is covariant in its members—objects, classes,
+    arrays, and function return types—with one exception: function parameter types,
+    which are *contravariant*.'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 TypeScript 中，每种复杂类型在其成员（对象、类、数组和函数返回类型）方面是协变的，唯一的例外是函数参数类型，它们是*逆变的*。
+- en: Note
+  id: totrans-65
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Not all languages make this same design decision. In some languages objects
+    are *invariant* in their property types, because as we saw, covariant property
+    types can lead to unsafe behavior. Some languages have different rules for mutable
+    and immutable objects (try to reason through it yourself!). Some languages—like
+    Scala, Kotlin, and Flow—even have explicit syntax for programmers to specify variance
+    for their own data types.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并非所有语言都做出相同的设计决策。在一些语言中，对象在其属性类型方面是*不变*的，因为正如我们所见，协变的属性类型可能导致不安全行为。一些语言对可变和不可变对象有不同的规则（尝试自行推理！）。一些语言——比如
+    Scala、Kotlin 和 Flow——甚至为程序员提供了专门的语法来为其自定义数据类型指定变性。
+- en: When designing TypeScript, its authors opted for a balance between ease of use
+    and safety. When you make objects invariant in their property types, even though
+    it’s safer, it can make a type system tedious to use because you end up banning
+    things that are safe in practice (e.g., if we didn’t `delete` the `id` in `deleteUser`,
+    then it would have been perfectly safe to pass in an object that’s a supertype
+    of the expected type).
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在设计 TypeScript 时，其作者选择在易用性和安全性之间取得平衡。当你使对象在其属性类型方面是不变的时候，即使它更安全，也会使类型系统变得繁琐，因为你最终会禁止实践中安全的事物（例如，如果我们没有在
+    `deleteUser` 中删除 `id`，那么将一个超类型的对象传入将是完全安全的）。
+- en: Function variance
+  id: totrans-68
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 函数变性
+- en: Let’s start with a few examples.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从几个例子开始。
+- en: 'A function `A` is a subtype of function `B` if `A` has the same or lower arity
+    (number of parameters) than `B` and:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果函数 `A` 是函数 `B` 的子类型，那么 `A` 的参数数量不能多于 `B` 的参数数量，而且：
+- en: '`A`’s `this` type either isn’t specified, or is `>: B`’s `this` type.'
+  id: totrans-71
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A` 的 `this` 类型要么未指定，要么是 `>: B` 的 `this` 类型。'
+- en: Each of `A`’s parameters is `>:` its corresponding parameter in `B`.
+  id: totrans-72
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A` 的每个参数都是 `>:` 它对应的 `B` 中的参数。'
+- en: '`A`’s return type is `<: B`’s return type.'
+  id: totrans-73
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A` 的返回类型是 `<:` `B` 的返回类型。'
+- en: Read that over a few times, and make sure you understand what each rule means.
+    You might have noticed that for a function `A` to be a subtype of function `B`,
+    we say that its `this` type and parameters must be `>:` their counterparts in
+    `B`, while its return type has to be `<:`! Why does the direction flip like that?
+    Why isn’t it simply `<:` for each component (`this` type, parameter types, and
+    return type), like it is for objects, arrays, unions, and so on?
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多次阅读并确保你理解每条规则的含义。你可能已经注意到，要使函数 `A` 成为函数 `B` 的子类型，我们说它的 `this` 类型和参数必须是 `>:`
+    于 `B` 中对应的，而返回类型必须是 `<:`！为什么方向会这样变化？为什么不像对象、数组、联合类型等那样简单地都是 `<:` 呢？
+- en: 'To answer this question, let’s derive it ourselves. We’ll start by defining
+    three types (we’re going to use a `class` for clarity, but this works for any
+    choice of types where `A <: B <: C`):'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '要回答这个问题，让我们自己推导一下。我们将从定义三种类型开始（为了清晰起见，我们将使用 `class`，但这对于任何类型的选择都适用，其中 `A <:
+    B <: C`）：'
+- en: '[PRE3]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'In this example, `Crow` is a subtype of `Bird`, which is a subtype of `Animal`.
+    That is, `Crow <: Bird <: Animal`.'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在这个例子中，`Crow` 是 `Bird` 的一个子类型，而 `Bird` 是 `Animal` 的一个子类型。也就是说，`Crow <: Bird
+    <: Animal`。'
+- en: 'Now, let’s define a function that takes a `Bird`, and makes it chirp:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们定义一个接受 `Bird` 并让它叫的函数：
+- en: '[PRE4]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: So far, so good. What kinds of things does TypeScript let you pass into `chirp`?
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前为止一切顺利。TypeScript 让你可以传递哪些类型的东西给 `chirp`？
+- en: '[PRE5]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'You can pass an instance of `Bird` (because that’s what `chirp`’s parameter
+    `bird`’s type is) or an instance of `Crow` (because it’s a subtype of `Bird`).
+    Great: passing in a subtype works as expected.'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以传递一个 `Bird` 的实例（因为 `chirp` 的参数 `bird` 的类型就是它）或者一个 `Crow` 的实例（因为它是 `Bird`
+    的子类型）。很好：传递子类型正常工作。
+- en: 'Let’s make a new function. This time, its parameter will be a *function*:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们创建一个新的函数。这次，它的参数将是一个*函数*：
+- en: '[PRE6]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '`clone` needs a function `f` that takes a `Bird` and returns a `Bird`. What
+    types of functions can you safely pass for `f`? Clearly you can pass a function
+    that takes a `Bird` and returns a `Bird`:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`clone` 需要一个函数 `f`，该函数接受一个 `Bird` 并返回一个 `Bird`。你可以安全地传递哪些类型的函数给 `f`？显然你可以传递一个接受
+    `Bird` 并返回 `Bird` 的函数：'
+- en: '[PRE7]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: What about a function that takes a `Bird` and returns a `Crow`, or an `Animal`?
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么接受一个 `Bird` 并返回一个 `Crow` 或者 `Animal` 的函数呢？
+- en: '[PRE8]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '`birdToCrow` works as expected, but `birdToAnimal` gives us an error. Why?
+    Imagine that `clone`’s implementation looks like this:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`birdToCrow` 正常工作，但 `birdToAnimal` 给了我们一个错误。为什么？想象一下，如果 `clone` 的实现看起来像这样：'
+- en: '[PRE9]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: If we passed to our `clone` function an `f` that returned an `Animal`, then
+    we couldn’t call `.chirp` on it! So TypeScript has to make sure, at compile time,
+    that the function we passed in returns *at least* a `Bird`.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们传递给 `clone` 函数一个返回 `Animal` 的 `f`，那么我们就不能在其上调用 `.chirp` 了！因此 TypeScript
+    在编译时必须确保我们传递的函数返回*至少*是一个 `Bird`。
+- en: We say that functions are *covariant* in their return types, which is a fancy
+    way of saying that for a function to be a subtype of another function, its return
+    type has to be `<:` the other function’s return type.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们说函数在其返回类型上是*协变*的，这是说为了一个函数能够成为另一个函数的子类型，其返回类型必须是小于等于另一个函数的返回类型。
+- en: OK, what about parameter types?
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好了，那么参数类型呢？
+- en: '[PRE10]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: For a function to be assignable to another function, its parameter types (including
+    `this`) all have to be `>:` their corresponding parameter types in the other function.
+    To see why, think about how a user might have implemented `crowToBird` before
+    passing it into `clone`. What if they did this?
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使一个函数能够分配给另一个函数，它的参数类型（包括 `this`）都必须是大于等于另一个函数中对应参数类型的。为了理解原因，想想用户在传递 `clone`
+    之前如何实现 `crowToBird`。
+- en: '[PRE11]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Now if `clone` called `crowToBird` with a `new Bird`, we’d get an exception
+    because `.caw` is only defined on `Crow`s, not on all `Bird`s.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在如果 `clone` 用一个 `new Bird` 调用 `crowToBird`，我们会得到一个异常，因为`.caw` 只在 `Crow` 上定义，而不是所有的
+    `Bird` 上。
+- en: This means functions are *contravariant* in their parameter and `this` types.
+    That is, for a function to be a subtype of another function, each of its parameters
+    and its `this` type must be `>:` its corresponding parameter in the other function.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着函数在其参数和 `this` 类型上是*逆变*的。也就是说，对于一个函数作为另一个函数的子类型，其每个参数及其 `this` 类型必须是与另一个函数中相应参数
+    `>:` 的对应参数。
+- en: Thankfully, you don’t have to memorize and recite these rules. Just have them
+    in the back of your mind when your code editor gives you a red squiggly when you
+    pass an incorrectly typed function somewhere, so you know why TypeScript is giving
+    you the error it does.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，你不必记住并背诵这些规则。当你在代码编辑器中传递错误类型的函数时，只需将它们记在脑后，这样你就知道为什么 TypeScript 给出了错误提示。
+- en: 'TSC Flag: strictFunctionTypes'
+  id: totrans-100
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC 标志：strictFunctionTypes
+- en: 'For legacy reasons, functions in TypeScript are actually covariant in their
+    parameter and `this` types by default. To opt into the safer, contravariant behavior
+    we just explored, be sure to enable the `{"strictFunctionTypes": true}` flag in
+    your *tsconfig.json*.'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '由于遗留原因，TypeScript 中的函数默认情况下实际上是协变的，在其参数和 `this` 类型上。要选择我们刚刚探讨过的更安全的逆变行为，请确保在你的
+    *tsconfig.json* 中启用 `{"strictFunctionTypes": true}` 标志。'
+- en: '`strict` mode includes `strictFunctionTypes`, so if you’re already using `{"strict":
+    true}`, you’re good to go.'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`strict` 模式包括 `strictFunctionTypes`，所以如果你已经使用 `{"strict": true}`，你可以放心使用。'
+- en: Assignability
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 可赋值性
+- en: Subtype and supertype relations are core concepts in any statically typed language.
+    They’re also important to understanding how *assignability* works (as a reminder,
+    assignability refers to TypeScript’s rules for whether or not you can use a type
+    `A` where another type `B` is required).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 子类型和超类型关系是任何静态类型语言中的核心概念。它们对于理解*可赋值性*的工作方式也非常重要（作为提醒，可赋值性是指 TypeScript 中确定是否可以将类型
+    `A` 用在另一类型 `B` 所需位置的规则）。
+- en: 'When TypeScript wants to answer the question “Is type `A` assignable to type
+    `B`?” it follows a few simple rules. For *non-enum types*—like arrays, booleans,
+    numbers, objects, functions, classes, class instances, and strings, including
+    literal types—`A` is assignable to `B` if either of the following is true:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 TypeScript 想要回答“类型 `A` 是否可以分配给类型 `B`？”这个问题时，它遵循几个简单的规则。对于*非枚举类型*，如数组、布尔值、数字、对象、函数、类、类实例和字符串，包括文字类型，如果以下任一条件为真，则
+    `A` 可分配给 `B`：
+- en: '`A <: B`.'
+  id: totrans-106
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A <: B`。'
+- en: '`A` is `any`.'
+  id: totrans-107
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A` 是 `any`。'
+- en: 'Rule 1 is just the definition of what a subtype is: if `A` is a subtype of
+    `B`, then wherever you need a `B` you can also use an `A`.'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规则 1 只是子类型的定义：如果 `A` 是 `B` 的子类型，则无论何时需要 `B`，你也可以使用 `A`。
+- en: Rule 2 is the exception to rule 1, and is a convenience for interoperating with
+    JavaScript code.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规则 2 是规则 1 的例外，并且是与 JavaScript 代码互操作的便利性。
+- en: 'For *enum types* created with the `enum` or `const enum` keywords, a type `A`
+    is assignable to an enum `B` if either of these is true:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于使用 `enum` 或 `const enum` 关键字创建的*枚举类型*，如果以下任一条件为真，则类型 `A` 可分配给枚举 `B`：
+- en: '`A` is a member of enum `B`.'
+  id: totrans-111
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`A` 是枚举 `B` 的成员。'
+- en: '`B` has at least one member that’s a `number`, and `A` is a `number`.'
+  id: totrans-112
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`B` 至少有一个是 `number` 类型的成员，并且 `A` 是 `number`。'
+- en: 'Rule 1 is exactly the same as for simple types (if `A` is a member of enum
+    `B`, then `A`’s type is `B`, so all we’re saying is `B <: B`).'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '规则 1 与简单类型的规则完全相同（如果 `A` 是枚举 `B` 的成员，则 `A` 的类型是 `B`，因此我们所说的是 `B <: B`）。'
+- en: Rule 2 is a convenience for working with enums. As we talked about in [“Enums”](ch03.html#enums),
+    rule 2 is a big source of unsafety in TypeScript, and this is one reason I suggest
+    throwing the baby out with the bathwater and avoiding enums entirely.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 规则 2 是与枚举一起工作的便利性。正如我们在 [“枚举”](ch03.html#enums) 中讨论的那样，规则 2 是 TypeScript 中不安全性的一个重要原因，这也是我建议彻底摒弃枚举的原因之一。
+- en: Type Widening
+  id: totrans-115
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型扩展
+- en: '*Type widening* is key to understanding how TypeScript’s type inference works.
+    In general, TypeScript will be lenient when inferring your types, and will err
+    on the side of inferring a more general type rather than the most specific type
+    possible. This makes your life as a programmer easier, and means less time spent
+    quelling the typechecker’s complaints.'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*类型扩展*是理解 TypeScript 类型推断工作方式的关键。总体而言，TypeScript 在推断类型时会比较宽松，通常会推断出更一般的类型而不是可能的最具体类型。这使得作为程序员的生活更轻松，意味着减少了消除类型检查器投诉的时间。'
+- en: In [Chapter 3](ch03.html#types), you already saw a few instances of type widening
+    in action. Let’s look at a few more examples.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [第三章](ch03.html#types) 中，你已经看到几个类型扩展的实例。让我们看几个更多的例子。
+- en: 'When you declare a variable in a way that allows it to be mutated later (e.g.,
+    with `let` or `var`), its type is widened from its literal value to the base type
+    that literal belongs to:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您以后可以更改其变异的方式声明一个变量（例如使用`let`或`var`）时，其类型会从其字面值扩展到该字面值所属的基本类型：
+- en: '[PRE12]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Not so for immutable declarations:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于不可变声明，则不适用：
+- en: '[PRE13]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'You can use an explicit type annotation to prevent your type from being widened:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用显式类型注释防止类型扩展：
+- en: '[PRE14]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'When you reassign a nonwidened type using `let` or `var`, TypeScript widens
+    it for you. To tell TypeScript to keep it narrow, add an explicit type annotation
+    to your original declaration:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用`let`或`var`重新分配非扩展类型时，TypeScript会为您扩展它。要告诉TypeScript保持狭义，将显式类型注释添加到您的原始声明中：
+- en: '[PRE15]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Variables initialized to `null` or `undefined` are widened to `any`:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 变量初始化为`null`或`undefined`时会被扩展为`any`：
+- en: '[PRE16]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'But when a variable initialized to `null` or `undefined` leaves the scope it
+    was declared in, TypeScript assigns it a definite type:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，当变量初始化为`null`或`undefined`并离开其声明范围时，TypeScript会为其分配一个确定的类型：
+- en: '[PRE17]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: The const type
+  id: totrans-130
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 常量类型
+- en: 'TypeScript comes with a special `const` type that you can use to opt out of
+    type widening a declaration at a time. Use it as a type assertion (read ahead
+    to [“Type Assertions”](#type-assertions)):'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript带有一个特殊的`const`类型，您可以使用它来选择不对声明进行类型扩展。将其用作类型断言（请阅读[“类型断言”](#type-assertions)）：
+- en: '[PRE18]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '`const` opts your type out of widening and recursively marks its members as
+    `readonly`, even for deeply nested data structures:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`const`选择了不对类型进行扩展，并递归地将其成员标记为`readonly`，即使是对于深度嵌套的数据结构也是如此：'
+- en: '[PRE19]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Use `as const` when you want TypeScript to infer your type as narrowly as possible.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您希望TypeScript尽可能狭义地推断您的类型时，请使用`as const`。
+- en: Excess property checking
+  id: totrans-136
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 多余属性检查
+- en: Type widening also comes into the picture when TypeScript checks whether or
+    not one object type is assignable to another object type.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型扩展也涉及到TypeScript检查一个对象类型是否可分配给另一个对象类型。
+- en: Recall from [“Shape and array variance”](#shape-variance) that object types
+    are covariant in their members. But if TypeScript stuck to this rule without doing
+    any additional checks, it could lead to a problem.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请回想[“形状和数组的差异”](#shape-variance)，对象类型在其成员中是协变的。但是，如果TypeScript坚持这一规则而不进行任何额外的检查，可能会导致问题。
+- en: 'For example, consider an `Options` object you might pass into a class to configure
+    it:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑一个您可能传递到类中以配置它的`Options`对象：
+- en: '[PRE20]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Now, what happens if you misspell an option?
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您拼写选项错误会发生什么？
+- en: '[PRE21]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: This is a common bug when working with JavaScript, so it’s really helpful that
+    TypeScript helps us catch it. But if object types are covariant in their members,
+    how is it that TypeScript catches this?
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在使用JavaScript时是一个常见的bug，因此TypeScript帮助我们捕获它真的很有帮助。但是如果对象类型在其成员中是协变的，那么TypeScript是如何捕获这个问题的呢？
+- en: 'That is:'
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那就是：
+- en: 'We expected the type `{baseURL: string, cacheSize?: number, tier?: ''prod''
+    | ''dev''}`.'
+  id: totrans-145
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '我们预期的类型是`{baseURL: string, cacheSize?: number, tier?: ''prod'' | ''dev''}`。'
+- en: 'We passed in the type `{baseURL: string, tierr: string}`.'
+  id: totrans-146
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '我们传递了类型`{baseURL: string, tierr: string}`。'
+- en: The type we passed in is a subtype of the type we expected, but somehow, TypeScript
+    knew to report an error.
+  id: totrans-147
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们传入的类型是我们预期类型的子类型，但不知何故，TypeScript知道报告错误。
+- en: 'TypeScript was able to catch this due to its *excess property checking*, which
+    works like this: when you try to assign a fresh object literal type `T` to another
+    type `U`, and `T` has properties that aren’t present in `U`, TypeScript reports
+    an error.'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript之所以能够捕捉到这一点，是因为它的*多余属性检查*，工作原理如下：当您尝试将一个新的对象字面类型`T`分配给另一个类型`U`时，而`T`具有`U`中不存在的属性时，TypeScript会报告错误。
+- en: A *fresh object literal type* is the type TypeScript infers from an object literal.
+    If that object literal either uses a type assertion (see [“Type Assertions”](#type-assertions))
+    or is assigned to a variable, then the fresh object literal type is *widened*
+    to a regular object type, and its freshness disappears.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*新的对象字面类型*是TypeScript从对象字面值中推断出的类型。如果该对象字面量使用类型断言（参见[“类型断言”](#type-assertions)）或分配给变量，则新的对象字面类型将被扩展为常规对象类型，其新鲜度将消失。'
+- en: 'This definition is dense, so let’s walk through our example again, trying a
+    few more variations on the theme this time:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此定义内容丰富，让我们再次以示例进行详细解释，这次试着换几个不同的变体：
+- en: '[PRE22]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO1-1)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO1-1)'
+- en: We instantiate `API` with a `baseURL` and one of our two optional properties,
+    `tier`. This works as expected.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用`baseURL`和我们的两个可选属性之一，`tier`，来实例化`API`。这符合预期。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO1-2)'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO1-2)'
+- en: Here, we misspell `tier` as `badTier`. The options object we pass to `new API`
+    is fresh (because its type is inferred, it isn’t assigned to a variable, and we
+    don’t make a type assertion about its type), so TypeScript runs an excess property
+    check on it, revealing the excess `badTier` property (which is defined in our
+    options object but not on the `Options` type).
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们将`tier`错误拼写为`badTier`。我们传递给`new API`的选项对象是新鲜的（因为其类型被推断，没有分配给变量，并且我们没有对其类型进行断言），因此TypeScript在其上运行多余属性检查，揭示了多余的`badTier`属性（在我们的选项对象中定义，但不在`Options`类型中）。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO1-3)'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO1-3)'
+- en: 'We assert that our invalid options object is of type `Options`. TypeScript
+    no longer considers it fresh, and bails out of excess property checking: no error.
+    If you’re not familiar with the `as T` syntax, read ahead to [“Type Assertions”](#type-assertions).'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们断言我们的无效选项对象是`Options`类型。TypeScript不再将其视为新鲜的，并退出多余属性检查：无错误。如果你对`as T`语法不熟悉，请继续阅读[“类型断言”](#type-assertions)。
+- en: '[![4](assets/4.png)](#co_advanced_types_CO1-4)'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO1-4)'
+- en: 'We assign our options object to a variable, `badOptions`. TypeScript no longer
+    considers it to be fresh, and bails out of excess property checking: no error.'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将选项对象分配给变量`badOptions`。TypeScript不再将其视为新鲜的，并退出多余属性检查：无错误。
+- en: '[![5](assets/5.png)](#co_advanced_types_CO1-5)'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_advanced_types_CO1-5)'
+- en: When we explicitly type `options` as `Options`, the object we assign to `options`
+    is fresh, so TypeScript performs excess property checking, catching our bug. Note
+    that in this case the excess property check doesn’t happen when we pass `options`
+    to `new API`; rather, it happens when we try to assign our options object to the
+    variable `options`.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们明确将`options`类型声明为`Options`时，我们分配给`options`的对象是新鲜的，因此TypeScript执行多余属性检查，捕获了我们的bug。请注意，在这种情况下，多余属性检查不会发生在我们将`options`传递给`new
+    API`时，而是在我们尝试将选项对象分配给变量`options`时发生。
+- en: Don’t worry—you don’t need to memorize these rules. They are TypeScript’s internal
+    heuristics for catching the most bugs possible in a practical way, so as not to
+    be a burden on you, the programmer. Just keep them in mind when you’re wondering
+    how TypeScript knew to complain about that one bug that even Ivan, the battle-weathered
+    gatekeeper of your company’s codebase and master code reviewer, didn’t notice.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 别担心 —— 你不需要记住这些规则。它们是TypeScript捕捉尽可能多bug的内部启发式规则，以便不会成为程序员负担的实用方式，只需在疑惑TypeScript为何要抱怨那一个bug时记在心中，即使是你们公司代码库的老兵伊凡，也未必察觉得到。
+- en: Refinement
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 精化
+- en: TypeScript performs flow-based type inference, which is a kind of symbolic execution
+    where the typechecker uses control flow statements like `if`, `?`, `||`, and `switch`,
+    as well as type queries like `typeof`, `instanceof`, and `in`, to *refine* types
+    as it goes, just like a programmer reading through the code would.^([1](ch06.html#idm46304967500104))
+    It’s an incredibly convenient feature for a typechecker to have, but is another
+    one of those things that remarkably few languages support.^([2](ch06.html#idm46304967497288))
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript执行基于流的类型推断，这是一种符号执行，其中类型检查器使用控制流语句如`if`、`?`、`||`和`switch`，以及类型查询如`typeof`、`instanceof`和`in`，在进行过程中*精化*类型，就像程序员阅读代码一样。^([1](ch06.html#idm46304967500104))
+    这是一项对类型检查器非常方便的功能，但令人惊讶的是，非常少的语言支持这种功能。^([2](ch06.html#idm46304967497288))
+- en: Let’s walk through an example. Say we’ve built an API for defining CSS rules
+    in TypeScript, and a coworker wants to use it to set an HTML element’s `width`.
+    They pass in the width, which we then want to parse and validate.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们举个例子。假设我们已经在TypeScript中构建了一个用于定义CSS规则的API，一位同事想要用它来设置HTML元素的`width`。他们传入了宽度，然后我们想要解析和验证它。
+- en: 'We’ll first implement a function to parse a CSS string into a value and a unit:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将实现一个函数，将CSS字符串解析为值和单位：
+- en: '[PRE23]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: We can then use `parseUnit` to parse a width value passed to us by a user. `width`
+    might be a number (which we assume is in pixels), or a string with units attached,
+    or it might be `null` or `undefined`.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以使用`parseUnit`来解析用户传递给我们的宽度值。`width`可能是一个数字（我们假设是像素），或者一个附带单位的字符串，或者可能是`null`或`undefined`。
+- en: 'We take advantage of type refinement a few times in this example:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，我们几次利用了类型精化：
+- en: '[PRE24]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO2-1)'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO2-1)'
+- en: TypeScript is smart enough to know that doing a loose equality check against
+    `null` will return `true` for both `null` and `undefined` in JavaScript. It knows
+    that if this check passes then we will return, and if we didn’t return that means
+    the check didn’t pass, so from then on `width`’s type is `number | string` (it
+    can’t be `null` or `undefined` anymore). We say that the type was refined from
+    `number | string | null | undefined` to `number | string`.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 足够聪明，能够知道在 JavaScript 中，对 `null` 进行宽松相等性检查将返回 `true`，对 `undefined`
+    也是如此。它知道如果此检查通过，则我们将返回，并且如果没有返回，则意味着检查未通过，因此从那时起，`width` 的类型就是 `number | string`（它不再可能是
+    `null` 或 `undefined`）。我们称这种类型从 `number | string | null | undefined` 细化为 `number
+    | string`。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO2-2)'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO2-2)'
+- en: 'A `typeof` check queries a value at runtime to see what its type is. TypeScript
+    takes advantage of `typeof` at compile time too: in the `if` branch where the
+    check passes, TypeScript knows that `width` is a `number`; otherwise (since that
+    branch `return`s) `width` must be a `string`—it’s the only type left.'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`typeof` 检查在运行时查询值的类型。TypeScript 在编译时也利用 `typeof`：在检查通过的 `if` 分支中，TypeScript
+    知道 `width` 是一个 `number`；否则（因为该分支有 `return`），`width` 必须是一个 `string` ——这是唯一剩下的类型。'
+- en: '[![3](assets/3.png)](#co_advanced_types_CO2-3)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO2-3)'
+- en: Because calling `parseUnit` might return `null`, we check if it did by testing
+    whether its result is truthy.^([3](ch06.html#idm46304967201672)) TypeScript knows
+    that if `unit` is truthy then it must be of type `Unit` in the `if` branch—otherwise,
+    `unit` must be falsy, meaning it must be of type `null` (refined from `Unit |
+    null`).
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为调用 `parseUnit` 可能会返回 `null`，所以我们通过测试其结果是否真值来检查它是否返回了。^([3](ch06.html#idm46304967201672))
+    TypeScript 知道如果 `unit` 是真值，则在 `if` 分支中它必须是 `Unit` 类型 ——否则，`unit` 必须是假值，意味着它必须是
+    `null` 类型（从 `Unit | null` 细化而来）。
+- en: '[![4](assets/4.png)](#co_advanced_types_CO2-4)'
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO2-4)'
+- en: Finally, we return `null`. This can only happen if the user passed a `string`
+    for `width`, but that string contained a unit that we don’t support.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们返回 `null`。这只会发生在用户为 `width` 传递了一个 `string`，但该字符串包含了我们不支持的单位。
+- en: I’ve spelled out exactly what TypeScript was thinking for each of the type refinements
+    it performed here, but I hope this was already intuitive and obvious for you,
+    the programmer reading that code. TypeScript does a superb job of taking what’s
+    going through your mind as you read and write code, and crystallizing it in the
+    form of typechecking and inference rules.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我已经详细说明了 TypeScript 在执行每个类型细化时的思考过程，但我希望对您作为程序员来说，阅读该代码时这些已经是直观且显而易见的。TypeScript
+    在读写代码时非常善于捕捉您思维中的内容，并以类型检查和推断规则的形式加以表现。
+- en: Discriminated union types
+  id: totrans-180
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 区分联合类型
+- en: As we just learned, TypeScript has a deep understanding of how JavaScript works,
+    and is able to follow along as you refine your types, just like you would when
+    you trace through your program in your head.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们刚刚学到的，TypeScript 对 JavaScript 的工作原理有深入的理解，并且能够在您精炼类型的过程中跟随，就像您在头脑中追踪程序一样。
+- en: 'For example, say we’re building a custom event system for an application. We
+    start by defining a couple of event types, along with a function to handle events
+    that come in. Imagine that `UserTextEvent` models a keyboard event (e.g., the
+    user typed something in a text `<input />`) and `UserMouseEvent` models a mouse
+    event (e.g., the user moved their mouse to the coordinates `[100, 200]`):'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设我们正在为一个应用程序构建一个自定义事件系统。我们首先定义了几种事件类型，以及一个处理进来事件的函数。想象一下，`UserTextEvent`
+    模拟了键盘事件（例如，用户在文本 `<input />` 中输入了一些内容），而 `UserMouseEvent` 模拟了鼠标事件（例如，用户将鼠标移动到坐标
+    `[100, 200]` 处）：
+- en: '[PRE25]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Inside the `if` block, TypeScript knows that `event.value` has to be a `string`
+    (because of the `typeof` check), which implies that after the `if` block `event.value`
+    has to be a tuple of `[number, number]` (because of the `return` in the `if` block).
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `if` 块内部，TypeScript 知道 `event.value` 必须是一个 `string`（因为 `typeof` 检查），这意味着在
+    `if` 块之后，`event.value` 必须是一个元组 `[number, number]`（因为在 `if` 块中有 `return`）。
+- en: 'What happens if we make this a little more complicated? Let’s add some more
+    information to our event types, and see how TypeScript fares when we refine our
+    types:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们使这个过程变得更加复杂会发生什么呢？让我们为我们的事件类型添加更多信息，看看当我们细化我们的类型时，TypeScript 的表现如何：
+- en: '[PRE26]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: While the refinement worked for `event.value`, it didn’t carry over to `event.target`.
+    Why? When `handle` takes a parameter of type `UserEvent`, that doesn’t mean we
+    have to pass a `UserTextEvent` or `UserMouseEvent`—in fact, we could pass an argument
+    of type `UserMouseEvent | UserTextEvent`. And since members of a union might overlap,
+    TypeScript needs a more reliable way to know when we’re in one case of a union
+    type versus another case.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然细化适用于`event.value`，但并不适用于`event.target`。为什么呢？当`handle`接受类型为`UserEvent`的参数时，并不意味着我们必须传递`UserTextEvent`或`UserMouseEvent`——事实上，我们可以传递`UserMouseEvent
+    | UserTextEvent`类型的参数。并且，由于联合类型的成员可能重叠，TypeScript需要一种更可靠的方式来知道我们处于联合类型的哪种情况下。
+- en: 'The way to do this is to use a literal type to *tag* each case of your union
+    type. A good tag is:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实现此目的的方法是使用文字类型来*标记*联合类型的每个情况。一个好的标记是：
+- en: On the same place in each case of your union type. That means the same object
+    field if it’s a union of object types, or the same index if it’s a union of tuple
+    types. In practice, tagged unions usually use object types.
+  id: totrans-189
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在联合类型的每个情况中都使用相同的位置。这意味着如果是对象类型的联合，则使用相同的对象字段，如果是元组类型的联合，则使用相同的索引。在实践中，带标签的联合通常使用对象类型。
+- en: Typed as a literal type (a literal string, number, boolean, etc.). You can mix
+    and match different types of literals, but it’s good practice to stick to a single
+    type; typically, that’s a string literal type.
+  id: totrans-190
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 类型化为文字类型（文字字符串、数字、布尔等）。您可以混合和匹配不同类型的文字，但是最好坚持使用单一类型；通常是字符串文字类型。
+- en: Not generic. Tags should not take any generic type arguments.
+  id: totrans-191
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不是泛型的。标记不应采用任何泛型类型参数。
+- en: Mutually exclusive (i.e., unique within the union type).
+  id: totrans-192
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 互斥的（即在联合类型内唯一的）。
+- en: 'With that in mind, let’s update our event types again:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些知识，让我们再次更新我们的事件类型：
+- en: '[PRE27]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Now when we refine `event` based on the value of its tagged field (`event.type`),
+    TypeScript knows that in the `if` branch `event` has to be a `UserTextEvent`,
+    and after the `if` branch it has to be a `UserMouseEvent`. Since the tag is unique
+    per union type, TypeScript knows that the two are mutually exclusive.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当我们根据其标记字段（`event.type`）的值来细化`event`时，TypeScript知道在`if`分支中`event`必须是`UserTextEvent`，并且在`if`分支后它必须是`UserMouseEvent`。由于标记在联合类型中是唯一的，TypeScript知道这两者是互斥的。
+- en: Use tagged unions when writing a function that has to handle the different cases
+    of a union type. For example, they’re invaluable when working with Flux actions,
+    Redux reducers, or React’s `useReducer`.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当编写需要处理联合类型不同情况的函数时，请使用带标签的联合类型。例如，在处理Flux操作、Redux减速器或React的`useReducer`时，它们非常有用。
+- en: Totality
+  id: totrans-197
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总体性
+- en: 'A programmer puts two glasses on her bedside table before going to sleep: a
+    full one, in case she gets thirsty, and an empty one, in case she doesn’t.'
+  id: totrans-198
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 程序员在睡前在床头桌上放了两个杯子：一个装满的，以防口渴；一个空的，以防不渴。
+- en: ''
+  id: totrans-199
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Anonymous
+  id: totrans-200
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 匿名
+- en: Totality, also called *exhaustiveness checking*, is what allows the typechecker
+    to make sure you’ve covered all your cases. It comes to us from Haskell, OCaml,
+    and other languages that are based around pattern matching.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体性，也称为*穷尽性检查*，允许类型检查器确保您已覆盖所有情况。这一概念源自Haskell、OCaml和其他基于模式匹配的语言。
+- en: 'TypeScript will check for totality in a variety of cases, and give you helpful
+    warnings when you’ve missed a case. This is an incredibly helpful feature for
+    preventing real bugs. For example:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript将在多种情况下检查总体性，并在您遗漏某些情况时提供有用的警告。这是一个非常有用的功能，可以防止真正的错误。例如：
+- en: '[PRE28]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'We clearly missed a few days (it’s been a long week). TypeScript comes to the
+    rescue:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们显然错过了几天（这是一个漫长的一周）。TypeScript来拯救：
+- en: '[PRE29]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'TSC Flag: noImplicitReturns'
+  id: totrans-206
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC标志：noImplicitReturns
+- en: 'To ask TypeScript to check that all of your functions’ code paths return a
+    value (and throw the preceding warning if you missed a spot), enable the `noImplicitReturns`
+    flag in your *tsconfig.json*. Whether you enable this flag or not is up to you:
+    some people prefer a code style with fewer explicit `return`s, and some people
+    are fine with a few extra `return`s in the name of better type safety and more
+    bugs caught by the typechecker.'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要求TypeScript检查所有函数代码路径是否返回一个值（并在您遗漏情况时抛出前面的警告），请在您的*tsconfig.json*中启用`noImplicitReturns`标志。是否启用此标志取决于您：有些人喜欢代码风格少一些显式的`return`，而有些人则愿意在更好的类型安全和类型检查器捕获更多错误的情况下多一些`return`。
+- en: This error message is telling us that either we missed some cases and should
+    cover them with a catchall `return` statement at the end that returns something
+    like `'Sat'` (that’d be nice, huh), or we should adjust `getNextDay`’s return
+    type to `Day |` `undefined`. After we add a `case` for each `Day`, the error goes
+    away (try it!). Because we annotated `getNextDay`’s return type, and not all branches
+    are guaranteed to return a value of that type, TypeScript warns us.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个错误信息告诉我们，要么我们遗漏了一些情况，并且应该在最后添加一个万能的`return`语句，返回类似`'Sat'`的内容（那将很好，对吧），要么我们应该调整`getNextDay`的返回类型为`Day
+    | undefined`。在我们为每个`Day`添加一个`case`之后，错误就消失了（试试看！）。因为我们注解了`getNextDay`的返回类型，并且并非所有分支都保证返回该类型的值，TypeScript
+    给出了警告。
+- en: 'The implementation details in this example aren’t important: no matter what
+    kind of control structure you use—`switch`, `if`, `throw`, and so on—TypeScript
+    will watch your back to make sure you have every case covered.'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中的具体实现细节并不重要：无论你使用何种控制结构——`switch`、`if`、`throw`等，TypeScript 都会确保你的后背有所依托，以确保你覆盖了每一个情况。
+- en: 'Here’s another example:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里还有一个例子：
+- en: '[PRE30]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Maybe a client’s continued voicemails about that missed deadline have you jittery,
+    and you forgot to handle numbers under `100` in your business-critical `isBig`
+    function. Again, never fear—TypeScript is watching out for you:'
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也许客户关于错过的最后期限的持续语音邮件让你感到不安，你忘记在业务关键的`isBig`函数中处理小于`100`的数字。再次，无需担心——TypeScript
+    会保护你：
+- en: '[PRE31]'
+  id: totrans-213
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Or maybe the weekend gave you a chance to clear your mind, and you realized
+    that you should rewrite that `getNextDay` example from earlier to be more efficient.
+    Instead of using a `switch`, why not a constant-time lookup in an object?
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也许周末给了你一个清空思绪的机会，你意识到应该重写之前的`getNextDay`示例以提高效率。不要再使用`switch`了，为什么不在对象中进行常量时间查找呢？
+- en: '[PRE32]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: With your Bichon Frise yapping away in the other room (something about the neighbor’s
+    dog?), you absentmindedly forgot to fill in the other days in your new `nextDay`
+    object before you committed your code and moved on to other things.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你的比熊犬在另一个房间狂吠（似乎是关于邻居的狗？）时，你心不在焉地忘记在提交代码并转向其他事情之前填写新的`nextDay`对象中的其他日期。
+- en: While TypeScript will give you an error the next time you try to access `nextDay.Tue`,
+    you could have been more proactive about it when declaring `nextDay` in the first
+    place. There are two ways to do that, as you’ll learn in [“The Record Type”](#record-type)
+    and [“Mapped Types”](#mapped-types); but before we get there, let’s take a slight
+    detour into type operators for object types.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 TypeScript 会在下次尝试访问`nextDay.Tue`时给出错误，但在首次声明`nextDay`时，你本可以更为主动。有两种方法可以做到这一点，正如你将在[“记录类型”](#record-type)和[“映射类型”](#mapped-types)中学到的；但在此之前，让我们稍微偏离一下，讨论对象类型的类型运算符。
+- en: Advanced Object Types
+  id: totrans-218
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 高级对象类型
+- en: Objects are central to JavaScript, and TypeScript gives you a whole bunch of
+    ways to express and manipulate them safely.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象在 JavaScript 中至关重要，而 TypeScript 则为你提供了安全表达和操作它们的多种方式。
+- en: Type Operators for Object Types
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 对象类型的类型运算符
+- en: Remember union (`|`) and intersection (`&`), the two type operators I introduced
+    in [“Union and intersection types”](ch03.html#union-intersection)? It turns out
+    they’re not the only type operators TypeScript gives you! Let’s run through a
+    few more type operators that come in handy for working with shapes.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还记得我在[“联合和交集类型”](ch03.html#union-intersection)中介绍的联合（`|`）和交集（`&`）两种类型运算符吗？原来
+    TypeScript 还为你提供了其他几种有用的类型运算符！让我们来看看一些处理形状的类型运算符。
+- en: The keying-in operator
+  id: totrans-222
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 键入运算符
+- en: 'Say you have a complex nested type to model the GraphQL API response you got
+    back from your social media API of choice:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你有一个复杂的嵌套类型，用来模拟你从所选社交媒体 API 中获取的 GraphQL API 响应：
+- en: '[PRE33]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'You might fetch that response from the API, then render it:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以从 API 获取响应，然后将其渲染：
+- en: '[PRE34]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'What should the type of `friendList` be? (It’s stubbed out as `unknown` for
+    now.) You could type it out and reimplement your top-level `APIResponse` type
+    in terms of it:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`friendList`的类型应该是什么？（它现在被存根为`unknown`。）你可以将它类型化，并根据它重新实现你的顶层`APIResponse`类型：'
+- en: '[PRE35]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: 'But then you’d have to come up with names for each of your top-level types,
+    which you don’t always want (e.g., if you used a build tool to generate TypeScript
+    types from your GraphQL schema). Instead, you can *key in* to your type:'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是你需要为每个顶层类型想出名称，这并不总是你想要的（例如，如果你使用构建工具从 GraphQL 架构生成 TypeScript 类型）。相反，你可以*键入*到你的类型中：
+- en: '[PRE36]'
+  id: totrans-230
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'You can key in to any shape (object, class constructor, or class instance),
+    and any array. For example, to get the type of an individual friend:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以对任何形状（对象、类构造函数或类实例）和任何数组进行键入。例如，要获取单个朋友的类型：
+- en: '[PRE37]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: '`number` is a way to key in to an array type; for tuples, use `0`, `1`, or
+    another number literal type to represent the index you want to key in to.'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`number` 是键入到数组类型的方式；对于元组，请使用 `0`、`1` 或其他数字字面类型来表示你想要键入的索引。'
+- en: The syntax for keying in is intentionally similar to how you look up fields
+    in regular JavaScript objects—just as you might look up a value in an object,
+    so you can look up a type in a shape. Note that you have to use bracket notation,
+    not dot notation, to look up property types when keying in.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 键入的语法故意设计得与在常规 JavaScript 对象中查找字段的方式相似——就像你可能在对象中查找值一样，你也可以在形状中查找类型。请注意，当进行属性类型键入时，必须使用方括号而不是点表示法。
+- en: The keyof operator
+  id: totrans-235
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 键入操作符 `keyof`
+- en: 'Use `keyof` to get all of an object’s keys as a union of string literal types.
+    Using the previous `APIResponse` example:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `keyof` 可以将对象的所有键作为字符串字面类型的联合体。使用前面的 `APIResponse` 示例：
+- en: '[PRE38]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Combining the keying-in and `keyof` operators, you can implement a typesafe
+    getter function that looks up the value at the given key in an object:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结合键入和 `keyof` 操作符，可以实现一个类型安全的获取器函数，该函数在对象中查找给定键的值：
+- en: '[PRE39]'
+  id: totrans-239
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO3-1)'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO3-1)'
+- en: '`get` is a function that takes an object `o` and a key `k`.'
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`get` 是一个函数，它接受一个对象 `o` 和一个键 `k`。'
+- en: '[![2](assets/2.png)](#co_advanced_types_CO3-2)'
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO3-2)'
+- en: '`keyof O` is a union of string literal types, representing all of `o`’s keys.
+    The generic type `K` extends—and is a subtype of—that union. For example, if `o`
+    has the type `{a: number, b: string, c: boolean}`, then `keyof o` is the type
+    `''a'' | ''b'' | ''c''`, and `K` (which extends `keyof o`) could be the type `''a''`,
+    `''b''`, `''a'' | ''c''`, or any other subtype of `keyof o`.'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`keyof O` 是字符串字面类型的联合体，表示 `O` 的所有键。泛型类型 `K` 扩展并且是该联合体的子类型。例如，如果 `o` 的类型是 `{a:
+    number, b: string, c: boolean}`，那么 `keyof o` 的类型是 `''a'' | ''b'' | ''c''`，而 `K`（它扩展了
+    `keyof o`）可以是 `''a''`、`''b''`、`''a'' | ''c''` 或 `keyof o` 的任何子类型。'
+- en: '[![3](assets/3.png)](#co_advanced_types_CO3-3)'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO3-3)'
+- en: '`O[K]` is the type you get when you look up `K` in `O`. Continuing the example
+    from [![2](assets/2.png)](#co_advanced_types_CO3-2), if `K` is `''a''`, then we
+    know at compile time that `get` returns a `number`. Or, if `K` is `''b'' | ''c''`,
+    then we know `get` returns `string | boolean`.'
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`O[K]` 是当你在 `O` 中查找 `K` 时得到的类型。继续上述例子 [![2](assets/2.png)](#co_advanced_types_CO3-2)，如果
+    `K` 是 `''a''`，那么我们在编译时知道 `get` 返回一个 `number`。或者，如果 `K` 是 `''b'' | ''c''`，那么我们知道
+    `get` 返回 `string | boolean`。'
+- en: 'What’s cool about these type operators is how precisely and safely they let
+    you describe shape types:'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些类型操作符的优点在于它们如何精确且安全地描述形状类型：
+- en: '[PRE40]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'TypeScript goes to work for you, verifying *at compile time* that the type
+    of `lastEvent` is `Date`. Of course, you could extend this in order to key in
+    to an object more deeply too. Let’s overload `get` to accept up to three keys:'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 会为你工作，编译时验证 `lastEvent` 的类型是 `Date`。当然，你也可以扩展它，以便更深入地键入对象。让我们重载 `get`
+    以接受最多三个键：
+- en: '[PRE41]'
+  id: totrans-249
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO4-1)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO4-1)'
+- en: We declare an overloaded function signature for `get` with three cases for when
+    we call `get` with one key, two keys, and three keys.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为 `get` 声明了一个重载函数签名，涵盖了调用 `get` 时使用一个键、两个键和三个键的情况。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO4-2)'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO4-2)'
+- en: 'This one-key case is the same as the last example: `O` is a subtype of `object`,
+    `K1` is a subtype of that object’s keys, and the return type is whatever specific
+    type you get when you key in to `O` with `K1`.'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个单键情况与上一个例子相同：`O` 是 `object` 的子类型，`K1` 是该对象的键的子类型，返回类型是你在 `O` 中用 `K1` 键入时得到的具体类型。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO4-3)'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO4-3)'
+- en: The two-key case is like the one-key case, but we declare one more generic type,
+    `K2`, to model the possible keys on the nested object that results from keying
+    into `O` with `K1`.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个键的情况类似于一个键的情况，但我们声明了一个额外的泛型类型 `K2`，以模拟通过 `K1` 键入 `O` 后得到的嵌套对象上可能的键。
+- en: '[![4](assets/4.png)](#co_advanced_types_CO4-4)'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO4-4)'
+- en: We build on [![2](assets/2.png)](#co_advanced_types_CO4-2) by keying in twice—we
+    first get the type of `O[K1]`, then get the type of `[K2]` on the result.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 [![2](assets/2.png)](#co_advanced_types_CO4-2) 的基础上进行了两次键入——首先获取 `O[K1]`
+    的类型，然后获取结果上的 `[K2]` 的类型。
+- en: '[![5](assets/5.png)](#co_advanced_types_CO4-5)'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_advanced_types_CO4-5)'
+- en: For this example we handle up to three nested keys; if you’re writing a real-world
+    library, you’ll probably want to handle a few more cases than that.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个示例，我们处理最多三层嵌套的键；如果你正在编写一个真实的库，你可能会想处理更多的情况。
+- en: Cool, huh? If you have a minute, show this example to your Java friends, and
+    be sure to gloat as you walk them through it.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很酷，对吧？如果你有一分钟，向你的 Java 朋友展示这个例子，并确保在向他们讲解时好好炫耀。
+- en: 'TSC Flag: keyofStringsOnly'
+  id: totrans-261
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC 标志：keyofStringsOnly
+- en: In JavaScript, objects and arrays can have both string and symbol keys. And
+    by convention, we usually use number keys for arrays, which are coerced to strings
+    at runtime.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，对象和数组可以同时具有字符串和符号键。而且按照惯例，我们通常在数组中使用数字键，这些键在运行时被强制转换为字符串。
+- en: Because of this, `keyof` in TypeScript returns a value of type `number | string
+    | symbol` by default (though if you call it on a more specific shape, TypeScript
+    can infer a more specific subtype of that union).
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，默认情况下 TypeScript 的`keyof`返回一个`number | string | symbol`类型的值（虽然如果你在更具体的形状上调用它，TypeScript
+    可以推断出该联合的更具体的子类型）。
+- en: This behavior is correct, but can make working with `keyof` wordy, as you may
+    have to prove to TypeScript that the particular key you’re manipulating is a `string`,
+    and not a `number` or a `symbol`.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种行为是正确的，但可能会使得使用`keyof`变得啰嗦，因为你可能需要向 TypeScript 证明你操作的特定键是一个`string`，而不是一个`number`或`symbol`。
+- en: To opt into TypeScript’s legacy behavior—where keys must be strings—enable the
+    `keyofStringsOnly` *tsconfig.json* flag.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要选择 TypeScript 的传统行为——键必须是字符串——请启用`tsconfig.json`中的`keyofStringsOnly`标志。
+- en: The Record Type
+  id: totrans-266
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Record 类型
+- en: TypeScript’s built-in `Record` type is a way to describe an object as a map
+    from something to something.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的内置`Record`类型是一种描述对象的一种到另一种的映射的方法。
+- en: Recall from the `Weekday` example in [“Totality”](#totality) that there are
+    two ways to enforce that an object defines a specific set of keys. `Record` types
+    are the first.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[“全体性”](#totality)中的`Weekday`示例中，我们可以回想到有两种方法来强制对象定义特定的键集合。`Record`类型是第一种方法。
+- en: 'Let’s use `Record` to build a map from each day of the week to the next day
+    of the week. With `Record`, you can put some constraints on the keys and values
+    in `nextDay`:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使用`Record`来构建一个从每周的一天到下一天的映射。使用`Record`，你可以对`nextDay`的键和值施加一些约束：
+- en: '[PRE42]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'Now, you get a nice, helpful error message right away:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，你会立即得到一个很好的、有用的错误信息：
+- en: '[PRE43]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: Adding the missing `Weekday`s to your object, of course, makes the error go
+    away.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加缺少的`Weekday`到你的对象中，当然可以解决这个错误。
+- en: '`Record` gives you one extra degree of freedom compared to regular object index
+    signatures: with a regular index signature you can constrain the types of an object’s
+    values, but the key can only be a regular `string`, `number`, or `symbol`; with
+    `Record`, you can also constrain the types of an object’s keys to subtypes of
+    `string` and `number`.'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Record`给你比常规对象索引签名多了一层自由度：普通索引签名只能约束对象值的类型，但键只能是常规的`string`、`number`或`symbol`类型；而`Record`还允许你将对象的键类型约束为`string`和`number`的子类型。'
+- en: Mapped Types
+  id: totrans-275
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 映射类型
+- en: 'TypeScript gives us a second, more powerful way to declare a safer `nextDay`
+    type: mapped types. Let’s use mapped types to say that `nextDay` is an object
+    with a key for each `Weekday`, whose value is a `Day`:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 给了我们第二种更强大的声明安全`nextDay`类型的方式：映射类型。让我们使用映射类型来表示`nextDay`是一个具有每个`Weekday`键的对象，其值是一个`Day`：
+- en: '[PRE44]'
+  id: totrans-277
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'This is another way to get a helpful hint for how to fix what you missed:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是另一种帮助你修复遗漏的提示方式：
+- en: '[PRE45]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Mapped types are a language feature unique to TypeScript. Like literal types,
+    they’re a utility feature that just makes sense for the challenge that is statically
+    typing JavaScript.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 映射类型是 TypeScript 中独有的语言特性。像字面量类型一样，它们是一种对静态类型化 JavaScript 挑战的实用功能。
+- en: 'As you saw, mapped types have their own special syntax. And like index signatures,
+    you can have at most one mapped type per object:'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你所见，映射类型有其特殊的语法。而且和索引签名一样，你每个对象只能有一个映射类型：
+- en: '[PRE46]'
+  id: totrans-282
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'As the name implies, it’s a way to map over an object’s key and value types.
+    In fact, TypeScript uses mapped types to implement its built-in `Record` type
+    we used earlier:'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如其名称所示，它是一种映射对象键和值类型的方法。事实上，TypeScript 使用映射类型来实现我们之前使用的内置`Record`类型：
+- en: '[PRE47]'
+  id: totrans-284
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: Mapped types give you more power than a mere `Record` because in addition to
+    letting you give types to an object’s keys and values, when you combine them with
+    keyed-in types, they let you put constraints on which value type corresponds to
+    which key name.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 映射类型比普通的`Record`给你更多的自由度，因为除了让你给对象的键和值赋予类型之外，当你将它们与键入的类型结合时，它们还允许你对对应键名的值类型施加约束。
+- en: Let’s quickly run through some of the things you can do with mapped types.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们快速浏览一下您可以使用映射类型做的一些事情。
+- en: '[PRE48]'
+  id: totrans-287
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO5-1)'
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO5-1)'
+- en: We create a new object type `OptionalAccount` by mapping over `Account`, marking
+    each field as optional along the way.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过映射`Account`并在途中将每个字段标记为可选，我们创建了一个新的对象类型`OptionalAccount`。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO5-2)'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO5-2)'
+- en: We create a new object type `NullableAccount` by mapping over `Account`, adding
+    `null` as a possible value for each field along the way.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过映射`Account`并途中为每个字段添加`null`，我们创建了一个新的对象类型`NullableAccount`。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO5-3)'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO5-3)'
+- en: We create a new object type `ReadonlyAccount` by taking `Account` and making
+    each of its fields read-only (that is, readable but not writable).
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过获取`Account`并将其每个字段标记为只读（即可读但不可写）来创建一个新的对象类型`ReadonlyAccount`。
+- en: '[![4](assets/4.png)](#co_advanced_types_CO5-4)'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO5-4)'
+- en: We can mark fields as optional (`?`) or `readonly`, and we can also unmark them.
+    With the minus (`–`) operator—a special type operator only available with mapped
+    types—we can undo `?` and `readonly`, making fields required and writable again,
+    respectively. Here we create a new object type `Account2`, equivalent to our `Account`
+    type, by mapping over `ReadonlyAccount` and removing the `readonly` modifier with
+    the minus (`–`) operator.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以标记字段为可选（`?`）或`readonly`，也可以取消标记。通过减号（`–`）操作符——仅在映射类型中可用的特殊类型操作符——我们可以撤消`?`和`readonly`，使字段再次成为必需且可写。在此示例中，我们通过映射`ReadonlyAccount`并使用减号（`–`）操作符去除`readonly`修饰符，创建了一个等效于我们的`Account`类型的新对象类型`Account2`。
+- en: '[![5](assets/5.png)](#co_advanced_types_CO5-5)'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_advanced_types_CO5-5)'
+- en: We create a new object type `Account3`, equivalent to our original `Account`
+    type, by mapping over `OptionalAccount` and removing the optional (`?`) operator
+    with the minus (`–`) operator.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过映射`OptionalAccount`并使用减号（`–`）操作符去除可选（`?`）操作符，我们创建了一个等效于原始`Account`类型的新对象类型`Account3`。
+- en: Note
+  id: totrans-298
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'Minus (`–`) has a corresponding plus (`+`) type operator. You will probably
+    never use this operator directly, because it’s implied: within a mapped type,
+    `readonly` is equivalent to `+readonly`, and `?` is equivalent to `+?`. `+` is
+    just there for completeness.'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 减号（`–`）有一个对应的加号（`+`）类型操作符。你可能永远不会直接使用这个操作符，因为它是隐含的：在映射类型内部，`readonly`等同于`+readonly`，`?`等同于`+?`。`+`只是为了完整性而存在。
+- en: Built-in mapped types
+  id: totrans-300
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 内置映射类型
+- en: 'The mapped types we derived in the last section are so useful that TypeScript
+    ships with many of them built in:'
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在上一节中派生的映射类型非常有用，以至于 TypeScript 内置了许多这样的类型：
+- en: '`Record<Keys, Values>`'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Record<Keys, Values>`'
+- en: An object with keys of type `Keys` and values of type `Values`
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具有类型为`Keys`的键和类型为`Values`的值的对象
+- en: '`Partial<Object>`'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Partial<Object>`'
+- en: Marks every field in `Object` as optional
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`Object`中的每个字段标记为可选
+- en: '`Required<Object>`'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Required<Object>`'
+- en: Marks every field in `Object` as nonoptional
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`Object`中的每个字段标记为非可选
+- en: '`Readonly<Object>`'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Readonly<Object>`'
+- en: Marks every field in `Object` as read-only
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`Object`中的每个字段标记为只读
+- en: '`Pick<Object, Keys>`'
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Pick<Object, Keys>`'
+- en: Returns a subtype of `Object`, with just the given `Keys`
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回`Object`的子类型，仅包含给定的`Keys`
+- en: Companion Object Pattern
+  id: totrans-312
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 伴随对象模式
+- en: The companion object pattern comes to us from [Scala](http://bit.ly/2I9Nqg2),
+    and is a way to pair together objects and classes that share the same name. In
+    TypeScript, there’s a similar pattern that’s similarly useful—we’ll also call
+    it the companion object pattern—that we can use to pair together a type and an
+    object.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 伴随对象模式来自于[Scala](http://bit.ly/2I9Nqg2)，它是一种将对象和共享相同名称的类配对的方法。在 TypeScript 中，有一种类似的模式，同样很有用——我们也称之为伴随对象模式——我们可以使用它来配对类型和对象。
+- en: 'It looks like this:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它看起来像这样：
+- en: '[PRE49]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Remember that in TypeScript, types and values live in separate namespaces;
+    you’ll read a little more about this in [“Declaration Merging”](ch10.html#namespace-merging).
+    That means in the same scope, you can have the same name (in this example, `Currency`)
+    bound to both a type and a value. With the companion object pattern, we exploit
+    this separate namespacing to declare a name twice: first as a type, then as a
+    value.'
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请记住，在 TypeScript 中，类型和值存在于不同的命名空间；您将在[“声明合并”](ch10.html#namespace-merging)中稍微了解这一点。这意味着在同一作用域内，您可以同时将同一个名称（在本例中为`Currency`）绑定为类型和值。通过伴随对象模式，我们利用这种分开的命名空间来两次声明一个名称：首先作为类型，然后作为值。
+- en: 'This pattern has a few nice properties. It lets you group type and value information
+    that’s semantically part of a single name (like `Currency`) together. It also
+    lets consumers import both at once:'
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式具有一些优点。它允许你将语义上属于单一名称（如`Currency`）的类型和值信息分组在一起。它还允许消费者同时导入两者：
+- en: '[PRE50]'
+  id: totrans-318
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO6-1)'
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO6-1)'
+- en: Using `Currency` as a type
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`Currency`用作类型
+- en: '[![2](assets/2.png)](#co_advanced_types_CO6-2)'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO6-2)'
+- en: Using `Currency` as a value
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`Currency`用作值
+- en: Use the companion object pattern when a type and an object are semantically
+    related, with the object providing utility methods that operate on the type.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当类型和对象在语义上相关联时，可以使用伴生对象模式，其中对象提供操作该类型的实用方法。
+- en: Advanced Function Types
+  id: totrans-324
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 高级函数类型
+- en: Let’s take a look at a few more advanced techniques that are often used with
+    function types.
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看一些通常与函数类型一起使用的更高级技术。
+- en: Improving Type Inference for Tuples
+  id: totrans-326
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 提升元组的类型推断
+- en: 'When you declare a tuple in TypeScript, TypeScript will be lenient about inferring
+    that tuple’s type. It will infer the most general possible type based on what
+    you gave it, ignoring the length of your tuple and which position holds which
+    type:'
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你在TypeScript中声明一个元组时，TypeScript在推断该元组的类型时会比较宽松。它将根据你提供的内容推断出最一般的可能类型，忽略元组的长度以及每个位置上的类型：
+- en: '[PRE51]'
+  id: totrans-328
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: But sometimes you want inference that’s stricter, that would treat `a` as a
+    fixed-length tuple and not as an array. You could, of course, use a type assertion
+    to cast your tuple to a tuple type (more on this in [“Type Assertions”](#type-assertions)).
+    Or, you could use an `as const` assertion ([“The const type”](#const-types)) to
+    infer the tuple’s type as narrowly as possible, marking it as read-only.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但有时候你希望推断更严格，希望将`a`视为固定长度的元组而不是数组。当然，你可以使用类型断言将你的元组转换为元组类型（关于此更多内容，请参见[“类型断言”](#type-assertions)）。或者，你可以使用`as
+    const`断言（关于[“const类型”](#const-types)）尽可能地推断元组类型，标记它为只读。
+- en: 'What if you want to type your tuple as a tuple, but avoid a type assertion,
+    and avoid the narrow inference and read-only modifier that `as const` gives you?
+    To do that, you can take advantage of the way TypeScript infers types for rest
+    parameters (jump back to [“Using bounded polymorphism to model arity”](ch04.html#modelling-arity)
+    for more about that):'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想将你的元组类型化为元组，但又想避免类型断言、避免`as const`给出的窄推断和只读修饰符，该怎么办？为了做到这一点，你可以利用TypeScript为剩余参数推断类型的方式（参见[“使用有界多态来模拟元组长度”](ch04.html#modelling-arity)获取更多信息）：
+- en: '[PRE52]'
+  id: totrans-331
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO7-1)'
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO7-1)'
+- en: We declare a `tuple` function that we’ll use to construct tuple types (instead
+    of using the built-in `[]` syntax).
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明一个`tuple`函数，用于构造元组类型（而不是使用内置的`[]`语法）。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO7-2)'
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO7-2)'
+- en: We declare a single type parameter `T` that’s a subtype of `unknown[]` (meaning
+    `T` is an array of any kind of type).
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明了一个名为`T`的单一类型参数，它是`unknown[]`的子类型（意味着`T`是任何类型的数组）。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO7-3)'
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO7-3)'
+- en: '`tuple` takes a variable number of parameters, `ts`. Because `T` describes
+    a rest parameter, TypeScript will infer a tuple type for it.'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`tuple`接受一个名为`ts`的可变参数。由于`T`描述了一个剩余参数，TypeScript将为其推断出一个元组类型。'
+- en: '[![4](assets/4.png)](#co_advanced_types_CO7-4)'
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO7-4)'
+- en: '`tuple` returns a value of the same tuple type that it inferred `ts` as.'
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`tuple`返回一个与其推断出的`ts`相同类型的值。'
+- en: '[![5](assets/5.png)](#co_advanced_types_CO7-5)'
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_advanced_types_CO7-5)'
+- en: Our function returns the same argument that we passed it. The magic is all in
+    the types.
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的函数返回我们传递给它的相同参数。其中的魔力都在于类型上。
+- en: Take advantage of this technique in order to avoid type assertions when your
+    code uses lots of tuple types.
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 利用这种技术，可以在代码使用大量元组类型时避免类型断言。
+- en: User-Defined Type Guards
+  id: totrans-343
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 用户定义的类型保护
+- en: 'For some kinds of `boolean`-returning functions, simply saying that your function
+    returns a `boolean` may not be enough. For example, let’s write a function that
+    tells you if you passed it a `string` or not:'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于某些返回`boolean`的函数，简单地声明函数返回`boolean`可能还不够。例如，让我们编写一个函数，告诉你是否传递了一个`string`：
+- en: '[PRE53]'
+  id: totrans-345
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: So far so good. What happens if you try to use `isString` in some real-world
+    code?
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止还不错。如果你尝试在一些实际代码中使用`isString`会发生什么？
+- en: '[PRE54]'
+  id: totrans-347
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: What gives? If `typeof` works for regular type refinement (see [“Refinement”](#refinement)),
+    why doesn’t it work here?
+  id: totrans-348
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 怎么回事？如果`typeof`适用于常规类型细化（参见[“细化”](#refinement)），为什么在这里不起作用？
+- en: The thing about type refinement is it’s only powerful enough to refine the type
+    of a variable in the scope you’re in. As soon as you leave that scope, the refinement
+    doesn’t carry over to whatever new scope you’re in. In our `isString` implementation,
+    we refined the input parameter’s type to `string` using `typeof`, but because
+    type refinement doesn’t carry over to new scopes, it got lost—all TypeScript knows
+    is that `isString` returned a `boolean`.
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型细化的问题在于它只能在你所在的作用域中细化变量的类型。一旦你离开该作用域，这种细化就不会传递到你进入的新作用域。在我们的`isString`实现中，我们使用`typeof`将输入参数的类型细化为`string`，但是因为类型细化不会传递到新的作用域，它就丢失了——TypeScript只知道`isString`返回了一个`boolean`。
+- en: 'What we can do is tell the typechecker that not only does `isString` return
+    a `boolean`, but whenever that `boolean` is `true`, the argument we passed to
+    `isString` is a `string`. To do that, we use something called a *user-defined
+    type guard*:'
+  id: totrans-350
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以告诉类型检查器，`isString`不仅返回一个`boolean`，而且当这个`boolean`为`true`时，我们传递给`isString`的参数是一个`string`。为了做到这一点，我们使用了一种称为*用户定义的类型守卫*的东西：
+- en: '[PRE55]'
+  id: totrans-351
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: Type guards are a built-in TypeScript feature, and are what lets you refine
+    types with `typeof` and `instanceof`. But sometimes, you need the ability to declare
+    type guards yourself—that’s what the `is` operator is for. When you have a function
+    that refines its parameters’ types and returns a `boolean`, you can use a user-defined
+    type guard to make sure that refinement is flowed whenever you use that function.
+  id: totrans-352
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型守卫是TypeScript的内置特性，可以让你使用`typeof`和`instanceof`来细化类型。但有时候，你需要能够自己声明类型守卫——这就是`is`运算符的用途。当你有一个函数可以细化其参数类型并返回一个`boolean`时，你可以使用用户定义的类型守卫来确保在使用该函数时流动该细化。
+- en: 'User-defined type guards are limited to a single parameter, but they aren’t
+    limited to simple types:'
+  id: totrans-353
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户定义的类型守卫限制于单个参数，但并不限于简单类型：
+- en: '[PRE56]'
+  id: totrans-354
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: You won’t use user-defined type guards often, but when you do, they’re awesome
+    for writing clean, reusable code. Without them, you’d have to inline all your
+    `typeof` and `instanceof` type guards instead of building functions like `isLegacyDialog`
+    and `isString` to perform those same checks in a better-encapsulated, more readable
+    way.
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你不经常使用用户定义的类型守卫，但当你使用时，它们非常适合编写干净、可重用的代码。如果没有它们，你将不得不内联所有你的`typeof`和`instanceof`类型守卫，而不是像`isLegacyDialog`和`isString`这样构建函数，以更好封装、更可读的方式执行相同的检查。
+- en: Conditional Types
+  id: totrans-356
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 条件类型
+- en: 'Conditional types might be the single most unique feature in all of TypeScript.
+    At a high level, conditional types let you say, “Declare a type `T` that depends
+    on types `U` and `V`; if `U <: V`, then assign `T` to `A`, and otherwise, assign
+    `T` to `B`.”'
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '条件类型可能是TypeScript中最独特的功能。在高层次上，条件类型让你说，“声明一个依赖于类型`U`和`V`的类型`T`；如果`U <: V`，则将`T`分配给`A`，否则，将`T`分配给`B`。”'
+- en: 'In code it might look like this:'
+  id: totrans-358
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在代码中，它可能看起来像这样：
+- en: '[PRE57]'
+  id: totrans-359
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: Let’s break that down line by line.
+  id: totrans-360
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们逐行分解这个问题。
+- en: '[![1](assets/1.png)](#co_advanced_types_CO8-1)'
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO8-1)'
+- en: We declare a new conditional type `IsString` that takes a generic type `T`.
+    The “condition” part of this conditional type is `T extends string`; that is,
+    “Is `T` a subtype of `string`?”
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明了一个新的条件类型`IsString`，它接受一个泛型类型`T`。这个条件类型的“条件”部分是`T extends string`；也就是说，“`T`是`string`的子类型吗？”
+- en: '[![2](assets/2.png)](#co_advanced_types_CO8-2)'
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO8-2)'
+- en: If `T` is a subtype of `string`, we resolve to the type `true`.
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果`T`是`string`的子类型，我们解析为类型`true`。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO8-3)'
+  id: totrans-365
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO8-3)'
+- en: Otherwise, we resolve to the type `false`.
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 否则，我们解析为类型`false`。
+- en: Note how the syntax looks just like a regular value-level ternary expression,
+    but at the type level. And like regular ternary expressions, you can nest them
+    too.
+  id: totrans-367
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意语法看起来就像是常规的值级三元表达式，但在类型级别。而且和常规的三元表达式一样，你也可以嵌套它们。
+- en: 'Conditional types aren’t limited to type aliases. You can use them almost anywhere
+    you can use a type: in type aliases, interfaces, classes, parameter types, and
+    generic defaults in functions and methods.'
+  id: totrans-368
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 条件类型并不限于类型别名。你可以在几乎任何你可以使用类型的地方使用它们：在类型别名中、接口、类、参数类型以及函数和方法中的泛型默认值。
+- en: Distributive Conditionals
+  id: totrans-369
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 分布式条件
+- en: While you can express simple conditions like the examples we just looked at
+    in a variety of ways in TypeScript—with conditional types, overloaded function
+    signatures, and mapped types—conditional types let you do more. The reason for
+    this is that they follow the *distributive law* (remember, from algebra class?).
+    That means if you have a conditional type, then the expressions on the right are
+    equivalent to those on the left in [Table 6-1](#dist-condition-table).
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然你可以用 TypeScript 中的条件类型、重载函数签名和映射类型来表达简单的条件，但条件类型让你可以做更多事情。原因在于它们遵循 *分布法则*（还记得代数课上学过的吗？）。这意味着如果你有一个条件类型，右侧的表达式在
+    [表 6-1](#dist-condition-table) 中等效于左侧的表达式。
+- en: Table 6-1\. Distributing conditional types
+  id: totrans-371
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6-1\. 条件类型的分布
+- en: '| This… | Is equivalent to |'
+  id: totrans-372
+  prefs: []
+  type: TYPE_TB
+  zh: '| 这… | 等同于 |'
+- en: '| --- | --- |'
+  id: totrans-373
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `string extends T ? A : B` | `string extends T ? A : B` |'
+  id: totrans-374
+  prefs: []
+  type: TYPE_TB
+  zh: '| `string extends T ? A : B` | `string extends T ? A : B` |'
+- en: '| `(string &#124; number) extends T ? A : B` | `(string extends T ? A : B)
+    &#124; (number extends T ? A : B)` |'
+  id: totrans-375
+  prefs: []
+  type: TYPE_TB
+  zh: '| `(string &#124; number) extends T ? A : B` | `(string extends T ? A : B)
+    &#124; (number extends T ? A : B)` |'
+- en: '| `(string &#124; number &#124; boolean) extends T ? A : B` | `(string extends
+    T ? A : B) &#124; (number extends T ? A : B) &#124; (boolean extends T ? A : B)`
+    |'
+  id: totrans-376
+  prefs: []
+  type: TYPE_TB
+  zh: '| `(string &#124; number &#124; boolean) extends T ? A : B` | `(string extends
+    T ? A : B) &#124; (number extends T ? A : B) &#124; (boolean extends T ? A : B)`
+    |'
+- en: I know, I know, you didn’t shell out for this book to learn about math—you’re
+    here for the types. So let’s get more concrete. Let’s say we have a function that
+    takes some variable of type `T`, and lifts it to an array of type `T[]`. What
+    happens if we pass in a union type for `T`?
+  id: totrans-377
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我知道，我知道，你不是为了数学知识买这本书的——你是为了类型。那么让我们更具体点。假设我们有一个函数，它接受类型 `T` 的某个变量，并将其提升为类型
+    `T[]` 的数组。如果我们为 `T` 传入一个联合类型会发生什么？
+- en: '[PRE58]'
+  id: totrans-378
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'Pretty straightforward. Now what happens if we add a conditional type? (Note
+    that the conditional doesn’t actually do anything here because both its branches
+    resolve to the same type `T[]`; it’s just here to tell TypeScript to *distribute*
+    `T` over the tuple type.) Take a look:'
+  id: totrans-379
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 非常直观。那么如果我们添加一个条件类型会发生什么呢？（请注意，此处的条件实际上没有做任何事情，因为它的两个分支都会解析为相同的类型 `T[]`；它只是告诉
+    TypeScript *分布* `T` 到元组类型中。）看一下：
+- en: '[PRE59]'
+  id: totrans-380
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: Did you catch that? When you use a conditional type, TypeScript will distribute
+    union types over the conditional’s branches. It’s like taking the conditional
+    type and mapping (er, *distributing*) it over each element in the union.
+  id: totrans-381
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你明白了吗？当你使用条件类型时，TypeScript 将会将联合类型分布到条件的分支中。这就像是将条件类型映射（或者说 *分布*）到联合的每个元素中一样。
+- en: Why does any of this matter? Well, it lets you safely express a bunch of common
+    operations.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些有什么作用呢？它让你能够安全地表达一些常见的操作。
+- en: For example, TypeScript comes with `&` for computing what two types have in
+    common and `|` for taking a union of two types. Let’s build `Without<T, U>`, which
+    computes the types that are in `T` but not in `U`.
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，TypeScript 提供了 `&` 来计算两种类型共有的部分，`|` 来获取两种类型的并集。我们来构建 `Without<T, U>`，它计算了存在于
+    `T` 中但不存在于 `U` 中的类型。
+- en: '[PRE60]'
+  id: totrans-384
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'You use `Without` like so:'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以这样使用 `Without`：
+- en: '[PRE61]'
+  id: totrans-386
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'Let’s walk through how TypeScript computes this type:'
+  id: totrans-387
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看 TypeScript 如何计算这种类型：
+- en: 'Start with the inputs:'
+  id: totrans-388
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 从输入开始：
+- en: '[PRE62]'
+  id: totrans-389
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'Distribute the condition over the union:'
+  id: totrans-390
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在联合中分布条件：
+- en: '[PRE63]'
+  id: totrans-391
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: 'Substitute in `Without`’s definition and apply `T` and `U`:'
+  id: totrans-392
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在 `Without` 的定义中替换并应用 `T` 和 `U`：
+- en: '[PRE64]'
+  id: totrans-393
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'Evaluate the conditions:'
+  id: totrans-394
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 评估条件：
+- en: '[PRE65]'
+  id: totrans-395
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'Simplify:'
+  id: totrans-396
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 简化：
+- en: '[PRE66]'
+  id: totrans-397
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: If it wasn’t for the distributive property of conditional types, we would have
+    ended up with `never` (if you’re not sure why, walk through what would happen
+    for yourself!).
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有条件类型的分布性质，我们将会得到 `never` 类型（如果你不确定为什么，请自行思考会发生什么！）。
+- en: The infer Keyword
+  id: totrans-399
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: '`infer` 关键字'
+- en: 'The final feature of conditional types is the ability to declare generic types
+    as part of a condition. As a refresher, so far we’ve seen just one way to declare
+    generic type parameters: using angle brackets (`<T>`). Conditional types have
+    their own syntax for declaring generic types inline: the `infer` keyword.'
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 条件类型的最终特性是能够将通用类型声明为条件的一部分。简而言之，到目前为止，我们只见过一种声明通用类型参数的方式：使用尖括号 (`<T>`）。条件类型有自己的语法来内联声明通用类型：`infer`
+    关键字。
+- en: 'Let’s declare a conditional type `ElementType`, which gets the type of an array’s
+    elements:'
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们声明一个条件类型 `ElementType`，用来获取数组元素的类型：
+- en: '[PRE67]'
+  id: totrans-402
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'Now, let’s rewrite it using `infer`:'
+  id: totrans-403
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们使用 `infer` 来重写它：
+- en: '[PRE68]'
+  id: totrans-404
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: In this simple example `ElementType` is equivalent to `ElementType2`. Notice
+    how the `infer` clause declares a new type variable, `U`—TypeScript will infer
+    the type of `U` from context, based on what `T` you passed to `ElementType2`.
+  id: totrans-405
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个简单的例子中，`ElementType` 等价于 `ElementType2`。注意 `infer` 子句如何声明一个新的类型变量 `U` ——
+    TypeScript 将根据您传递给 `ElementType2` 的 `T` 的上下文推断出 `U` 的类型。
+- en: Also notice why we declared `U` inline instead of declaring it up front, alongside
+    `T`. What would have happened if we did declare it up front?
+  id: totrans-406
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还要注意为什么我们内联声明 `U` 而不是与 `T` 一起最前面声明它。如果我们最前面声明它会发生什么？
+- en: '[PRE69]'
+  id: totrans-407
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: Uh-oh. Because `ElementUgly` defines two generic types, `T` and `U`, we have
+    to pass both of them in when instantiating `ElementUgly`. But if we do that, that
+    defeats the point of having an `ElementUgly` type in the first place; it puts
+    the burden of computing `U` on the caller, when we wanted `ElementUgly` to compute
+    the type itself.
+  id: totrans-408
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哎呀。因为 `ElementUgly` 定义了两个泛型类型 `T` 和 `U`，当实例化 `ElementUgly` 时，我们必须同时传入它们。但如果我们这样做，那么就失去了首次引入
+    `ElementUgly` 类型的意义；它把计算 `U` 的负担放在了调用者身上，而我们希望 `ElementUgly` 自己计算类型。
+- en: Honestly, this was a bit of a silly example because we already have the keying-in
+    operator (`[]`) to look up the type of an array’s elements. What about a more
+    complicated example?
+  id: totrans-409
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 老实说，这个例子有点傻，因为我们已经有了键入运算符（`[]`）来查找数组元素的类型。那么更复杂的例子呢？
+- en: '[PRE70]'
+  id: totrans-410
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: So, `[].slice`’s second argument is a `number | undefined`. And we know this
+    at compile time—try doing *that* in Java.
+  id: totrans-411
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，`[].slice` 的第二个参数是 `number | undefined`。我们在编译时知道这一点 —— 尝试在 Java 中做*这个*。
+- en: Built-in Conditional Types
+  id: totrans-412
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 内置条件类型
+- en: 'Conditional types let you express some really powerful operations at the type
+    level. That’s why TypeScript ships with a few globally available conditional types
+    out of the box:'
+  id: totrans-413
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 条件类型允许您在类型级别表达一些非常强大的操作。这就是为什么 TypeScript 提供了一些全局可用的条件类型：
+- en: '`Exclude<T, U>`'
+  id: totrans-414
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Exclude<T, U>`'
+- en: 'Like our `Without` type from before, computes those types in `T` that are not
+    in `U`:'
+  id: totrans-415
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像我们之前的 `Without` 类型一样，计算在 `T` 中不在 `U` 中的那些类型：
+- en: '[PRE71]'
+  id: totrans-416
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: '`Extract<T, U>`'
+  id: totrans-417
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Extract<T, U>`'
+- en: 'Computes the types in `T` that you can assign to `U`:'
+  id: totrans-418
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算在 `T` 中可以赋值给 `U` 的类型：
+- en: '[PRE72]'
+  id: totrans-419
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: '`NonNullable<T>`'
+  id: totrans-420
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`NonNullable<T>`'
+- en: 'Computes a version of `T` that excludes `null` and `undefined`:'
+  id: totrans-421
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算 `T` 的一个版本，排除 `null` 和 `undefined`：
+- en: '[PRE73]'
+  id: totrans-422
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: '`ReturnType<F>`'
+  id: totrans-423
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`ReturnType<F>`'
+- en: 'Computes a function’s return type (note that this doesn’t work as you’d expect
+    for generic and overloaded functions):'
+  id: totrans-424
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算函数的返回类型（请注意，这对于泛型和重载函数的预期效果与您期望的不同）：
+- en: '[PRE74]'
+  id: totrans-425
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: '`InstanceType<C>`'
+  id: totrans-426
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`InstanceType<C>`'
+- en: 'Computes the instance type of a class constructor:'
+  id: totrans-427
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算类构造函数的实例类型：
+- en: '[PRE75]'
+  id: totrans-428
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: Escape Hatches
+  id: totrans-429
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 逃生舱口
+- en: Sometimes you don’t have time to type something perfectly, and you just want
+    TypeScript to trust that what you’re doing is safe. Maybe a type declaration for
+    a third party module you’re using is wrong and you want to test your code before
+    contributing the fix back to DefinitelyTyped,^([4](ch06.html#idm46304963799608))
+    or maybe you’re getting data from an API and you haven’t regenerated type declarations
+    with Apollo yet.
+  id: totrans-430
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时您没有时间完全打字，只想 TypeScript 相信您所做的是安全的。也许您正在使用第三方模块的类型声明存在错误，希望在贡献修复到 DefinitelyTyped
+    之前测试您的代码，^([4](ch06.html#idm46304963799608)) 或者您正在从 API 获取数据，但尚未使用 Apollo 重新生成类型声明。
+- en: Luckily, TypeScript knows that we’re only human, and gives us a few escape hatches
+    for when we just want to do something and don’t have time to prove to TypeScript
+    that it’s safe.
+  id: totrans-431
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，TypeScript 知道我们只是人类，所以在我们只想做一些事情而没有时间向 TypeScript 证明它是安全的时候，它给了我们一些逃生舱口。
+- en: Note
+  id: totrans-432
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In case it’s not obvious, you should use the following TypeScript features as
+    little as possible. If you find yourself relying on them, you might be doing something
+    wrong.
+  id: totrans-433
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果不明显的话，您应尽可能少地使用以下 TypeScript 功能。如果发现自己依赖它们，可能做错了什么。
+- en: Type Assertions
+  id: totrans-434
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型断言
+- en: 'If you have a type `B` and `A <: B <: C`, then you can assert to the typechecker
+    that `B` is actually an `A` or a `C`. Notably, you can only assert that a type
+    is a supertype or a subtype of itself—you can’t, for example, assert that a `number`
+    is a `string`, because those types aren’t related.'
+  id: totrans-435
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果您有类型 `B` 并且 `A <: B <: C`，那么您可以断言给类型检查器，`B` 实际上是 `A` 或 `C`。特别地，您只能断言类型是其自身的超类型或子类型
+    —— 例如，您不能断言 `number` 是 `string`，因为这些类型没有关系。'
+- en: 'TypeScript gives us two syntaxes for type assertions:'
+  id: totrans-436
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 为我们提供了两种类型断言语法：
+- en: '[PRE76]'
+  id: totrans-437
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO9-1)'
+  id: totrans-438
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO9-1)'
+- en: We use a type assertion (`as`) to tell TypeScript that `input` is a `string`,
+    not a `string | number` as the types would have us believe. You might do this,
+    for example, if you want to quickly test out your `formatInput` function and you
+    know for sure that `getUserInput` returns a `string` for your test.
+  id: totrans-439
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用类型断言（`as`）告诉 TypeScript `input` 是一个`string`，而不是类型会告诉我们的`string | number`。例如，如果您想快速测试您的`formatInput`函数，并且您确定`getUserInput`返回一个`string`，您可能会这样做。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO9-2)'
+  id: totrans-440
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO9-2)'
+- en: The legacy syntax for type assertions uses angle brackets. The two syntaxes
+    are functionally equivalent.
+  id: totrans-441
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言的传统语法使用尖括号。这两种语法在功能上是等效的。
+- en: Note
+  id: totrans-442
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Prefer `as` syntax for type assertions over angle bracket (`<>`) syntax. The
+    former is unambiguous, but the latter can clash with TSX syntax (see [“TSX = JSX
+    + TypeScript”](ch09.html#tsx-jsx-ts)). Use TSLint’s [`no-angle-bracket-type-assertion`](http://bit.ly/2WEGGKe)
+    rule to automatically enforce this for your codebase.
+  id: totrans-443
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更喜欢使用`as`语法进行类型断言，而不是尖括号（`<>`）语法。前者是明确的，而后者可能与 TSX 语法冲突（参见[“TSX = JSX + TypeScript”](ch09.html#tsx-jsx-ts)）。使用
+    TSLint 的[`no-angle-bracket-type-assertion`](http://bit.ly/2WEGGKe)规则可以自动强制执行此操作，适用于您的代码库。
+- en: 'Sometimes, two types might not be sufficiently related, so you can’t assert
+    that one is the other. To get around this, simply assert as `any` (remember from
+    [“Assignability”](#assignability) that `any` is assignable to anything), then
+    spend a few minutes in the corner thinking about what you’ve done:'
+  id: totrans-444
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，两种类型可能不足够相关，因此您不能断言一种类型是另一种类型。为了解决这个问题，简单地断言为`any`（从[“可赋值性”](#assignability)中记住，`any`可以赋值给任何类型），然后在角落里花几分钟思考您所做的事情：
+- en: '[PRE77]'
+  id: totrans-445
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: Clearly, type assertions are unsafe, and you should avoid using them when possible.
+  id: totrans-446
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，类型断言是不安全的，在可能的情况下应避免使用它们。
+- en: Nonnull Assertions
+  id: totrans-447
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 非空断言
+- en: For the special case of nullable types—that is, a type that’s `T | null` or
+    `T | null | undefined`—TypeScript has special syntax for asserting that a value
+    of that type is a `T`, and not `null` or `undefined`. This comes up in a few places.
+  id: totrans-448
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于可为空类型的特殊情况——即类型为`T | null`或`T | null | undefined`——TypeScript 有特殊的语法来断言该类型的值是`T`，而不是`null`或`undefined`。这在几个地方会遇到。
+- en: 'For example, say we’ve written a framework for showing and hiding dialogs in
+    a web app. Each dialog gets a unique ID, which we use to get a reference to the
+    dialog’s DOM node. Once a dialog is removed from the DOM, we delete its ID, indicating
+    that it’s no longer live in the DOM:'
+  id: totrans-449
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设我们已经为在 Web 应用程序中显示和隐藏对话框编写了一个框架。每个对话框都有一个唯一的 ID，我们使用它来获取对话框的 DOM 节点的引用。一旦对话框从
+    DOM 中移除，我们删除其 ID，表示它在 DOM 中不再存在：
+- en: '[PRE78]'
+  id: totrans-450
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO10-1)'
+  id: totrans-451
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO10-1)'
+- en: If the dialog is already deleted (so it has no `id`), we return early.
+  id: totrans-452
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果对话框已被删除（因此没有`id`），我们会提前返回。
+- en: '[![2](assets/2.png)](#co_advanced_types_CO10-2)'
+  id: totrans-453
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO10-2)'
+- en: We remove the dialog from the DOM on the next turn of the event loop, so that
+    any other code that depends on `dialog` has a chance to finish running.
+  id: totrans-454
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在事件循环的下一个轮次中，我们从 DOM 中移除对话框，以便依赖于`dialog`的任何其他代码都有机会完成运行。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO10-3)'
+  id: totrans-455
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO10-3)'
+- en: Because we’re inside the arrow function, we’re now in a new scope. TypeScript
+    doesn’t know if some code mutated `dialog` between [![1](assets/1.png)](#co_advanced_types_CO10-1)
+    and [![3](assets/3.png)](#co_advanced_types_CO10-3), so it invalidates the refinement
+    we made in [![1](assets/1.png)](#co_advanced_types_CO10-1). On top of that, while
+    we know that if `dialog.id` is defined then an element with that ID definitely
+    exists in the DOM (because we designed our framework that way), all TypeScript
+    knows is that calling `document.``getElementById` returns an `HTMLElement | null`.
+    We know it’ll always be a nonnullable `HTMLElement`, but TypeScript doesn’t know
+    that—it only knows about the types we gave it.
+  id: totrans-456
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们现在在箭头函数内部，所以我们现在处于一个新的作用域中。TypeScript 不知道在[![1](assets/1.png)](#co_advanced_types_CO10-1)和[![3](assets/3.png)](#co_advanced_types_CO10-3)之间的某些代码是否会更改`dialog`，因此它无效了我们在[![1](assets/1.png)](#co_advanced_types_CO10-1)中进行的细化。此外，虽然我们知道如果`dialog.id`被定义，则具有该
+    ID 的元素肯定存在于 DOM 中（因为我们设计了我们的框架），但 TypeScript 只知道调用`document.getElementById`返回一个`HTMLElement
+    | null`。我们知道它总是一个非空的`HTMLElement`，但 TypeScript 不知道这一点——它只知道我们给它的类型。
+- en: '[![4](assets/4.png)](#co_advanced_types_CO10-4)'
+  id: totrans-457
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_advanced_types_CO10-4)'
+- en: Similarly, while we know that the dialog is definitely in the DOM and it definitely
+    has a parent DOM node, all TypeScript knows is that the type of `element.``parentNode`
+    is `Node | null`.
+  id: totrans-458
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样地，虽然我们知道对话框肯定在 DOM 中，并且它确实有一个父 DOM 节点，但 TypeScript 只知道 `element.parentNode`
+    的类型是 `Node | null`。
+- en: 'One way to fix this is to add a bunch of `if (_ === null)` checks everywhere.
+    While that’s the right way to do it if you’re unsure if something is `null` or
+    not, TypeScript comes with special syntax for when you’re sure it’s not `null
+    | undefined`:'
+  id: totrans-459
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修复此问题的一种方法是在每个地方添加一堆 `if (_ === null)` 检查。如果你不确定某些东西是否为 `null`，那么这样做是正确的方式，但是
+    TypeScript 提供了特殊的语法，当你确定它不是 `null | undefined` 时可以使用它：
+- en: '[PRE79]'
+  id: totrans-460
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: 'Notice the sprinkling of non`null` assertion operators (`!`) that tell TypeScript
+    that we’re sure `dialog.id`, the result of our `document.getElementById` call,
+    and `element.parentNode` are defined. When a non`null` assertion follows a type
+    that might be `null` or `undefined`, TypeScript will assume that the type is defined:
+    `T | null | undefined` becomes a `T`, `number | string | null` becomes `number
+    | string`, and so on.'
+  id: totrans-461
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意非`null`断言操作符 (`!`) 的使用，告诉 TypeScript 我们确定 `dialog.id`、`document.getElementById`
+    调用的结果以及 `element.parentNode` 是定义的。当非`null`断言跟随一个可能是 `null` 或 `undefined` 的类型时，TypeScript
+    将假定该类型是定义的：`T | null | undefined` 变成 `T`，`number | string | null` 变成 `number |
+    string`，依此类推。
+- en: 'When you find yourself using non`null` assertions a lot, it’s often a sign
+    that you should refactor your code. For example, we could get rid of an assertion
+    by splitting `Dialog` into a union of two types:'
+  id: totrans-462
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你发现自己经常使用非`null`断言时，这通常是你应该重构代码的一个标志。例如，我们可以通过将 `Dialog` 拆分为两种类型的联合来消除断言：
+- en: '[PRE80]'
+  id: totrans-463
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: 'We can then update `closeDialog` to take advantage of the union:'
+  id: totrans-464
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们可以更新 `closeDialog` 来利用这个联合：
+- en: '[PRE81]'
+  id: totrans-465
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: 'After we check that `dialog` has an `id` property defined—implying that it’s
+    a `Visible``Dialog`—even inside the arrow function TypeScript knows that the reference
+    to `dialog` hasn’t changed: the `dialog` inside the arrow function is the same
+    `dialog` outside the function, so the refinement carries over instead of being
+    invalidated like it was in the last example.'
+  id: totrans-466
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们检查 `dialog` 是否定义了 `id` 属性之后——这意味着它是一个 `Visible``Dialog`——即使在箭头函数内部 TypeScript
+    也知道引用 `dialog` 没有改变：箭头函数内部的 `dialog` 与函数外部的 `dialog` 是同一个，因此类型细化会被保留，而不像上一个示例中那样失效。
+- en: Definite Assignment Assertions
+  id: totrans-467
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 确定赋值断言
+- en: 'TypeScript has special syntax for the special case of non`null` assertions
+    for definite assignment checks (as a reminder, a definite assignment check is
+    TypeScript’s way of making sure that by the time you use a variable, that variable
+    has been assigned a value). For example:'
+  id: totrans-468
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 为确定赋值检查的非`null`断言特例提供了特殊的语法（作为提醒，确定赋值检查是 TypeScript 确保在你使用变量之前，该变量已被赋值的方式）。例如：
+- en: '[PRE82]'
+  id: totrans-469
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE82]'
+- en: Clearly, TypeScript just did us a great service by catching this error. We declared
+    the variable `userId`, but forgot to assign a value to it before we tried to convert
+    it to uppercase. This would have been a runtime error if TypeScript hadn’t noticed
+    it!
+  id: totrans-470
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，TypeScript 通过捕获此错误为我们提供了极大的帮助。我们声明了变量 `userId`，但在尝试将其转换为大写之前忘记给它赋值。如果 TypeScript
+    没有注意到，这将是一个运行时错误！
+- en: But, what if our code looks more like this?
+  id: totrans-471
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果我们的代码看起来更像这样呢？
+- en: '[PRE83]'
+  id: totrans-472
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE83]'
+- en: 'We happen to have the world’s greatest cache, and when we query this cache
+    we get a cache hit 100% of of the time. So after the call to `fetchUser`, `userId`
+    is guaranteed to be defined. But TypeScript isn’t able to statically detect that,
+    so it still throws the same error as before. We can use a definite assignment
+    assertion to tell TypeScript that `userId` will definitely be assigned by the
+    time we read it (notice the exclamation mark):'
+  id: totrans-473
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们碰巧拥有世界上最棒的缓存，当我们查询此缓存时，我们百分百的时间都会命中缓存。因此在调用 `fetchUser` 后，`userId` 被保证已定义。但
+    TypeScript 无法静态检测到这一点，因此仍然抛出与之前相同的错误。我们可以使用确定赋值断言告诉 TypeScript，在我们读取它之前，`userId`
+    一定会被赋值（注意感叹号）：
+- en: '[PRE84]'
+  id: totrans-474
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE84]'
+- en: As with type assertions and non`null` assertions, if you find yourself using
+    definite assignment assertions often, you might be doing something wrong.
+  id: totrans-475
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 和类型断言和非`null`断言一样，如果你发现自己经常使用确定赋值断言，那么你可能做错了什么。
+- en: Simulating Nominal Types
+  id: totrans-476
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 模拟名义类型
+- en: By this point in the book, if I were to shake you awake at three in the morning
+    and yell “IS TYPESCRIPT’S TYPE SYSTEM STRUCTURAL OR NOMINAL?!” you’d yell back
+    “OF COURSE IT’S STRUCTURAL! NOW GET OUT OF MY HOUSE OR I’LL CALL THE POLICE!”
+    That would be a fair response to me breaking in for early morning type system
+    questions.
+  id: totrans-477
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书的这一阶段，如果我在凌晨三点把你摇醒并大声喊“TYPESCRIPT 的类型系统是结构化的还是名义的？！”你会大声回答“当然是结构化的！现在快滚出去，不然我要报警了！”这对我突然问类型系统问题确实是一个合理的反应。
+- en: 'Laws aside, the reality is that sometimes nominal types really are useful.
+    For example, let’s say you have a few `ID` types in your application, representing
+    unique ways of addressing the different types of objects in your system:'
+  id: totrans-478
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 法律之外，事实上有时名义类型确实很有用。例如，假设您的应用程序中有几种`ID`类型，表示系统中不同对象类型的唯一方式：
+- en: '[PRE85]'
+  id: totrans-479
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE85]'
+- en: 'A value of type `UserID` might be a simple hash that looks like `"d21b1dbf"`.
+    So while you might alias it as `UserID`, under the hood it’s of course just a
+    regular `string`. A function that takes a `UserID` might look like this:'
+  id: totrans-480
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型为`UserID`的值可能是一个看起来像`"d21b1dbf"`的简单哈希。所以虽然你可能将其别名为`UserID`，但在底层它当然只是一个普通的`string`。接受`UserID`的函数可能如下所示：
+- en: '[PRE86]'
+  id: totrans-481
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE86]'
+- en: This is great documentation, and it helps other engineers on your team know
+    for sure which type of `ID` they should pass in. But since `UserID` is just an
+    alias for `string`, this approach does little to prevent bugs. An engineer might
+    accidentally pass in the wrong type of `ID`, and the types system will be none
+    the wiser!
+  id: totrans-482
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是很好的文档，有助于团队中的其他工程师确切地知道他们应该传递哪种类型的`ID`。但是由于`UserID`只是`string`的别名，这种方法几乎无法防止错误。工程师可能会不小心传递错误类型的`ID`，而类型系统对此一无所知！
+- en: '[PRE87]'
+  id: totrans-483
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE87]'
+- en: This is where *nominal types* come in handy.^([5](ch06.html#idm46304962931080))
+    While TypeScript doesn’t support nominal types out of the box, we can simulate
+    them with a technique called *type branding*. Type branding takes a little work
+    to set up, and using it in TypeScript is not as smooth an experience as it is
+    in languages that have built-in support for nominal type aliases. That said, branded
+    types can make your program significantly safer.
+  id: totrans-484
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是*名义类型*派上用场的地方^([5](ch06.html#idm46304962931080))。虽然 TypeScript 不直接支持名义类型，但我们可以通过一种称为*类型品牌*的技术来模拟它们。类型品牌需要一些设置工作，在
+    TypeScript 中使用它并不像在具有内置支持名义类型别名的语言中那样顺畅。尽管如此，品牌类型可以显著提高程序的安全性。
+- en: Note
+  id: totrans-485
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Depending on your application and the size of your engineering team (the larger
+    your team, the more likely this technique will come in handy for preventing mistakes),
+    you may not need to do this.
+  id: totrans-486
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据您的应用程序和工程团队的规模（团队越大，使用此技术防止错误的可能性就越大），您可能不需要这样做。
+- en: 'Start by creating a synthetic *type brand* for each of your nominal types:'
+  id: totrans-487
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先为每个名义类型创建一个合成的*类型品牌*：
+- en: '[PRE88]'
+  id: totrans-488
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE88]'
+- en: 'An intersection of `string` and `{readonly brand: unique symbol}` is, of course,
+    gibberish. I chose it because it’s impossible to naturally construct that type,
+    and the only way to create a value of that type is with an assertion. That’s the
+    crucial property of branded types: they make it hard to accidentally use a wrong
+    type in their place. I used `unique symbol` as the “brand” because it’s one of
+    two truly nominal kinds of types in TypeScript (the other is `enum`); I took an
+    intersection of that brand with `string` so that we can assert that a given `string`
+    is a given branded type.'
+  id: totrans-489
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`string` 和 `{readonly brand: unique symbol}` 的交集当然是无意义的。我选择它是因为不可能自然地构造出这种类型，而唯一创建这种类型值的方法是通过断言。这就是品牌类型的关键特性：它们使得在其位置意外使用错误类型变得困难。我将`unique
+    symbol`用作“品牌”，因为它是 TypeScript 中两种真正的名义类型之一（另一种是`enum`）；我将其与`string`的交集，以便我们可以断言给定的`string`是给定的品牌类型。'
+- en: 'We now need a way to create values of type `CompanyID`, `OrderID`, and `UserID`.
+    To do that, we’ll use the companion object pattern (introduced in [“Companion
+    Object Pattern”](#companion-objects)). We’ll make a constructor for each branded
+    type, using a type assertion to construct a value of each of our gibberish types:'
+  id: totrans-490
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要一种方法来创建`CompanyID`、`OrderID`和`UserID`类型的值。为此，我们将使用伴生对象模式（介绍见[“伴生对象模式”](#companion-objects)）。我们将为每个品牌类型制作一个构造函数，并使用类型断言来构造我们各种虚构类型的值：
+- en: '[PRE89]'
+  id: totrans-491
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE89]'
+- en: 'Finally, let’s see what it feels like to use these types:'
+  id: totrans-492
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们看看使用这些类型是什么感觉：
+- en: '[PRE90]'
+  id: totrans-493
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE90]'
+- en: 'What’s nice about this approach is how little runtime overhead it has: just
+    one function call per `ID` construction, which will probably be inlined by your
+    JavaScript VM anyway. At runtime, each `ID` is simply a `string`—the brand is
+    purely a compile-time construct.'
+  id: totrans-494
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的优点在于它几乎没有运行时开销：每个 `ID` 构造只需一个函数调用，这可能会被你的 JavaScript 虚拟机内联处理。在运行时，每个 `ID`
+    简单地就是一个 `string` —— 品牌纯粹是一个编译时的构造。
+- en: Again, for most applications this approach is overkill. But for large applications,
+    and when working with easily confused types like different kinds of IDs, branded
+    types can be a killer safety feature.
+  id: totrans-495
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对大多数应用程序来说，这种方法可能有些过头了。但是对于大型应用程序，尤其是在处理易混淆的类型（如不同类型的 ID）时，品牌类型可能是一个非常有效的安全特性。
+- en: Safely Extending the Prototype
+  id: totrans-496
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 安全地扩展原型
+- en: When building JavaScript applications, tradition holds that it’s unsafe to extend
+    prototypes for built-in types. This rule of thumb goes back to before the days
+    of jQuery, when wise JavaScript mages built libraries like [MooTools](https://mootools.net)
+    that extended and overwrote built-in prototype methods directly. But when too
+    many mages augmented prototypes at once, conflicts arose. And without static type
+    systems, you’d only find out about these conflicts from angry users at runtime.
+  id: totrans-497
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建 JavaScript 应用程序时，传统观点认为扩展内置类型的原型是不安全的。这条经验法则可以追溯到 jQuery 之前的时代，当时聪明的 JavaScript
+    法师们构建了像 [MooTools](https://mootools.net) 这样的库，直接扩展和重写内置原型方法。但是，当太多法师同时扩展原型时，就会出现冲突。没有静态类型系统，你只能在运行时从愤怒的用户那里找到这些冲突。
+- en: If you’re not coming from JavaScript, you may be surprised to learn that in
+    JavaScript, you can modify any built-in method (like `[].push`, `'abc'.toUpperCase`,
+    or `Object.assign`) at runtime. Because it’s such a dynamic language, JavaScript
+    gives you direct access to prototypes for every built-in object—`Array.prototype`,
+    `Function.prototype`, `Object.prototype`, and so on.
+  id: totrans-498
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你不是从 JavaScript 转过来的，你可能会惊讶地发现在 JavaScript 中，你可以在运行时修改任何内置方法（比如 `[].push`、`'abc'.toUpperCase`
+    或 `Object.assign`）。因为它是一种如此动态的语言，JavaScript 允许你直接访问每个内置对象的原型 —— `Array.prototype`、`Function.prototype`、`Object.prototype`
+    等等。
+- en: While back in the day extending these prototypes was unsafe, if your code is
+    covered by a static type system like TypeScript, then you can now do it safely.^([6](ch06.html#idm46304962666696))
+  id: totrans-499
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到过去，扩展这些原型是不安全的。但是，如果你的代码受到像 TypeScript 这样的静态类型系统的保护，那么现在你可以安全地这样做了。^([6](ch06.html#idm46304962666696))
+- en: 'For example, we’ll add a `zip` method to the `Array` prototype. It takes two
+    things to safely extend the prototype. First, in a *.ts* file (say, *zip.ts*),
+    we extend the type of `Array`’s prototype; then, we augment the prototype with
+    our new `zip` method:'
+  id: totrans-500
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，我们将向 `Array` 原型添加一个 `zip` 方法。要安全地扩展原型，需要两步。首先，在一个 *.ts* 文件中（比如 *zip.ts*），我们扩展
+    `Array` 原型的类型；然后，我们用我们的新 `zip` 方法增强原型：
+- en: '[PRE91]'
+  id: totrans-501
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE91]'
+- en: '[![1](assets/1.png)](#co_advanced_types_CO11-1)'
+  id: totrans-502
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_advanced_types_CO11-1)'
+- en: We start by telling TypeScript that we’re adding `zip` to `Array`. We take advantage
+    of interface merging ([“Declaration Merging”](ch05.html#interface-merging)) to
+    augment the global `Array<T>` interface, adding our own `zip` method to the already
+    globally defined interface.
+  id: totrans-503
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们首先告诉 TypeScript 我们要将 `zip` 添加到 `Array` 上。我们利用接口合并（[“声明合并”](ch05.html#interface-merging)）来扩展全局的
+    `Array<T>` 接口，将我们自己的 `zip` 方法添加到已经全局定义的接口中。
+- en: 'Since our file doesn’t have any explicit imports or exports—meaning it’s in
+    script mode, as described in [“Module Mode Versus Script Mode”](ch10.html#module-mode)—we
+    were able to augment the global `Array` interface directly by declaring an interface
+    with the exact same name as the existing `Array<T>` interface, and letting TypeScript
+    take care of merging the two for us. If our file were in module mode (which might
+    be the case if, for example, we needed to `import` something for our `zip` implementation),
+    we’d have to wrap our global extension in a `declare global` type declaration
+    (see [“Type Declarations”](ch11.html#type-declarations)):'
+  id: totrans-504
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们的文件没有任何显式的导入或导出 —— 这意味着它处于脚本模式，如 [“模块模式与脚本模式”](ch10.html#module-mode) 中所述
+    —— 我们能够通过声明一个与现有的 `Array<T>` 接口同名的接口来直接扩展全局的 `Array` 接口，并让 TypeScript 帮我们合并这两者。如果我们的文件处于模块模式（例如，如果我们需要为我们的
+    `zip` 实现 `import` 一些内容），我们将不得不在一个 `declare global` 类型声明中包装我们的全局扩展（参见 [“类型声明”](ch11.html#type-declarations)）：
+- en: '[PRE92]'
+  id: totrans-505
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE92]'
+- en: '`global` is a special namespace containing all the globally defined values
+    (anything that you can use in a module-mode file without `import`ing it first;
+    see [Chapter 10](ch10.html#modules)) that lets you augment names in the global
+    scope from a file in module mode.'
+  id: totrans-506
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`global` 是一个特殊的命名空间，包含所有全局定义的值（即在模块模式文件中可以直接使用而不需要首先 `import` 的任何内容；参见[第10章](ch10.html#modules)），允许你从模块模式中的文件中增加全局作用域中的名称。'
+- en: '[![2](assets/2.png)](#co_advanced_types_CO11-2)'
+  id: totrans-507
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_advanced_types_CO11-2)'
+- en: We then implement the `zip` method on `Array`’s prototype. We use a `this` type
+    so that TypeScript correctly infers the `T` type of the array we’re calling `.zip`
+    on.
+  id: totrans-508
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们在 `Array` 的原型上实现 `zip` 方法。我们使用 `this` 类型，以便 TypeScript 正确推断我们调用 `.zip` 的数组的
+    `T` 类型。
+- en: '[![3](assets/3.png)](#co_advanced_types_CO11-3)'
+  id: totrans-509
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_advanced_types_CO11-3)'
+- en: Because TypeScript infers the mapping function’s return type as `(T | U)[]`
+    (TypeScript isn’t smart enough to realize that it’s in fact always a tuple with
+    `T` in the zeroth index and `U` in the first), we use our `tuple` utility (from
+    [“Improving Type Inference for Tuples”](#improving-type-inference-for-tuples))
+    to create a tuple type without resorting to a type assertion.
+  id: totrans-510
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为 TypeScript 推断映射函数的返回类型为 `(T | U)[]`（TypeScript 没有足够智能以意识到实际上它总是一个包含 `T` 在零索引和
+    `U` 在第一索引的元组），我们使用我们的 `tuple` 实用工具（来自[“改进元组类型推断”](#improving-type-inference-for-tuples)）创建一个元组类型，而不是使用类型断言。
+- en: Notice that when we declare `interface Array<T>` we augment the global `Array`
+    namespace for our whole TypeScript project—meaning even if we don’t import *zip.ts*
+    from our file, TypeScript will think that `[].zip` is available. But in order
+    to augment `Array.prototype`, we have to be sure that whatever file uses `zip`
+    loads *zip.ts* first, in order to install the `zip` method on `Array.prototype`.
+    How do we make sure that any file that uses `zip` loads *zip.ts* first?
+  id: totrans-511
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，当我们声明 `interface Array<T>` 时，我们为整个 TypeScript 项目增加了全局的 `Array` 命名空间 —— 这意味着即使我们不从我们的文件导入
+    *zip.ts*，TypeScript 仍然认为 `[].zip` 可用。但是为了增加 `Array.prototype`，我们必须确保任何使用 `zip`
+    的文件首先加载 *zip.ts*，以便在 `Array.prototype` 上安装 `zip` 方法。我们如何确保任何使用 `zip` 的文件都首先加载
+    *zip.ts* 呢？
+- en: 'Easy: we update our *tsconfig.json* to explicitly exclude *zip.ts* from our
+    project, so that consumers have to explicitly `import` it first:'
+  id: totrans-512
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简单来说：我们更新我们的 *tsconfig.json* 文件，明确排除项目中的 *zip.ts*，这样消费者必须首先显式 `import` 它：
+- en: '[PRE93]'
+  id: totrans-513
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE93]'
+- en: 'Now we can use `zip` as we please, with total safety:'
+  id: totrans-514
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以安全地随心所欲地使用 `zip`：
+- en: '[PRE94]'
+  id: totrans-515
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE94]'
+- en: 'Running this gives us the result of first mapping, then zipping the array:'
+  id: totrans-516
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行这个代码会给我们第一次映射的结果，然后再对数组进行打包：
+- en: '[PRE95]'
+  id: totrans-517
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE95]'
+- en: Summary
+  id: totrans-518
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'In this chapter we covered the most advanced features of TypeScript’s type
+    system: from the ins and outs of variance to flow-based type inference, refinement,
+    type widening, totality, and mapped and conditional types. We then derived a few
+    advanced patterns for working with types: type branding to simulate nominal types,
+    taking advantage of the distributive property of conditional types to operate
+    on types at the type level, and safely extending prototypes.'
+  id: totrans-519
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们涵盖了 TypeScript 类型系统中最先进的特性：从变异性的内外到基于流的类型推断、精炼、类型扩展、全面性以及映射和条件类型。然后，我们推导了一些高级类型处理模式：使用类型品牌模拟名义类型，利用条件类型的分配属性在类型级别上操作类型，以及安全地扩展原型。
+- en: If you didn’t understand or don’t remember everything, that’s OK—come back to
+    this chapter later, and use it as a reference when you’re struggling with how
+    to express something more safely.
+  id: totrans-520
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你没有理解或者记不住所有内容，没关系 —— 稍后再回到本章，当你在如何更安全地表达某些内容时遇到困难时，可以将其用作参考。
+- en: Exercises
+  id: totrans-521
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 练习
+- en: 'For each of the following pairs of types, decide if the first type is assignable
+    to the second type, and why or why not. Think about these in terms of subtyping
+    and variance, and refer to the rules at the start of the chapter if you’re unsure
+    (if you’re still unsure, just type it into your code editor to check!):'
+  id: totrans-522
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 对于以下每一对类型，请决定第一个类型是否可分配给第二个类型，以及为什么或为什么不可。考虑这些问题涉及子类型和变异性，并在需要时参考本章开头的规则（如果你仍然不确定，只需在代码编辑器中输入以检查！）：
+- en: '`1` and `number`'
+  id: totrans-523
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`1` 和 `number`'
+- en: '`number` and `1`'
+  id: totrans-524
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`number` 和 `1`'
+- en: '`string` and `number | string`'
+  id: totrans-525
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`string` 和 `number | string`'
+- en: '`boolean` and `number`'
+  id: totrans-526
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`boolean` 和 `number`'
+- en: '`number[]` and `(number | string)[]`'
+  id: totrans-527
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`number[]` 和 `(number | string)[]`'
+- en: '`(number | string)[]` and `number[]`'
+  id: totrans-528
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`(number | string)[]` 和 `number[]`'
+- en: '`{a: true}` and `{a: boolean}`'
+  id: totrans-529
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`{a: true}` 和 `{a: boolean}`'
+- en: '`{a: {b: [string]}}` and `{a: {b: [number | string]}}`'
+  id: totrans-530
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`{a: {b: [string]}}` 和 `{a: {b: [number | string]}}`'
+- en: '`(a: number) => string` and `(b: number) => string`'
+  id: totrans-531
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`(a: number) => string` 和 `(b: number) => string`'
+- en: '`(a: number) => string` and `(a: string) => string`'
+  id: totrans-532
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`(a: number) => string` 和 `(a: string) => string`'
+- en: '`(a: number | string) => string` and `(a: string) => string`'
+  id: totrans-533
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`(a: number | string) => string` 和 `(a: string) => string`'
+- en: '`E.X` (defined in an enum `enum E {X = ''X''}`) and `F.X` (defined in an enum
+    `enum F {X = ''X''}`)'
+  id: totrans-534
+  prefs:
+  - PREF_IND
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`E.X`（定义在枚举 `enum E {X = ''X''}` 中）和 `F.X`（定义在枚举 `enum F {X = ''X''}` 中）'
+- en: 'If you have an object type `type O = {a: {b: {c: string}}}`, what’s the type
+    of `keyof O`? What about `O[''a''][''b'']`?'
+  id: totrans-535
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '如果您有一个对象类型 `type O = {a: {b: {c: string}}}`，那么 `keyof O` 的类型是什么？`O[''a''][''b'']`
+    的类型又是什么？'
+- en: Write an `Exclusive<T, U>` type that computes the types that are in either `T`
+    or `U`, but not both. For example, `Exclusive<1 | 2 | 3, 2 | 3 | 4>` should resolve
+    to `1 | 4`. Write out step by step how the typechecker evaluates `Exclusive<1
+    | 2, 2 | 4>`.
+  id: totrans-536
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 编写一个 `Exclusive<T, U>` 类型，计算既属于 `T` 又属于 `U` 中的类型，但不包括两者都有的类型。例如，`Exclusive<1
+    | 2 | 3, 2 | 3 | 4>` 应解析为 `1 | 4`。逐步写出类型检查器如何评估 `Exclusive<1 | 2, 2 | 4>`。
+- en: Rewrite the example (from [“Definite Assignment Assertions”](#definite-assignment-assertions))
+    to avoid the definite assignment assertion.
+  id: totrans-537
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 重新编写示例（来自[“明确赋值断言”](#definite-assignment-assertions)），以避免明确赋值断言。
+- en: ^([1](ch06.html#idm46304967500104-marker)) Symbolic execution is a form of program
+    analysis where you use a special program called a symbolic evaluator to run your
+    program the same way a runtime would, but without assigning definite values to
+    variables; instead, each variable is modelled as a *symbol* whose value gets constrained
+    as the program runs. Symbolic execution lets you say things like “this variable
+    is never used,” or “this function never returns,” or “in the positive branch of
+    the `if` statement on line 102, variable `x` is guaranteed not to be `null`.”
+  id: totrans-538
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch06.html#idm46304967500104-marker)) 符号执行是一种程序分析形式，您可以使用特殊的程序（称为符号评估器）运行您的程序，就像运行时运行一样，但不为变量分配确定值；而是将每个变量建模为一个*符号*，其值在程序运行时被约束。符号执行使您可以说出像“这个变量从未被使用”，“这个函数从不返回”，或者“在第102行的if语句的正分支中，变量`x`保证不是`null`”这样的话语。
+- en: ^([2](ch06.html#idm46304967497288-marker)) Flow-based type inference is supported
+    by a handful of languages, including TypeScript, Flow, Kotlin, and Ceylon. It’s
+    a way to refine types within a block of code, and is an alternative to C/Java-style
+    explicit type annotations and Haskell/OCaml/Scala-style pattern matching. The
+    idea is to take a symbolic execution engine and embed it right in the typechecker,
+    in order to give feedback to the typechecker and reason through a program in a
+    way that is closer to how a human programmer might do it.
+  id: totrans-539
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch06.html#idm46304967497288-marker)) 基于流的类型推断受到少数语言的支持，包括 TypeScript、Flow、Kotlin
+    和 Ceylon。这是一种在代码块内细化类型的方法，是 C/Java 风格显式类型注解和 Haskell/OCaml/Scala 风格模式匹配的替代方法。其思想是将符号执行引擎嵌入到类型检查器中，以便向类型检查器提供反馈，并以更接近人类程序员思维方式来推理程序。
+- en: '^([3](ch06.html#idm46304967201672-marker)) JavaScript has seven falsy values:
+    `null`, `undefined`, `NaN`, `0`, `-0`, `""`, and of course, `false`. Everything
+    else is truthy.'
+  id: totrans-540
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch06.html#idm46304967201672-marker)) JavaScript 有七个假值：`null`、`undefined`、`NaN`、`0`、`-0`、`""`，当然还有`false`。其他一切皆为真值。
+- en: ^([4](ch06.html#idm46304963799608-marker)) [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)
+    is the open source repository for type declarations for third-party JavaScript.
+    To learn more, jump ahead to [“JavaScript That Has Type Declarations on DefinitelyTyped”](ch11.html#third-party-js-with-dt-typings).
+  id: totrans-541
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch06.html#idm46304963799608-marker)) [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)
+    是第三方 JavaScript 类型声明的开源存储库。要了解更多信息，请跳到[“在DefinitelyTyped上具有类型声明的JavaScript”](ch11.html#third-party-js-with-dt-typings)。
+- en: ^([5](ch06.html#idm46304962931080-marker)) In some languages, these are also
+    called *opaque types*.
+  id: totrans-542
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch06.html#idm46304962931080-marker)) 在某些语言中，这些也称为*不透明类型*。
+- en: ^([6](ch06.html#idm46304962666696-marker)) There are other reasons why you might
+    want to avoid extending the prototype, like code portability, making your dependency
+    graphs more explicit, or improving performance by only loading those methods that
+    you actually use. However, safety is no longer one of those reasons.
+  id: totrans-543
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch06.html#idm46304962666696-marker)) 还有其他原因可能会让您希望避免扩展原型，例如代码的可移植性、使依赖关系图更加明确，或通过仅加载实际使用的方法来提高性能。然而，安全性不再是这些原因之一。

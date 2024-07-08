@@ -1,0 +1,2238 @@
+- en: Chapter 5\. Arrays
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第5章。数组
+- en: Since its inception, JavaScript has had arrays as a separate, standalone data
+    type. But over the years, the way we interact with arrays has changed considerably.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自JavaScript问世以来，数组一直作为一个独立的数据类型存在。但多年来，我们与数组的交互方式发生了很大变化。
+- en: In the past, manipulating an array involved plenty of loops and iterative logic,
+    along with a small set of underpowered methods. Today, the `Array` object is stocked
+    with much more functionality, including methods that emphasize *functional* approaches.
+    Using these methods, you can filter, sort, copy, and transform data, without stepping
+    through array elements one at a time.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在过去，操作数组涉及大量的循环和迭代逻辑，以及一小组功能有限的方法。如今，`Array`对象提供了更多的功能，包括强调*功能性*方法的方法。使用这些方法，您可以过滤、排序、复制和转换数据，而无需逐个遍历数组元素。
+- en: In this chapter, you’ll see how to use these functional approaches—and learn
+    when you might need to sidestep them. The focus is on solving problems using the
+    most modern practices that are available today.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您将看到如何使用这些功能性方法，并了解何时可能需要回避它们。重点是使用今天可用的最现代实践来解决问题。
+- en: Caution
+  id: totrans-4
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you’re trying these examples out in the browser’s developer console, be warned
+    that *lazy evaluation* can fool you. For example, consider what happens if you
+    output an array with `console.log()`, sort it, and then log it again. You expect
+    to see the information for two differently sorted arrays. But you’ll actually
+    see the final, sorted array twice. That’s because most browsers won’t examine
+    the items in your array until you open the console and click to expand the array.
+    One way to avoid this problem is to iterate over the array and log each item separately.
+    For more about the issue, see [“Why Chrome’s Developer Console Sometimes Lies”](https://oreil.ly/VDHtm).
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在浏览器的开发者控制台中尝试这些示例，请注意*惰性评估*可能会误导您。例如，考虑以下情况：如果您使用`console.log()`输出一个数组，然后对其进行排序，并再次记录它。您期望看到两个不同排序的数组信息。但实际上，您将看到最终排序的数组两次。这是因为大多数浏览器直到您打开控制台并点击扩展数组时才会检查数组中的项目。避免此问题的一种方法是遍历数组并分别记录每个项目。有关更多信息，请参阅[“为什么Chrome的开发者控制台有时会撒谎”](https://oreil.ly/VDHtm)。
+- en: Checking If an Object Is an Array
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检查对象是否为数组
+- en: Problem
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Before you perform an array operation, you want to verify that your object truly
+    is an array.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在执行数组操作之前，您需要验证您的对象确实是一个数组。
+- en: Solution
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the static `Array.isArray()` method:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用静态的`Array.isArray()`方法：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Discussion
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `Array.isArray()` method is an obvious choice. Problems happen when developers
+    are tempted to use the older `instanceOf` operator. For historical reasons, the
+    `instanceOf` operator has weird edge cases with arrays (for example, it returns
+    `false` when you test an array that was created in another execution context,
+    such as a different window). The `isArray()` method was added to patch this gap.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Array.isArray()`方法是一个明显的选择。问题出现在开发者们试图使用旧的`instanceOf`运算符时。由于历史原因，`instanceOf`运算符在处理数组时有一些奇怪的边缘情况（例如，当您测试在另一个执行上下文中创建的数组时，比如不同的窗口时，它会返回`false`）。`isArray()`方法被添加来填补这个空白。'
+- en: It’s also important to understand that `isArray()` specifically checks for instances
+    of the `Array` object. If you call it on a different type of collection (like
+    `Map` or `Set`), it returns `false`. This is true even if these collections have
+    array-like semantics, and even if they have *array* in the name, like `TypedArray`
+    (a low-level wrapper for a buffer of binary data).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重要的是要理解，`isArray()`专门检查`Array`对象的实例。如果你在其他类型的集合（如`Map`或`Set`）上调用它，它会返回`false`。即使这些集合具有类似数组的语义，甚至它们的名称中有*array*，比如`TypedArray`（用于二进制数据缓冲区的底层包装器）。
+- en: Iterating Over All the Elements in an Array
+  id: totrans-15
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 遍历数组中的所有元素
+- en: Problem
+  id: totrans-16
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to use the best approach for looping over every element in an array,
+    in order.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望使用最佳方法来循环遍历数组中的每个元素，按顺序进行。
+- en: Solution
+  id: totrans-18
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'The traditional approach is a `for`…`of` loop, which automatically gets each
+    item:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统方法是使用`for`…`of`循环，它会自动获取每个项目：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'In modern JavaScript, it’s becoming increasingly common to favor *functional*
+    approaches in array-processing code. You can iterate over your array in a functional
+    way using the `Array.forEach()` method. You supply a function, and that function
+    is called once for each element in the array, and passed three potentially useful
+    parameters (the element, the element’s index, and the original array). Here’s
+    an example:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在现代 JavaScript 中，越来越普遍地倾向于在处理数组代码时采用*函数式*方法。你可以使用`Array.forEach()`方法以函数式的方式迭代你的数组。你提供一个函数，该函数会为数组中的每个元素调用一次，并传递三个潜在有用的参数（元素本身、元素的索引和原始数组）。以下是一个示例：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'It’s possible to condense this further with arrow syntax ([“Using Arrow Functions”](ch06.html#arrow_functions)):'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用箭头语法，可以进一步简化此过程（[“使用箭头函数”](ch06.html#arrow_functions)）：
+- en: '[PRE3]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Discussion
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: In long-lived languages like JavaScript, there are often many ways to accomplish
+    the same thing. The `for`…`of` loop offers a straightforward syntax for iterating
+    over an array. It doesn’t allow you to modify the elements in the array you’re
+    traversing, which is a safe, sensible approach.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在像 JavaScript 这样的长寿语言中，通常有许多方法可以完成相同的事情。`for`…`of`循环为遍历数组提供了简单直接的语法。它不允许修改正在遍历的数组中的元素，这是一种安全而明智的方法。
+- en: 'However, there are cases when you’ll need to use something different. One of
+    the most flexible choices is a basic `for` loop with a counter:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，有些情况下你可能需要使用一些不同的方法。其中最灵活的选择之一是使用带有计数器的基本`for`循环：
+- en: '[PRE4]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: This approach can allow off-by-one errors to slip by undetected, which are still
+    a surprisingly common source of mistakes in modern-day programming. However, you’ll
+    need to use a `for` loop in some situations, such as when you’re moving through
+    more than one array at the same time (see [“Checking If Two Arrays Are Equal”](#checking_if_two_arrays_are_equal)).
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法可以使易于出错的一错百错错误未被检测到，这在现代编程中仍然是一个令人惊讶的常见错误来源。然而，在某些情况下，例如同时遍历多个数组时（参见[“检查两个数组是否相等”](#checking_if_two_arrays_are_equal)），你需要使用`for`循环。
+- en: 'You can also iterate over an array by passing a function to the `Array.forEach()`
+    method. This function is then called once for each element. Your function can
+    receive three parameters: the current array element, the current array index,
+    and a reference to the original array. Usually, you’ll only need the element.
+    (You could use the index to make changes to the element in the original array,
+    but that’s considered bad form.)'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你还可以通过将函数传递给`Array.forEach()`方法来迭代数组。然后，该函数将为每个元素调用一次。你的函数可以接收三个参数：当前数组元素、当前数组索引以及对原始数组的引用。通常，你只需要元素本身。（你可以使用索引来更改原始数组中的元素，但这被认为是不好的做法。）
+- en: Instead, if you want to use a functional approach to change or examine your
+    array, consider using a more specific, targeted method. [Table 5-1](#functional_array_methods)
+    lists the most useful.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想使用函数式方法来更改或检查数组，请考虑使用更具体、有针对性的方法。[表 5-1](#functional_array_methods) 列出了最有用的方法。
+- en: Table 5-1\. Methods for functional array processing
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 5-1\. 函数式数组处理方法
+- en: '| Task | Array method | Covered in |'
+  id: totrans-33
+  prefs: []
+  type: TYPE_TB
+  zh: '| 任务 | 数组方法 | 所涵盖 |'
+- en: '| --- | --- | --- |'
+  id: totrans-34
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Change every array element | `map()` | [“Transforming Every Element of an
+    Array”](#mapping_array) |'
+  id: totrans-35
+  prefs: []
+  type: TYPE_TB
+  zh: '| 更改每个数组元素 | `map()` | [“转换数组的每个元素”](#mapping_array) |'
+- en: '| See if all elements meet a specific condition | `every()` | [“Validating
+    Array Contents”](#validating_array) |'
+  id: totrans-36
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查看所有元素是否满足特定条件 | `every()` | [“验证数组内容”](#validating_array) |'
+- en: '| See if at least one element meets a specific condition | `some()` | [“Validating
+    Array Contents”](#validating_array) |'
+  id: totrans-37
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查看至少一个元素是否满足特定条件 | `some()` | [“验证数组内容”](#validating_array) |'
+- en: '| Find array elements matching your criteria | `filter()` | [“Extracting Array
+    Items That Meet Specific Criteria”](#copying_items_by_criteria) |'
+  id: totrans-38
+  prefs: []
+  type: TYPE_TB
+  zh: '| 查找满足条件的数组元素 | `filter()` | [“提取满足特定条件的数组项”](#copying_items_by_criteria) |'
+- en: '| Reorder an array | `sort()` | [“Sorting an Array of Objects by a Property
+    Value”](#sorting_array) |'
+  id: totrans-39
+  prefs: []
+  type: TYPE_TB
+  zh: '| 重新排序数组 | `sort()` | [“按属性值对对象数组进行排序”](#sorting_array) |'
+- en: '| Use all the values of an array in one calculation | `reduce()` | [“Combining
+    an Array’s Values in a Single Calculation”](#reducing_array) |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| 在单个计算中使用数组的所有值 | `reduce()` | [“将数组的值组合为单个计算”](#reducing_array) |'
+- en: Modern coding practice favors *functional approaches* to array processing over
+    *iterative approaches*. The advantage of a functional approach is that your code
+    can be more concise, often more readable, and less error-prone. Most of the time,
+    the functional approach also enforces *immutability* for your array. It does that
+    by creating a new copy of the array with the changes you want, rather than making
+    direct modifications on the original array object. This approach also makes certain
+    types of errors less likely.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代编程实践更倾向于使用*函数式方法*处理数组，而不是*迭代方法*。函数式方法的优势在于，你的代码可以更简洁，通常更易读，也更少出错。大多数情况下，函数式方法还会为你的数组强制*不可变性*。它通过创建一个包含你想要的变化的数组的新副本来实现这一点，而不是直接修改原始数组对象。这种方法还会减少某些类型的错误发生的可能性。
+- en: Note
+  id: totrans-42
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As a rule of thumb, look at the functional array methods as a *first resort*.
+    If they make your task more difficult (which might happen if you need to write
+    multiple arrays or perform several array operations at once), switch to the iterative
+    approach. And if you’re writing performance-intensive code (for example, routines
+    that operate on extremely large arrays), consider the iterative approach, because
+    it tends to perform better. But don’t forget to profile both approaches first
+    to see if the difference is truly significant.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一般来说，将函数式数组方法作为*首选方法*。如果它们使你的任务变得更加困难（例如需要写多个数组或执行多个数组操作），切换到迭代方法。如果你正在编写性能密集型代码（例如操作极大数组的例程），考虑使用迭代方法，因为它通常执行效果更好。但是不要忘记首先对两种方法进行分析，看看差异是否真的显著。
+- en: Checking If Two Arrays Are Equal
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 检查两个数组是否相等
+- en: Problem
+  id: totrans-45
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want a simple way to test if two arrays are equivalent (have exactly the
+    same contents).
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望有一个简单的方法来测试两个数组是否等价（具有完全相同的内容）。
+- en: Solution
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'The most straightforward approach is actually the old-fashioned approach: use
+    a basic `for` loop with a counter, step through both arrays at the same time,
+    and compare each element. Of course, there are a couple of checks to make before
+    you start looping, like verifying that each object is an array, isn’t null, and
+    so on. Here’s a bit of code that packages all these criteria into a single useful
+    function:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最直接的方法实际上是老式的方法：使用基本的`for`循环和计数器，同时遍历两个数组，并比较每个元素。当然，在开始循环之前有几个检查要做，比如验证每个对象是否为数组，不为null等等。以下是将所有这些标准打包到一个有用函数中的代码片段：
+- en: '[PRE5]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Now you can check that two arrays are the same, like this:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以像这样检查两个数组是否相同：
+- en: '[PRE6]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'In this version of `areArraysEqual()`, arrays with the same items in a different
+    order are considered nonmatching. You can easily sort arrays of strings or numbers
+    using the `Array.sort()` method. However, it doesn’t make sense to put this code
+    in the `areArrayEquals()` method, because it may not be appropriate for the data
+    types you want to use, or it may be prohibitively slow if you want to compare
+    huge arrays. Instead, sort your arrays before you test them for equality:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个版本的`areArraysEqual()`中，将顺序不同但包含相同项的数组视为不匹配。你可以使用`Array.sort()`方法轻松地对字符串或数字数组进行排序。然而，把这段代码放在`areArrayEquals()`方法中可能并不合适，因为它可能不适用于你想要使用的数据类型，或者在比较大的数组时可能速度太慢。相反，在测试相等之前先对数组进行排序：
+- en: '[PRE7]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Discussion
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Often in programming, it’s up to you to decide what equality means. In this
+    example, `areArraysEqual()` performs a *shallow compare*. If two arrays have the
+    same primitives or the same object references, and their elements are in the same
+    order, they match. But if you start comparing more complex *objects*, ambiguities
+    appear.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在编程中，常常由你自己决定什么是相等的。在这个例子中，`areArraysEqual()`执行的是*浅比较*。如果两个数组具有相同的基本类型或相同的对象引用，并且它们的元素顺序相同，它们就匹配。但是，如果开始比较更复杂的*对象*，就会出现歧义。
+- en: 'For example, consider this comparison of two arrays that hold a single, identical
+    `Date` object:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，考虑这两个包含单个相同`Date`对象的数组的比较：
+- en: '[PRE8]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: These arrays don’t match because even though the underlying date content is
+    the same, the `Date` *instances* are different. (Or, to put it another way, there
+    are two separate `Date` objects that just happen to save the same information
+    in them.)
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些数组不匹配，因为尽管底层的日期内容相同，但`Date` *实例*是不同的。（或者换句话说，有两个单独的`Date`对象，它们恰好保存相同的信息。）
+- en: 'Of course, you can easily compare the content of two `Date` objects (just call
+    `getTime()` to convert them to the millisecond time representation, as explained
+    in [“Comparing Dates and Testing Dates for Equality”](ch04.html#comparing_dates)).
+    But if you want to do that in an array comparison, it’s up to you to write a different
+    function. In your function, you can use `instanceOf` to identify `Date` objects,
+    and then call `getTime()` on them:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，你可以轻松比较两个`Date`对象的内容（只需调用`getTime()`将它们转换为毫秒时间表示，如[“比较日期和测试日期是否相等”](ch04.html#comparing_dates)中所解释的）。但是如果你想在数组比较中这样做，你需要编写一个不同的函数。在你的函数中，你可以使用`instanceOf`来识别`Date`对象，然后在它们上调用`getTime()`：
+- en: '[PRE9]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: The problem shown in this example applies to arrays that hold any type of JavaScript
+    object. It even applies to arrays that hold nested arrays (because every `Array`
+    is an object). Your solution will differ, however, because different equality
+    tests make sense for different objects.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例中展示的问题适用于保存任何类型JavaScript对象的数组。甚至适用于保存嵌套数组的情况（因为每个`Array`都是一个对象）。然而，由于不同的对象需要不同的等式测试，因此你的解决方案可能会有所不同。
+- en: Finally, it’s worth noting that many popular JavaScript libraries have their
+    own generic solutions for deep array comparison, which may or may not be suitable
+    for your data. If you’re already using a library like Lodash or *Underscore.js*,
+    investigate its `isEqual()` method.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后值得注意的是，许多流行的JavaScript库都有它们自己的通用解决方案来进行深度数组比较，这可能适合也可能不适合你的数据。如果你已经在使用像 Lodash
+    或 *Underscore.js* 这样的库，请调查它们的`isEqual()`方法。
+- en: Breaking Down an Array into Separate Variables
+  id: totrans-63
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将数组拆分为单独变量
+- en: Problem
+  id: totrans-64
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You need to assign array element values to several variables, but you want a
+    convenient approach that doesn’t force you to assign each variable separately.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要将数组元素的值分配给多个变量，但是你希望有一种方便的方法，不需要分别为每个变量分配值。
+- en: Solution
+  id: totrans-66
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the array *destructuring syntax* to assign multiple variables at a time.
+    You write an expression that declares several variables (on the left) and grabs
+    the values from an array (on the right). Here’s an example:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用数组的*解构语法*一次性赋值多个变量。你可以编写一个表达式，在左侧声明多个变量，并从数组中获取值（在右侧）。下面是一个示例：
+- en: '[PRE10]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: When you use array destructuring, the values are copied by position. In this
+    example, that means `arizona` gets the first value in the array, `missouri` the
+    second, and so on. If you have more variables than array elements, the extra variables
+    get the value `undefined`.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你使用数组解构时，值是按位置复制的。在这个例子中，这意味着`arizona`获取数组中的第一个值，`missouri`获取第二个值，依此类推。如果你有多个变量而数组元素不足，额外的变量将获得`undefined`的值。
+- en: Discussion
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'When you use array destructuring, you don’t need to copy every value that’s
+    in the array. You can skip values you don’t want by adding extra commas without
+    a variable name:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你使用数组解构时，你不需要复制数组中的每个值。通过在没有变量名的情况下添加额外的逗号，你可以跳过不想要的值：
+- en: '[PRE11]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'You can also use the *rest operator* to stuff all the remaining values (ones
+    you didn’t explicitly assign to variables) into a new array. Here’s an example
+    that copies the three last array elements into an array named `others`:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你还可以使用*剩余操作符*将所有剩余的值（那些你没有显式分配给变量的值）装入一个名为`others`的新数组中。下面是一个示例，将最后三个数组元素复制到数组`others`中：
+- en: '[PRE12]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Note
+  id: totrans-75
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: JavaScript’s rest operator looks just like the spread operator (it’s three dots
+    before a variable). They even “feel” similar in your code, although they actually
+    play complementary roles. The rest operator vacuums up extra values and squashes
+    them into a single array. The spread operator *expands* an array (or another type
+    of iterable object) into separate values.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 的剩余操作符看起来就像扩展操作符（它是变量前的三个点）。它们在你的代码中甚至“感觉”相似，尽管它们实际上扮演互补的角色。剩余操作符可以收集额外的值并将它们压缩成单个数组。扩展操作符则将数组（或其他类型的可迭代对象）*展开*为单独的值。
+- en: 'So far you’ve seen the variable declaration and assignment in one statement,
+    but you can split them, just as you can when you create ordinary variables. Just
+    make sure you keep the square brackets, because they indicate that you’re using
+    array destructuring:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，你已经看到了变量声明和赋值在一条语句中的情况，但是你可以像创建普通变量一样将它们分开。只需确保保留方括号，因为它们表示你正在使用数组解构：
+- en: '[PRE13]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: See Also
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: If you want a way to convert an array into a list of values *without* assigning
+    these values to variables, check out the spread operator described in [“Passing
+    an Array to a Function That Expects a List of Values”](#array_spread).
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想要一种将数组转换为值列表*而不*将这些值分配给变量的方法，请查看描述在[“将数组传递给期望值列表的函数”](#array_spread)中的扩展操作符。
+- en: Passing an Array to a Function That Expects a List of Values
+  id: totrans-81
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将数组传递给期望值列表的函数
+- en: Problem
+  id: totrans-82
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: Your array has a list of values that you want to pass to a function. But the
+    function expects a list of argument values, not an array object.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你的数组有一个值列表，你想将其传递给一个函数。但是函数期望的是一组参数值，而不是一个数组对象。
+- en: Solution
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the spread operator to expand your array. Here’s an example with the `Math.max()`
+    method:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用扩展运算符来展开你的数组。这里有一个使用`Math.max()`方法的示例：
+- en: '[PRE14]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Discussion
+  id: totrans-87
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The spread operator unfolds an array into a list of elements. Technically, it
+    works with any iterable object, including other types of collections. You’ll see
+    it at work in several recipes in this chapter.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展运算符将一个数组展开为元素列表。从技术上讲，它适用于任何可迭代对象，包括其他类型的集合。你将在本章的几个示例中看到它的应用。
+- en: 'The spread operator doesn’t need to supply all the arguments to a function,
+    or even the final arguments. It’s perfectly valid to use it like this:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 扩展运算符不需要为函数提供所有参数，甚至最终参数。像这样使用是完全有效的：
+- en: '[PRE15]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You probably don’t want to use this approach if the order of your arguments
+    has any significance. It’s just too easy to end up with an array that’s a bit
+    bigger or smaller than you thought, which will then displace your other arguments
+    to new positions and change their significance.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你的参数顺序有任何意义，你可能不希望使用这种方法。很容易最终得到一个比预期稍大或稍小的数组，这会导致你的其他参数被移到新位置并改变其意义。
+- en: See Also
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: '[“Merging Two Arrays”](#merging_arrays) shows an example of how you can use
+    the spread operator to merge different arrays. [“Removing or Replacing Array Elements”](#removing_replacing_array)
+    shows how you can use spread when removing items. [“Cloning an Array”](#cloning_arrays)
+    shows how you can use spread to copy an array.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“合并两个数组”](#merging_arrays)展示了如何使用扩展运算符合并不同的数组的示例。[“删除或替换数组元素”](#removing_replacing_array)展示了在移除项目时如何使用扩展运算符。[“克隆数组”](#cloning_arrays)展示了如何使用扩展运算符复制数组。'
+- en: Cloning an Array
+  id: totrans-94
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 克隆数组
+- en: Problem
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to make a copy of an existing array.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想复制一个现有的数组。
+- en: Solution
+  id: totrans-97
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the spread operator to expand your array into items and feed it into a
+    new array:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用扩展运算符将你的数组展开为项目，并将其馈送到一个新数组中：
+- en: '[PRE16]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'An equally good approach is to use the `Array.slice()` method with no arguments,
+    which tells it to take a slice of the entire array:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样好的方法是使用`Array.slice()`方法，不带参数，告诉它取整个数组的一个切片：
+- en: '[PRE17]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Both of these approaches are preferable to looping over array elements and building
+    up a new array by hand.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种方法都比手动遍历数组元素并逐个构建新数组更可取。
+- en: Discussion
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Creating array copies is important because it allows you to perform *nondestructive
+    changes*. For example, you might keep your original array intact while you make
+    changes to a new copy. That way, you reduce the risk of unanticipated side effects
+    (for example, if other parts of your code are still using the original array).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建数组副本很重要，因为它允许你执行*非破坏性更改*。例如，你可以保持原始数组不变，同时对新副本进行更改。这样，你可以减少意外副作用的风险（例如，如果代码的其他部分仍在使用原始数组）。
+- en: 'As with all reference objects, arrays cannot be copied by assignment. This
+    code, for example, ends with two variables pointing to the same in-memory `Array`
+    object:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如同所有引用对象一样，数组不能通过赋值来复制。例如，下面的代码结束时，两个变量指向同一个内存中的`Array`对象：
+- en: '[PRE18]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: To properly copy an array, you need to duplicate all of its elements. The easiest
+    approach is to use the spread operator, although the `Array.slice()` method works
+    equally well.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要正确复制一个数组，你需要复制它的所有元素。最简单的方法是使用扩展运算符，尽管`Array.slice()`方法同样有效。
+- en: 'Both approaches shown here create *shallow copies*. If your array consists
+    of primitives (numbers, strings, or Boolean values), the copied array matches
+    exactly. But if your array holds objects, these techniques copy the *reference*,
+    not the entire object. As a result, your new array will have references pointing
+    to the same objects. Change one of the objects in the copied array, and it also
+    affects the original array:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里展示的两种方法都创建了*浅拷贝*。如果你的数组由基本类型（数字、字符串或布尔值）组成，复制后的数组完全匹配。但是如果你的数组包含对象，这些技术会复制*引用*，而不是整个对象。因此，你的新数组将有指向相同对象的引用。改变复制数组中的一个对象也会影响原始数组：
+- en: '[PRE19]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'This may or may not be a problem, depending on how you plan to use your arrays.
+    If you want multiple copies of objects that you can manipulate separately, there
+    are several possible solutions you can use:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能是一个问题，也可能不是，这取决于你计划如何使用你的数组。如果你想要多个可单独操作的对象副本，有几种可能的解决方案可以使用：
+- en: Loop through your array with a `for` loop, create the new objects you need explicitly,
+    and then add them to the new array.
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`for`循环遍历数组，显式创建所需的新对象，然后将它们添加到新数组中。
+- en: Use the `Array.map()` function. This works well for simple objects, but doesn’t
+    do a deep clone all the way down. (For example, if you have objects referencing
+    *other* objects, only the first layer of objects is truly duplicated.)
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`Array.map()`函数。这对于简单对象很有效，但并不完全深度复制所有内容。（例如，如果你有对象引用*其他*对象，只有对象的第一层真正被复制。）
+- en: Use a helper function from another JavaScript library, like `cloneDeep()` in
+    Lodash or `clone()` in Ramda.
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用来自其他JavaScript库的辅助函数，如Lodash中的`cloneDeep()`或Ramda中的`clone()`。
+- en: 'Here’s an example that demonstrates `Array.map()`. It works a little bit of
+    magic by first expanding the array element into its properties with the spread
+    operator (…`element`), then uses them to create a new object (`{`…`element}`),
+    which is assigned to the new array:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个示例演示了`Array.map()`的使用。它通过首先使用展开操作符（…`element`）将数组元素扩展为其属性，然后使用这些属性创建一个新对象（`{`…`element}`），并将其分配给新数组：
+- en: '[PRE20]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: To take a closer look at the `map()` method, see the full explanation in [“Transforming
+    Every Element of an Array”](#mapping_array).
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要深入了解`map()`方法，请参阅[“转换数组的每个元素”](#mapping_array)中的完整解释。
+- en: Note
+  id: totrans-117
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The spread operator (`...`) does double duty. In the original solution, you
+    saw how the spread operator can expand an array into separate elements. In the
+    `Array.map()` example, the spread operator expands an *object* into separate properties.
+    For more about how the spread operator works on objects, see [“Merging the Properties
+    of Two Objects”](ch07.html#merging_object_properties).
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 展开操作符（`...`）有双重作用。在原始解决方案中，你看到展开操作符如何将数组展开为单独的元素。在`Array.map()`示例中，展开操作符将一个*对象*展开为单独的属性。有关展开操作符在对象上的工作原理的更多信息，请参阅[“合并两个对象的属性”](ch07.html#merging_object_properties)。
+- en: See Also
+  id: totrans-119
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: If you want to copy only *some* array items, see [“Copying a Portion of an Array
+    by Position”](#copying_items_by_position). To learn more about different ways
+    of making deep copies of an object, see [“Making a Deep Copy of an Object”](ch07.html#deep_clone_an_object).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你只想复制*某些*数组项，请参阅[“按位置复制数组的部分项”](#copying_items_by_position)。要了解有关不同方式的深层复制对象的更多信息，请参阅[“深层复制对象”](ch07.html#deep_clone_an_object)。
+- en: Merging Two Arrays
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 合并两个数组
+- en: Problem
+  id: totrans-122
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to join two entire arrays together into a new array.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要将两个完整的数组合并成一个新数组。
+- en: Solution
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'There are two commonly used approaches for combining two arrays. The time-honored
+    approach (and likely the most performant option) is to use the `Array.concat()`
+    method. You call `concat()` on the first array, passing in the second array as
+    an argument. The result is a third array that contains all the elements of both:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有两种常用的方法可以组合两个数组。传统的方法（可能也是性能最佳的选项）是使用`Array.concat()`方法。在第一个数组上调用`concat()`，将第二个数组作为参数传入。结果是一个包含两者所有元素的第三个数组：
+- en: '[PRE21]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: The resulting array has the first array’s items first (`evens`, in this example),
+    followed by second array’s items (`odds`). Of course, you can follow up your `concat()`
+    with a call to the `Array.sort()` method ([“Sorting an Array of Objects by a Property
+    Value”](#sorting_array)).
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结果数组的项首先是第一个数组的项（在此示例中是偶数），然后是第二个数组的项（奇数）。当然，你可以在`concat()`之后调用`Array.sort()`方法（[“按属性值对对象数组进行排序”](#sorting_array)）。
+- en: 'An alternate approach is to use the spread operator (introduced in [“Passing
+    an Array to a Function That Expects a List of Values”](#array_spread)):'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种方法是使用展开操作符（引入自[“将数组传递给期望值列表的函数”](#array_spread)）：
+- en: '[PRE22]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'The advantage of this approach is that the code is (arguably) more intuitive
+    and easier to read. The spread operator is also a great tool if you want to combine
+    more than two arrays at a time, or you want to combine arrays with literal values:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的优点在于代码（可以说）更直观和更易读。展开操作符也是一个很棒的工具，如果你想一次性组合多个数组，或者将数组与字面值组合：
+- en: '[PRE23]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Performance testing suggests that on current implementations, large arrays are
+    merged faster with `concat()`. But in most scenarios, this performance different
+    won’t be significant (or even apparent).
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能测试表明，在当前实现中，使用 `concat()` 更快地合并大数组。但在大多数情况下，这种性能差异不会显著（甚至不会明显）。
+- en: Discussion
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'After you merge arrays with either of these techniques, you are left with three
+    arrays: the original two, and the new merged result. If your arrays contain primitive
+    values (numbers, strings, Boolean values), these are duplicated in the new array.
+    But if your array holds objects, the object *reference* is copied. For example,
+    if you merge two arrays of `Date` objects, no new `Date` objects are created.
+    Instead, the new merged array gets references pointing to the *same* `Date` objects.
+    If you change a `Date` object in the merged array, you’ll see the modification
+    in the original array as well:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您使用任一种合并数组的技术后，您会得到三个数组：原始两个数组和新合并的结果数组。如果您的数组包含基本值（数字、字符串、布尔值），这些值在新数组中会被复制。但如果您的数组包含对象，则会复制对象的*引用*。例如，如果您合并两个包含
+    `Date` 对象的数组，则不会创建新的 `Date` 对象。相反，新合并的数组会得到指向*相同* `Date` 对象的引用。如果您在合并后的数组中更改了
+    `Date` 对象，您将在原始数组中看到相同的修改：
+- en: '[PRE24]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: For more about the difference between shallow and deep copies, see [“Making
+    a Deep Copy of an Object”](ch07.html#deep_clone_an_object).
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 欲了解浅复制和深复制之间的区别，请参阅 [“深复制对象”](ch07.html#deep_clone_an_object)。
+- en: See Also
+  id: totrans-137
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: When you merge arrays, you have no power to control how the elements are combined.
+    If you want to copy just a portion of an array, or put one array in the *middle*
+    of another, see the `slice()` method in [“Copying a Portion of an Array by Position”](#copying_items_by_position).
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您合并数组时，您无法控制元素的组合方式。如果您想要复制数组的一部分，或者将一个数组放在另一个数组的*中间*，请参阅 [“按位置复制数组的一部分”](#copying_items_by_position)
+    中的 `slice()` 方法。
+- en: Copying a Portion of an Array by Position
+  id: totrans-139
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 按位置复制数组的一部分
+- en: Problem
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to copy a portion of an array, and keep the original array intact.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想要复制数组的一部分，并保持原始数组不变。
+- en: Solution
+  id: totrans-142
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Array.slice()` method, which makes a *shallow copy* of a portion of
+    an existing array, and returns that as a new array:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Array.slice()` 方法，它可以*浅复制*现有数组的一部分，并将其作为新数组返回：
+- en: '[PRE25]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: Discussion
+  id: totrans-145
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `slice()` method takes two parameters, indicating a starting and ending
+    position. You can omit the second parameter to go from the start index to the
+    end of the array. Calling `slice(0)` on an array copies the whole array.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`slice()` 方法接受两个参数，表示起始和结束位置。您可以省略第二个参数以从起始索引到数组末尾。对数组调用 `slice(0)` 将复制整个数组。'
+- en: 'For example, this code uses slice to get two subsections of the first array,
+    and use them to build a new array:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，以下代码使用 `slice` 获取第一个数组的两个子部分，并使用它们构建一个新数组：
+- en: '[PRE26]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: This may seem like an arbitrary example, because the index numbers are hard-coded.
+    But you can combine it with array searches and the `findIndex()` method (see [“Searching
+    Through an Array for Exact Matches”](#searching_array_exact_matches)) to find
+    the place where you should divide an array.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能看起来像是一个随意的示例，因为索引数字是硬编码的。但是您可以将其与数组搜索和 `findIndex()` 方法结合使用（参见 [“在数组中搜索精确匹配项”](#searching_array_exact_matches)）来确定您应该分割数组的位置。
+- en: Note
+  id: totrans-150
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The `slice()` method is easily confused with the `splice()` method, which is
+    used to replace or delete portions of an array. Unlike `slice()`, the `splice()`
+    method makes in-place changes that affect the original array. In modern practice,
+    it’s considered better to lock-down your objects, keep them immutable when possible
+    (hence the use of `const`), and create a new copy with changes. So stick with
+    `slice()` unless you have a strong reason to use `splice()` (for example, there’s
+    a difference in performance that’s significant in your use case).
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`slice()` 方法很容易与 `splice()` 方法混淆，后者用于替换或删除数组的部分内容。与 `slice()` 不同，`splice()`
+    方法会对原始数组进行影响的就地修改。在现代实践中，最好将对象锁定，尽可能保持其不可变性（因此使用 `const`），并通过创建带有更改的新副本来实现。因此，除非您有强烈的理由要使用
+    `splice()`（例如，在您的使用情况下性能存在显著差异），否则请坚持使用 `slice()`。'
+- en: See Also
+  id: totrans-152
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另请参阅
+- en: '[“Removing or Replacing Array Elements”](#removing_replacing_array) shows how
+    you can use `slice()` to remove sections of an array.'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“删除或替换数组元素”](#removing_replacing_array) 展示了如何使用 `slice()` 删除数组的部分内容。'
+- en: Extracting Array Items That Meet Specific Criteria
+  id: totrans-154
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 提取符合特定条件的数组项
+- en: Problem
+  id: totrans-155
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to find all the items in an array that match a certain condition, and
+    copy them to a new array.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要找出数组中所有满足某个条件的项，并将它们复制到一个新数组中。
+- en: Solution
+  id: totrans-157
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Array.filter()` method to run a test on every item:'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Array.filter()` 方法在每个项上运行一个测试：
+- en: '[PRE27]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: This example is intentionally long-winded so you can see the different pieces
+    of the solution. The *filter function* is called for every item in the array.
+    In this case, that means `startsWithE()` is called 10 times, and passed a different
+    string each time. If the filter function returns `true`, that item is added to
+    the new array.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个例子有意冗长，以便你能看到解决方案的不同部分。*过滤函数* 对数组中的每个项进行调用。在这种情况下，意味着 `startsWithE()` 会被调用
+    10 次，并传递不同的字符串。如果过滤函数返回 `true`，那么该项将被添加到新数组中。
+- en: 'Here’s the same example condensed with an arrow function. Now the filter logic
+    is defined in the same place in code where you use it:'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是使用箭头函数压缩后的相同示例。现在过滤逻辑在代码中的同一位置定义，你可以直接使用它：
+- en: '[PRE28]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Discussion
+  id: totrans-163
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: In this example, the filter function checks that each item begins with the letter
+    *e*. But you could just as easily grab numbers that fall in a certain range, or
+    objects that have certain property values.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，过滤函数检查每个项是否以字母 *e* 开头。但是你也可以轻松地获取落在某个范围内的数字，或者具有特定属性值的对象。
+- en: The `filter()` method is one of a new set of modern array methods that replace
+    old-fashioned iterative code with a functional approach. Nothing stops you from
+    using a `for` loop to step through your array, test each item, and insert matches
+    into a new array with `Array.push()`. However, if you can perform the same task
+    with the `filter()` method, you’ll usually be rewarded with more compact code
+    and easier testing.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`filter()` 方法是一组现代数组方法中的一员，它取代了老式的迭代代码，采用了功能化方法。你可以使用 `for` 循环遍历数组，测试每个项，并使用
+    `Array.push()` 将匹配项插入新数组中。但是，如果能用 `filter()` 方法完成同样的任务，通常可以得到更紧凑的代码和更简便的测试。'
+- en: See Also
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: Several of the recipes in this chapter introduce similar methods for functional
+    array processing. In particular, [“Transforming Every Element of an Array”](#mapping_array)
+    shows how to transform all the elements in an array, and [“Combining an Array’s
+    Values in a Single Calculation”](#reducing_array) shows how to perform a calculation
+    that combines all the values in an array into one result.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章中的几个示例介绍了类似的功能化数组处理方法。特别是，“数组每个元素的转换”（#mapping_array）展示了如何转换数组中的所有元素，“将数组值组合成单一计算结果”（#reducing_array）展示了如何将数组中所有值组合成一个结果。
+- en: Emptying an Array
+  id: totrans-168
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 清空数组
+- en: Problem
+  id: totrans-169
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You need to remove all the elements from an array, either to reclaim memory
+    or so that your array can be reused.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你需要从数组中删除所有元素，以释放内存或使数组可以重用。
+- en: Solution
+  id: totrans-171
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Set the `length` property of your array to 0:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将数组的 `length` 属性设置为 0：
+- en: '[PRE29]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Discussion
+  id: totrans-174
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'One of the easiest ways to give yourself a new array is to simply assign a
+    new blank array, like this:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 给自己创建一个新数组的最简单方法之一是简单地分配一个新的空数组，就像这样：
+- en: '[PRE30]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: However, this approach has a couple of limits. First, because it creates a whole
+    new array object, it doesn’t work if you’ve defined your array with the `const`
+    keyword. This is a small detail, but modern practice favors using `const` over
+    `let` to narrow the possibilities for bugs in your code. Second, this assignment
+    doesn’t actually destroy the array. If you have another variable pointing to your
+    array, it will stay alive and remain in memory.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这种方法有一些限制。首先，因为它创建了一个全新的数组对象，所以如果你使用 `const` 关键字定义了数组，它就不起作用。这是一个小细节，但是现代实践倾向于使用
+    `const` 而不是 `let`，以减少代码中的错误可能性。其次，这种赋值并没有真正销毁数组。如果你有另一个变量指向你的数组，它将继续存在并驻留在内存中。
+- en: An alternate solution is to call the `Array.pop()` method repeatedly. Each time
+    you call `pop()`, you remove the last item from the array, so you can empty an
+    array with a loop that continues calling `pop()` until the array is empty. However,
+    the `length` setting trick has exactly the same effect and requires just a single
+    statement. Developers sometimes overlook this technique, because they expect `length`
+    to be a read-only property (as it is in many other languages). But setting `length`
+    on a JavaScript array allows you to shrink its size and drop the leftover items.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种解决方案是反复调用`Array.pop()`方法。每次调用`pop()`时，都会从数组中移除最后一项，因此你可以通过一个循环调用`pop()`直到数组为空来清空数组。然而，`length`设置技巧具有完全相同的效果，并且只需要一个语句。开发人员有时会忽视这种技术，因为他们期望`length`是只读属性（在许多其他语言中确实如此）。但是在JavaScript数组上设置`length`允许你缩小其大小并丢弃剩余的项。
+- en: 'There are other interesting ways to use the `length` property. For example,
+    you can chop off only part of an array by reducing `length`, but not all the way
+    to 0\. Or, you can add blank items to the end of an array by increasing `length`:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有其他有趣的方法可以使用`length`属性。例如，你可以通过减少`length`来仅截取数组的一部分，但不全为0。或者，你可以通过增加`length`向数组末尾添加空白项：
+- en: '[PRE31]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Removing Duplicate Values
+  id: totrans-181
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 移除重复值
+- en: Problem
+  id: totrans-182
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to ensure that every value in your array is unique by removing the
+    duplicates.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你希望确保数组中的每个值都是唯一的，通过删除重复项。
+- en: Solution
+  id: totrans-184
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Create a new `Set` object and fill it with your array. The `Set` object will
+    discard duplicates automatically. Then, convert the `Set` object back to an array:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个新的`Set`对象并用你的数组填充它。`Set`对象会自动丢弃重复项。然后，将`Set`对象转换回数组：
+- en: '[PRE32]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Once you understand the idea, you can compress this down to a single statement
+    with the spread operator:'
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦理解了这个想法，你可以用展开运算符将其压缩为一个单一的语句：
+- en: '[PRE33]'
+  id: totrans-188
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Discussion
+  id: totrans-189
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `Set` object is a special type of collection that ignores duplicate values.
+    It also works as a quick and efficient way to remove duplicates from an array.
+    This technique (switching to a `Set` and then back to an array) is far more efficient
+    than iterating over the array and looking for duplicates with `findIndex()`.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Set`对象是一种特殊类型的集合，它忽略重复值。它还可以作为一种快速高效地从数组中删除重复项的方法。这种技术（切换到`Set`，然后再转回数组）比遍历数组并使用`findIndex()`查找重复项要高效得多。'
+- en: When searching for duplicates, the `Set` uses a test that’s similar to the strict
+    equality comparison `===`, which means 3 and `'3'` are not considered duplicates.
+    One special bit of behavior the `Set` implements is that it treats repeated `NaN`
+    values as duplicates, even though `NaN === NaN` ordinarily evaluates to `false`.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在搜索重复项时，`Set`使用类似于严格相等比较`===`的测试，这意味着3和`'3'`不被视为重复项。`Set`实现的一个特殊行为是，它将重复的`NaN`值视为重复项，即使`NaN
+    === NaN`通常计算结果为`false`。
+- en: See Also
+  id: totrans-192
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: This example uses the spread operator described in [“Passing an Array to a Function
+    That Expects a List of Values”](#array_spread). For more about the `Set` object,
+    see [“Creating a Collection of Nonduplicated Values”](#using_set).
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本示例使用了在[“将数组传递给期望值列表的函数”](#array_spread)中描述的展开运算符。关于`Set`对象的更多信息，请参见[“创建一个无重复值的集合”](#using_set)。
+- en: Flattening a Two-Dimensional Array
+  id: totrans-194
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 展平二维数组
+- en: Problem
+  id: totrans-195
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to flatten a two-dimensional array so that it becomes a one-dimensional
+    list.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要将二维数组展平，使其成为一维列表。
+- en: Solution
+  id: totrans-197
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Array.flat()` method:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Array.flat()`方法：
+- en: '[PRE34]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Discussion
+  id: totrans-200
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Consider a two-dimensional array, like this one:'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个二维数组，例如：
+- en: '[PRE35]'
+  id: totrans-202
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Each element in the `fruitArray` holds *another* array. For example, `fruitArray[0]`
+    has three strings, representing different berries. `fruitArray[1]` has citrus
+    fruits, and `fruitArray[2]` has stone fruits.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`fruitArray`中的每个元素都包含*另一个*数组。例如，`fruitArray[0]`有三个字符串，代表不同的浆果。`fruitArray[1]`有柑橘类水果，`fruitArray[2]`有核果类水果。'
+- en: 'You could transform `fruitArray` with the help of the `concat()` method. Start
+    with the first nested array, call `concat()`, and pass the other nested arrays,
+    like this:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以利用`concat()`方法转换`fruitArray`。从第一个嵌套数组开始，调用`concat()`，然后传递其他嵌套数组，就像这样：
+- en: '[PRE36]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: If the array has several members, this approach is tedious and error prone.
+    Alternatively, you could use a loop or recursion, but these approaches can be
+    equally tedious. The `flat()` method implements the same logic, and concatenates
+    every row for you.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果数组有多个成员，这种方法很繁琐且容易出错。或者，你可以使用循环或递归，但这些方法同样很繁琐。`flat()`方法实现了相同的逻辑，并为你拼接了每一行。
+- en: 'The `flat()` method takes an optional `depth` argument, with a default value
+    of 1\. You can increase this number to flatten more deeply nested arrays. For
+    example, imagine you have an array that contains nested arrays, and those arrays
+    hold *another* layer of nested arrays. In this case, a `depth` of 2 will concatenate
+    both layers, putting everything into a single list:'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`flat()` 方法接受一个可选的 `depth` 参数，默认值为1。你可以增加这个数字以深度展平嵌套更深的数组。例如，假设你有一个包含嵌套数组的数组，而这些数组又包含*另一层*嵌套数组。在这种情况下，`depth`
+    为2将连接两个层，将所有内容放入单个列表中：'
+- en: '[PRE37]'
+  id: totrans-208
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: The `depth` argument sets the maximum level of flattening that’s used, if needed.
+    There’s no risk to increasing the `depth` beyond the actual dimensions of your
+    array.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`depth` 参数设置所需的最大展开级别。增加 `depth` 超出数组的实际维度不会有风险。'
+- en: Searching Through an Array for Exact Matches
+  id: totrans-210
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 搜索数组以查找完全匹配项
+- en: Problem
+  id: totrans-211
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to search an array for a specific value. You may want to know if the
+    array contains a match, or the position where that match occurred.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要在数组中搜索特定值。你可能想知道数组是否包含匹配项，或者匹配发生的位置。
+- en: Solution
+  id: totrans-213
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use one of the array searching methods: `indexOf()`, `lastIndexOf()`, or `includes()`:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用以下数组搜索方法之一：`indexOf()`、`lastIndexOf()` 或 `includes()`：
+- en: '[PRE38]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: This technique only works for primitive values (typically numbers, strings,
+    and Boolean values). If you want to search for objects, you need to use the `Array.find()`
+    method instead ([“Searching Through an Array for Items That Meet Specific Criteria”](#searching_array_test_function)).
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此技术仅适用于基本值（通常是数字、字符串和布尔值）。如果要搜索对象，则需要改用 `Array.find()` 方法（[“搜索数组以满足特定条件的项”](#searching_array_test_function)）。
+- en: Discussion
+  id: totrans-217
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Both `indexOf()` and `lastIndexOf()` take a search value that is then compared
+    to every element in the array. If the value is found, they return the index position
+    of the array element. If the value is not found, they return *–1*.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`indexOf()` 和 `lastIndexOf()` 都接受一个搜索值，然后将其与数组中的每个元素进行比较。如果找到该值，则返回数组元素的索引位置。如果未找到该值，则返回*-1*。'
+- en: 'The `indexOf()` method returns the first match found searching from lowest
+    to highest index (in other words, starting at the beginning of the array and going
+    forward). The `lastIndexOf()` method goes in reverse, starting at the end of the
+    array. The difference appears if the same item appears more than once in the array:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`indexOf()` 方法从最低索引开始搜索并返回找到的第一个匹配项（换句话说，从数组的开始向前搜索）。`lastIndexOf()` 方法则相反，从数组的末尾开始搜索。如果相同项在数组中出现多次，则会出现差异：'
+- en: '[PRE39]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: 'Both `indexOf()` and `lastIndexOf()` take an optional starting index argument.
+    That sets the position where the search will begin:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`indexOf()` 和 `lastIndexOf()` 都接受一个可选的起始索引参数。它设置搜索将从该位置开始：'
+- en: '[PRE40]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: It may occur to you that you can use a loop to step through increasingly higher
+    indexes with `indexOf()` until you’ve found all the matches. But before you write
+    that kind of boilerplate code, consider using the `filter()` method, which quickly
+    and painlessly creates an array with all the matches for a condition you specify
+    (see [“Extracting Array Items That Meet Specific Criteria”](#copying_items_by_criteria)).
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能会想到可以使用循环通过 `indexOf()` 逐步增加索引，直到找到所有匹配项。但在编写这种样板代码之前，请考虑使用 `filter()` 方法，该方法可以根据指定的条件快速轻松地创建包含所有匹配项的数组（参见[“按特定条件提取数组项”](#copying_items_by_criteria)）。
+- en: Finally, it’s important to understand that `indexOf()`, `lastIndexOf()`, and
+    `includes()` all use the `===` operator to test for matches. That means no type
+    conversion is performed (so `3` will not equal `'3'`). Also, if your array contains
+    objects, the references are compared, not the content. If you need to change the
+    meaning of equality or you want to use a different search test, use the `findIndex()`
+    method instead (see [“Searching Through an Array for Items That Meet Specific
+    Criteria”](#searching_array_test_function)).
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，重要的是要理解 `indexOf()`、`lastIndexOf()` 和 `includes()` 都使用 `===` 运算符来测试匹配。这意味着不会执行类型转换（因此
+    `3` 不等于 `'3'`）。此外，如果数组包含对象，则比较的是引用而不是内容。如果需要更改相等性的含义或者想使用不同的搜索测试，请改用 `findIndex()`
+    方法（参见[“搜索数组以满足特定条件的项”](#searching_array_test_function)）。
+- en: See Also
+  id: totrans-225
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: For customizable searching, see the `find()` and `findIndex()` methods in [“Searching
+    Through an Array for Items That Meet Specific Criteria”](#searching_array_test_function).
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于可定制的搜索，请参阅 [“搜索数组以满足特定条件的项”](#searching_array_test_function) 中的 `find()` 和
+    `findIndex()` 方法。
+- en: Searching Through an Array for Items That Meet Specific Criteria
+  id: totrans-227
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在数组中搜索符合特定标准的项目
+- en: Problem
+  id: totrans-228
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to search an array for an item that meets certain criteria. For example,
+    maybe you’re looking for an object with a specific property.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想在数组中搜索符合某些标准的项。例如，也许你在寻找具有特定属性的对象。
+- en: Solution
+  id: totrans-230
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use one of the functional array searching methods: `find()` or `findIndex()`.
+    Either way, you supply the function that tests each item until a match is found.'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用一种函数式数组搜索方法：`find()`或`findIndex()`。无论哪种方式，你都需要提供一个测试每个项目的函数，直到找到匹配项。
+- en: 'Here’s an example that finds the first number over 10:'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个例子，找出第一个大于10的数字：
+- en: '[PRE41]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'If instead of finding the matching element, you would rather know its position,
+    you can use the similar `findIndex()` method:'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你更希望知道匹配元素的位置，而不是找到它，你可以使用类似的`findIndex()`方法：
+- en: '[PRE42]'
+  id: totrans-235
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: If no match is found, `find()` returns `undefined`, and `findIndex()` returns
+    –1.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果没有找到匹配项，`find()`返回`undefined`，而`findIndex()`返回-1。
+- en: Discussion
+  id: totrans-237
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: When using `find()` and `findIndex()`, you supply a callback function that receives
+    up to three parameters (the current array element in the iteration, its index,
+    and the array itself). Arrow syntax offers a more streamlined approach, allowing
+    you to define the callback function right where you use it.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用`find()`和`findIndex()`时，你需要提供一个回调函数，该函数最多接收三个参数（迭代中的当前数组元素、其索引和数组本身）。箭头语法提供了一种更简洁的方法，允许你在使用时直接定义回调函数。
+- en: 'The `find()` and `findIndex()` methods really shine when you need to write
+    more complicated conditions. Consider the following code, which finds the first
+    date in a specific year:'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你需要编写更复杂的条件时，`find()`和`findIndex()`方法真正发挥了作用。考虑以下代码，它找到特定年份中的第一个日期：
+- en: '[PRE43]'
+  id: totrans-240
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: This approach isn’t possible with the `indexOf()` method, because it involves
+    examining a *property* of an array item. (In fact, the standard `indexOf()` method
+    can’t even test `Date` objects for equality, because it only checks if the object
+    references match.)
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`indexOf()`方法是不可能的，因为它涉及检查数组项的*属性*。（事实上，标准的`indexOf()`方法甚至不能测试`Date`对象是否相等，因为它只检查对象引用是否匹配。）
+- en: See Also
+  id: totrans-242
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 另见
+- en: If you want to write a finding function and use it to get multiple results,
+    you probably want the `filter()` function described in [“Extracting Array Items
+    That Meet Specific Criteria”](#copying_items_by_criteria). For more about the
+    syntax of arrow function, see [“Using Arrow Functions”](ch06.html#arrow_functions).
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想编写一个查找函数并用它获取多个结果，你可能需要使用在[“按特定标准提取数组项”](#copying_items_by_criteria)中描述的`filter()`函数。有关箭头函数语法的更多信息，请参见[“使用箭头函数”](ch06.html#arrow_functions)。
+- en: Removing or Replacing Array Elements
+  id: totrans-244
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 移除或替换数组元素
+- en: Problem
+  id: totrans-245
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to find occurrences of a given value in an array, and either remove
+    the element or replace it.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想在数组中查找给定值的出现次数，并且要么移除该元素，要么替换它。
+- en: Solution
+  id: totrans-247
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: First, find the location of the item you want to remove using `indexOf()`. Then,
+    you can use one of two approaches.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，使用`indexOf()`找到你想要移除的项的位置。然后，你可以使用两种方法中的任何一种。
+- en: 'For small jobs, the cleanest solution is to construct a new array *around*
+    the item you don’t want. You build the new array using `slice()` and the spread
+    operator:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于小任务，最干净的解决方案是构建一个新的数组，*围绕*你不想要的项。你使用`slice()`和扩展运算符构建新数组：
+- en: '[PRE44]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: Discussion
+  id: totrans-251
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: An alternate approach is to perform an in-place array edit, instead of creating
+    a changed copy. This may perform better for large arrays. However, the more mutability
+    you allow, the more complex your code becomes, which may make it more difficult
+    to manage and debug in the future.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种方法是进行就地数组编辑，而不是创建一个更改的副本。这对于大型数组可能会表现更好。然而，你允许的可变性越多，你的代码就会变得越复杂，这可能会使将来更难管理和调试。
+- en: 'To perform an in-place edit, you use the similarly named but very different
+    `splice()` method. It lets you remove as many items as you want, starting from
+    any position:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了进行就地编辑，你使用同名但非常不同的`splice()`方法。它允许你从任何位置开始移除你想要的任意数量的项：
+- en: '[PRE45]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'The first argument to the `splice()` method is the index where the splicing
+    starts. This is the only argument you need to supply. If you leave out the others,
+    all the array elements from the index to the end are removed:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`splice()`方法的第一个参数是切片开始的位置。这是你需要提供的唯一参数。如果省略其他参数，从索引到末尾的所有数组元素都会被移除：'
+- en: '[PRE46]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: The optional second argument is the number of elements to remove. The third
+    argument is an optional set of the replacement elements to *insert* at the same
+    location.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可选的第二个参数是要删除的元素数。第三个参数是要在相同位置*插入*的可选替换元素集。
+- en: '[PRE47]'
+  id: totrans-258
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: You could use `indexOf()` in a loop to find and remove a series of matching
+    elements. But if this is your goal, the `filter()` method usually provides a cleaner
+    approach, letting you define a function that picks the items you want to keep
+    (see [“Extracting Array Items That Meet Specific Criteria”](#copying_items_by_criteria)).
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以在循环中使用 `indexOf()` 来查找并删除一系列匹配元素。但是，如果这是您的目标，通常使用 `filter()` 方法会更简洁，它允许您定义一个选择要保留的项目的函数（参见
+    [“按特定条件提取数组项”](#copying_items_by_criteria)）。
+- en: Sorting an Array of Objects by a Property Value
+  id: totrans-260
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 根据属性值对对象数组进行排序
+- en: Problem
+  id: totrans-261
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to sort an array that contains objects, based on one of its properties.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望根据其属性对包含对象的数组进行排序。
+- en: Solution
+  id: totrans-263
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: The `Array.sort()` method reorders an array. For example, it arranges an array
+    of numbers from smallest to largest, or it puts an array of strings in alphabetical
+    order. But you don’t need to stick to the array’s standard sorting system. Instead,
+    you can pass a comparison function to the `sort()` method, and the array will
+    use it to order its items.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Array.sort()` 方法重新排序数组。例如，它可以将数字数组从最小到最大排列，或者将字符串数组按字母顺序排列。但是你不必局限于数组的标准排序系统。相反，你可以将一个比较函数传递给
+    `sort()` 方法，数组将使用它来排序其项。'
+- en: The comparison function gets two items (corresponding to two different array
+    elements), compares them, and returns a number that indicates the result. You
+    return *0* if the values should be considered equal, *–1* if the first value is
+    less than the second, or *1* if the first value is greater than the second.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 比较函数获取两个项（对应于两个不同的数组元素），比较它们，并返回一个指示结果的数字。如果值应被视为相等，则返回 *0*，如果第一个值小于第二个值，则返回
+    *–1*，如果第一个值大于第二个值，则返回 *1*。
+- en: 'Here’s a simple implementation that sorts an array of objects with people information:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是对带有人员信息的对象数组进行排序的简单实现：
+- en: '[PRE48]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'A couple of shortcuts are possible here. Technically, you can return any negative
+    number instead of –1, and any positive number instead of 1\. That allows you to
+    write a much shorter comparison function:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里可以有几个快捷方式。从技术上讲，您可以返回任何负数而不是 -1，并返回任何正数而不是 1。这允许您编写一个更短的比较函数：
+- en: '[PRE49]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Combine that with the compact arrow syntax, and it gets shorter still:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 结合紧凑的箭头语法，它变得更短：
+- en: '[PRE50]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Sometimes, when you perform sorting you can make use of existing comparison
+    methods. For example, if you want this example to sort by last name, there’s no
+    need to reinvent the wheel. Instead, make good use of the `String.localeCompare()`
+    method, like this:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，在进行排序时，您可以利用现有的比较方法。例如，如果您希望此示例按姓氏排序，无需重新发明轮子。相反，充分利用 `String.localeCompare()`
+    方法，如下所示：
+- en: '[PRE51]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Discussion
+  id: totrans-274
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `sort()` method alters your array *in place*. This is different than most
+    of the other array methods you’ll use, which return changed copies but leave your
+    original array untouched. If this isn’t the behavior you want, you can clone your
+    array before you sort it, as detailed in [“Cloning an Array”](#cloning_arrays).
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`sort()` 方法会*直接修改*您的数组。这与您将使用的大多数其他数组方法不同，后者返回更改后的副本，但保留原始数组不变。如果这不是您想要的行为，您可以在排序之前克隆数组，如
+    [“克隆数组”](#cloning_arrays) 中详细说明的那样。'
+- en: Transforming Every Element of an Array
+  id: totrans-276
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 转换数组的每个元素
+- en: Problem
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to convert every element in an array using the same transformation,
+    and use the changed values to build a new array.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望使用相同的转换将数组中的每个元素转换，并使用更改后的值构建一个新数组。
+- en: Solution
+  id: totrans-279
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Use the `Array.map()` method, and supply a function that performs the change.
+    The `map()` method goes through the entire array, applying your function to each
+    element and building a new array with the return values.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `Array.map()` 方法，并提供执行更改的函数。`map()` 方法遍历整个数组，将您的函数应用于每个元素，并使用返回值构建一个新数组。
+- en: 'Here’s an example that uses this approach to change an array of decimal numbers
+    into a new array with their hexadecimal equivalents (using the conversion technique
+    described in [“Converting a Decimal to a Hexadecimal Value”](ch03.html#converting_a_decimal_to_a_hexadecimal_va)):'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个示例，使用这种方法将十进制数字数组转换为具有其十六进制等效项的新数组（使用 [“将十进制转换为十六进制值”](ch03.html#converting_a_decimal_to_a_hexadecimal_va)
+    中描述的转换技术）：
+- en: '[PRE52]'
+  id: totrans-282
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: Discussion
+  id: totrans-283
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Usually, the `map()` function is only interested in the array elements. However,
+    your callback function can accept two more parameters: the index and the original
+    array. Using these details, it’s technically possible to use `map()` to change
+    your *original* array. This is considered an antipattern. In other words, if you
+    don’t plan to use the new array that `map()` returns, you shouldn’t use the `map()`
+    method. Consider using the `forEach()` method instead ([“Iterating Over All the
+    Elements in an Array”](#iterating_array)), or just iterate over your array procedurally.'
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，`map()`函数只关注数组元素。然而，你的回调函数可以接受两个额外参数：索引和原始数组。使用这些细节，从技术上讲，可以使用`map()`来更改你的*原始*数组。这被认为是一种反模式。换句话说，如果你不打算使用`map()`返回的新数组，就不应该使用`map()`方法。考虑使用`forEach()`方法代替（[“遍历数组中的所有元素”](#iterating_array)），或者只是按程序顺序迭代你的数组。
+- en: Combining an Array’s Values in a Single Calculation
+  id: totrans-285
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将数组的值合并为单个计算
+- en: Problem
+  id: totrans-286
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to use all the values in an array in some sort of aggregate calculation,
+    like computing a sum or average.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你想要在某种聚合计算中使用数组中的所有值，比如计算总和或平均值。
+- en: Solution
+  id: totrans-288
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: You could iterate over the array in a loop. But for a more streamlined solution,
+    use the `Array.reduce()` method with a callback function. Your function (called
+    the *reducer function*) is called for each element in the array. You build some
+    sort of running total using an *accumulator*, a value that the `reduce()` method
+    maintains until the process is finished.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以在循环中迭代数组。但为了更简洁的解决方案，可以使用带有回调函数的`Array.reduce()`方法。你的函数（称为*reducer函数*）会对数组中的每个元素进行调用。你使用*累加器*构建某种运行总和，这是`reduce()`方法在过程结束前维护的值。
+- en: 'For example, imagine you want to calculate the sum of an array of numbers.
+    Each time your reducer function is called, it gets the current running total in
+    the accumulator. It then adds the value of the current element and returns the
+    new total:'
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，想象一下，你想要计算一个数字数组的总和。每次调用你的reducer函数时，它会在累加器中获取当前的运行总和。然后将当前元素的值加上并返回新的总和：
+- en: '[PRE53]'
+  id: totrans-291
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: This new total becomes the accumulator when the reducer is called for the *next*
+    item.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当reducer为*下一个*项目调用时，这个新的总和就会成为累加器。
+- en: 'Now you can use this function to sum up an array:'
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以使用这个函数来对数组求和：
+- en: '[PRE54]'
+  id: totrans-294
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: When the reducer function is called on the last item, it makes its final calculation.
+    That return value becomes the result that’s returned from `reduce()`.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当reducer函数在最后一个项目上调用时，它进行最终计算。该返回值成为从`reduce()`返回的结果。
+- en: 'Once you’re comfortable with the way `reduce()` works, you can make your code
+    shorter and more concise with inline functions and arrow syntax. Here’s a demonstration
+    that uses `reduce()` to calculate the sum of squared values, an average, and the
+    maximum value:'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦你熟悉了`reduce()`的工作方式，你可以使用内联函数和箭头语法使你的代码更短更简洁。以下是一个演示，使用`reduce()`来计算平方值的总和、平均值和最大值：
+- en: '[PRE55]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: Discussion
+  id: totrans-298
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'Using the `reduce()` method can seem more complicated than other functional-style
+    array processing methods, like `map()` ([“Transforming Every Element of an Array”](#mapping_array)),
+    `filter()` ([“Extracting Array Items That Meet Specific Criteria”](#copying_items_by_criteria)),
+    or `sort()` ([“Sorting an Array of Objects by a Property Value”](#sorting_array)).
+    The difference is that you need to think carefully about what data you need to
+    store after each function call. Remember that you can use the accumulator to store
+    a custom object with more than one property, allowing you to track as much information
+    as you need. You can also add two more optional parameters to your reducer function:
+    `index` (the current index number of the element), and `array` (the entire array
+    that’s being reduced). But be careful. Over-enthusiastic code that uses `reduce()`
+    can quickly get hard for others to understand.'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`reduce()`方法可能比其他函数式数组处理方法更复杂，比如`map()`（[“转换数组的每个元素”](#mapping_array)）、`filter()`（[“提取符合特定条件的数组项”](#copying_items_by_criteria)）或`sort()`（[“按属性值对对象数组进行排序”](#sorting_array)）。不同之处在于，你需要仔细考虑每个函数调用后需要存储的数据。记住，你可以使用累加器来存储一个具有多个属性的自定义对象，从而跟踪所需的所有信息。你还可以向reducer函数添加两个可选参数：`index`（元素的当前索引号）和`array`（正在被reduce的整个数组）。但要小心。过于热衷于使用`reduce()`的代码可能会很快变得难以理解。
+- en: See Also
+  id: totrans-300
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: There’s another way to get the maximum out of an array of numbers. You can use
+    the `Math.max()` method in conjunction with the spread operator to turn your array
+    into a list of arguments (see [“Passing an Array to a Function That Expects a
+    List of Values”](#array_spread)).
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有另一种方法可以从数字数组中获取最大值。您可以使用`Math.max()`方法与展开运算符结合使用，将数组转换为参数列表（参见[“将数组传递给期望值列表的函数”](#array_spread)）。
+- en: Validating Array Contents
+  id: totrans-302
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 验证数组内容
+- en: Problem
+  id: totrans-303
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to ensure that array contents meet certain criteria.
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望确保数组内容满足特定的条件。
+- en: Solution
+  id: totrans-305
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Array.every()` method to check that every element passes a given test.
+    For example, the following code checks to ensure that every element in the array
+    consists of alphabetic characters using a regular expression:'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Array.every()`方法来检查每个元素是否通过了给定的测试。例如，以下代码使用正则表达式来确保数组中每个元素都由字母组成：
+- en: '[PRE56]'
+  id: totrans-307
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: 'Or, use the `Array.some()` method to ensure that at least one of the elements
+    passes the test. As an example, the following code checks to ensure that at least
+    one of the array elements is an alphabetical string:'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，使用`Array.some()`方法来确保至少有一个元素通过了测试。例如，以下代码检查数组中至少有一个元素是字母字符串：
+- en: '[PRE57]'
+  id: totrans-309
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: Discussion
+  id: totrans-310
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: Unlike many other array methods that use callback functions, the `every()` and
+    `some()` methods do not work against all array elements. Instead, they only process
+    as many array elements as necessary to fulfill their functionality.
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不同于许多其他使用回调函数的数组方法，`every()`和`some()`方法不会处理所有数组元素。相反，它们只会处理足够多的数组元素以满足其功能需求。
+- en: The solution demonstrates that the same callback function can be used for both
+    the `every()` and `some()` methods. The difference is that when using `every()`,
+    as soon as the function returns a `false` value, the processing is finished, and
+    the method returns `false`. The `some()` method continues to test against every
+    array element until the callback function returns `true`. At that time, no other
+    elements are validated, and the method returns `true`. However, if the callback
+    function tests against all elements, and doesn’t return `true` for any of them,
+    `some()` returns `false`.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决方案展示了相同的回调函数可以同时用于`every()`和`some()`方法。区别在于，使用`every()`时，一旦函数返回`false`值，处理就结束，并且方法返回`false`。`some()`方法会继续对每个数组元素进行测试，直到回调函数返回`true`。此时，不再验证其他元素，并且方法返回`true`。但是，如果回调函数对所有元素进行了测试，并且没有为任何元素返回`true`，`some()`将返回`false`。
+- en: See Also
+  id: totrans-313
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 参见
+- en: To review regular expression syntax, which is used for the string matching pattern
+    in this example, see [“Using a Regular Expression to Replace Patterns in a String”](ch02.html#replacing_patterns_string).
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看此示例中用于字符串匹配模式的正则表达式语法，请参阅[“使用正则表达式替换字符串中的模式”](ch02.html#replacing_patterns_string)。
+- en: Creating a Collection of Nonduplicated Values
+  id: totrans-315
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建一个非重复值的集合
+- en: Problem
+  id: totrans-316
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create an array-like object that never contains more than one copy
+    of the same value.
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您希望创建一个类似数组的对象，它从不包含超过一次的相同值。
+- en: Solution
+  id: totrans-318
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: Create a `Set` object. It quietly ignores attempts to add the same item more
+    than once, without generating an error.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`Set`对象。它会静默地忽略尝试多次添加相同项的操作，而不会生成错误。
+- en: 'The `Set` is not an array, but—like an array—it’s an iterable collection of
+    elements. You can add elements to a `Set` one at a time with the `add()` method,
+    or you can pass an array in the `Set` constructor to add multiple items at once:'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Set`不是数组，但像数组一样，它是一个可迭代的元素集合。您可以使用`add()`方法逐个添加元素到`Set`中，或者您可以将数组传递给`Set`构造函数一次性添加多个项：'
+- en: '[PRE58]'
+  id: totrans-321
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: Discussion
+  id: totrans-322
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: The `Set` object is not an array. Unlike the `Array` class, which is stocked
+    with thirty-some useful methods, the `Set` class offers much less. You can use
+    `add()` to insert an item, `delete()` to remove one, `has()` to check if an item
+    is in the `Set`, and `clear()` to remove all the items at once. There are no methods
+    for sorting, filtering, transforming, or copying.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Set`对象不是数组。与`Array`类不同，后者提供了三十多个有用的方法，`Set`类提供的功能要少得多。您可以使用`add()`插入项目，`delete()`删除项目，`has()`检查项目是否在`Set`中，以及`clear()`一次性删除所有项目。没有用于排序、过滤、转换或复制的方法。'
+- en: 'However, if you need to process your `Set` object like an array, it’s easy
+    enough to make the conversion by passing your `Set` to the static `Array.from()`
+    method:'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，如果需要像处理数组一样处理您的`Set`对象，通过将`Set`传递给静态的`Array.from()`方法进行转换非常容易：
+- en: '[PRE59]'
+  id: totrans-325
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: In fact, you can convert a `Set` to an `Array` object and back as many times
+    as you want, with no cost other than possible performance (if you have a very
+    long list of items).
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，你可以随意将`Set`转换为`Array`对象，反复进行操作，除了可能的性能损失外（如果列表项非常长）并不会有其他成本。
+- en: Note
+  id: totrans-327
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: To count the number of items in a `Set` or `Map` collection, you use the `size`
+    property. This is different than arrays, which have a `length` property.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要计算`Set`或`Map`集合中的项数，您使用`size`属性。这与数组不同，数组具有`length`属性。
+- en: Creating a Key-Indexed Collection of Items
+  id: totrans-329
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建带有键索引项的集合
+- en: Problem
+  id: totrans-330
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 问题
+- en: You want to create a collection where each item is labeled with a unique string
+    key.
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您想创建一个集合，其中每个项都带有唯一的字符串键。
+- en: Solution
+  id: totrans-332
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 解决方案
+- en: 'Use the `Map` object. Each object is indexed with a unique key (usually, but
+    not necessarily, a string). To add an item, you call the `set()` method. When
+    you need to retrieve a specific item, you can grab exactly the item you want by
+    using the key:'
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`Map`对象。每个对象都以唯一键索引（通常是字符串，但不一定）。要添加项目，可以调用`set()`方法。当需要检索特定项目时，可以通过键直接获取所需的项目：
+- en: '[PRE60]'
+  id: totrans-334
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: Discussion
+  id: totrans-335
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 讨论
+- en: 'When adding items to a `Map` object, you must always use the `set()` method.
+    Don’t fall into this trap:'
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当向`Map`对象添加项时，必须始终使用`set()`方法。不要陷入这个陷阱：
+- en: '[PRE61]'
+  id: totrans-337
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: Although this seems to work at first (and it uses the same kind of syntax that’s
+    used with name-value collections in many other programming languages), it actually
+    bypasses the `Map` collection and sets an ordinary property named `RU007` on the
+    `Map` object. These properties won’t appear if you iterate over the `Map` with
+    a `for`…`of` loop, and they won’t be visible to the `has()` or `get()` methods.
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管一开始似乎能行得通（并且它使用了许多其他编程语言中用于名称-值集合的相同语法），但实际上是绕过了`Map`集合，并在`Map`对象上设置了一个名为`RU007`的普通属性。如果你用`for`...`of`循环迭代`Map`时，这些属性不会出现，并且它们对于`has()`或`get()`方法也是不可见的。
+- en: 'The `Map` object has a small set of methods for managing its contents: `set()`,
+    `get()`, `has()`, and `delete()`. If you want to make use of the functionality
+    in the `Array` object, you can easily convert your `Map` to an array with the
+    static `Array.from()` method:'
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Map`对象有一小组用于管理其内容的方法：`set()`、`get()`、`has()`和`delete()`。如果您想利用`Array`对象中的功能，可以使用静态的`Array.from()`方法轻松将`Map`转换为数组：'
+- en: '[PRE62]'
+  id: totrans-340
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: You might expect that the `productArray` in this example will hold a collection
+    of product objects, but that’s not quite true. Instead, each element in `productsArray`
+    is a *separate* array with two elements. The first element is the key (like `*RUU07*`),
+    and the second element is the value (the product object).
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能期望此示例中的`productArray`将保存一组产品对象，但这并不完全正确。相反，`productsArray`中的每个元素都是一个*单独*的数组，其中第一个元素是键（如`*RUU07*`），第二个元素是值（产品对象）。
+- en: 'In some situations, you might not need to keep the key name when you convert
+    a `Map` to an array. Maybe the key isn’t important, or it’s duplicated by a property
+    of your elements. In this case, you can choose to transform your collection, throwing
+    away the key values as you copy your data out of the `Map`. Here’s how that works:'
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些情况下，当您将`Map`转换为数组时，可能不需要保留键名。也许键名不重要，或者被元素的属性重复了。在这种情况下，您可以选择转换您的集合，将键值丢弃，同时将数据从`Map`中复制出来。这是它的工作原理：
+- en: '[PRE63]'
+  id: totrans-343
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'

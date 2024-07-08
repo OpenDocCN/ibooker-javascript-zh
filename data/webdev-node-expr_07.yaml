@@ -1,0 +1,960 @@
+- en: Chapter 7\. Templating with Handlebars
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章。使用 Handlebars 进行模板化
+- en: 'In this chapter, we’ll cover *templating*, which is a technique for constructing
+    and formating your content to display to the user. You can think of templating
+    as an evolution of the form letter: “Dear [Name]: we regret to inform you nobody
+    uses [Outdated Technology] anymore, but templating is alive and well!” To send
+    that letter to a bunch of people, you just have to replace [Name] and [Outdated
+    Technology].'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将讨论 *模板化*，这是一种构建和格式化你的内容以显示给用户的技术。你可以将模板化视为表单信的进化：“亲爱的 [姓名]：我们很遗憾地告诉你，再也没有人使用
+    [过时的技术] 了，但模板化仍然活跃！”要将这封信发送给一群人，你只需要替换 [姓名] 和 [过时的技术]。
+- en: Note
+  id: totrans-2
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This process of replacing fields is sometimes called *interpolation*, which
+    is just a fancy word for “supplying missing information” in this context.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种替换字段的过程有时被称为 *插值*，在这个上下文中，它只是一个“提供缺失信息”的花哨词语。
+- en: While server-side templating is being fast supplanted by frontend frameworks
+    like React, Angular, and Vue, it still has applications, like creating HTML email.
+    Also, Angular and Vue both use a template-like approach to writing HTML, so what
+    you learn about server-side templating will transfer to those frontend frameworks.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管服务器端模板正在被 React、Angular 和 Vue 等前端框架快速取代，但它仍然有应用，比如创建 HTML 邮件。此外，Angular 和
+    Vue 都使用类似模板的方法编写 HTML，因此你在服务器端模板方面学到的内容可以转移到这些前端框架中。
+- en: 'If you’re coming from a PHP background, you may wonder what the fuss is all
+    about: PHP is one of the first languages that could really be called a templating
+    language. Almost all major languages that have been adapted for the web have included
+    some kind of templating support. What is different today is that the *templating
+    engine* is being decoupled from the language.'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你来自 PHP 背景，可能会对这些问题感到奇怪：PHP 是第一个真正可以称之为模板语言的语言之一。几乎所有为 Web 而适应的主要语言都包含了某种模板支持。如今不同的是
+    *模板引擎* 正从语言中解耦。
+- en: 'So what does templating look like? Let’s start with what templating is replacing
+    by considering the most obvious and straightforward way to generate one language
+    from another (specifically, we’ll generate some HTML with JavaScript):'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么模板看起来是什么样子？让我们从考虑用一种最明显和直接的方式生成一种语言来替代的方式开始（具体来说，我们将使用 JavaScript 生成一些 HTML）：
+- en: '[PRE0]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Perhaps the only reason this seems “obvious” is that it’s the way programming
+    has always been taught:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或许唯一显得“显而易见”的原因是这一直是编程教学的方式：
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: In imperative languages, we’re used to saying, “Do this, then do that, then
+    do something else.” For some things, this approach works fine. If you have 500
+    lines of JavaScript to perform a complicated calculation that results in a single
+    number, and every step is dependent on the previous step, there’s no harm in it.
+    What if it’s the other way around, though? You have 500 lines of HTML and 3 lines
+    of JavaScript. Does it make sense to write `document.write` 500 times? Not at
+    all.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在命令式语言中，我们习惯于说：“先做这个，然后做那个，然后再做其他事情。”对于某些事情，这种方法很有效。如果你有 500 行 JavaScript 来执行一个复杂的计算，最终得到一个数字，每一步都依赖于前一步，那么这样做并没有什么问题。但反过来呢？你有
+    500 行 HTML 和 3 行 JavaScript。写 500 次 `document.write` 有意义吗？完全没有。
+- en: 'Really, the problem boils down to this: switching context is problematic. If
+    you’re writing lots of JavaScript, it’s inconvenient and confusing to be mixing
+    in HTML. The other way isn’t so bad. We’re quite used to writing JavaScript in
+    `<script>` blocks, but I hope you see the difference: there’s still a context
+    switch, and either you’re writing HTML or you’re in a `<script>` block writing
+    JavaScript. Having JavaScript emit HTML is fraught with problems:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，问题归根结底是：切换上下文是有问题的。如果你经常写大量的 JavaScript，混合 HTML 是不方便且令人困惑的。反过来就没那么糟糕。我们习惯在
+    `<script>` 块中编写 JavaScript，但希望你能看出其中的区别：仍然存在上下文切换，你要么在写 HTML，要么在 `<script>` 块里写
+    JavaScript。让 JavaScript 生成 HTML 存在许多问题：
+- en: You have to constantly worry about what characters need to be escaped and how
+    to do that.
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你必须经常担心哪些字符需要转义以及如何进行转义。
+- en: Using JavaScript to generate HTML that itself includes JavaScript quickly leads
+    to madness.
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 JavaScript 生成包含 JavaScript 的 HTML 很快就会导致混乱。
+- en: You usually lose the nice syntax highlighting and other handy language-specific
+    features your editor has.
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通常会失去编辑器具有的漂亮语法高亮和其他有用的特定于语言的功能。
+- en: It can be much harder to spot malformed HTML.
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 发现格式不正确的 HTML 可能会更加困难。
+- en: Your code is hard to visually parse.
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 你的代码很难在视觉上解析。
+- en: It can make it harder for other people to understand your code.
+  id: totrans-17
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 这可能会使其他人更难理解你的代码。
+- en: 'Templating solves the problem by allowing you to write in the target language,
+    while at the same time providing the ability to insert dynamic data. Consider
+    the previous example rewritten as a Mustache template:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过模板化，可以解决这个问题，允许你用目标语言编写，同时提供插入动态数据的能力。考虑前面的例子重写为Mustache模板：
+- en: '[PRE2]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Now all we have to do is provide a value for `{{today}}`, and that’s at the
+    heart of templating languages.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们只需要为`{{today}}`提供一个值，这是模板语言的核心。
+- en: There Are No Absolute Rules Except This One
+  id: totrans-21
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 除了这条，没有绝对的规则
+- en: 'I’m not suggesting that you should *never* write HTML in JavaScript, only that
+    you should avoid it whenever possible. In particular, it’s slightly more palatable
+    in frontend code, especially if you’re using a robust frontend framework. For
+    example, this would pass with little comment from me:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我并不建议你在JavaScript中*从不*写HTML，只是尽可能避免。特别是在前端代码中，尤其是如果你正在使用强大的前端框架。例如，这样的代码对我来说不太容易接受：
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'However, say that eventually mutated into this:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，假设最终变成了这样：
+- en: '[PRE4]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Then I might suggest it’s time to employ a template. The point is, I suggest
+    you develop good judgment when deciding where to draw the line between HTML in
+    strings and using templates. I would err on the side of templates, however, and
+    avoid generating HTML with JavaScript except for the simplest cases.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我可能会建议现在是使用模板的时候了。关键是，在决定在字符串中使用HTML和使用模板之间划界线时，我建议你培养良好的判断力。不过，我更倾向于使用模板，除了最简单的情况外，尽量避免在JavaScript中生成HTML。
+- en: Choosing a Template Engine
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 选择模板引擎
+- en: 'In the Node world, you have many templating engines to choose from, so how
+    to pick? It’s a complicated question, and very much depends on your needs. Here
+    are some criteria to consider, though:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Node世界中，你有很多模板引擎可供选择，那么如何选择呢？这是一个复杂的问题，非常依赖于你的需求。以下是一些需要考虑的标准：
+- en: Performance
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: Clearly, you want your templating engine to be as fast as possible. It’s not
+    something you want slowing down your website.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 显然，你希望你的模板引擎尽可能快速。这不是你想要拖慢网站速度的东西。
+- en: Client, server, or both?
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端、服务器或两者？
+- en: Most, but not all, templating engines are available on both the server and client
+    sides. If you need to use templates in both realms (and you will), I recommend
+    you pick something that is equally capable in either capacity.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数但并非所有的模板引擎都可以在服务器端和客户端两边使用。如果你需要在两个领域中都使用模板（你会需要的），我建议你选择在任何一种情况下都同样有能力的东西。
+- en: Abstraction
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抽象化
+- en: Do you want something familiar (like normal HTML with curly brackets thrown
+    in, for example), or do you secretly hate HTML and would love something that saves
+    you from all those angle brackets? Templating (especially server-side templating)
+    gives you some choices here.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想要一些熟悉的东西（比如常规的带有大括号的HTML，例如），还是你暗地里讨厌HTML，并且希望有些东西可以让你摆脱那些尖括号？模板（特别是服务器端的模板）在这里给你一些选择。
+- en: These are just some of the more prominent criteria in selecting a templating
+    language. Templating options are pretty mature at this point, so you probably
+    can’t go too wrong with whatever you pick.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些只是选择模板语言时的一些更突出的标准之一。目前，模板选项非常成熟，所以无论你选择什么，都不会太错。
+- en: Express allows you to use any templating engine you wish, so if Handlebars is
+    not to your liking, you’ll find it’s easy to switch it out. If you want to explore
+    your options, you can use the fun and useful [Template-Engine-Chooser](http://bit.ly/2CExtK0)
+    (it’s still useful even though it’s no longer being updated).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Express允许你使用任何你喜欢的模板引擎，所以如果Handlebars不合你的口味，你会发现很容易替换它。如果你想探索选项，你可以使用有趣且实用的[模板引擎选择器](http://bit.ly/2CExtK0)（尽管它已经不再更新，但仍然很有用）。
+- en: Let’s take a look at a particularly abstract templating engine before we get
+    to our discussion of Handlebars.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们讨论Handlebars之前，让我们先看看一个特别抽象的模板引擎。
+- en: 'Pug: A Different Approach'
+  id: totrans-38
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Pug：一种不同的方法
+- en: 'Whereas most templating engines take an HTML-centric approach, Pug stands out
+    by abstracting the details of HTML away from you. It is also worth noting that
+    Pug is the brainchild of TJ Holowaychuk, the same person who brought us Express.
+    It should come as no surprise, then, that Pug integration with Express is very
+    good. The approach that Pug takes is noble: at its core is the assertion that
+    HTML is a fussy and tedious language to write by hand. Let’s take a look at what
+    a Pug template looks like, along with the HTML it will output (originally taken
+    from the [Pug home page](https://pugjs.org) and modified slightly to fit the book
+    format):'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然大多数模板引擎都采用以 HTML 为中心的方法，但 Pug 通过将 HTML 的细节抽象化而脱颖而出。还值得注意的是，Pug 的创始人是 TJ Holowaychuk，他也是
+    Express 的创作者。因此，Pug 与 Express 的集成非常好。Pug 采取的方法是高尚的：它的核心观点是 HTML 是一种繁琐且乏味的手工编写语言。让我们来看看一个
+    Pug 模板的示例，以及它将输出的 HTML（原始取自[Pug 主页](https://pugjs.org)，并稍作修改以符合本书的格式）：
+- en: '[PRE5]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Pug certainly represents a lot less typing (no more angle brackets or closing
+    tags). Instead, it relies on indentation and some commonsense rules, making it
+    easier to say what you mean. Pug has an additional advantage: theoretically, when
+    HTML itself changes, you can simply get Pug to retarget the newest version of
+    HTML, allowing you to “future proof” your content.'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pug 显然输入较少（不再有尖括号或闭合标签）。相反，它依赖缩进和一些常识规则，使表达意思变得更容易。Pug 的另一个优势在于：从理论上讲，当 HTML
+    本身发生变化时，你可以简单地让 Pug 针对最新版本的 HTML 进行重新定位，从而使你的内容“未来证明”。
+- en: As much as I admire the Pug philosophy and the elegance of its execution, I’ve
+    found that I don’t want the details of HTML abstracted away from me. As a web
+    developer, HTML is at the heart of everything I do, and if the price is wearing
+    out the angle bracket keys on my keyboard, then so be it. A lot of frontend developers
+    I talk to feel the same, so maybe the world just isn’t ready for Pug.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管我钦佩 Pug 的哲学和其执行的优雅，但我发现我不想让 HTML 的细节从我身边消失。作为一个网页开发者，HTML 是我所做的一切的核心，如果代价是键盘上的尖括号键被磨损，那就算了。我和许多前端开发者交流后发现，他们的看法也是如此，也许这个世界还没有准备好接受
+    Pug。
+- en: Here’s where we’ll part ways with Pug; you won’t be seeing it in this book.
+    However, if the abstraction appeals to you, you will certainly have no problems
+    using Pug with Express, and there are plenty of resources to help you do so.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是我们与 Pug 分道扬镳的地方；你在本书中将不会看到它。然而，如果你喜欢这种抽象化的方式，你肯定不会遇到使用 Pug 与 Express 的问题，并且有很多资源可以帮助你实现这一点。
+- en: Handlebars Basics
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Handlebars 基础
+- en: '*Handlebars* is an extension of Mustache, another popular templating engine.
+    I recommend Handlebars for its easy JavaScript integration (both frontend and
+    backend) and familiar syntax. For me, it strikes all the right balances and is
+    what we’ll be focusing on in this book. The concepts we’re discussing are broadly
+    applicable to other templating engines, though, so you will be well prepared to
+    try different templating engines if Handlebars doesn’t strike your fancy.'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Handlebars* 是 Mustache 的扩展，另一个流行的模板引擎。我推荐 Handlebars 是因为它容易与 JavaScript 集成（前端和后端都可以），并且语法熟悉。对我来说，它在各个方面都找到了平衡点，这也是我们本书的重点内容。我们讨论的概念广泛适用于其他模板引擎，因此如果
+    Handlebars 不适合你，你也可以尝试其他模板引擎。'
+- en: The key to understanding templating is understanding the concept of *context*.
+    When you render a template, you pass the templating engine an object called the
+    *context object*, and this is what allows replacements to work.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解模板的关键在于理解 *上下文* 的概念。当你渲染一个模板时，你向模板引擎传递一个叫做 *上下文对象* 的对象，这就是允许替换操作正常工作的对象。
+- en: For example, if my context object is
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，如果我的上下文对象是
+- en: '[PRE6]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: and my template is
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: and my template is
+- en: '[PRE7]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: then `{{name}}` will be replaced with `Buttercup`. What if you want to pass
+    HTML to the template? For example, if our context was instead
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么 `{{name}}` 将被替换为 `Buttercup`。如果你想向模板传递 HTML 呢？例如，如果我们的上下文对象改为
+- en: '[PRE8]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'then using the previous template will result in `<p>Hello, &lt;b&gt;Buttercup&lt;b&gt;</p>`,
+    which is probably not what you’re looking for. To solve this problem, simply use
+    three curly brackets instead of two: `{{{name}}}`.'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么使用之前的模板将导致 `<p>Hello, &lt;b&gt;Buttercup&lt;b&gt;</p>`，这可能不是你想要的结果。要解决这个问题，只需使用三个大括号而不是两个：`{{{name}}}`。
+- en: Note
+  id: totrans-54
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Note
+- en: While we’ve already established that we should avoid writing HTML in JavaScript,
+    the ability to turn off HTML escaping with triple curly brackets has some important
+    uses. For example, if you were building a content management system (CMS) with
+    what you see is what you get (WYSIWYG) editors, you would probably want to be
+    able to pass HTML to your views. Also, the ability to render properties from the
+    context without HTML escaping is important for *layouts* and *sections*, which
+    we’ll learn about shortly.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们已经确立了不应该在 JavaScript 中编写 HTML 的观点，但是使用三个花括号来关闭 HTML 转义的能力确实有一些重要用途。例如，如果您正在构建带有所见即所得（WYSIWYG）编辑器的内容管理系统（CMS），您可能希望能够向视图传递
+    HTML。此外，在 *布局* 和 *部分* 中渲染上下文的属性时关闭 HTML 转义也很重要，我们很快会学到这一点。
+- en: In [Figure 7-1](#img_templating_rendering_view), we see how the Handlebars engine
+    uses the context (represented by an oval) combined with the template to render
+    HTML.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [图 7-1](#img_templating_rendering_view) 中，我们看到 Handlebars 引擎如何使用上下文（用椭圆表示）结合模板来渲染
+    HTML。
+- en: '![Rendering HTML with Handlebars](Images/bwne_0701.png)'
+  id: totrans-57
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用 Handlebars 渲染 HTML](Images/bwne_0701.png)'
+- en: Figure 7-1\. Rendering HTML with Handlebars
+  id: totrans-58
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. 使用 Handlebars 渲染 HTML
+- en: Comments
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 注释
+- en: '*Comments* in Handlebars look like `{{! comment goes here }}`. It’s important
+    to understand the distinction between Handlebars comments and HTML comments. Consider
+    the following template:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Handlebars 中，*注释* 的形式是 `{{! comment goes here }}`。重要的是要理解 Handlebars 注释与 HTML
+    注释的区别。考虑以下模板：
+- en: '[PRE9]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Assuming this is a server-side template, the super-secret comment will never
+    be sent to the browser, whereas the not-so-secret comment will be visible if the
+    user inspects the HTML source. You should prefer Handlebars comments for anything
+    that exposes implementation details, or anything else you don’t want exposed.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设这是一个服务器端模板，则超级秘密注释永远不会发送到浏览器，而不那么秘密的注释如果用户检查 HTML 源码则会可见。您应该优先使用 Handlebars
+    注释来处理任何暴露实现细节或其他不希望公开的内容。
+- en: Blocks
+  id: totrans-63
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 块
+- en: 'Things start to get more complicated when you consider *blocks*. Blocks provide
+    flow control, conditional execution, and extensibility. Consider the following
+    context object:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当考虑 *块* 时，情况开始变得更加复杂。块提供流程控制、条件执行和可扩展性。考虑以下上下文对象：
+- en: '[PRE10]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Now let’s examine a template we can pass that context to:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们来看看我们可以将该上下文传递到的模板：
+- en: '[PRE11]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'A lot is going on in this template, so let’s break it down. It starts off with
+    the `each` helper, which allows us to iterate over an array. What’s important
+    to understand is that between `{{#each tours}}` and `{{/each tours}}`, the context
+    changes. On the first pass, it changes to `{ name: ''Hood River'', price: ''$99.95''
+    }`, and on the second pass, the context is `{ name: ''Oregon Coast'', price: ''$159.95''
+    }`. So within that block, we can refer to `{{name}}` and `{{price}}`. However,
+    if we want to access the `currency` object, we have to use `../` to access the
+    *parent* context.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这个模板涵盖了很多内容，所以让我们逐步分解它。它以`each`助手开始，允许我们迭代一个数组。重要的是要理解，在`{{#each tours}}`和`{{/each
+    tours}}`之间，上下文会发生变化。第一次迭代时，上下文变为`{ name: ''Hood River'', price: ''$99.95'' }`，第二次迭代时，上下文是`{
+    name: ''Oregon Coast'', price: ''$159.95'' }`。因此，在这个块内部，我们可以引用`{{name}}`和`{{price}}`。然而，如果我们想要访问`currency`对象，我们必须使用`../`来访问*父*上下文。'
+- en: If a property of the context is itself an object, we can access its properties
+    as normal with a period, such as `{{currency.name}}`.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果上下文的属性本身是一个对象，我们可以像平常一样用点号访问它的属性，比如 `{{currency.name}}`。
+- en: 'Both `if` and `each` have an optional `else` block (with `each`, if there are
+    no elements in the array, the `else` block will execute). We’ve also used the
+    `unless` helper, which is essentially the opposite of the `if` helper: it executes
+    only if the argument is false.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`if` 和 `each` 都有一个可选的 `else` 块（对于 `each`，如果数组中没有元素，则会执行 `else` 块）。我们还使用了 `unless`
+    助手，它实际上是 `if` 助手的反义：只有在参数为假时才执行。'
+- en: The last thing to note about this template is the use of `{{.}}` in the `{{#each
+    currencies}}` block. `{{.}}` refers to the current context; in this case, the
+    current context is simply a string in an array that we want to print out.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个模板的最后一点是在 `{{#each currencies}}` 块中使用 `{{.}}`。`{{.}}` 指的是当前上下文；在这种情况下，当前上下文仅仅是我们要打印输出的数组中的一个字符串。
+- en: Tip
+  id: totrans-72
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: 'Accessing the current context with a lone period has another use: it can distinguish
+    helpers (which we’ll learn about soon) from properties of the current context.
+    For example, if you have a helper called `foo` and a property in the current context
+    called `foo`, `{{foo}}` refers to the helper, and `{{./foo}}` refers to the property.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用单独的句点访问当前上下文还有另一种用途：它可以区分帮助程序（我们将很快学习的）和当前上下文的属性。例如，如果您有一个名为`foo`的帮助程序和当前上下文中的一个属性也叫`foo`，`{{foo}}`指的是帮助程序，`{{./foo}}`指的是属性。
+- en: Server-Side Templates
+  id: totrans-74
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 服务器端模板
+- en: '*Server-side templates* allow you to render HTML *before* it’s sent to the
+    client. Unlike client-side templating, where the templates are available for the
+    curious user who knows how to view the HTML source, your users will never see
+    your server-side template or the context objects used to generate the final HTML.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*服务器端模板*允许您在将HTML发送到客户端*之前*进行渲染。与客户端模板不同，后者的模板对于那些知道如何查看HTML源代码的好奇用户是可见的，但您的用户永远不会看到您的服务器端模板或用于生成最终HTML的上下文对象。'
+- en: 'Server-side templates, in addition to hiding your implementation details, support
+    template *caching*, which is important for performance. The templating engine
+    will cache compiled templates (recompiling and recaching only when the template
+    itself changes), which will improve the performance of templated views. By default,
+    view caching is disabled in development mode and enabled in production mode. If
+    you want to explicitly enable view caching, you can do so thusly:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务器端模板除了隐藏您的实现细节外，还支持模板*缓存*，这对性能至关重要。模板引擎将缓存编译后的模板（仅在模板本身更改时重新编译和重新缓存），这将提高模板视图的性能。默认情况下，在开发模式下禁用视图缓存，在生产模式下启用。如果您想显式启用视图缓存，可以这样做：
+- en: '[PRE12]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Out of the box, Express supports Pug, EJS, and JSHTML. We’ve already discussed
+    Pug, and I find little to recommend EJS or JSHTML (neither go far enough, syntactically,
+    for my taste). So we’ll need to add a Node package that provides Handlebars support
+    for Express:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，Express支持Pug、EJS和JSHTML。我们已经讨论过Pug，但我觉得EJS或JSHTML都不够（在语法上，不符合我的口味）。因此，我们需要添加一个Node包，为Express提供Handlebars支持：
+- en: '[PRE13]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Then we’ll link it into Express (*ch07/00/meadowlark.js* in the companion repo):'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将其链接到Express中（在伴随存储库中的*ch07/00/meadowlark.js*）：
+- en: '[PRE14]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Tip
+  id: totrans-82
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 小贴士
+- en: '`express-handlebars` expects Handlebars templates to have the *.handlebars*
+    extension. I’ve grown used to this, but if it’s too wordy for you, you can change
+    the extension to the also common *.hbs* when you create the `express-handlebars`
+    instance: `app.engine(''handlebars'', expressHandlebars({ extname: ''.hbs'' }))`.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`express-handlebars`期望Handlebars模板具有*.handlebars*扩展名。我已经习惯了这个，但如果对您来说太啰嗦，创建`express-handlebars`实例时可以将扩展名更改为也很常见的*.hbs*：`app.engine(''handlebars'',
+    expressHandlebars({ extname: ''.hbs'' }))`。'
+- en: Views and Layouts
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 视图和布局
+- en: 'A *view* usually represents an individual page on your website (though it could
+    represent an Ajax-loaded portion of a page, an email, or anything else for that
+    matter). By default, Express looks for views in the *views* subdirectory. A *layout*
+    is a special kind of view—essentially, a template for templates. Layouts are essential
+    because most (if not all) of the pages on your site will have an almost identical
+    layout. For example, they must have an `<html>` element and a `<title>` element,
+    they usually all load the same CSS files, and so on. You don’t want to have to
+    duplicate that code for every single page, which is where layouts come in. Let’s
+    look at a bare-bones layout file:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*视图*通常表示网站上的单个页面（尽管它可以表示页面的Ajax加载部分、电子邮件或任何其他内容）。默认情况下，Express在*views*子目录中查找视图。*布局*是一种特殊类型的视图——本质上是模板的模板。布局至关重要，因为您网站上的大多数（如果不是所有）页面将具有几乎相同的布局。例如，它们必须有一个`<html>`元素和一个`<title>`元素，它们通常加载相同的CSS文件等等。您不希望为每个页面都重复此代码，这就是布局的作用。让我们看一个基本的布局文件：'
+- en: '[PRE15]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Notice the text inside the `<body>` tag: `{{{body}}}`. That’s so the view engine
+    knows where to render the content of your view. It’s important to use three curly
+    brackets instead of two: our view is most likely to contain HTML, and we don’t
+    want Handlebars trying to escape it. Note that there’s no restriction on where
+    you place the `{{{body}}}` field. For example, if you were building a responsive
+    layout in Bootstrap, you would probably want to put your view inside a container
+    `<div>`. Also, common page elements like headers and footers usually live in the
+    layout, not the view. Here’s an example:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意 `<body>` 标签中的文本：`{{{body}}}`。这样视图引擎就知道在哪里渲染视图内容。使用三个大括号而不是两个是很重要的：因为我们的视图很可能包含HTML，我们不希望Handlebars尝试转义它。请注意，`{{{body}}}`
+    字段的放置位置没有限制。例如，如果您正在构建Bootstrap中的响应式布局，则可能希望将视图放在容器 `<div>` 内。此外，像页眉和页脚这样的常见页面元素通常位于布局而不是视图中。以下是一个例子：
+- en: '[PRE16]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'In [Figure 7-2](#img_templating_rendering_view_with_layout), we see how the
+    template engine combines the view, layout, and context. The important thing that
+    this diagram makes clear is the order of operations. The *view is rendered first*,
+    before the layout. At first, this may seem counterintuitive: the view is being
+    rendered *inside* the layout, so shouldn’t the layout be rendered first? While
+    it could technically be done this way, there are advantages to doing it in reverse.
+    Particularly, it allows the view itself to further customize the layout, which
+    will come in handy when we discuss *sections* later in this chapter.'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [图 7-2](#img_templating_rendering_view_with_layout) 中，我们看到模板引擎如何结合视图、布局和上下文。这个图表清楚地表明了操作顺序的重要性。首先，这可能看起来有些违反直觉：视图在布局内部被渲染，那么布局不应该首先渲染吗？虽然技术上可以这样做，但反向操作有其优势。特别是，它允许视图本身进一步定制布局，在我们稍后讨论本章中的
+    *sections* 时将会很有用。
+- en: Note
+  id: totrans-90
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Because of the order of operations, you can pass a property called `body` into
+    the view, and it will render correctly in the view. However, when the layout is
+    rendered, the value of `body` will be overwritten by the rendered view.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于操作顺序的原因，您可以将名为`body`的属性传递给视图，并且它将在视图中正确渲染。然而，在渲染布局时，`body`的值将被渲染视图覆盖。
+- en: Using Layouts (or Not) in Express
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在 Express 中使用布局（或不使用）
+- en: 'Chances are, most (if not all) of your pages will use the same layout, so it
+    doesn’t make sense to keep specifying the layout every time we render a view.
+    You’ll notice that when we created the view engine, we specified the name of the
+    default layout:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数情况下（如果不是全部），您的页面将使用相同的布局，因此每次渲染视图时都指定布局没有意义。您会注意到，当我们创建视图引擎时，我们指定了默认布局的名称：
+- en: '[PRE17]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'By default, Express looks for views in the *views* subdirectory, and layouts
+    in *views/layouts*. So if you have a view *views/foo.handlebars*, you can render
+    it this way:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，Express 在 *views* 子目录中查找视图，在 *views/layouts* 中查找布局。因此，如果您有一个名为 *views/foo.handlebars*
+    的视图，您可以这样渲染它：
+- en: '[PRE18]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'It will use *views/layouts/main.handlebars* as the layout. If you don’t want
+    to use a layout at all (meaning you’ll have to have all of the boilerplate in
+    the view), you can specify `layout: null` in the context object:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '它将使用 *views/layouts/main.handlebars* 作为布局。如果您不想使用任何布局（这意味着您必须在视图中拥有所有样板内容），您可以在上下文对象中指定
+    `layout: null`：'
+- en: '[PRE19]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '![Rendering a view with a layout](Images/bwne_0702.png)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用布局渲染视图](Images/bwne_0702.png)'
+- en: Figure 7-2\. Rendering a view with a layout
+  id: totrans-100
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-2\. 使用布局渲染视图
+- en: 'Or, if we want to use a different template, we can specify the template name:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，如果我们想使用不同的模板，我们可以指定模板名称：
+- en: '[PRE20]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: This will render the view with layout *views/layouts/microsite.handlebars*.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将使用 *views/layouts/microsite.handlebars* 渲染视图。
+- en: Keep in mind that the more templates you have, the more basic HTML layout you
+    have to maintain. On the other hand, if you have pages that are substantially
+    different in layout, it may be worth it; you have to find a balance that works
+    for your projects.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请记住，模板越多，您需要维护的基本HTML布局就越多。另一方面，如果页面在布局上有显著不同，这可能值得一试；您需要找到适合您项目的平衡。
+- en: Sections
+  id: totrans-105
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 分段
+- en: One technique I’m borrowing from Microsoft’s excellent *Razor* template engine
+    is the idea of *sections*. Layouts work well if all of your view fits neatly within
+    a single element in your layout, but what happens when your view needs to inject
+    itself into different parts of your layout? A common example of this is a view
+    needing to add something to the `<head>` element or to insert a `<script>`, which
+    is sometimes the very last thing in the layout, for performance reasons.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我从微软出色的*Razor*模板引擎中借用的一个技术是*sections*的概念。如果所有的视图都能完美地适应布局中的一个单一元素，那么布局工作得很好，但是当你的视图需要将自己注入布局的不同部分时会发生什么呢？一个常见的例子是视图需要向`<head>`元素添加内容或者插入一个`<script>`，有时这是布局的最后一件事，出于性能原因。
+- en: 'Neither Handlebars nor `express-handlebars` has a built-in way to do this.
+    Fortunately, Handlebars helpers make this really easy. When we instantiate the
+    Handlebars object, we’ll add a helper called `section` (*ch07/01/meadowlark.js*
+    in the companion repo):'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Handlebars和`express-handlebars`都没有内置的方法来实现这一点。幸运的是，Handlebars助手使这变得非常简单。当我们实例化Handlebars对象时，我们将添加一个名为`section`的助手（在伴侣存储库中的*ch07/01/meadowlark.js*文件中）：
+- en: '[PRE21]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Now we can use the `section` helper in a view. Let’s add a view (*views/section-test.handlebars*)
+    to add something to the `<head>` and a script:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在视图中使用`section`助手了。让我们添加一个视图（*views/section-test.handlebars*），向`<head>`添加一些内容和一个脚本：
+- en: '[PRE22]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Now in our layout, we can place the sections just as we place `{{{body}}}`:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在在我们的布局中，我们可以像放置`{{{body}}}`一样放置sections：
+- en: '[PRE23]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Partials
+  id: totrans-113
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 部分
+- en: 'Very often, you’ll have components that you want to reuse on different pages
+    (sometimes called *widgets* in frontend circles). One way to achieve that with
+    templates is to use *partials* (so named because they don’t render a whole view
+    or a whole page). Let’s imagine we want a Current Weather component that displays
+    the current weather conditions in Portland, Bend, and Manzanita. We want this
+    component to be reusable so we can easily put it on whatever page we want, so
+    we’ll use a partial. First, we create a partial file, *views/partials/weather.handlebars*:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很多时候，你会有一些组件希望在不同页面上重用（在前端圈子里有时称为*widgets*）。通过模板实现这一点的一种方法是使用*partials*（因为它们不会渲染整个视图或整个页面）。让我们想象我们想要一个当前天气组件，显示波特兰、本德和曼扎尼塔的当前天气状况。我们希望这个组件是可重用的，所以我们将使用一个部分。首先，我们创建一个部分文件，*views/partials/weather.handlebars*：
+- en: '[PRE24]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Note that we namespace our context by starting with `partials.weatherContext`.
+    Since we want to be able to use the partial on any page, it’s not practical to
+    pass the context in for every view, so instead we use `res.locals` (which is available
+    to every view). But because we don’t want to interfere with the context specified
+    by individual views, we put all partial context in the `partials` object.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们通过以`partials.weatherContext`开头来为我们的上下文命名空间。因为我们希望能够在任何页面上使用这个部分，所以每次视图都传递上下文是不现实的，因此我们使用`res.locals`（这对每个视图都可用）。但是因为我们不想干扰单独视图指定的上下文，所以我们将所有部分上下文放在`partials`对象中。
+- en: Warning
+  id: totrans-117
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: '`express-handlebars` allows you to pass in partial templates as part of the
+    context. For example, if you add `partials.foo = "Template!"` to your context,
+    you can render this partial with `{{> foo}}`. This usage will override any *.handlebars*
+    view files, which is why we used `partials.weatherContext` earlier, instead of
+    `partials.weather`, which would override *views/partials/weather.handlebars*.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`express-handlebars`允许你将部分模板作为上下文的一部分传递。例如，如果你在上下文中添加`partials.foo = "Template!"`，你可以使用`{{>
+    foo}}`来渲染这个部分。这种用法将覆盖任何*.handlebars*视图文件，这就是为什么我们之前使用`partials.weatherContext`而不是`partials.weather`的原因，后者会覆盖*views/partials/weather.handlebars*。'
+- en: In [Chapter 19](ch19.xhtml#ch_integrating_with_third_party_rest_apis), we’ll
+    see how to get current weather information from the free National Weather Service
+    API. For now, we’re just going to use dummy data returned from a function we’ll
+    call `getWeatherData`.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第19章](ch19.xhtml#ch_integrating_with_third_party_rest_apis)中，我们将看到如何从免费的国家气象服务API获取当前天气信息。目前，我们将仅使用从我们称为`getWeatherData`的函数返回的虚拟数据。
+- en: In this example, we want this weather data to be available to any view, and
+    the best mechanism for that is middleware (which we’ll learn more about in [Chapter 10](ch10.xhtml#ch_middleware)).
+    Our middleware will inject the weather data into the `res.locals.partials` object,
+    which will make it available as the context for our partial.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们希望这些天气数据可以在任何视图中使用，并且最好的机制是中间件（我们将在[第10章](ch10.xhtml#ch_middleware)中了解更多）。我们的中间件将把天气数据注入到`res.locals.partials`对象中，这将作为部分的上下文可用。
+- en: 'To make our middleware more testable, we’ll put it in its own file, *lib/middleware/weather.js*
+    (*ch07/01/lib/middleware/weather.js* in the companion repo):'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了使我们的中间件更具可测试性，我们将其放入自己的文件中，即 *lib/middleware/weather.js*（在配套的存储库中为 *ch07/01/lib/middleware/weather.js*）：
+- en: '[PRE25]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'Now that everything is set up, all we have to do is use the partial in a view.
+    For example, to put our widget on the home page, edit *views/home.handlebars*:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在一切都设置好了，我们只需在视图中使用部分即可。例如，要在主页上放置我们的小部件，请编辑 *views/home.handlebars*：
+- en: '[PRE26]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'The `{{> partial_name}}` syntax is how you include a partial in a view: `express-handlebars`
+    will know to look in *views/partials* for a view called *partial_name.handlebars*
+    (or *weather.handlebars*, in our example).'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`{{> partial_name}}` 语法是在视图中包含部分的方式：`express-handlebars` 将会查找名为 *partial_name.handlebars*（或者在我们的示例中为
+    *weather.handlebars*）的视图，位于 *views/partials* 目录中。'
+- en: Tip
+  id: totrans-126
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: '`express-handlebars` supports subdirectories, so if you have a lot of partials,
+    you can organize them. For example, if you have some social media partials, you
+    could put them in the *views/partials/social* directory and include them using
+    `{{> social/facebook}}`, `{{> social/twitter}}`, etc.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`express-handlebars` 支持子目录，因此如果有很多部分，您可以对其进行组织。例如，如果您有一些社交媒体部分，您可以将它们放在 *views/partials/social*
+    目录中，并使用 `{{> social/facebook}}`、`{{> social/twitter}}` 等来包含它们。'
+- en: Perfecting Your Templates
+  id: totrans-128
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 完善您的模板
+- en: Your templates are at the heart of your website. A good template structure will
+    save you development time, promote consistency across your website, and reduce
+    the number of places that layout quirks can hide. To achieve these benefits, though,
+    you must spend some time crafting your templates carefully. Deciding how many
+    templates you should have is an art; generally, fewer is better, but there is
+    a point of diminishing returns, depending on the uniformity of your pages. Your
+    templates are also your first line of defense against cross-browser compatibility
+    issues and valid HTML. They should be lovingly crafted and maintained by someone
+    who is well versed in frontend development. A great place to start—especially
+    if you’re new—is [HTML5 Boilerplate](http://html5boilerplate.com). In the previous
+    examples, we’ve been using a minimal HTML5 template to fit the book format, but
+    for our actual project, we’ll be using HTML5 Boilerplate.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模板是您网站的核心。良好的模板结构将节省开发时间，促进网站的一致性，并减少布局问题的隐藏位置。但要实现这些好处，您必须花时间精心制作模板。决定您应该有多少模板是一门艺术；通常情况下，模板越少越好，但根据页面的统一性，也会有收益递减点。您的模板也是对抗跨浏览器兼容性问题和有效
+    HTML 的第一道防线。它们应该由精通前端开发的人士精心制作和维护。一个很好的开始地方，尤其是如果您是新手，是[HTML5 Boilerplate](http://html5boilerplate.com)。在之前的例子中，为了适应书籍的格式，我们使用了一个最小的
+    HTML5 模板，但对于我们的实际项目，我们将使用 HTML5 Boilerplate。
+- en: Another popular place to start with your template are third-party themes. Sites
+    like [Themeforest](http://bit.ly/34Tdkfj) and [WrapBootstrap](https://wrapbootstrap.com)
+    have hundreds of ready-to-use HTML5 themes that you can use as a starting place
+    for your template. Using a third-party theme starts with taking the primary file
+    (usually *index.html*), renaming it to *main.handlebars* (or whatever you choose
+    to call your layout file), and placing any resources (CSS, JavaScript, images)
+    in the *public* directory you use for static files. Then you’ll have to edit the
+    template file and figure out where you want to put the `{{{body}}}` expression.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个开始模板的热门地点是第三方主题。像[Themeforest](http://bit.ly/34Tdkfj)和[WrapBootstrap](https://wrapbootstrap.com)这样的网站有数百个现成的
+    HTML5 主题，您可以用作模板的起点。使用第三方主题的方法是从主文件（通常是 *index.html*）开始，将其重命名为 *main.handlebars*（或您选择的任何布局文件名称），并将所有资源（CSS、JavaScript、图像）放置在您用于静态文件的
+    *public* 目录中。然后，您需要编辑模板文件，并确定您想要放置 `{{{body}}}` 表达式的位置。
+- en: Depending on the elements of your template, you may want to move some of them
+    into partials. A great example is a *hero* (a tall banner designed to grab the
+    user’s attention. If the hero appears on every page (probably a poor choice),
+    you would leave the hero in the template file. If it appears on only one page
+    (usually the home page), then it would go only in that view. If it appears on
+    several—but not all—pages, then you might consider putting it in a partial. The
+    choice is yours, and herein lies the artistry of making a unique, captivating
+    website.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据你的模板元素，你可能希望将其中一些元素移入局部模板中。一个很好的例子是*标题横幅*（一个旨在吸引用户注意力的高大横幅）。如果标题横幅出现在每个页面上（这可能是一个不好的选择），你会将标题横幅留在模板文件中。如果它只出现在一个页面上（通常是首页），那么它只会在那个视图中出现。如果它出现在几个页面上，但不是所有页面，那么你可能会考虑将其放在局部模板中。选择权在你手中，这也是制作独特、引人入胜的网站的艺术所在。
+- en: Conclusion
+  id: totrans-132
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: We’ve seen how templating can make our code easier to write, read, and maintain.
+    Thanks to templates, we don’t have to painfully cobble together HTML from JavaScript
+    strings; we can write HTML in our favorite editor and use a compact and easy-to-read
+    templating language to make it dynamic.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经看到模板化如何让我们的代码更容易编写、阅读和维护。多亏了模板，我们不必再痛苦地用 JavaScript 字符串拼凑 HTML；我们可以在我们喜爱的编辑器中编写
+    HTML，并使用一种紧凑而易于阅读的模板语言使其动态化。
+- en: Now that we’ve seen how to format our content for display, we’ll turn our attention
+    to how to get data *into* our system with HTML forms.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经学会了如何格式化我们的内容以便显示，接下来我们将把注意力转向如何使用 HTML 表单将数据*输入*到我们的系统中。

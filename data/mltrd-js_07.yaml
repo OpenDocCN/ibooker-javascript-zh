@@ -1,0 +1,2171 @@
+- en: Chapter 6\. Multithreaded Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第6章。多线程模式
+- en: The JavaScript APIs that expose multithreading are, on their own, really quite
+    basic with the functionality they provide. As you saw in [Chapter 4](ch04.xhtml#ch_shared_mem),
+    the purpose of the `SharedArrayBuffer` is to store a raw, binary representation
+    of data. Even [Chapter 5](ch05.xhtml#ch_adv_shared_mem) continued this pattern
+    with the `Atomics` object, exposing rather primitive methods for coordinating
+    or modifying a handful of bytes at a time.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript API本身在提供功能方面确实非常基础。正如你在[第4章](ch04.xhtml#ch_shared_mem)看到的那样，`SharedArrayBuffer`的目的是存储数据的原始二进制表示。甚至[第5章](ch05.xhtml#ch_adv_shared_mem)继续使用`Atomics`对象，暴露出一些用于协调或逐个修改少量字节的相对原始的方法。
+- en: Just looking at such abstract and low-level APIs can make it difficult to see
+    the big picture, or what these APIs can really be used for. It’s admittedly difficult
+    to take these concepts and convert them into something that is genuinely useful
+    for an application. That’s what this chapter is for.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只看这些抽象和低级别的API可能会让人难以看清全局，或者这些API真正可以用于什么。诚然，将这些概念转化为对应用程序真正有用的东西是困难的。这就是本章的目的所在。
+- en: This chapter contains popular design patterns for implementing multithreaded
+    functionality inside an application. These design patterns take inspiration from
+    the past, as each of them existed long before JavaScript was even invented. Though
+    working demos of them are likely available in many forms, such as C++ textbooks,
+    translating them for use with JavaScript isn’t always straightforward.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章包含在应用程序内部实现多线程功能的流行设计模式。这些设计模式灵感来自过去，每一个都在JavaScript发明之前就存在。尽管它们的工作示例可能以多种形式存在，比如C++教科书，但将它们转换用于JavaScript并非总是直截了当的。
+- en: By examining these patterns you’ll get a much better feel for how the applications
+    you develop can benefit from multithreading.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过研究这些模式，你将更好地理解你开发的应用程序如何从多线程中受益。
+- en: Thread Pool
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 线程池
+- en: The thread pool is a very popular pattern that is used in most multithreaded
+    applications in some form or another. Essentially, a *thread pool* is a collection
+    of homogeneous worker threads that are each capable of carrying out CPU-intensive
+    tasks that the application may depend on. This differs somewhat from the approach
+    you’ve been using so far where usually a single worker thread, or a finite number
+    of workers, has been used. As an example of this, the `libuv` library that Node.js
+    depends on provides a thread pool, defaulting to four threads, for performing
+    low-level I/O operations.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 线程池是一个非常流行的模式，在某种形式上几乎用于大多数多线程应用程序中。本质上，*线程池*是一组同质的工作线程，每个线程都能执行应用程序可能依赖的CPU密集型任务。这与你到目前为止通常使用的单个工作线程或有限数量工作线程的方法有些不同。例如，Node.js依赖的`libuv`库提供了一个线程池，默认为四个线程，用于执行低级别的I/O操作。
+- en: This pattern might feel similar to distributed systems that you may have worked
+    with in the past. For example, with a container orchestration platform, there’s
+    usually a collection of machines that are each capable of running application
+    containers. With such a system each machine might have different capabilities,
+    such as running different operating systems or having different memory and CPU
+    resources. When this happens, the orchestrator may assign points to each machine
+    based on resources and applications, then consume said points. On the other hand,
+    a thread pool is much simpler because each worker is capable of carrying out the
+    same work and each thread is just as capable as the other since they’re all running
+    on the same machine.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式可能与您过去使用过的分布式系统相似。例如，在容器编排平台上，通常会有一组可以运行应用程序容器的机器。在这样的系统中，每台机器可能具有不同的能力，例如运行不同的操作系统或具有不同的内存和CPU资源。当发生这种情况时，编排器可能会根据资源和应用程序为每台机器分配点数，然后消耗这些点数。另一方面，线程池要简单得多，因为每个工作线程都能执行相同的工作，每个线程都和其他线程一样能干，因为它们都在同一台机器上运行。
+- en: The first question when creating a thread pool is how many threads should be
+    in the pool?
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建线程池时的第一个问题是池中应有多少线程？
+- en: Pool Size
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 池大小
+- en: 'There are essentially two types of programs: those that run in the background,
+    like a system daemon process, which ideally shouldn’t consume that many resources,
+    and programs that run in the foreground that any given user is more likely to
+    be aware of, like a desktop application or a web server. Browser applications
+    are usually constrained to running as foreground applications, whereas Node.js
+    applications are free to run in the background—though Node.js is most commonly
+    used to build servers, frequently as the only process inside a container. In either
+    case, the intent with a JavaScript application is often to be the main focus at
+    a particular point in time, and any computations necessary to achieve the purpose
+    of the program should ideally be executed as soon as possible.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从本质上讲，有两种类型的程序：那些在后台运行的程序，如系统守护进程，理想情况下不应消耗太多资源，以及那些运行在前台的程序，任何给定用户更有可能意识到的，如桌面应用程序或
+    Web 服务器。浏览器应用程序通常被限制为前台应用程序运行，而 Node.js 应用程序可以自由地在后台运行——尽管 Node.js 最常用于构建服务器，通常作为容器内唯一的进程。无论哪种情况，JavaScript
+    应用程序的意图通常是在特定时间点成为主要关注的焦点，并且为实现程序目的所需的任何计算应尽可能快地执行。
+- en: To execute instructions as quickly as possible, it makes sense to break them
+    up and run them in parallel. To maximize CPU usage it figures that each of the
+    cores in a given CPU should be used, as equally as possible, by the application.
+    Thus, the number of CPU cores available to the machine should be a determining
+    factor for the number of threads—aka workers—an application should use.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了尽快执行指令，将它们分解并并行运行是有意义的。为了最大化 CPU 使用率，理应尽可能均匀地使用给定 CPU 中的每个核心。因此，机器上可用的 CPU
+    核心数量应成为决定应用程序应使用的线程（又称工作者）数量的因素。
+- en: Typically, the size of a thread pool won’t need to dynamically change throughout
+    the lifetime of an application. Usually there’s a reason the number of workers
+    is chosen, and that reason doesn’t often change. That’s why you’ll work with a
+    thread pool with a fixed size, dynamically chosen when the application launches.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，线程池的大小在应用程序的整个生命周期中不需要动态变化。通常选择工作线程数是有原因的，而且这个原因通常不会改变。这就是为什么在应用程序启动时会使用一个固定大小的线程池。
+- en: 'Here is the idiomatic approach for getting the number of threads available
+    to the currently running JavaScript application, depending on whether the code
+    runs inside a browser or inside a Node.js process:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是获取当前运行的 JavaScript 应用程序可用线程数的成语化方法，具体取决于代码是在浏览器中运行还是在 Node.js 进程中运行：
+- en: '[PRE0]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: One thing to keep in mind is that with most operating systems there is not a
+    direct correlation between a thread and a CPU core. For example, when running
+    an application with four threads on a CPU with four cores, it’s not like the first
+    core is always handling the first thread, the second core the second thread, and
+    so forth. Instead, the operating system constantly moves tasks around, occasionally
+    interrupting a running program to handle the work of another application. In a
+    modern operating system there are often hundreds of background processes that
+    need to be occasionally checked. This often means that a single CPU core will
+    be handling the work of more than one thread.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要记住的一件事是，大多数操作系统中线程与 CPU 核心之间没有直接的对应关系。例如，在具有四个核心的 CPU 上运行一个具有四个线程的应用程序时，并不是第一个核心总是处理第一个线程，第二个核心处理第二个线程，依此类推。相反，操作系统会不断地移动任务，偶尔中断正在运行的程序以处理另一个应用程序的工作。在现代操作系统中，通常有数百个后台进程需要偶尔进行检查。这通常意味着单个
+    CPU 核心将处理多个线程的工作。
+- en: Each time a CPU core switches focus between programs—or threads of a program—a
+    small context shift overhead comes into play. Because of this, having too many
+    threads compared to the number of CPU cores can cause a loss of performance. The
+    constant context switching will actually make an application slower, so applications
+    should attempt to reduce the number of threads clamoring for attention from the
+    OS. However, having too few threads can then mean that an application takes too
+    long to do its thing, resulting in a poor user experience or otherwise wasted
+    hardware.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次 CPU 核心在程序或程序的线程之间切换焦点时，都会产生一些小的上下文切换开销。因此，与 CPU 核心数量相比有太多线程可能会导致性能损失。不断的上下文切换实际上会使应用程序变慢，因此应用程序应尽量减少请求操作系统注意的线程数量。然而，线程太少可能意味着应用程序执行任务的时间太长，从而导致用户体验不佳或浪费硬件资源。
+- en: Another thing to keep in mind is that if an application makes a thread pool
+    with four workers, then the minimum number of threads that application is using
+    is five because the main thread of the application also comes into play. There
+    are also background threads to consider, like the `libuv` thread pool, a garbage
+    collection thread if the JavaScript engine employs one, the thread used to render
+    the browser chrome, and so on. All of these will affect the performance of the
+    application.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还要记住的一件事是，如果一个应用程序创建了一个有四个工作线程的线程池，那么该应用程序使用的线程的最小数量是五，因为应用程序的主线程也参与其中。还有需要考虑的后台线程，如`libuv`线程池，如果JavaScript引擎使用垃圾回收线程，用于渲染浏览器界面的线程等等。所有这些都会影响应用程序的性能。
+- en: Tip
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: The characteristics of the application itself will also affect the ideal size
+    of a thread pool. Are you writing a cryptocurrency miner that does 99.9% of the
+    work in each thread and almost no I/O and no work in the main thread? In that
+    case using the number of available cores as the size of the thread pool might
+    be OK. Or are you writing a video streaming and transcoding service that performs
+    heavy CPU and heavy I/O? In that case, you may want to use the number of available
+    cores minus two. You’ll need to perform benchmarks with your application to find
+    the perfect number, but a reasonable starting point might be to use the number
+    of available cores minus one and then tweak when necessary.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序本身的特性也会影响线程池的理想大小。你是在编写一个加密货币挖矿程序，在每个线程中99.9%的工作都在进行，几乎没有I/O，主线程也没有工作吗？在这种情况下，使用可用核心数作为线程池的大小可能是可以接受的。或者你正在编写一个视频流和转码服务，需要大量CPU和I/O吗？在这种情况下，你可能想要使用可用核心数减去两个。你需要对你的应用程序进行基准测试，找到最佳数量，但一个合理的起点可能是使用可用核心数减去一个，然后根据需要进行调整。
+- en: Once you have determined the number of threads to use, you’re ready to determine
+    how to dispatch work to the workers.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦确定了要使用的线程数量，就可以确定如何将工作分派给工作线程了。
+- en: Dispatch Strategies
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 调度策略
+- en: Because the goal of a thread pool is to maximize the work that can be done in
+    parallel, it stands to reason that no single worker should get too much work to
+    handle and no threads should be sitting there idle without work to do. A naive
+    approach might be to just collect tasks to be done, then pass them in once the
+    number of tasks ready to be performed meets the number of worker threads and continue
+    once they all complete. However, each task isn’t guaranteed to take the same amount
+    of time to complete. It could be that some are very fast, taking milliseconds,
+    and others may be slow, taking seconds or longer. A more robust solution must
+    therefore be built.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为线程池的目标是最大化并行处理的工作量，因此理所当然地，没有一个单独的工作线程应该承担太多的工作量，也不应该有线程闲置而没有工作可做。一个天真的方法可能是只是收集待完成的任务，然后一旦待执行任务的数量达到工作线程的数量，就将它们传递进去，并在它们全部完成后继续。然而，并不保证每个任务完成所需的时间相同。有些可能非常快，花费毫秒级的时间，而其他可能很慢，需要几秒甚至更长时间。因此，必须构建一个更加健壮的解决方案。
+- en: 'A few strategies are often employed by applications to dispatch tasks to workers
+    in a worker pool. These strategies draw parallels to those used by reverse proxies
+    for the purpose of sending requests to backend services. Here’s a list of the
+    most common strategies:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用程序通常会采用几种策略来将任务分派给工作线程池中的工作线程。这些策略与反向代理用于将请求发送到后端服务的策略类似。以下是最常见的几种策略的列表：
+- en: Round robin
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 循环调度
+- en: Each task is given to the next worker in the pool, wrapping around to the beginning
+    once the end has been hit. So, with a pool size of three, the first task goes
+    to Worker 1, then Worker 2, then Worker 3, then back to Worker 1, and so on. The
+    benefit of this is that each thread gets the exact same number of tasks to perform,
+    but the drawback is that if the complexities of each task is a multiple of the
+    number of threads (like each 6th task takes a long time to perform), then there
+    will be an unfair distribution of work. The HAProxy reverse proxy refers to this
+    as `roundrobin`.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个任务被分配给池中的下一个工作线程，一旦到达末尾，就会重新从开头开始。因此，对于一个大小为三的线程池，第一个任务分配给工作线程1，然后是工作线程2，然后是工作线程3，然后回到工作线程1，依此类推。这样做的好处是每个线程获得完全相同数量的任务来执行，但缺点是如果每个任务的复杂性是线程数的倍数（例如每六个任务中的一个需要很长时间才能完成），那么工作分配就不公平。HAProxy反向代理将此称为`roundrobin`。
+- en: Random
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随机
+- en: Each task is assigned to a random worker in the pool. Although this is the simplest
+    to build, being entirely stateless, it can also mean that some of the workers
+    are sometimes given too much work to perform, and others will sometimes be given
+    too little work to perform.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个任务都分配给池中的一个随机工作线程。尽管这是最简单的建立方式，完全无状态，但也可能意味着有些工作线程有时会被分配太多的工作，而其他工作线程有时则会被分配太少的工作。
+- en: Least busy
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最空闲
+- en: A count of the number of tasks being performed by each worker is maintained,
+    and when a new task comes along it is given to the least busy worker. This can
+    even be extrapolated so that each worker only has a single task to perform at
+    a time. When two workers have a tie for the least amount of work, then one can
+    be chosen randomly. This is perhaps the most robust approach, especially if each
+    task consumes the same amount of CPU, but it does require the most effort to implement.
+    If some tasks use fewer resources, such as if a task calls `setTimeout()`, then
+    it can lead to skew in worker workloads. HAProxy refers to this as `leastconn`.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 维护每个工作线程执行任务的计数，并在新任务到来时将其分配给最空闲的工作线程。甚至可以推广到每个工作线程一次只执行一个任务。当两个工作线程的工作量相同时，可以随机选择一个。这可能是最健壮的方法，特别是如果每个任务消耗的CPU量相同，但实现起来需要更多的努力。如果一些任务使用较少的资源，例如调用`setTimeout()`，则可能会导致工作线程工作负载的偏差。HAProxy将其称为`leastconn`。
+- en: Other strategies employed by reverse proxies might have a nonobvious implementation
+    that could be made in your applications as well. For example, HAProxy has a strategy
+    for load balancing called `source`, which takes a hash of the client’s IP address
+    and uses that to consistently route requests to a single backend. An equivalent
+    to this might be useful in cases where worker threads maintain an in-memory cache
+    of data- and routing-related tasks to the same worker could result in more cache
+    hits, but such an approach is a little harder to generalize.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 反向代理使用的其他策略可能具有不明显的实现方式，你也可以在你的应用程序中实现。例如，HAProxy具有称为`source`的负载均衡策略，它使用客户端IP地址的哈希来一致地将请求路由到单个后端。在工作线程维护数据和路由相关任务的内存缓存时，将路由到同一工作线程可能会导致更多的缓存命中，但这种方法稍微难以泛化。
+- en: Tip
+  id: totrans-31
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Depending on the nature of your application, you may find that one of these
+    strategies offers much better performance than the others. Again, benchmarking
+    is your friend when it comes to measuring a given application’s performance.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据应用程序的性质，你可能会发现其中一种策略比其他策略具有更好的性能。再次强调，针对特定应用程序的性能测量是非常重要的。
+- en: Example Implementation
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 示例实现
+- en: This example repurposes the existing files from *ch2-patterns/* that you created
+    in [“Putting It All Together”](ch02.xhtml#ch_browser_sec_libs_sub_interface),
+    but a lot of the error handling has been removed for brevity, and the code has
+    been made compatible with Node.js. Create a new directory named *ch6-thread-pool/*
+    to house the files that you’ll create in this section.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例重新利用了*ch2-patterns/*中你在[“将所有内容整合在一起”](ch02.xhtml#ch_browser_sec_libs_sub_interface)中创建的现有文件，但为了简洁起见，已经删除了大部分错误处理，并使代码与Node.js兼容。在此部分创建一个名为*ch6-thread-pool/*的新目录，用于存放你将在其中创建的文件。
+- en: The first file you’ll create is *main.js*. This is the entrypoint into the application.
+    The previous version of this code just used a `Promise.allSettled()` call to add
+    tasks to the pool, but that’s not all that interesting because it adds everything
+    at the same time. Instead, this application exposes a web server, and every request
+    then creates a new task for the thread pool. With this approach, previous tasks
+    might have been completed by the time the pool is consulted, which then results
+    in more interesting patterns like with a real-world application.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先要创建的文件是*main.js*。这是应用程序的入口点。之前版本的代码只是使用了一个`Promise.allSettled()`调用来向池中添加任务，但这并不是很有趣，因为它同时添加了所有任务。相反，该应用程序公开了一个Web服务器，每个请求都会为线程池创建一个新任务。通过这种方式，之前的任务可能在查询池时已经完成，这样会产生更有趣的模式，就像一个真实的应用程序一样。
+- en: Add the content from [Example 6-1](#ex_threadpool_main) to *main.js* to start
+    off your application.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将[示例 6-1](#ex_threadpool_main)的内容添加到*main.js*，以启动你的应用程序。
+- en: Example 6-1\. *ch6-thread-pool/main.js*
+  id: totrans-37
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-1\. *ch6-thread-pool/main.js*
+- en: '[PRE1]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO1-1)'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO1-1)'
+- en: The `THREADS` environment variable controls the pool size.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`THREADS`环境变量控制池的大小。'
+- en: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO1-2)'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO1-2)'
+- en: The `STRATEGY` environment variable sets the dispatch strategy.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`STRATEGY`环境变量设置了调度策略。'
+- en: This application used two environment variables to make it easy to experiment
+    with. The first is named `THREADS` and will be used to set the number of threads
+    in the thread pool. The second environment variable is `STRATEGY`, which can be
+    used to set the thread pool dispatch strategy. Otherwise, the server isn’t too
+    exciting, as it just uses the built-in `http` module. The server listens on port
+    1337, and any request, regardless of path, triggers the handler. Each request
+    calls the `square_sum` command defined in the workers while passing in a value
+    between 0 and 100 million.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该应用程序使用了两个环境变量，以便进行实验。第一个命名为`THREADS`，用于设置线程池中的线程数。第二个环境变量是`STRATEGY`，可用于设置线程池调度策略。否则，服务器并不太令人兴奋，因为它只使用内置的`http`模块。服务器监听1337端口，无论路径如何，都会触发处理程序。每个请求都调用工作线程中定义的`square_sum`命令，同时传入一个介于0和1亿之间的值。
+- en: Next, create a file named *worker.js*, and add the content from [Example 6-2](#ex_threadpool_worker)
+    to it.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为*worker.js*的文件，并将内容从[示例 6-2](#ex_threadpool_worker)添加到其中。
+- en: Example 6-2\. *ch6-thread-pool/worker.js*
+  id: totrans-45
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-2\. *ch6-thread-pool/worker.js*
+- en: '[PRE2]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This file isn’t too interesting because it’s essentially a simplified version
+    of the *worker.js* file that you previously created. A lot of the error handling
+    was removed to make the code shorter (feel free to add it back if you like), and
+    the code has also been modified to be compatible with the Node.js APIs. In this
+    example only a single command remains, namely `square_sum`.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件并不太有趣，因为它本质上是您之前创建的*worker.js*文件的简化版本。为了缩短代码长度（如果愿意，可以添加回来），删除了大部分错误处理，并且代码也已修改为与Node.js
+    API兼容。在这个示例中，只剩下一个命令，即`square_sum`。
+- en: Next, create a file named *rpc-worker.js*. This file is going to be quite large
+    and has been broken up into smaller sections. First, add the content from [Example 6-3](#ex_threadpool_rpcworker_1)
+    to it.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为*rpc-worker.js*的文件。这个文件将会非常庞大，并已分成较小的部分。首先，将内容从[示例 6-3](#ex_threadpool_rpcworker_1)添加到其中。
+- en: Example 6-3\. *ch6-thread-pool/rpc-worker.js* (part 1)
+  id: totrans-49
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-3\. *ch6-thread-pool/rpc-worker.js*（第1部分）
+- en: '[PRE3]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO1-1)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO1-1)'
+- en: The thread pool size is highly configurable.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 线程池大小可高度配置。
+- en: '[![2](Images/2.png)](#co_multithreaded_patterns_CO1-2)'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_multithreaded_patterns_CO1-2)'
+- en: The strategy is validated and stored.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 策略已验证并存储。
+- en: '[![3](Images/3.png)](#co_multithreaded_patterns_CO1-3)'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_multithreaded_patterns_CO1-3)'
+- en: An array of workers is maintained instead of just one.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 维护一个工作线程数组而不是仅一个。
+- en: '[![4](Images/4.png)](#co_multithreaded_patterns_CO1-4)'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_multithreaded_patterns_CO1-4)'
+- en: The `in_flight_commands` list is now maintained per worker.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`in_flight_commands`列表现在针对每个工作线程进行维护。'
+- en: This file starts off by requiring the `worker_threads` core module to create
+    workers, as well as the `os` module to get the number of available CPU cores.
+    After that the `RpcWorkerPool` class is defined and exported. Next, the constructor
+    for the class is provided. The constructor takes three arguments, with the first
+    being the path to the worker file, the second being the size of the pool, and
+    the third being the strategy to use.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件首先通过要求`worker_threads`核心模块来创建工作线程，以及`os`模块来获取可用CPU核心数来启动。之后定义并导出`RpcWorkerPool`类。接下来提供了该类的构造函数。构造函数有三个参数，第一个是工作文件的路径，第二个是池的大小，第三个是要使用的策略。
+- en: The pool size is highly configurable and allows the caller to provide a number.
+    If the number is positive, then it is used as the size of the pool. The default
+    value is zero, and if provided, the number of CPU cores is used for the pool size.
+    If a negative number is provided, then that number is subtracted from the number
+    of available cores and that is used instead. So, on an 8 core machine, passing
+    in a pool size of –2 would result in a pool size of 6.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 池大小可高度配置，允许调用者提供一个数字。如果数字为正数，则用作池大小。默认值为零，如果提供了数字，则使用CPU核心数作为池大小。如果提供了负数，则从可用核心数中减去该数字，然后使用该数字。因此，在一个8核机器上，传入池大小为-2将导致池大小为6。
+- en: The strategy argument may be one of `roundrobin` (the default), `random`, or
+    `leastbusy`. The value is validated before being assigned to the class. The `rr_index`
+    value is used as the round robin index and is a number that cycles through the
+    next available worker ID.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 策略参数可以是`roundrobin`（默认值）、`random`或`leastbusy`之一。在分配给类之前，该值经过验证。`rr_index`值用作循环遍历的轮询索引，是一个循环遍历下一个可用工作线程ID的数字。
+- en: The `next_command_id` is still global across all threads, so the first command
+    will be `1` and the next will be `2`, regardless of whether the commands are both
+    handled by the same worker thread or not.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`next_command_id`仍然是全局的，跨所有线程，因此第一个命令将是`1`，下一个将是`2`，无论这两个命令是否由同一个工作线程处理。'
+- en: Finally, the `workers` class property is an array of workers instead of the
+    previous singular `worker` property. The code to handle it is largely the same,
+    but the `in_flight_commands` list is now local to the individual workers, and
+    the ID of the worker is passed as an additional argument to the `onMessageHandler()`
+    method. This is because the individual worker will later need to be looked up
+    when a message is sent back to the main process.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，`workers`类属性是一个工作线程的数组，而不是以前的单个`worker`属性。处理它的代码基本相同，但`in_flight_commands`列表现在是局部的，属于各个工作线程，并且工作线程的ID作为额外参数传递给`onMessageHandler()`方法。这是因为当消息发送回主进程时，需要稍后查找各个工作线程。
+- en: Continue editing the file by adding the content from [Example 6-4](#ex_threadpool_rpcworker_2)
+    to it.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继续编辑文件，将内容从[示例 6-4](#ex_threadpool_rpcworker_2)添加到其中。
+- en: Example 6-4\. *ch6-thread-pool/rpc-worker.js* (part 2)
+  id: totrans-65
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-4。*ch6-thread-pool/rpc-worker.js*（第2部分）
+- en: '[PRE4]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: This part of the file defines the `onMessageHandler()` method that is called
+    when a worker sends a message back to the main thread. It’s mostly the same as
+    before, except this time it accepts an additional argument, `worker_id`, which
+    is used to look up the worker that sent the message. Once it looks up the worker,
+    it handles the promise rejection/resolve and removes the entry from the list of
+    pending commands.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的这部分定义了`onMessageHandler()`方法，当工作线程向主线程发送消息时调用该方法。这与之前大致相同，只是这次它接受了一个额外的参数`worker_id`，用于查找发送消息的工作线程。一旦查找到工作线程，它处理承诺的拒绝/解决，并从待处理命令列表中移除条目。
+- en: Continue editing the file by adding the content from [Example 6-5](#ex_threadpool_rpcworker_3)
+    to it.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继续编辑文件，将内容从[示例 6-5](#ex_threadpool_rpcworker_3)添加到其中。
+- en: Example 6-5\. *ch6-thread-pool/rpc-worker.js* (part 3)
+  id: totrans-69
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-5。*ch6-thread-pool/rpc-worker.js*（第3部分）
+- en: '[PRE5]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO2-1)'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO2-1)'
+- en: The applicable worker is looked up.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用的工作线程被查找。
+- en: This chunk of the file defines the `exec()` method, which is what the application
+    calls when it wants to execute a command in one of the workers. Again, it’s largely
+    unchanged, but this time it calls the `getWorker()` method to get the appropriate
+    worker to handle the next command, instead of working with a single default worker.
+    That method is defined in the next section.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的这部分定义了`exec()`方法，当应用程序想要在其中一个工作线程中执行命令时调用该方法。再次强调，这基本上没有改变，但这次它调用`getWorker()`方法来获取适当的工作线程来处理下一个命令，而不是与单个默认工作线程一起工作。该方法在下一节中定义。
+- en: Finish editing the file by adding the content from [Example 6-6](#ex_threadpool_rpcworker_4)
+    to it.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继续编辑文件，将内容从[示例 6-6](#ex_threadpool_rpcworker_4)添加到其中。
+- en: Example 6-6\. *ch6-thread-pool/rpc-worker.js* (part 4)
+  id: totrans-75
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-6。*ch6-thread-pool/rpc-worker.js*（第4部分）
+- en: '[PRE6]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: This final chunk of the file defines a final, new method named `getWorker()`.
+    This method considers the strategy that was defined for the class instance when
+    determining which worker to use next. The bulk of the function is a large `if`
+    statement where each branch correlates to a strategy.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的最后一部分定义了一个名为`getWorker()`的新方法。该方法在确定下一个要使用的工作线程时考虑了为类实例定义的策略。函数的主体是一个大型的`if`语句，其中每个分支对应一个策略。
+- en: The first one, `random`, doesn’t require any additional state, making it the
+    simplest. All the function does is to randomly choose one of the entries in the
+    pool and then choose that as a candidate.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个方法，`random`，不需要任何额外的状态，使其成为最简单的方法。该函数的作用仅仅是随机选择池中的一个条目，然后将其选为候选项。
+- en: The second branch, for `roundrobin`, is slightly more complicated. This one
+    makes use of a class property named `rr_index`, incrementing the value and then
+    returning the worker located at the new index. Once the index exceeds the number
+    of workers, it then wraps back around to zero.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个分支，对于`roundrobin`，稍微复杂一些。这个分支利用了一个名为`rr_index`的类属性，增加其值然后返回位于新索引处的工作线程。一旦索引超过工作线程的数量，它会回到零。
+- en: The final branch, for `leastbusy`, has the most complexity. It works by looping
+    through each one of the workers, noting the number of commands that it currently
+    has in progress by looking at the size of the `in_flight_commands` map, and determining
+    if it’s the smallest value that has been encountered so far. If so, it then decides
+    that worker is the next to be used. Note that this implementation will stop at
+    the first matching worker with the lowest number of in-flight commands; so the
+    first time it runs it will always choose worker 0\. A more robust implementation
+    might look at all of the candidates with the lowest, equal commands, and choose
+    one randomly. The chosen worker ID is logged so that you can tell what’s happening.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个分支，对于`leastbusy`，具有最复杂性。它通过循环遍历每一个工作线程，通过查看`in_flight_commands`映射的大小来注意它当前正在进行的命令数量，并确定是否是迄今为止遇到的最小值。如果是，则决定下一个要使用的工作线程。请注意，该实现将停止在具有最低正在进行中命令数量的第一个匹配工作线程；因此，第一次运行时它将总是选择工作线程
+    0。一个更健壮的实现可能会查看所有具有最低、相等命令的候选者，并随机选择一个。所选择的工作线程 ID 被记录下来，以便您可以知道发生了什么。
+- en: 'Now that your application has been prepared, you’re ready to execute it. Open
+    up two terminal windows and navigate to the *ch6-thread-pool/* directory in the
+    first one. In this terminal window execute the following command:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您的应用程序已经准备就绪，可以执行它了。在两个终端窗口中打开，并在第一个窗口中导航到*ch6-thread-pool/*目录。在这个终端窗口中执行以下命令：
+- en: '[PRE7]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: This starts a process with a thread pool containing three workers using the
+    `leastbusy` strategy.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将启动一个进程，其中包含三个工作线程，使用`leastbusy`策略。
+- en: 'Next, run the following command in the second terminal window:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，在第二个终端窗口中运行以下命令：
+- en: '[PRE8]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: This executes the `autocannon` command, which is an npm package for performing
+    benchmarks. In this case, though, you’re not actually running a benchmark, but
+    you’re instead just running a whole bunch of queries. The command is configured
+    to open five connections at a time and send a total of 20 requests. Essentially,
+    this will make 5 requests seemingly in parallel, then as the requests are closed
+    the remaining 15 requests will be made. This is akin to a production web server
+    you might build.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将执行`autocannon`命令，这是一个用于执行基准测试的 npm 包。在这种情况下，您并不真正运行基准测试，而是只运行了一堆查询。该命令配置为每次打开五个连接并发送总共
+    20 个请求。基本上，这将使得 5 个请求看似并行，然后在关闭请求时进行剩余的 15 个请求。这类似于您可能构建的生产 Web 服务器。
+- en: Since the application is using the `leastbusy` strategy, and because the code
+    is written to choose the first process with the fewest commands, the first five
+    requests should then essentially be treated as round robin. With a pool size of
+    three, when the application first runs, each worker has zero tasks. So the code
+    first elects to use Worker 0\. For the second request, the first worker has one
+    task while the second and third worker have zero, so the second is chosen. Then
+    the third. For the fourth, each of the three workers is consulted, each having
+    one task, and so the first is chosen again.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于应用程序正在使用`leastbusy`策略，并且代码编写为选择具有最少命令的第一个进程，则前五个请求应该基本上被视为轮询。在三个工作线程的池大小中，当应用程序首次运行时，每个工作线程都没有任务。所以代码首先选择使用
+    Worker 0。对于第二个请求，第一个工作线程有一个任务，而第二和第三个工作线程都没有，因此选择第二个工作线程。然后是第三个工作线程。对于第四个请求，每个三个工作线程都会被查询，每个工作线程都有一个任务，因此再次选择第一个工作线程。
+- en: After the first five tasks are assigned, the remaining worker assignments are
+    essentially random, as each command takes essentially a random amount of time
+    to succeed.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 分配了前五项任务后，剩余的工作分配基本上是随机的，因为每个命令成功所需的时间基本上是随机的。
+- en: 'Next, kill the server using Ctrl+C, and then run it again using the `roundrobin`
+    strategy:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，使用 Ctrl+C 来停止服务器，然后使用`roundrobin`策略再次运行它：
+- en: '[PRE9]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Run the same `autocannon` command as before in the second terminal. This time
+    you should see that the tasks are always executed in the order of 0, 1, 2, 0,
+    and so on.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第二个终端中再次运行与之前相同的`autocannon`命令。这次您应该看到任务总是按照 0、1、2、0 的顺序执行。
+- en: 'Finally, kill the server with Ctrl+C again, and run it again with the random
+    strategy:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，再次使用 Ctrl+C 终止服务器，并使用随机策略重新运行：
+- en: '[PRE10]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Run the `autocannon` command a final time and note the results. This time it
+    should be entirely random. If you notice the same worker getting chosen multiple
+    times in a row, it likely means that worker is overloaded.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后再次运行 `autocannon` 命令并注意结果。这次应该完全是随机的。如果注意到同一个工作线程被连续选择多次，那很可能是该工作线程过载了。
+- en: '[Table 6-1](#list_threadpool_strategy) contains sample output from a previous
+    run of this experiment. Each column corresponds to a new request, and the number
+    in the table contains the ID of the worker that was chosen to serve the request.'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 6-1](#list_threadpool_strategy) 显示了此实验之前运行的示例输出。每列对应一个新请求，表中的数字是选择用于服务请求的工作线程的
+    ID。'
+- en: Table 6-1\. Example thread pool strategy output
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6-1\. 示例线程池策略输出
+- en: '| Strategy | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 |'
+  id: totrans-97
+  prefs: []
+  type: TYPE_TB
+  zh: '| 策略 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 |'
+- en: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+  id: totrans-98
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'
+- en: '| Least busy | 0 | 1 | 2 | 0 | 1 | 0 | 1 | 2 | 1 | 0 |'
+  id: totrans-99
+  prefs: []
+  type: TYPE_TB
+  zh: '| 最少繁忙 | 0 | 1 | 2 | 0 | 1 | 0 | 1 | 2 | 1 | 0 |'
+- en: '| Round robin | 0 | 1 | 2 | 0 | 1 | 2 | 0 | 1 | 2 | 0 |'
+  id: totrans-100
+  prefs: []
+  type: TYPE_TB
+  zh: '| 轮询 | 0 | 1 | 2 | 0 | 1 | 2 | 0 | 1 | 2 | 0 |'
+- en: '| Random | 2 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 1 | 0 |'
+  id: totrans-101
+  prefs: []
+  type: TYPE_TB
+  zh: '| 随机 | 2 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 1 | 0 |'
+- en: In this particular run the random approach hardly ever used the worker with
+    an ID of 2.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这次特定的运行中，随机方法几乎没有使用 ID 为 2 的工作线程。
+- en: 'Mutex: A Basic Lock'
+  id: totrans-103
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 互斥锁：基本锁
+- en: A mutually exclusive lock, or *mutex*, is a mechanism for controlling access
+    to some shared data. It ensures that only one task may use that resource at any
+    given time. Here, a task can mean any sort of concurrent task, but most often
+    the concept is used when working with multiple threads, to avoid race conditions.
+    A task *acquires* the lock in order to run code that accesses the shared data,
+    and then *releases* the lock once it’s done. The code between the acquisition
+    and the release is called the *critical section*. If a task attempts to acquire
+    the lock while another task has it, that task will be blocked until the other
+    task releases the lock.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 互斥锁，或称 *mutex*，是控制对某些共享数据访问的机制。它确保在任何给定时间只有一个任务可以使用该资源。这里，任务可以是任何类型的并发任务，但通常是在使用多个线程时使用该概念，以避免竞态条件。任务在运行访问共享数据的代码之前
+    *获取* 锁，并在完成后 *释放* 锁。在获取和释放之间的代码称为 *临界区*。如果一个任务尝试在另一个任务持有锁时获取锁，那么该任务将被阻塞，直到另一个任务释放锁。
+- en: It may not be obvious why you might want to use a mutex when we have atomic
+    operations at our disposal through the `Atomics` object. Surely it’s more efficient
+    to use atomic operations to modify and read data, since we’re blocking other operations
+    for shorter time periods, right? It turns out that code often requires that data
+    not be modified externally across more than one operation. Put another way, the
+    units of atomicity provided by atomic operations are too small for many algorithms’
+    critical sections. For example, two integers may be read from several parts of
+    shared memory, then summed up to be written to another part. If values are changed
+    in between the two retrievals, the sum will reflect values from two different
+    tasks, which can lead to logic errors later on in the program.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们通过 `Atomics` 对象拥有原子操作时，可能不明显为什么我们还需要使用互斥锁（mutex）。毕竟，使用原子操作修改和读取数据更有效率，因为我们仅在较短时间内阻塞其他操作，对吧？然而，事实是代码经常要求数据跨多个操作不被外部修改。换句话说，原子操作提供的原子性单位对于许多算法的关键部分来说太小了。例如，可以从共享内存的几个部分读取两个整数，然后将它们相加以写入另一个部分。如果在两次检索之间更改了值，则总和将反映来自两个不同任务的值，这可能导致程序后续的逻辑错误。
+- en: Let’s look at an example program that initializes a buffer with a bunch of numbers
+    and performs some basic math on them in several threads. We’ll have each thread
+    grab a value at a unique index per thread, then grab a value from a shared index,
+    multiply those together, and write them at the shared index. Then we’ll read from
+    that shared index and check that it’s equal to the product of the previous two
+    reads. In between the two reads, we’ll perform a busy loop to simulate doing some
+    other work that takes some time.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看一个示例程序，它初始化一个包含一堆数字的缓冲区，并在几个线程中对它们进行一些基本数学操作。我们将使每个线程获取唯一索引处的值，然后获取共享索引处的值，将它们相乘，并将结果写入共享索引。然后，我们将从该共享索引读取并检查它是否等于前两次读取的乘积。在两次读取之间，我们将执行一个繁忙循环以模拟执行一些需要一定时间的其他工作。
+- en: Make a directory called *ch6-mutex* and put the contents of [Example 6-7](#ex_ch6_mutex_1)
+    into a file called *thread_product.js*.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为*ch6-mutex*的目录，并将[Example 6-7](#ex_ch6_mutex_1)的内容放入名为*thread_product.js*的文件中。
+- en: Example 6-7\. *ch6-mutex/thread-product.js*
+  id: totrans-108
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 6-7\. *ch6-mutex/thread-product.js*
+- en: '[PRE11]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO3-1)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO3-1)'
+- en: We’ll be using three threads and an `Int32Array` to hold the data, so we need
+    it big enough to hold three 32-bit integers, plus a fourth to be the shared multiplier/result.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用三个线程和一个`Int32Array`来存储数据，因此我们需要足够大的空间来容纳三个32位整数，再加上第四个用作共享的乘法器/结果。
+- en: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO3-2)'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO3-2)'
+- en: Here, we’re checking our work. In a real-world application, there likely would
+    be no check here, but this simulates depending on the result to perform other
+    actions, which may happen later on in the program.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们正在检查我们的工作。在真实的应用程序中，可能不会在这里进行检查，但这模拟了依赖结果以执行其他可能在程序后续阶段发生的操作。
+- en: 'You can run this example as follows:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以按如下方式运行此示例：
+- en: '[PRE12]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: You might find that on the first try, or even the first bunch of tries, this
+    works fine, but go ahead and keep running it. Alternatively you may find that
+    the assertion fails immediately. At some point, within the first 20 or so attempts,
+    you should see that the assertion fails. While we’re using atomic operations,
+    we’re using four of them, and between any of these, some change can occur in these
+    values. This is a classic example of a race condition. All the threads are reading
+    and writing concurrently (though not in parallel, since the operations themselves
+    are atomic), so the results aren’t deterministic for given input values.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能会发现，在第一次尝试或者甚至在一系列尝试中，这个程序都能正常工作，但请继续运行它。或者您可能会发现断言立即失败。在前20次尝试中的某个时刻，您应该能够看到断言失败。虽然我们使用了原子操作，但在这些操作之间可能会对这些值进行更改。这是典型的竞态条件的例子。所有线程都在并发读写（尽管操作本身是原子的），因此对于给定的输入值，结果并不是确定性的。
+- en: To solve this, we’ll implement a `Mutex` class using the primitives we have
+    in `Atomics`. We’ll be making use of `Atomics.wait()` to wait until the lock can
+    be acquired, and `Atomics.notify()` to notify threads that the lock has been released.
+    We’ll use `Atomics.compareExchange()` to swap the locked/unlocked state and determine
+    whether we need to wait to get the lock. Create a file in the same directory called
+    *mutex.js* and add the contents of [Example 6-8](#ex_ch6_mutex_2) to get started
+    on the `Mutex` class.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，我们将使用现有的原语实现一个`Mutex`类。我们将使用`Atomics.wait()`等待直到可以获取锁，并使用`Atomics.notify()`通知线程锁已释放。我们将使用`Atomics.compareExchange()`交换锁定/解锁状态，并确定是否需要等待以获取锁定。在同一目录中创建一个名为*mutex.js*的文件，并添加[Example 6-8](#ex_ch6_mutex_2)的内容，以开始编写`Mutex`类。
+- en: Example 6-8\. *ch6-mutex/mutex.js* (part 1)
+  id: totrans-118
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 6-8\. *ch6-mutex/mutex.js*（第1部分）
+- en: '[PRE13]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Here we’ve defined our `LOCKED` and `UNLOCKED` states as 1 and 0, respectively.
+    Really, they can be any values that fit in the `TypedArray` we pass into the `Mutex`
+    constructor, but sticking with 1 and 0 makes it easier to think about as a boolean
+    value. We have set up the constructor to take in two values that will be assigned
+    to properties: the `TypedArray` we’ll be operating on, and the index in that array
+    that we’ll use as the lock status. Now, we’re ready to start using `Atomics` to
+    add the `acquire()` method, which uses the destructured `Atomics`. Add the `acquire()`
+    method from [Example 6-9](#ex_ch6_mutex_3).'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们将我们的`LOCKED`和`UNLOCKED`状态定义为1和0。实际上，它们可以是任何适合我们传递给`Mutex`构造函数的`TypedArray`中的值，但将它们设为1和0使得将其视为布尔值更容易理解。我们已经设置了构造函数，以接受两个值分配给属性：我们将操作的`TypedArray`，以及我们将用作锁定状态的数组中的索引。现在，我们准备开始使用`Atomics`来添加`acquire()`方法，该方法使用解构的`Atomics`。从[Example 6-9](#ex_ch6_mutex_3)添加`acquire()`方法。
+- en: Example 6-9\. *ch6-mutex/mutex.js* (part 2)
+  id: totrans-121
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 6-9\. *ch6-mutex/mutex.js*（第2部分）
+- en: '[PRE14]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: To acquire a lock, we make an attempt to swap the `UNLOCKED` state for the `LOCKED`
+    state at the mutex’s array index, using `Atomics.compareExchange()`. If the swap
+    is successful, then there’s nothing left to do and we’ve acquired the lock, so
+    we can just return. Otherwise we need to wait for unlocking, which in this case
+    means waiting for notification that the value change from `LOCKED` to anything
+    else. Then we make another attempt to acquire the lock. We’re doing this through
+    recursion here to illustrate the “retry” nature of the operation, but it could
+    just as easily be a loop. It should work on the second time through since we’ve
+    specifically waited for it to become unlocked, but in between the `wait()` and
+    the `compareExchange()`, the value may have changed, so we need to check again.
+    In a real-world implementation, you might want to both add a timeout on the `wait()`
+    and limit the number of attempts that can be made.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要获取锁定，我们尝试使用`Atomics.compareExchange()`将互斥锁数组索引处的`UNLOCKED`状态与`LOCKED`状态进行交换。如果交换成功，则无需其他操作，我们已经获取了锁定，因此可以直接返回。否则，我们需要等待解锁，这种情况下意味着等待值从`LOCKED`变为其他任何值的通知。然后我们再次尝试获取锁定。我们在这里通过递归来执行这个操作以说明“重试”的性质，但也可以很容易地使用循环。由于我们专门等待它变为解锁状态，因此在第二次尝试中应该可以成功，但在`wait()`和`compareExchange()`之间，值可能已经发生了变化，因此我们需要再次检查。在实际实现中，您可能希望在`wait()`上添加超时并限制可以尝试的次数。
+- en: Note
+  id: totrans-124
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In many production mutex implementations, in addition to the “unlocked” and
+    “locked” states, you’ll often find a state meaning “locked and contended.” *Contention*
+    arises when one thread attempts to acquire a lock that’s already held by another
+    thread. By keeping track of this state, the mutex code can avoid using extra `notify()`
+    calls, allowing for better performance.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在许多生产互斥锁实现中，除了“解锁”和“锁定”状态之外，您通常会找到表示“锁定并有争议”的状态。当一个线程试图获取已被另一个线程持有的锁时，就会出现*争用*。通过跟踪这种状态，互斥锁代码可以避免多余的`notify()`调用，从而提高性能。
+- en: Now we’ll look at releasing a lock. Add the `release()` method shown in [Example 6-10](#ex_ch6_mutex_4).
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将看看如何释放锁定。添加在[示例 6-10](#ex_ch6_mutex_4)中显示的`release()`方法。
+- en: Example 6-10\. *ch6-mutex/mutex.js* (part 3)
+  id: totrans-127
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-10\. *ch6-mutex/mutex.js*（第三部分）
+- en: '[PRE15]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Here we’re using `Atomics.compareExchange()` to swap the locked state again,
+    much as we did to acquire the lock. This time, we want to make sure that the original
+    state was indeed `LOCKED` since we don’t want to release the lock if we haven’t
+    acquired it. The only thing left to do at this point is to `notify()`, enabling
+    a waiting thread (if there is one) to acquire the lock. We set the count for `notify()`
+    to 1, because there’s no need to wake more than one sleeping thread, since only
+    one can ever hold the lock at one time.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这里再次使用`Atomics.compareExchange()`来交换锁定状态，这与我们获取锁时的操作类似。这次，我们希望确保原始状态确实是`LOCKED`，因为如果我们未获取锁，我们不想释放它。此时唯一剩下的事情就是调用`notify()`，启用等待的线程（如果有的话）来获取锁定。我们将`notify()`的计数设置为1，因为唤醒多于一个正在睡眠的线程是没有必要的，因为在任何时候只有一个线程能持有锁定。
+- en: What we have now is enough to work as a serviceable mutex lock. However, it’s
+    relatively easy to acquire a lock and forget to release it, or in some other way
+    have an unexpected critical section. For many use cases, the critical section
+    is well-defined and knowable ahead of time. In those cases, it makes sense to
+    have a helper method on the `Mutex` class to wrap critical sections with ease.
+    Let’s do exactly that by adding the `exec()` method in [Example 6-11](#ex_ch6_mutex_5),
+    which will also finish off the class.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经有足够的内容作为一个可用的互斥锁。然而，很容易在获取锁定后忘记释放它，或者以某种方式有一个意外的临界区。对于许多用例，临界区是明确定义和预知的。在这些情况下，通过在`Mutex`类上添加`exec()`方法来包装临界区是有意义的。让我们通过在[示例 6-11](#ex_ch6_mutex_5)中添加`exec()`方法来做到这一点，这也将完成该类。
+- en: Example 6-11\. *ch6-mutex/mutex.js* (part 4)
+  id: totrans-131
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-11\. *ch6-mutex/mutex.js*（第四部分）
+- en: '[PRE16]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: All we’re doing here is calling the passed-in function and returning its value,
+    but wrapping that with an `acquire()` beforehand and `release()` afterward. This
+    way the passed-in function contains all the code of our critical section. Note
+    that we call the passed-in function inside a `try` block, with the `release()`
+    happening in the corresponding `finally`. Since the passed-in function could throw
+    an exception, we want to make sure that we release the lock even in that scenario.
+    This completes our `Mutex` class, so now we can move on to using it in our example.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里我们所做的只是调用传入的函数并返回其值，但在此之前用 `acquire()` 包装，之后用 `release()` 包装。这样传入的函数就包含了我们关键部分的所有代码。请注意，我们在
+    `try` 块中调用传入的函数，并在相应的 `finally` 中进行 `release()`。由于传入的函数可能会抛出异常，我们希望确保即使在这种情况下也释放锁。这完成了我们的
+    `Mutex` 类，现在我们可以继续在示例中使用它。
+- en: Make a copy of *thread-product.js* in the same directory, called *thread-product-mutex.js*.
+    In that file `require` the *mutex.js* file and assign it to a `const` called `Mutex`.
+    Add another 4 bytes to the `SharedArrayBuffer` (e.g., `new SharedArrayBuffer(4
+    * 5)`) for our lock to use, then replace everything in the `else` block with the
+    contents of [Example 6-12](#ex_ch6_mutex_6).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在同一目录中复制 *thread-product.js*，并命名为 *thread-product-mutex.js*。在该文件中 `require`
+    *mutex.js* 文件，并将其赋值给名为 `Mutex` 的 `const`。为了让我们的锁使用，将 *SharedArrayBuffer* 添加另外
+    4 个字节（例如，`new SharedArrayBuffer(4 * 5)`），然后用 [Example 6-12](#ex_ch6_mutex_6) 的内容替换
+    `else` 块中的所有内容。
+- en: Example 6-12\. *ch6-mutex/thread-product-mutex.js*
+  id: totrans-135
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 6-12\. *ch6-mutex/thread-product-mutex.js*
+- en: '[PRE17]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO5-1)'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#manual_co_multithreaded_patterns_CO5-1)'
+- en: Before this line, everything’s the same as when we weren’t using the mutex.
+    Now, we’ll initialize one, using the fifth element of our `Int32Array` as our
+    lock data.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此行之前，一切与未使用互斥锁时完全相同。现在，我们将初始化一个，使用我们 `Int32Array` 的第五个元素作为我们的锁数据。
+- en: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO5-2)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#manual_co_multithreaded_patterns_CO5-2)'
+- en: Inside the function passed to `exec()`, we’re in our critical section, which
+    is protected by the lock. This means we don’t need atomic operations to read or
+    manipulate the array. Instead, we can just operate on it like any other `TypedArray`.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在传递给 `exec()` 的函数内部，我们处于由锁保护的关键部分。这意味着我们不需要原子操作来读取或操作数组。相反，我们可以像操作任何其他 `TypedArray`
+    一样操作它。
+- en: 'In addition to enabling ordinary array access techniques, the mutex has allowed
+    us to ensure that no other thread is able to modify these pieces of data while
+    we’re looking at them. Because of that, our assertion would never fail. Give it
+    a try! Run the following command to run this example, and even run it tens, hundreds,
+    or even thousands of times. It will never fail the assertion like the version
+    using only atomics did:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了启用普通的数组访问技术外，互斥锁还允许我们确保在查看这些数据时没有其他线程能够修改它们。因此，我们的断言永远不会失败。试一试吧！运行以下命令来运行此示例，甚至运行数十次、数百次或甚至数千次。它永远不会像仅使用原子操作的版本那样使断言失败：
+- en: '[PRE18]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Note
+  id: totrans-143
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Mutexes are straightforward tools to lock access to a resource. They allow critical
+    sections to operate without interference from other threads. They are one example
+    of how we can leverage combinations of atomic operations to make new building
+    blocks for multithreaded programming. In the next section, [“Streaming Data with
+    Ring Buffers”](#ch_patterns_sec_stream), we’ll put this building block to some
+    practical use.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 互斥锁是锁定访问资源的简单工具。它们允许关键部分在没有其他线程干扰的情况下运行。它们是如何利用原子操作的组合来为多线程编程创建新的构建块的一个例子。在下一节
+    [“使用环形缓冲区流数据”](#ch_patterns_sec_stream) 中，我们将把这个构建块用于一些实际用途。
+- en: Streaming Data with Ring Buffers
+  id: totrans-145
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用环形缓冲区流数据
+- en: Many applications involve streaming data. For example, HTTP requests and responses
+    are usually presented via HTTP APIs as sequences of byte data coming in as chunks
+    as they are received. In network applications, data chunks are size-constrained
+    by packet sizes. In filesystem applications, data chunks can be size-constrained
+    by kernel buffer sizes. Even if we output data to these resources without any
+    regard for streaming, the kernel will break the data up into chunks in order to
+    send it to its destination in a buffered manner.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多应用涉及流数据。例如，HTTP 请求和响应通常通过 HTTP API 以字节数据序列形式呈现，随着它们接收到的数据块而来。在网络应用中，数据块受包大小的限制。在文件系统应用中，数据块可以受内核缓冲区大小的限制。即使我们将数据输出到这些资源而不考虑流式传输，内核也会将数据分成块，以便以缓冲的方式发送到目的地。
+- en: Streaming data also occurs in user applications and can be used as a way to
+    transfer larger amounts of data between computation units, like processes or threads.
+    Even without separate computation units, you may want or need to hold data in
+    some kind of buffer before processing it. This is where *ring buffers*, also known
+    as *circular buffers*, come in handy.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 流式数据在用户应用程序中也经常发生，并且可以用作在计算单元（如进程或线程）之间传输大量数据的一种方式。即使没有分离的计算单元，您可能也希望或需要在处理数据之前将数据保存在某种缓冲区中。这就是环形缓冲区，也被称为循环缓冲区的便利之处。
+- en: A ring buffer is an implementation of a first-in-first-out (FIFO) queue, implemented
+    using a pair of indices into an array of data in memory. Crucially, for efficiency,
+    when data is inserted into the queue, it won’t ever move to another spot in memory.
+    Instead, we move the indices around as data gets added to or removed from the
+    queue. The array is treated as if one end is connected to the other, creating
+    a ring of data. This means that if these indices are incremented past the end
+    of the array, they’ll go back to the beginning.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 环形缓冲区是使用一对索引来实现的先进先出（FIFO）队列，这对索引指向内存中数据数组的位置。关键是，当数据插入队列时，它不会移动到内存中的其他位置。相反，我们会随着数据的添加或移除而移动这些索引。数组被视为一个端点连接到另一个端点，形成一个数据环。这意味着如果这些索引增加超过数组的末尾，它们将返回到开始。
+- en: An analog in the physical world is the restaurant order wheel, commonly found
+    in North American diners. In restaurants using this kind of system, the wheel
+    is usually placed in a part of the restaurant that divides the customer-facing
+    area from the kitchen. Orders are taken from the customers on note papers, which
+    are then inserted into the wheel in order. Then, on the kitchen side, the cooks
+    can grab orders off the wheel in the same order so that food is cooked in the
+    appropriate order, and no customer is left waiting too long for their food. This
+    is a bounded^([1](ch06.xhtml#idm45995913366808)) FIFO queue, just like our ring
+    buffers. Indeed, it’s also literally circular!
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在物理世界中，餐馆点单轮类似于北美餐馆中常见的点单轮。在使用这种系统的餐馆中，点单轮通常放置在将顾客区域与厨房分隔开的地方。服务员会将顾客的点单纸条按顺序插入轮中。然后，在厨房一侧，厨师按照同样的顺序从轮中取出订单，以便按照适当的顺序烹饪食物，确保没有顾客等待时间过长。这就是一个有界的^([1](ch06.xhtml#idm45995913366808))
+    FIFO 队列，就像我们的环形缓冲区一样。事实上，它也是字面上的循环！
+- en: To implement a ring buffer, we’ll need the two indices, `head` and `tail`. The
+    `head` index refers to the next position to add data into the queue, and the `tail`
+    index refers to the next position to read data out of the queue from. When data
+    is written to or read from the queue, we increase the `head` or `tail` index,
+    respectively, by the amount of data written or read, modulo the size of the buffer.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要实现环形缓冲区，我们需要两个索引，`head` 和 `tail`。`head` 索引指向下一个要添加数据到队列中的位置，而 `tail` 索引指向从队列中读取数据的下一个位置。当向队列写入或从队列读取数据时，我们会分别增加
+    `head` 或 `tail` 索引，模上缓冲区的大小。
+- en: '[Figure 6-1](#fig_ring_buffer) visualizes how a ring buffer works using a ring
+    with a 16-byte buffer. The first diagram contains 4 bytes of data, starting at
+    Byte 0 (where the tail is located) and ending at Byte 3 (with head one byte ahead
+    at Byte 4). Once four bytes of data are added to the buffer, the head marker moves
+    forward four bytes to Byte 8, shown in the second diagram. In the final diagram,
+    the first four bytes have been read, so the tail moves to Byte 4.'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 6-1](#fig_ring_buffer)展示了使用16字节缓冲区的环形缓冲区的工作原理。第一幅图示了包含4字节数据的环，从字节0开始（尾部位置），到字节3结束（头部在字节4前一字节）。一旦向缓冲区添加了四字节的数据，头部标记会向前移动四字节到字节8，如第二幅图所示。在最后一幅图中，前四个字节已经被读取，所以尾部移动到字节4处。'
+- en: '![mtjs 0601](Images/mtjs_0601.png)'
+  id: totrans-152
+  prefs: []
+  type: TYPE_IMG
+  zh: '![mtjs 0601](Images/mtjs_0601.png)'
+- en: Figure 6-1\. Writing data moves the head forward, while reading data moves the
+    tail forward
+  id: totrans-153
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-1\. 写入数据会使头部向前移动，而读取数据会使尾部向前移动。
+- en: Let’s make an implementation of a ring buffer. We’ll start off not worrying
+    about threads, but to make our lives easier later on, we’ll store `head` and `tail`
+    as well as the current `length` of the queue in a `TypedArray`. We could try just
+    using the difference between `head` and `tail` as the length, but that leaves
+    us with an ambiguous case, where we can’t tell if the queue is empty or full when
+    the `head` and `tail` are the same value, so we’ll have a separate value for `length`.
+    We’ll start by setting up the constructor and acessors, by adding the contents
+    of [Example 6-13](#ex_ch6_ringbuffer_1) to a file called *ch6-ring-buffer/ring-buffer.js*.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们实现一个环形缓冲区。起初，我们不用担心线程问题，但为了稍后更容易处理，我们将在一个`TypedArray`中存储`head`、`tail`以及队列的当前`length`。我们可以尝试仅使用`head`和`tail`之间的差异作为长度，但这样会留下一个模棱两可的情况，即当`head`和`tail`相同时，我们无法判断队列是空还是满，因此我们将单独使用一个`length`值。我们将从设置构造函数和访问器开始，通过将[示例 6-13](#ex_ch6_ringbuffer_1)的内容添加到名为*ch6-ring-buffer/ring-buffer.js*的文件中来完成。
+- en: Example 6-13\. *ch6-ring-buffer/ring-buffer.js* (part 1)
+  id: totrans-155
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-13\. *ch6-ring-buffer/ring-buffer.js*（第 1 部分）
+- en: '[PRE19]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: The constructor takes in a three-element `Uint32Array` called `meta`, which
+    we’ll use for our `head`, `tail`, and `length`. For convenience, we’ve also added
+    those properties as getters and setters, which internally just access those array
+    elements. It also takes in a `Uint8Array` that will be the backing storage for
+    our ring buffer. Next, we’ll add the `write()` method. Add the method as defined
+    in [Example 6-14](#ex_ch6_ringbuffer_2).
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构造函数接受一个名为`meta`的三元素`Uint32Array`，我们将用它来存储`head`、`tail`和`length`。为了方便起见，我们还添加了这些属性作为获取器和设置器，内部只是访问这些数组元素。它还接受一个`Uint8Array`，将作为环形缓冲区的后备存储。接下来，我们将添加`write()`方法。按照[示例 6-14](#ex_ch6_ringbuffer_2)中定义的方法进行添加。
+- en: Example 6-14\. *ch6-ring-buffer/ring-buffer.js* (part 2)
+  id: totrans-158
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-14\. *ch6-ring-buffer/ring-buffer.js*（第 2 部分）
+- en: '[PRE20]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO3-1)'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO3-1)'
+- en: In order for this code to work correctly, `data` needs to be an instance of
+    the same `TypedArray` as `this.buffer`. This can be checked via static type checking,
+    or with an assertion, or both.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了使此代码能够正常工作，`data`需要是与`this.buffer`相同的`TypedArray`的实例。可以通过静态类型检查或断言来检查这一点，或者两者都可以。
+- en: '[![2](Images/2.png)](#co_multithreaded_patterns_CO3-2)'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_multithreaded_patterns_CO3-2)'
+- en: If there’s not enough space in the buffer for all the data to be written, we’ll
+    write as many bytes as we can to fill the buffer and return the number of bytes
+    that were written. This notifies whoever is writing the data that they’ll need
+    to wait for some of the data to be read out of it before continuing to write.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果缓冲区中没有足够的空间来写入所有数据，则将尽可能多的字节写入以填充缓冲区，并返回写入的字节数。这通知正在写入数据的人，他们需要等待一些数据被读出后才能继续写入。
+- en: '[![3](Images/3.png)](#co_multithreaded_patterns_CO3-3)'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_multithreaded_patterns_CO3-3)'
+- en: This conditional represents when we have enough *contiguous* space to write
+    the data. This happens when either the head is after the tail in the array and
+    the space after the head is bigger than the data to write, *or* when the head
+    is before the tail and there’s enough space between the tail and the head. For
+    either of these conditions, we can just write the data to the array and increase
+    the head index by the length of the data.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此条件表示当我们有足够的*连续*空间来写入数据时。这种情况发生在数组中头部在尾部之后且头部后面的空间大于要写入的数据时，*或者*当头部在尾部之前且尾部和头部之间有足够的空间时。对于这些条件中的任何一种，我们只需将数据写入数组，并增加头部索引的长度。
+- en: '[![4](Images/4.png)](#co_multithreaded_patterns_CO3-4)'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_multithreaded_patterns_CO3-4)'
+- en: On the other side of that `if` block, we need to write data until the end of
+    the array and then wrap it around to write at the beginning of the array. This
+    means splitting the data into a chunk to write at the end and a chunk to write
+    at the beginning, and writing them accordingly. We’re using `subarray()` rather
+    than `slice()` to chop up the data to avoid unnecessary secondary copy operations.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`if`块的另一侧，我们需要写入数据直到数组的末尾，然后将其环绕以写入数组的开头。这意味着将数据分割为在末尾写入的块和在开头写入的块，并相应地写入它们。我们使用`subarray()`而不是`slice()`来切割数据，以避免不必要的第二次复制操作。
+- en: Writing turns out to be just a matter of copying the bytes over using `set()`
+    and changing the `head` index appropriately, with a special case for when the
+    data is split across the boundaries of the array. Reading is very similar, as
+    shown in the `read()` method in [Example 6-15](#ex_ch6_ringbuffer_3).
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 写入实际上只是将字节复制过来并使用`set()`更改`head`索引，对于数据跨越数组边界的特殊情况，需要适当调整。阅读非常类似，如[示例 6-15](#ex_ch6_ringbuffer_3)中的`read()`方法所示。
+- en: Example 6-15\. *ch6-ring-buffer/ring-buffer.js* (part 3)
+  id: totrans-169
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-15\. *ch6-ring-buffer/ring-buffer.js*（第3部分）
+- en: '[PRE21]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO4-1)'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO4-1)'
+- en: The input to `read()` is the number of bytes *requested*. If there aren’t enough
+    bytes in the queue, it will instead return all the bytes currently in the queue.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`read()`的输入是请求的字节数。如果队列中没有足够的字节，它将返回当前队列中的所有字节。'
+- en: '[![2](Images/2.png)](#co_multithreaded_patterns_CO4-2)'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_multithreaded_patterns_CO4-2)'
+- en: If the requested data is in a contiguous chunk reading from the `tail`, we’ll
+    just give that directly to the caller using `slice()` to get a copy of those bytes.
+    We’ll move the tail to the end of the returned bytes.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果请求的数据在从`tail`读取的连续块中，我们将直接使用`slice()`将其传递给调用者以获取这些字节的副本。我们将尾部移动到返回字节的末尾。
+- en: '[![3](Images/3.png)](#co_multithreaded_patterns_CO4-3)'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_multithreaded_patterns_CO4-3)'
+- en: In the `else` case, the data is split across the boundaries of the array, so
+    we need to get both chunks and stitch them together in reverse order. To do that,
+    we’ll allocate a big enough `Uint8Array`, then copy the data from the beginning
+    and end of the array. The new tail is set to the end of the chunk at the beginning
+    of the array.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`else`情况下，数据跨越数组的边界，因此我们需要获取两个块并以相反顺序将它们拼接在一起。为此，我们将分配一个足够大的`Uint8Array`，然后将数据从数组的开头和结尾复制过来。新的尾部设置为数组开头的块的末尾。
+- en: When reading bytes out of the queue, it’s important to *copy* them out, rather
+    than just refer to the same memory. If we don’t, then other data written to the
+    queue might end up in these arrays at some time in the future, which is something
+    we don’t want. That’s why we use `slice()` or a new `Uint8Array` for the returned
+    data.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从队列中读取字节时，重要的是*复制*它们出来，而不仅仅是引用相同的内存。如果不这样做，那么以后写入队列的其他数据可能会出现在这些数组中，这是我们不希望看到的。这就是为什么我们使用`slice()`或一个新的`Uint8Array`来返回数据。
+- en: At this point, we have a working single-threaded bounded queue, implemented
+    as a ring buffer. If we wanted to use it with one thread writing (the *producer*)
+    and one thread reading (the *consumer*), we could use a `SharedArrayBuffer` as
+    the backing storage for the inputs to constructor, pass that to another thread,
+    and instantiate it there as well. Unfortunately, we haven’t yet used any atomic
+    operations or identified and isolated critical sections using locks, so if multiple
+    threads use the buffer, we can end up with race conditions and bad data. We’ll
+    need to rectify this.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，我们有一个可工作的单线程有界队列，实现为环形缓冲区。如果我们想要将其与一个线程写入（*生产者*）和一个线程读取（*消费者*）一起使用，我们可以使用`SharedArrayBuffer`作为构造函数输入的后备存储，将其传递给另一个线程，并在那里实例化。不幸的是，我们尚未使用任何原子操作或识别和隔离使用锁的关键部分，因此如果多个线程使用缓冲区，可能会出现竞争条件和错误数据。我们需要纠正这一点。
+- en: 'The read and write operations assume that none of the `head`, `tail`, or `length`
+    are going to change by other threads throughout the operation. We may be able
+    to get more specific than that later on, but being this general to start will
+    at least give us the thread safety we need to avoid race conditions. We can use
+    the `Mutex` class from [“Mutex: A Basic Lock”](#ch_patterns_sec_basiclock) to
+    identify critical sections and make sure they’re only executed one at a time.'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 读取和写入操作假定在整个操作过程中，`head`、`tail`或`length`都不会被其他线程更改。我们以后可能会更具体，但起初这样一般性至少会给我们所需的线程安全性，以避免竞争条件。我们可以使用来自[“Mutex：基本锁”](#ch_patterns_sec_basiclock)的`Mutex`类来识别关键部分，并确保它们一次只执行一次。
+- en: Let’s require the `Mutex` class and add the wrapper class in [Example 6-16](#ex_ch6_ringbuffer_4)
+    to the file that will make use of our existing `RingBuffer` class.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们引入`Mutex`类，并将包装类添加到将使用我们现有的`RingBuffer`类的文件中，这样可以使用[示例 6-16](#ex_ch6_ringbuffer_4)。
+- en: Example 6-16\. *ch6-ring-buffer/ring-buffer.js* (part 4)
+  id: totrans-181
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-16\. *ch6-ring-buffer/ring-buffer.js*（第4部分）
+- en: '[PRE22]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: To start it off, the constructor accepts or creates the `SharedArrayBuffer`.
+    Notice that we add 16 bytes to the size of the buffer to handle both the `Mutex`,
+    which needs a one-element `Int32Array`, and the `RingBuffer` metadata, which needs
+    a three-element `Uint32Array`. We’ll lay out the memory as in [Table 6-2](#table_ringbuffer_mem).
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了开始，构造函数接受或创建 `SharedArrayBuffer`。注意，我们将缓冲区的大小增加了 16 字节，以处理 `Mutex`（需要一个元素的
+    `Int32Array`）和 `RingBuffer` 元数据（需要一个三元素的 `Uint32Array`）。我们将按照 [Table 6-2](#table_ringbuffer_mem)
+    中的布局设置内存。
+- en: Table 6-2\. SharedRingBuffer memory layout
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 6-2\. `SharedRingBuffer` 内存布局
+- en: '| Data | Type[Size] | SharedArrayBuffer Index |'
+  id: totrans-185
+  prefs: []
+  type: TYPE_TB
+  zh: '| 数据 | 类型[大小] | SharedArrayBuffer 索引 |'
+- en: '| --- | --- | --- |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| Mutex | Int32Array[1] | 0 |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| 互斥锁 | Int32Array[1] | 0 |'
+- en: '| RingBuffer meta | Uint32Array[3] | 4 |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| RingBuffer 元数据 | Uint32Array[3] | 4 |'
+- en: '| RingBuffer buffer | Uint32Array[size] | 16 |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| RingBuffer 缓冲区 | Uint32Array[size] | 16 |'
+- en: The `read()` and `write()` operations are wrapped with the `exec()` method from
+    the `Mutex`. Recall that this prevents any other critical sections protected by
+    the same mutex from running at the same time. By wrapping them, we ensure that
+    even if we have multiple threads both reading from and writing to the same queue,
+    we won’t have any race conditions from `head` or `tail` being modified externally
+    in the middle of these critical sections.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`read()` 和 `write()` 操作都被 `Mutex` 的 `exec()` 方法包装起来。回想一下，这可以防止同一个互斥锁保护的其他关键部分同时运行。通过包装它们，我们确保即使有多个线程同时从同一个队列读取和写入，我们也不会因为
+    `head` 或 `tail` 在这些关键部分中间被外部修改而出现竞态条件。'
+- en: To see this data structure in action, let’s create some *producer* and *consumer*
+    threads. We’ll set up a `SharedRingBuffer` with 100 bytes to work with. The producer
+    threads will write the string `"Hello, World!\n"` to the `SharedRingBuffer`, repeatedly,
+    as fast as they can acquire the lock. The consumer threads will attempt to read
+    20 bytes at a time, and we’ll log how many bytes they were able to read. The code
+    to get this done is all in [Example 6-17](#ex_ch6_ringbuffer_5), which you can
+    add to the end of *ch6-ring-buffer/ring-buffer.js*.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要看到这个数据结构的实际应用，让我们创建一些 *生产者* 和 *消费者* 线程。我们将设置一个带有 100 字节的 `SharedRingBuffer`
+    进行操作。生产者线程将重复尝试获取锁并向 `SharedRingBuffer` 写入字符串 `"Hello, World!\n"`。消费者线程将尝试每次读取
+    20 字节，并记录他们能够读取多少字节。完成这些操作的代码都在 [Example 6-17](#ex_ch6_ringbuffer_5) 中，你可以将其添加到
+    *ch6-ring-buffer/ring-buffer.js* 的末尾。
+- en: Example 6-17\. *ch6-ring-buffer/ring-buffer.js* (part 5)
+  id: totrans-192
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 6-17\. *ch6-ring-buffer/ring-buffer.js*（第 5 部分）
+- en: '[PRE23]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO5-1)'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO5-1)'
+- en: You might notice that we’re not using `console.log()` to write our byte counts
+    to `stdout` and instead using a synchronous write to the file descriptor corresponding
+    to `stdout`. This is because we’re using an infinite loop without any `await`
+    inside. We’re starving the Node.js event loop, so with `console.log` or any other
+    asynchronous logger, we’d never actually see any output.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可能注意到，我们没有使用 `console.log()` 将字节计数写入 `stdout`，而是直接使用同步写入到与 `stdout` 对应的文件描述符。这是因为我们在没有任何
+    `await` 的情况下使用了无限循环。我们正在饿死 Node.js 事件循环，因此使用 `console.log` 或任何其他异步记录器，我们实际上永远不会看到任何输出。
+- en: 'You can run this example with Node.js as follows:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用 Node.js 运行这个示例：
+- en: '[PRE24]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: The output produced by this script will show the number of bytes read in each
+    iteration in each consumer thread. Because we’re asking for 20 bytes each time,
+    you’ll see that as the maximum number read. You’ll see all zeros sometimes when
+    the queue is empty. You’ll see other numbers when the queue is partially full.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此脚本生成的输出将显示每个消费者线程在每次迭代中读取的字节数。因为我们每次要求 20 字节，所以你会看到这是最大可读取的数字。当队列为空时，有时你会看到全部为零。当队列部分填满时，你会看到其他数字。
+- en: A number of things can be tweaked in our example. The size of the `SharedRingBuffer`,
+    the number of producer and consumer threads, the size of the written message,
+    and the number of bytes being attempted to be read all contribute to the throughput
+    of data. As with anything else, it’s always worth measuring and tweaking the values
+    to find the optimal state for your application. Go ahead and try tweaking some
+    of these in the example code and see how the output changes.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的示例中，有许多地方可以调整。`SharedRingBuffer` 的大小，生产者和消费者线程的数量，写入消息的大小，以及尝试读取的字节数，所有这些都会影响数据的吞吐量。和其他任何东西一样，值得测量和调整这些值，以找到适合你的应用程序的最佳状态。随便试试调整一些示例代码中的这些值，看看输出如何改变。
+- en: Actor Model
+  id: totrans-200
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Actor Model
+- en: The *actor model* is a programming pattern for performing concurrent computation
+    that was first devised in the 1970s. With this model an *actor* is a primitive
+    container that allows for executing code. An actor is capable of running logic,
+    creating more actors, sending messages to other actors, and receiving messages.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*演员模型*是一种用于执行并发计算的编程模式，最早是在 1970 年代设计的。使用这种模型，*演员*是一个允许执行代码的原始容器。演员能够运行逻辑，创建更多演员，向其他演员发送消息并接收消息。'
+- en: These actors communicate with the outside world by way of message passing; otherwise,
+    they have their own isolated access to memory. An actor is a first-class citizen
+    in the Erlang programming language,^([2](ch06.xhtml#idm45995912090232)) but it
+    can certainly be emulated using JavaScript.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些演员通过消息传递与外部世界进行通信；否则，它们具有自己独立的内存访问权限。在 Erlang 编程语言中，演员是一等公民，^([2](ch06.xhtml#idm45995912090232))
+    但可以使用 JavaScript 模拟它们。
+- en: The actor model is designed to allow computations to run in a highly parallelized
+    manner without necessarily having to worry about where the code is running or
+    even the protocol used to implement the communication. Really, it should be transparent
+    to program code whether one actor communicates with another actor locally or remotely.
+    [Figure 6-2](#fig_actor_model) shows how actors can be spread out across processes
+    and machines.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 演员模型旨在允许计算以高度并行化的方式运行，而不必担心代码运行的位置或甚至实现通信所使用的协议。实际上，编程代码不应关心一个演员是否本地或远程与另一个演员通信。[图 6-2](#fig_actor_model)
+    显示了演员如何分布在多个进程和机器上。
+- en: '![mtjs 0602](Images/mtjs_0602.png)'
+  id: totrans-204
+  prefs: []
+  type: TYPE_IMG
+  zh: '![mtjs 0602](Images/mtjs_0602.png)'
+- en: Figure 6-2\. Actors can be spread across processes and machines
+  id: totrans-205
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-2\. 演员可以分布在多个进程和机器上
+- en: Pattern Nuances
+  id: totrans-206
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 模式细微差别
+- en: Actors are able to process each message, or task, that they receive one at a
+    time. When these messages are first received, they sit in a message queue, sometimes
+    referred to as a mailbox. Having a queue is convenient because if two messages
+    were received at once then they both shouldn’t be processed at the same time.
+    Without a queue, one actor might need to check if another actor is ready before
+    sending a message, which would be a very tedious process.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 演员可以逐个处理接收到的每条消息或任务。当这些消息首次接收时，它们会放置在消息队列中，有时也称为邮箱。使用队列很方便，因为如果同时接收到两条消息，则不应同时处理它们。如果没有队列，一个演员可能需要在发送消息之前检查另一个演员是否准备就绪，这将是一个非常繁琐的过程。
+- en: Although no two actors are able to write to the same piece of shared memory,
+    they are free to mutate their own memory. This includes maintaining state modifications
+    over time. For example, an actor could keep track of the number of messages that
+    it has processed, and then deliver that data in messages that it later outputs.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然没有两个演员能够写入同一块共享内存，但它们可以自由地改变自己的内存。这包括随时间维护状态修改。例如，一个演员可以跟踪它已处理的消息数量，然后在以后输出的消息中传递这些数据。
+- en: Because there’s no shared memory involved, the actor model is able to avoid
+    some of the multithreading pitfalls discussed earlier, such as race conditions
+    and deadlocks. In many ways, an actor is like a function in a functional language,
+    accepting inputs and avoiding access to global state.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于没有涉及共享内存，因此演员模型能够避免一些早期讨论的多线程陷阱，如竞态条件和死锁。在许多方面，演员就像函数式语言中的函数，接受输入并避免访问全局状态。
+- en: Since actors handle a single task at a time they can often be implemented in
+    a single-threaded fashion. And, while a single actor is only able to process a
+    single task at a time, different actors are free to run code in parallel.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于演员一次只能处理一个任务，它们通常可以以单线程方式实现。而且，虽然单个演员一次只能处理一个任务，但不同的演员可以自由地并行运行代码。
+- en: A system that uses actors shouldn’t expect that messages are guaranteed to be
+    ordered on a FIFO basis. Instead, it should be resilient to delays and out-of-order
+    delivery, especially since actors can be spread across a network.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用演员的系统不应期望消息以 FIFO 方式有序传递。相反，它应对延迟和无序交付具有弹性，特别是因为演员可以分布在网络中。
+- en: Individual actors can also have the concept of an address, which is a way to
+    uniquely refer to a single actor. One way to represent this value could be to
+    use a URI. For example, `tcp://127.0.0.1:1234/3` might refer to the third actor
+    running in a program on the local computer listening on port 1234\. The implementation
+    covered here doesn’t use such addresses.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单个角色也可以有地址的概念，这是唯一标识单个角色的一种方式。表示此值的一种方式可能是使用 URI。例如，`tcp://127.0.0.1:1234/3`
+    可能指的是在本地计算机上监听端口 1234 的程序中运行的第三个角色。此处介绍的实现不使用这样的地址。
+- en: Relating to JavaScript
+  id: totrans-213
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 关于 JavaScript
+- en: The actors that exist as first-class citizens in languages such as Erlang can’t
+    be perfectly reproduced using JavaScript, but we can certainly try. There are
+    likely dozens of ways to draw parallels and implement actors, and this section
+    exposes you to one of them.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在像 Erlang 这样的语言中作为一等公民存在的角色无法完全使用 JavaScript 来完美复制，但我们当然可以尝试。可能有几十种方法可以进行类比和实现角色，本节为您介绍其中一种方法。
+- en: One draw of the actor model is that actors don’t need to be limited to a single
+    machine. This means that processes can run on more than one machine and communicate
+    over the network. We can implement this using Node.js processes, each communicating
+    using JSON via the TCP protocol.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 角色模型的一个优点是，角色不需要局限于单台计算机。这意味着进程可以在多台计算机上运行并通过网络进行通信。我们可以使用 Node.js 进程来实现这一点，每个进程使用
+    TCP 协议通过 JSON 进行通信。
+- en: Because individual actors should be able to run code in parallel with other
+    actors, and each actor processes only a single task at a time, it then stands
+    to reason that actors should probably run on different threads to maximize system
+    usage. One way to go about this is to instantiate new worker threads. Another
+    way would be to have dedicated processes for each actor, but that would use more
+    resources.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为单个角色应该能够与其他角色并行运行代码，并且每个角色一次只处理一个任务，所以角色很可能应该在不同的线程上运行以最大化系统使用率。一种方法是实例化新的工作线程。另一种方法是为每个角色设置专用进程，但这样会使用更多资源。
+- en: Because there is no need to deal with shared memory between the different actors,
+    the `SharedArrayBuffer` and `Atomics` objects can be largely ignored (though a
+    more robust system might rely on them for coordination purposes).
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为不需要处理不同角色之间的共享内存，因此可以基本忽略 `SharedArrayBuffer` 和 `Atomics` 对象（尽管更健壮的系统可能会依赖它们进行协调）。
+- en: Actors require a message queue so that while one message is being processed
+    another message can wait until the actor is ready. JavaScript workers sort of
+    handle this for us using the `postMessage()` method. Messages delivered in this
+    manner wait until the current JavaScript stack is complete before grabbing the
+    next message. If each actor is only running synchronous code, then this built-in
+    queue can be used. On the other hand, if actors can perform asynchronous work,
+    then a manual queue will need to be built instead.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 角色需要一个消息队列，以便在处理一个消息时，另一个消息可以等待，直到角色准备好。JavaScript 的工作线程通过 `postMessage()` 方法在某种程度上帮助我们处理这个问题。通过这种方式传递的消息会等到当前
+    JavaScript 栈完成后再抓取下一个消息。如果每个角色只运行同步代码，那么可以使用这个内置队列。另一方面，如果角色可以执行异步工作，那么就需要手动构建一个队列。
+- en: So far the actor model might sound familiar to the thread pool pattern covered
+    in [“Thread Pool”](#ch_patterns_sec_threadpool). Indeed, there are a lot of similarities,
+    and you can almost think of the actor model as a pool of thread pools. But there
+    are enough differences that the two concepts are worth differentiating. Really,
+    the actor model promises a unique paradigm for computing, truly a high-level programming
+    pattern that can change the way you approach writing code. In practice, the actor
+    model involves programs that often depend on thread pools.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，角色模型可能听起来与 [“线程池”](#ch_patterns_sec_threadpool) 中介绍的线程池模式很相似。事实上，它们有很多相似之处，你几乎可以将角色模型看作是一个线程池的池。但是两个概念之间有足够的差异值得区分。事实上，角色模型为计算提供了一种独特的编程范式，真正是一种可以改变编写代码方式的高级编程模式。在实践中，角色模型涉及的程序通常依赖于线程池。
+- en: Example Implementation
+  id: totrans-220
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 示例实现
+- en: Create a new directory named *ch6-actors/* for this implementation. Inside this
+    directory, copy and paste the existing *ch6-thread-pool/rpc-worker.js* file from
+    [Example 6-3](#ex_threadpool_rpcworker_1) and the *ch6-thread-pool/worker.js*
+    file from [Example 6-2](#ex_threadpool_worker). Those files will be used as the
+    basis of the thread pool in this example and can remain unchanged.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个名为*ch6-actors/*的新目录来实现这个示例。在此目录中，从[示例 6-3](#ex_threadpool_rpcworker_1)复制并粘贴现有的*ch6-thread-pool/rpc-worker.js*文件以及从[示例 6-2](#ex_threadpool_worker)复制*ch6-thread-pool/worker.js*文件。这些文件将作为本示例中线程池的基础，并且可以保持不变。
+- en: Next, create a file named *ch6-actors/server.js* and add the content from [Example 6-18](#ex_actor_server_1)
+    to it.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为*ch6-actors/server.js*的文件，并将内容从[示例 6-18](#ex_actor_server_1)添加到其中。
+- en: Example 6-18\. *ch6-actors/server.js* (part 1)
+  id: totrans-223
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-18\. *ch6-actors/server.js*（第一部分）
+- en: '[PRE25]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: This file creates two server instances. The first is a TCP server, a rather
+    basic protocol, while the second is an HTTP server, which is a higher-level protocol
+    based on TCP, though the two server instances won’t depend on each other. The
+    first part of this file contains boilerplate for accepting command-line arguments
+    to configure the two servers.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件创建两个服务器实例。第一个是TCP服务器，一个相对基础的协议，而第二个是HTTP服务器，它是基于TCP的高级协议，尽管这两个服务器实例不会相互依赖。此文件的前半部分包含了用于接受命令行参数以配置这两个服务器的样板代码。
+- en: The `message_id` variable contains a number that will increment as each new
+    HTTP request is made. The `messages` variable contains a mapping of message IDs
+    to response handlers that will be used to reply to the messages. This is the same
+    pattern that you used in [“Thread Pool”](#ch_patterns_sec_threadpool). Finally,
+    the `actors` variable contains a collection of handler functions that are used
+    to send messages to external actor processes.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`message_id`变量包含一个数字，该数字将在每次新的HTTP请求时递增。`messages`变量包含了消息ID到响应处理程序的映射，这些处理程序将用于回复消息。这与你在[“线程池”](#ch_patterns_sec_threadpool)中使用的模式相同。最后，`actors`变量包含了一系列处理函数，用于向外部演员进程发送消息。'
+- en: Next, add the content from [Example 6-19](#ex_actor_server_2) to the file.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将内容从[示例 6-19](#ex_actor_server_2)添加到文件中。
+- en: Example 6-19\. *ch6-actors/server.js* (part 2)
+  id: totrans-228
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-19\. *ch6-actors/server.js*（第二部分）
+- en: '[PRE26]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO6-1)'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO6-1)'
+- en: A null byte `'\0'` is inserted between messages.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在消息之间插入空字节`'\0'`。
+- en: '[![2](Images/2.png)](#co_multithreaded_patterns_CO6-2)'
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_multithreaded_patterns_CO6-2)'
+- en: When a client connection is closed, it is removed from the `actors` set.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当客户端连接关闭时，它将从`actors`集合中移除。
+- en: '[![3](Images/3.png)](#co_multithreaded_patterns_CO6-3)'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_multithreaded_patterns_CO6-3)'
+- en: The `data` events may contain multiple messages and are split on null bytes.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`事件可能包含多个消息，并且以空字节分割。'
+- en: '[![4](Images/4.png)](#co_multithreaded_patterns_CO6-4)'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_multithreaded_patterns_CO6-4)'
+- en: The final byte is a null byte, so the last entry in `chunks` is an empty string.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个字节是空字节，因此`chunks`中的最后一个条目是空字符串。
+- en: This file creates the TCP server. This is how dedicated actor processes will
+    connect to the main server process. The `net.createServer()` callback is called
+    each time an actor process connects. The `client` argument represents a TCP client,
+    essentially a connection to the actor process. A message is logged each time a
+    connection is made, and a handler function for conveniently messaging the actor
+    is added to the `actors` collection.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件创建了TCP服务器。这是专用的演员进程连接到主服务器进程的方式。每当演员进程连接时，`net.createServer()`回调函数都会被调用。`client`参数表示TCP客户端，实质上是与演员进程的连接。每次建立连接时都会记录一条消息，并且为方便地向演员发送消息添加了一个处理函数到`actors`集合中。
+- en: When a client disconnects from the server, that client’s handler function is
+    deleted from the `actors` collection. Actors communicate with the server by sending
+    messages over TCP, which triggers the `data` event.^([3](ch06.xhtml#idm45995911475144))
+    The messages they send are JSON-encoded data. This data contains an `id` field
+    which correlates to the message ID. When the callback is run, the correlating
+    handler function is retrieved from the `messages` map. Finally, the response message
+    is sent back to the HTTP request, the message is removed from the `messages` map,
+    and the server listens on the specified interface and port.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当客户端从服务器断开连接时，该客户端的处理函数将从`actors`集合中删除。演员通过TCP发送消息与服务器进行通信，这将触发`data`事件。[^3](ch06.xhtml#idm45995911475144)它们发送的消息是JSON编码数据。该数据包含一个`id`字段，该字段与消息ID相关联。当回调函数运行时，将从`messages`映射中检索相应的处理函数。最后，响应消息将发送回HTTP请求，消息将从`messages`映射中删除，并且服务器将监听指定的接口和端口。
+- en: Note
+  id: totrans-240
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The connection between the server and the actor pool client is a long-lived
+    connection. That is why event handlers are set up for things like the `data` and
+    `end` events.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务器与演员池客户端之间的连接是长连接。因此，需要设置事件处理程序来处理诸如`data`和`end`等事件。
+- en: Notably missing from this file is an error handler for the client connection.
+    Since it’s missing, a connection error will cause the server process to terminate.
+    A more robust solution would delete the client from the `actors` collection.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件显著缺少客户端连接的错误处理程序。由于缺少这部分内容，连接错误将导致服务器进程终止。一个更健壮的解决方案是从`actors`集合中删除客户端。
+- en: 'The `''\0''` null bytes are inserted between messages because when one side
+    emits a message it’s not guaranteed to arrive in a single `data` event on the
+    other side. Notably, when multiple messages are sent in quick succession, they
+    will arrive in a single `data` event. This is a bug you won’t encounter while
+    making single requests with `curl`, but that you would encounter when making many
+    requests with `autocannon`. This results in multiple JSON documents concatenated
+    together, like so: `{"id":1…}{"id":2…}`. Passing that value into `JSON.parse()`
+    results in an error. The null bytes cause the events to resemble this: `{"id":1…}\0{"id":2…}\0`.
+    The string is then split on the null byte and each segment is parsed separately.
+    If a null byte were to appear in a JSON object, it would be escaped, meaning it’s
+    safe to use a null byte to separate JSON documents.'
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于一方发送消息时并不能保证另一方会在单个`data`事件中接收到它，所以会在消息之间插入`'\0'`空字节。特别是在快速连续发送多个消息时，它们将会在一个`data`事件中到达。这是一个你使用`curl`进行单一请求时不会遇到的bug，但是当使用`autocannon`进行多次请求时会遇到。这将导致多个JSON文档被串联在一起，例如：`{"id":1…}{"id":2…}`。将这样的值传递给`JSON.parse()`将会导致错误。空字节使得事件看起来像这样：`{"id":1…}\0{"id":2…}\0`。然后字符串会被空字节分割，并且每个片段将被分别解析。如果空字节出现在JSON对象中，它会被转义，这意味着在分隔JSON文档时可以安全使用空字节。
+- en: Next, add the content from [Example 6-20](#ex_actor_server_3) to the file.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 紧接着，将[示例 6-20](#ex_actor_server_3)的内容添加到文件中。
+- en: Example 6-20\. *ch6-actors/server.js* (part 3)
+  id: totrans-245
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-20\. *ch6-actors/server.js*（第3部分）
+- en: '[PRE27]'
+  id: totrans-246
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: This part of the file creates an HTTP server. Unlike the TCP server, each request
+    represents a short-lived connection. The `http.createServer()` callback is called
+    once for each HTTP request that is received.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这部分文件创建了一个HTTP服务器。与TCP服务器不同，每个请求表示一个短暂的连接。`http.createServer()`回调函数将在接收到每个HTTP请求时被调用。
+- en: 'Inside this callback the current message ID is incremented and the list of
+    actors is consulted. If it’s empty, which can happen when the server starts but
+    an actor hasn’t joined, an error message “ERROR: EMPTY ACTOR POOL” is returned.
+    Otherwise, if actors are present, a random one is then chosen. This isn’t the
+    best approach, though — a more robust solution is discussed at the end of this
+    section.'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在这个回调函数内部，当前消息ID会递增，并且会查询演员列表。如果列表为空，这可能发生在服务器启动时，但是尚未加入演员时，将返回错误消息“ERROR:
+    EMPTY ACTOR POOL”。否则，如果有演员存在，则会随机选择一个。不过，这不是最佳的解决方案，一个更健壮的解决方案在本节末尾讨论。'
+- en: Next, a JSON message is sent to the actor. The message contains an `id` field
+    which represents the message ID, a `method` field which represents the function
+    to be called (always `square_sum` in this case), and finally the list of arguments.
+    In this case the HTTP request path contains a slash and a number, like */42*,
+    and the number is extracted to be used as the argument. Finally, the server listens
+    on the provided interface and port.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，向执行者发送一个 JSON 消息。该消息包含一个`id`字段，表示消息 ID，一个`method`字段，表示要调用的函数（在本例中始终是`square_sum`），以及参数列表。在这种情况下，HTTP
+    请求路径包含斜杠和一个数字，如`/42`，并提取该数字以用作参数。最后，服务器侦听提供的接口和端口。
+- en: Next, add the content from [Example 6-21](#ex_actor_server_4) to the file.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将[示例 6-21](#ex_actor_server_4)中的内容添加到文件中。
+- en: Example 6-21\. *ch6-actors/server.js* (part 4)
+  id: totrans-251
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-21\. *ch6-actors/server.js*（第 4 部分）
+- en: '[PRE28]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This part of the file just grabs a random actor handler from the `actors` list.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的这一部分只是从`actors`列表中随机获取一个执行者处理程序。
+- en: With this file complete (for now), create a new file named *ch6-actors/actor.js*.
+    This file represents a process that doesn’t provide a server, but instead will
+    connect to the other server process. Start the file off by adding the content
+    from [Example 6-22](#ex_actor_actor_1) to it.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件完成后（目前为止），创建一个名为*ch6-actors/actor.js*的新文件。从[示例 6-22](#ex_actor_actor_1)中添加内容到该文件。
+- en: Example 6-22\. *ch6-actors/actor.js* (part 1)
+  id: totrans-255
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-22\. *ch6-actors/actor.js*（第 1 部分）
+- en: '[PRE29]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Again, this file starts off with some boilerplate to extract the hostname and
+    port information for the server process. It also initializes a thread pool using
+    the `RpcWorkerPool` class. The pool has a strict size of four threads, which can
+    be thought of as four actors, and uses the `leastbusy` algorithm.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，这个文件从一些样板代码开始，用于提取服务器进程的主机名和端口信息。它还使用`RpcWorkerPool`类初始化了一个线程池。该池有严格的四个线程大小，可以看作是四个执行者，并使用`leastbusy`算法。
+- en: Next, add the content from [Example 6-23](#ex_actor_actor_2) to the file.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将[示例 6-23](#ex_actor_actor_2)中的内容添加到文件中。
+- en: Example 6-23\. *ch6-actors/actor.js* (part 2)
+  id: totrans-259
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-23\. *ch6-actors/actor.js*（第 2 部分）
+- en: '[PRE30]'
+  id: totrans-260
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: '[![1](Images/1.png)](#co_multithreaded_patterns_CO7-1)'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_multithreaded_patterns_CO7-1)'
+- en: The actor also needs to handle null byte chunk separation.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行者还需要处理空字节块的分离。
+- en: The `net.connect()` method creates a connection to the upstream port and hostname,
+    which represents the server process, logging a message once the connection succeeds.
+    When the server sends a message to this actor, it triggers the `data` event, passing
+    in a buffer instance as the `raw_data` argument. This data, containing a JSON
+    payload, is then parsed.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`net.connect()`方法创建与上游端口和主机名的连接，表示服务器进程，一旦连接成功就记录一条消息。当服务器向该执行者发送消息时，它触发`data`事件，并传递缓冲实例作为`raw_data`参数。然后解析包含
+    JSON 负载的数据。'
+- en: The actor process then invokes one of its workers, calling the requested method
+    and passing in the arguments. Once the worker/actor is finished, the data is then
+    sent back to the server instance. The same message ID is preserved using the `id`
+    property. This value must be provided because a given actor process can receive
+    multiple message requests at the same time and the main server process needs to
+    know which reply correlates with which request. The returned `value` is also provided
+    in the message. The process ID is also provided as metadata in the response assigned
+    to `pid` so that you can visualize which program is calculating what data.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后执行者进程调用其工作者之一，调用请求的方法并传递参数。一旦工作者/执行者完成，数据就会被发送回服务器实例。使用`id`属性保留了相同的消息 ID。必须提供此值，因为给定的执行者进程可以同时接收多个消息请求，主服务器进程需要知道哪个回复与哪个请求相关联。返回的`value`也在消息中提供。进程
+    ID 也作为分配给`pid`的响应元数据提供，以便您可以可视化哪个程序在计算什么数据。
+- en: Again, notably missing is proper error handling. If a connection error were
+    to happen, you would see the process terminate entirely.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次明显缺失的是正确的错误处理。如果发生连接错误，你会看到整个进程终止。
+- en: '[Figure 6-3](#fig_actor_impl) is a visualization of the implementation you’ve
+    just built.'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 6-3](#fig_actor_impl) 是你刚刚构建的实现的可视化。'
+- en: '![mtjs 0603](Images/mtjs_0603.png)'
+  id: totrans-267
+  prefs: []
+  type: TYPE_IMG
+  zh: '![mtjs 0603](Images/mtjs_0603.png)'
+- en: Figure 6-3\. A visualization of the actor model implementation in this section
+  id: totrans-268
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 6-3\. 本节中执行者模型实现的可视化
+- en: 'Now that your files are complete, you’re ready to run your programs. First,
+    run the server, providing a hostname and port to use for the HTTP server, followed
+    by a hostname and port to use for the TCP server. You can do this by running the
+    following command:'
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你的文件已经完成，你可以运行你的程序了。首先，运行服务器，提供用于HTTP服务器的主机名和端口，然后是用于TCP服务器的主机名和端口。你可以通过运行以下命令来完成：
+- en: '[PRE31]'
+  id: totrans-270
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: In this case the process displays the two server addresses.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，进程显示了两个服务器地址。
+- en: 'Next, send a request to the server in a new terminal window:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，在一个新的终端窗口中向服务器发送一个请求：
+- en: '[PRE32]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Whoops! In this case the server replied with an error. Since there are no running
+    actor processes, there is nothing that can execute the work.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 糟糕！在这种情况下，服务器以错误回复。由于没有运行的演员进程，因此没有东西可以执行这项工作。
+- en: 'Next, run an actor process and give it the hostname and port for the server
+    instance. You can do that by running the following command:'
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，运行一个演员进程，并为其提供服务器实例的主机名和端口。你可以通过运行以下命令来完成：
+- en: '[PRE33]'
+  id: totrans-276
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'You should see a message printed from both the server and the worker process
+    that a connection was established. Next, run the `curl` command again in a separate
+    terminal window:'
+  id: totrans-277
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该能看到从服务器和工作进程打印出的连接建立消息。接下来，在一个单独的终端窗口中再次运行`curl`命令：
+- en: '[PRE34]'
+  id: totrans-278
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'You should get back a similar value to the one printed earlier. With the new
+    actor process attached, the program went from having zero actors available to
+    perform work to having four actors. But you don’t need to stop there. In another
+    terminal window run another instance of the worker using the same command, and
+    issue another `curl` command:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该得到与先前打印的值类似的返回值。通过附加新的演员进程，程序从没有可用于执行工作的演员转变为有四个演员可用。但你不需要停在这里。在另一个终端窗口中运行另一个使用相同命令的工作进程实例，并发出另一个
+    `curl` 命令：
+- en: '[PRE35]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: As you run the command multiple times you should see that the `pid` value changes
+    in the response. Congratulations, you’ve now dynamically increased the count of
+    actors available to your application. This was done at runtime, effectively increasing
+    the performance of your application without downtime.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您多次运行命令时，应该看到响应中的 `pid` 值发生变化。恭喜，您现在动态增加了应用程序可用演员的数量。这是在运行时完成的，有效地提高了您的应用程序性能，而无需停机。
+- en: 'Now, one of the benefits of the actor pattern is that it doesn’t really matter
+    where the code runs. In this case the actors live inside an external process.
+    This allowed the error to happen when the server was first executed: an HTTP request
+    was made, but an actor process hadn’t yet connected. One way to fix this is to
+    add some actors to the server process as well.'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，演员模式的一个好处是代码运行的具体位置并不重要。在这种情况下，演员们存在于外部进程中。这使得在服务器首次执行时就发生了错误：发出了HTTP请求，但演员进程尚未连接。解决此问题的一种方法是在服务器进程中添加一些演员。
+- en: Modify the first *ch6-actors/server.js* file and add the content from [Example 6-24](#ex_actor_server_5)
+    to it.
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修改第一个 *ch6-actors/server.js* 文件，并将内容从 [示例 6-24](#ex_actor_server_5) 添加到其中。
+- en: Example 6-24\. *ch6-actors/server.js* (part 5, bonus)
+  id: totrans-284
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 6-24\. *ch6-actors/server.js*（第5部分，奖励）
+- en: '[PRE36]'
+  id: totrans-285
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'This addition to the file creates a worker thread pool in the server process,
+    effectively adding an additional four actors to the pool. Kill the existing server
+    and actor processes that you’ve created with Ctrl+C. Then, run your new server
+    code and send it a `curl` request:'
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的这一部分在服务器进程中创建了一个工作线程池，有效地向池中添加了四个额外的演员。使用 Ctrl+C 杀死您创建的现有服务器和演员进程。然后，运行您的新服务器代码并发送一个
+    `curl` 请求：
+- en: '[PRE37]'
+  id: totrans-287
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: In this case the `pid` value has been hardcoded to `server` to signify that
+    the process performing the calculation is the server process. Much like before,
+    you can run some more actor processes to have them connect to the server and run
+    more `curl` commands to send requests to the server. When this happens you should
+    see that requests are handled either by dedicated actor processes or by the server.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`pid` 值已经硬编码为 `server`，表示执行计算的进程是服务器进程。与之前类似，你可以运行更多的演员进程，让它们连接到服务器，并运行更多的
+    `curl` 命令向服务器发送请求。当发生这种情况时，你应该看到请求被专用演员进程或服务器处理。
+- en: With the actor pattern, you shouldn’t think of the joined actors as external
+    APIs. Instead, think of them as an extension of the program itself. This pattern
+    can be powerful, and it comes with an interesting use case. *Hot code loading*
+    is when newer versions of application code replaces old versions and is done while
+    the application continues to run. With the actor pattern you’ve built, you are
+    able to modify the *actor.js* / *worker.js* files, modify the existing `square_sum()`
+    method, or even add new methods. Then, you can launch new actor programs and terminate
+    old actor programs, and the main server will then start using the new actors.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用演员模式时，您不应该将加入的演员视为外部API，而应该将它们视为程序本身的扩展。这种模式非常强大，并且带有一个有趣的用例。*热代码加载*是指当应用程序的新版本替换旧版本时，应用程序仍在运行。通过您构建的演员模式，您可以修改*actor.js*
+    / *worker.js*文件，修改现有的`square_sum()`方法，甚至添加新的方法。然后，您可以启动新的演员程序并终止旧的演员程序，主服务器将开始使用新的演员。
+- en: Also worth noting is that the version of the actor model covered in this section
+    does have several shortcomings that should be considered before implementing something
+    like this in production. The first is that, although the individual actors within
+    an actor process are chosen by which is least busy, the actor process itself is
+    chosen randomly. This can lead to skewed workloads. To fix this you would need
+    some sort of coordination mechanism to keep track of which actors are free.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，值得注意的是，本节介绍的演员模型版本确实存在几个缺点，在实施类似内容于生产环境之前应该考虑到这些。首先，尽管演员进程内的各个演员是根据最不忙碌的来选择的，但演员进程本身是随机选择的。这可能会导致工作负载不均衡。为了解决这个问题，您需要一些协调机制来跟踪哪些演员是空闲的。
+- en: Another shortcoming is that individual actors aren’t addressable by other actors;
+    in fact, one actor cannot call code from another actor. Architecturally, the processes
+    resemble the star topology, where actor processes strictly connect to the server
+    process. Ideally, all actors could connect with each other, and actors could individually
+    address each other.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个缺点是，个别演员无法被其他演员寻址；事实上，一个演员不能从另一个演员调用代码。在架构上，这些进程类似于星形拓扑结构，其中演员进程严格连接到服务器进程。理想情况下，所有演员都可以相互连接，并且演员可以单独寻址彼此。
+- en: A big benefit of this approach is that of resilience. With the approach covered
+    in this section there’s only a single HTTP server. If the server process dies,
+    then the whole application dies. A more resilient system might have each process
+    be both an HTTP server and a TCP server, and have a reverse proxy route requests
+    to all processes. Once these changes are made, you are closer to the actor model
+    implementation provided by more robust platforms.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的一个重要优点是其弹性。采用本节介绍的方法，只有一个单一的HTTP服务器。如果服务器进程停止，整个应用程序也会停止运行。一个更具弹性的系统可能会使每个进程既是HTTP服务器又是TCP服务器，并且有一个反向代理将请求路由到所有进程。一旦进行了这些更改，您就接近于更健壮平台提供的演员模型实现。
+- en: ^([1](ch06.xhtml#idm45995913366808-marker)) In practice, restaurants can get
+    much busier than what the order wheel can handle. Restaurants will often solve
+    this with such tricks as inserting more than one order paper in the same slot
+    on the wheel, with some agreed-upon ordering in each slot. In the case of our
+    ring buffers, we can’t shove more than one piece of data into an array slot, so
+    we can’t use the same hack. Instead, a more complete system should have a way
+    of indicating that the queue is full and can’t handle any more data right now.
+    As you’ll see, we’re going to do exactly that.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch06.xhtml#idm45995913366808-marker)) 在实际操作中，餐馆可能会比订单轮处理的要忙。餐馆通常会通过一些诸如在同一个轮槽中插入多张订单纸，并在每个槽中达成某种约定顺序的技巧来解决这个问题。在我们的环形缓冲区中，我们不能将多个数据片段推送到一个数组槽中，因此无法使用同样的技巧。相反，一个更完整的系统应该有一种方法来指示队列已满，目前无法处理更多数据。正如您将看到的那样，我们将会正好做到这一点。
+- en: ^([2](ch06.xhtml#idm45995912090232-marker)) Another noteworthy implementation
+    of the actor pattern is in the Scala language.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch06.xhtml#idm45995912090232-marker)) 演员模式的另一个值得注意的实现是在Scala语言中。
+- en: ^([3](ch06.xhtml#idm45995911475144-marker)) Large messages, like if strings
+    are being passed instead of a few small numbers, may get split across TCP message
+    boundaries and arrive in multiple `data` events. Keep this in mind if adapting
+    this code for production use.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch06.xhtml#idm45995911475144-marker)) 大型消息，例如如果传递的是字符串而不是几个小数字，则可能会跨TCP消息边界分割，并以多个`data`事件到达。如果将此代码用于生产环境，请牢记这一点。

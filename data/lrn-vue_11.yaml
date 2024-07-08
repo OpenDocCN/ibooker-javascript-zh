@@ -1,0 +1,2071 @@
+- en: Chapter 11\. Testing in Vue
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第11章。Vue中的测试
+- en: To this point, we have learned about developing a complete Vue application from
+    scratch with different Vue APIs. Our application is now ready for deployment,
+    but before we do that, we need to make sure that our application is bug-free and
+    ready for production. This is where testing comes in.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经学习了如何从头开始开发完整的Vue应用程序，使用不同的Vue API。我们的应用程序现在已准备部署，但在此之前，我们需要确保我们的应用程序没有bug，并且可以投入生产。这就是测试发挥作用的地方。
+- en: Testing is crucial to any application development, as it helps to increase code
+    confidence and quality before releasing it to production. In this chapter, we
+    will learn about the different types of testing and how to use them in Vue applications.
+    We will also explore the various tools, such as Vitest and Vue Test Utils, for
+    unit testing and PlaywrightJS for end-to-end (E2E) testing.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试对于任何应用程序开发都至关重要，因为它有助于在发布到生产环境之前增强代码的信心和质量。在本章中，我们将学习不同类型的测试以及如何在Vue应用程序中使用它们。我们还将探讨各种工具，如Vitest和Vue
+    Test Utils，用于单元测试，以及PlaywrightJS用于端到端（E2E）测试。
+- en: Introduction to Unit Testing and E2E Testing
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 单元测试和端到端测试简介
+- en: Software development has both manual and automated testing practices and techniques
+    to ensure your application works as expected. While manual testing requires a
+    tester to interact with the software manually and can be expensive, automated
+    testing is mainly about executing a predefined test script containing a set of
+    tests in an automated manner. The collection of automated tests can validate simple
+    to more complex application scenarios, from a single function to a combination
+    of different parts.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件开发中有手动和自动化测试实践和技术，以确保您的应用程序按预期工作。手动测试要求测试人员手动与软件交互，可能成本较高，而自动化测试主要是执行包含一组测试的预定义测试脚本的自动化方式。自动化测试集合可以验证从单个函数到不同部分的简单到复杂的应用程序场景。
+- en: 'Automated testing is more reliable and scalable than manual testing, assuming
+    we write the tests correctly, and performs the following testing processes:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动化测试比手动测试更可靠和可扩展，假设我们正确编写了测试，并执行以下测试过程：
+- en: Unit testing
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单元测试
+- en: The most common and lowest level of testing in software development. We use
+    unit testing to validate a unit of code (or code block) that performs a specific
+    action, such as functions, hooks, and modules. We can combine unit testing with
+    test-driven development (TDD)^([1](ch11.html#id1547)) as a standard development
+    practice.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件开发中最常见且最低级别的测试。我们使用单元测试来验证执行特定操作的代码单元（或代码块），如函数、钩子和模块。我们可以将单元测试与测试驱动开发（TDD）^([1](ch11.html#id1547))结合使用作为标准开发实践。
+- en: Integrating testing
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集成测试
+- en: This testing type validates the integration of different unit blocks of code.
+    Integrating testing aims to assert the flow of logic functions, components, or
+    modules. Component testing integrates testing with its internal logic as a unit
+    test. We also mock most upstream services and other functions outside the test
+    scope to ensure testing quality.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此测试类型验证不同代码单元块的集成。集成测试旨在断言逻辑功能、组件或模块的流程。组件测试将内部逻辑与单元测试集成测试。我们还会模拟大多数上游服务和测试范围外的其他函数，以确保测试质量。
+- en: End-to-end (E2E) testing
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 端到端（E2E）测试
+- en: The highest level of testing in software development. We use E2E testing to
+    validate the entire application flow from the client side to the backend, usually
+    by simulating actual user behaviors. There would not be any mocked services or
+    functions in E2E testing, as we want to test the entire application flow.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 软件开发中的最高级别测试。我们使用端到端测试来验证整个应用程序流程，从客户端到后端，通常通过模拟实际用户行为来完成。在端到端测试中不会有任何模拟服务或函数，因为我们希望测试整个应用程序流程。
+- en: Note
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Test-driven development (TDD) means you design and write the test cases first
+    (red phase), work on the code to pass the tests (green phase), and improve the
+    code implementation (refactor phase). It helps to verify the logic and design
+    before actual development.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试驱动开发（TDD）意味着你首先设计并编写测试用例（红色阶段），然后编写代码以通过测试（绿色阶段），最后改进代码实现（重构阶段）。这有助于在实际开发之前验证逻辑和设计。
+- en: These three testing types form a pyramid of testing, as shown in [Figure 11-1](#figure_ch10_01),
+    where the focus should be mainly on the unit tests, then integration testing,
+    leaving the smallest number to E2E testing as it is primarily for sanity and can
+    be expensive to trigger. Since we create an application from any components, services,
+    and modules, performing unit testing for each isolated function or feature can
+    be sufficient for keeping your codebase’s quality at the minimum cost and effort.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这三种测试类型构成了一个测试金字塔，如 [图 11-1](#figure_ch10_01) 所示，其中重点应主要放在单元测试上，然后是集成测试，最后才是
+    E2E 测试，因为后者主要用于健全性检查，并且触发成本较高。由于我们从各种组件、服务和模块创建应用程序，因此对每个独立函数或特性进行单元测试足以以最低成本和工作量保持代码库的质量。
+- en: And as the primary ground for the testing system in our application, we start
+    with unit tests using Vitest.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为我们应用程序中测试系统的主要基础，我们从使用 Vitest 进行单元测试开始。
+- en: '![A screenshot showing a pyramid, divided into three levels representing unit
+    testing, integration testing, and E2E testing](assets/lvue_1101.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示一个金字塔截图，分为三个层级，分别代表单元测试、集成测试和端到端（E2E）测试](assets/lvue_1101.png)'
+- en: Figure 11-1\. Pyramid of testing
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-1\. 测试金字塔
+- en: Vitest as a Unit Testing Tool
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Vitest 作为单元测试工具
+- en: '[Vitest](https://oreil.ly/1upy0) is the test runner for unit testing built
+    on Vite for Vite-powered projects. Its API is similar to Jest and Chai while offering
+    a more modular approach to testing. Focusing on speed and developer experience,
+    Vitest offers several significant features, including multithreading workers,
+    TypeScript and JSX support, and component testing for frameworks such as Vue and
+    React.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Vitest](https://oreil.ly/1upy0) 是基于 Vite 构建的用于 Vite 项目的单元测试运行器。其 API 类似于 Jest
+    和 Chai，同时提供更模块化的测试方法。Vitest 专注于速度和开发者体验，提供多线程工作器、支持 TypeScript 和 JSX，以及针对 Vue
+    和 React 等框架的组件测试等显著特性。'
+- en: 'To use Vitest, we need to install it as a dev dependency in our project:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使用 Vitest，我们需要将其安装为项目中的开发依赖项。
+- en: '[PRE0]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Then in the `package.json` file, we can add a new script command to run our
+    tests in the watch mode:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在 `package.json` 文件中，我们可以添加一个新的脚本命令以在观察模式下运行我们的测试：
+- en: '[PRE1]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Note
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Alternatively, during the Vue project initialization, we can choose to install
+    Vitest as a unit testing tool ([“Create a New Vue Application”](ch01.html#chapter_01_newVueApp)),
+    and Vite will take care of the rest, including some sample tests as the starter.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者，在 Vue 项目初始化期间，我们可以选择将 Vitest 安装为单元测试工具（[“创建新的 Vue 应用程序”](ch01.html#chapter_01_newVueApp)），Vite
+    将处理其余内容，包括一些示例测试作为起始。
+- en: Once we run the command `yarn test` in the terminal (or command line), Vitest
+    will automatically detect the test files whose name contains the pattern `.spec.`
+    or `.test.` in the project directory. For example, a test file for the `useFetch`
+    hook will be either `useFetch.spec.ts` or `useFetch.test.ts`. Whenever you change
+    any test file, Vitest will rerun the test in your local environment.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在终端（或命令行）中运行 `yarn test` 命令时，Vitest 将自动检测项目目录中文件名包含 `.spec.` 或 `.test.` 模式的测试文件。例如，`useFetch`
+    钩子的测试文件可以是 `useFetch.spec.ts` 或 `useFetch.test.ts`。每当您更改任何测试文件时，Vitest 将在本地环境中重新运行测试。
+- en: Using vitest with Extra Commands
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 vitest 与额外命令
+- en: You can specify the mode for the `vitest` command, such as `vitest watch` for
+    watch mode explicitly or `vitest run` for a one-time run on all the tests. Vite
+    will automatically switch to the single run mode when using the `vitest` command
+    alone in a continuous integration (CI) environment.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以指定 `vitest` 命令的模式，例如显式指定观察模式的 `vitest watch`，或一次性运行所有测试的 `vitest run`。在持续集成（CI）环境中，仅使用
+    `vitest` 命令时，Vite 将自动切换到单次运行模式。
+- en: We can further customize the settings for Vitest using the command parameters
+    or the Vite config file `vite.config.js` in the next section.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接下来的部分，我们可以通过命令参数或 Vite 配置文件 `vite.config.js` 进一步定制 Vitest 的设置。
+- en: Configuring Vitest Using Parameters and Config File
+  id: totrans-30
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用参数和配置文件配置 Vitest
+- en: 'By default, Vitest will scan for tests starting from the project folder as
+    its current directory. We can specify a target folder for Vitest to check by passing
+    the folder path as an argument to the test command, such as the `tests` folder
+    within the source `src` directory:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，Vitest 将从项目文件夹作为当前目录开始扫描测试。我们可以通过将文件夹路径作为测试命令的参数传递，例如在源 `src` 目录中的 `tests`
+    文件夹：
+- en: '[PRE2]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Note
+  id: totrans-33
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In this chapter, we will put our tests under the `tests` folder, with the test
+    file name convention `<test-file-name.test>.ts` (such as `myComponent.test.ts`).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将把我们的测试放在`tests`文件夹下，测试文件名采用`<test-file-name.test>.ts`的约定（例如`myComponent.test.ts`）。
+- en: 'We can also specify the test files to run by passing the file path as an argument
+    to the `yarn test` command:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以通过将文件路径作为`yarn test`命令的参数来指定要运行的测试文件：
+- en: '[PRE3]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: This command is handy when working on a file and wanting to enable the watch
+    mode for that test file exclusively.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您在文件上工作并希望为该测试文件启用独占的观察模式时，此命令非常方便。
+- en: 'We also need to set the `environment` parameter to `jsdom` (JSDOM^([2](ch11.html#id1566)))
+    as the DOM environment runner for our Vue project:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要将`environment`参数设置为`jsdom`（JSDOM^([2](ch11.html#id1566)）作为我们Vue项目的DOM环境运行器：
+- en: '[PRE4]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Without setting the environment, Vitest will use the default environment `node`,
+    which is unsuitable for testing UI components and interactions.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果不设置环境，Vitest将使用默认环境`node`，这对于测试UI组件和交互是不合适的。
+- en: 'Instead of using the command parameters, we can also modify the `vite.config.js`
+    file to configure our Vitest runner, using the field `test` with the relevant
+    properties `root` and `environment`:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其使用命令参数，我们也可以修改`vite.config.js`文件来配置我们的Vitest运行器，使用字段`test`和相关属性`root`和`environment`：
+- en: '[PRE5]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'You also need to add the reference to Vitest using the `<reference>` tag within
+    this file by adding the following line to the top of the `vite.config.ts` file:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还需要通过在`vite.config.ts`文件顶部添加以下行来使用`<reference>`标签将Vitest的引用添加到此文件中：
+- en: '[PRE6]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: As a result, Vite will know that we are using Vitest as the test runner and
+    will provide the relevant type definitions for the `test` field in the config
+    file for TypeScript type checking.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，Vite将知道我们正在使用Vitest作为测试运行器，并将为TypeScript类型检查配置文件中的`test`字段提供相关的类型定义。
+- en: 'We also can turn on the global mode for the Vitest APIs across the entire project,
+    so we don’t need to import any function explicitly from the `vitest` package into
+    our test files. We can do this by enabling the `globals` flag of the `test` object
+    in the `vite.config.ts`:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以在整个项目中为Vitest API打开全局模式，因此我们不需要在测试文件中显式导入任何来自`vitest`包的函数。我们可以通过在`vite.config.ts`中的`test`对象的`globals`标志来实现这一点：
+- en: '[PRE7]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Once `globals` is enabled, for TypeScript to be able to detect the availability
+    of Vitest APIs as global, we still have one more step to perform: adding `vitest/globals`
+    type definitions to the `types` array in the `tsconfig.json` file:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦启用了`globals`，为了使TypeScript能够检测到Vitest API作为全局的可用性，我们还需要执行一个步骤：将`vitest/globals`类型定义添加到`tsconfig.json`文件中的`types`数组中。
+- en: '[PRE8]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: With these settings, we are now ready to start writing our tests.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些设置，我们现在可以开始编写我们的测试了。
+- en: Writing Your First Test
+  id: totrans-51
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 编写您的第一个测试
+- en: Following the TDD approach, let’s start with a simple test to check if a function
+    to filter an array based on a given string and an array element’s property key
+    is working as expected.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 遵循TDD方法，让我们从一个简单的测试开始，检查基于给定字符串和数组元素属性键来过滤数组的函数是否按预期工作。
+- en: 'We will create a new file, `filterArray.test.ts`, in the `src/tests` folder
+    and another one, `filterArray.ts` in the `src/utils` folder. The `filterArray.ts`
+    should export a function `filterArray`, which takes three arguments (the original
+    array to filter of type `ArrayObject`, a `string` property key, and the `string`
+    term to filter with) and returns the filtered elements of type `ArrayObject`:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在`src/tests`文件夹中创建一个名为`filterArray.test.ts`的新文件，另一个文件`filterArray.ts`在`src/utils`文件夹中。`filterArray.ts`应该导出一个名为`filterArray`的函数，该函数接受三个参数（要过滤的原始数组类型为`ArrayObject`，一个`string`属性键，以及要过滤的`string`术语），并返回类型为`ArrayObject`的过滤元素：
+- en: '[PRE9]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Note
+  id: totrans-55
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`{ [key: string]: string }` is a type for an object with a `string` key and
+    a `string` value. Specify using type instead of the generic `Object` (similar
+    to using `any`) to avoid the potential bug of passing the wrong object type to
+    the function.'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`{ [key: string]: string }`是一个具有`string`键和`string`值的对象类型。指定使用类型而不是通用的`Object`（类似于使用`any`）来避免将错误的对象类型传递给函数的潜在错误。'
+- en: 'In the `filterArray.test.ts` file, we will import the `filterArray` function
+    and model its functionality. We will use the `it()` method and `expect()` from
+    the `@vitest` package to define a single test case, and to assert the expected
+    result, respectively:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`filterArray.test.ts`文件中，我们将导入`filterArray`函数并对其功能进行建模。我们将使用`@vitest`包中的`it()`方法和`expect()`方法分别定义单个测试用例和断言预期结果：
+- en: '[PRE10]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Note
+  id: totrans-59
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: We can remove the `import { it, expect } from *@vitest*` line if we have `globals`
+    set to `true` in the `vite.config.ts` file or the command line with the `--globals`
+    parameter.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们在`vite.config.ts`文件中的`globals`设置为`true`或使用命令行的`--globals`参数，则可以删除`import
+    { it, expect } from *@vitest*`行。
+- en: The `it()` method takes a string representing the test case’s name (`should
+    return a filtered array`), a function containing the test logic to run, and an
+    optional timeout for waiting for the test to complete. By default, we have five
+    seconds for the test’s timeout.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`it()`方法接受一个字符串，表示测试用例的名称（`should return a filtered array`），一个包含要运行的测试逻辑的函数，以及一个可选的超时时间，用于等待测试完成。默认情况下，测试的超时时间为五秒。'
+- en: 'We can now implement the test logic for our first test case. We also assume
+    that we have a list of pizzas that we need to filter by `title` containing `Hawaiian`:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以为我们的第一个测试用例实现测试逻辑了。我们还假设我们有一个需要按包含`Hawaiian`的`title`来过滤的比萨列表：
+- en: '[PRE11]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '`expect()` returns a test instance that has various modifiers such as `not`,
+    `resolves`, `rejects`, and matcher functions like `toEqual` and `toBe`. While
+    `toEqual` performs a deep comparison for equality on the target object, `toBe`
+    performs an additional check to the target value’s instance reference in the memory.
+    In most scenarios, using `toEqual` is good enough for validating our logic, such
+    as checking the returned value to match our desired array. We will define our
+    target `result` array as follows:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`expect()`返回一个测试实例，具有各种修改器，如`not`、`resolves`、`rejects`，以及匹配器函数如`toEqual`和`toBe`。而`toEqual`在目标对象上执行深度比较以验证相等性，`toBe`则额外检查目标值在内存中的实例引用。在大多数情况下，使用`toEqual`已经足够验证逻辑，比如检查返回的值是否与我们期望的数组匹配。我们将定义我们的目标`result`数组如下：'
+- en: '[PRE12]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Let’s modify our `pizzas` to ensure it contains elements of `result` before
+    passing it to the `filterArray` function:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们修改我们的`pizzas`，以确保在将其传递给`filterArray`函数之前包含`result`的元素：
+- en: '[PRE13]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Then we use `.toEqual()` to assert the expected result:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们使用`.toEqual()`来断言预期结果：
+- en: '[PRE14]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Let’s run our tests in the watch mode using the `yarn test` command. The test
+    will fail, and Vitest will display the failure’s details, including the expected
+    result and the actual result, as seen in [Figure 11-2](#figure_chap10_02).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使用`yarn test`命令以观察模式运行测试。测试将失败，Vitest将显示失败的详细信息，包括预期结果和实际结果，如图[11-2](#figure_chap10_02)所示。
+- en: '![Screenshot displaying a stack trace for each test and details of the failed
+    test](assets/lvue_1102.png)'
+  id: totrans-71
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示每个测试的堆栈跟踪和失败测试的详细信息的截图](assets/lvue_1102.png)'
+- en: Figure 11-2\. Test failure details
+  id: totrans-72
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图11-2\. 测试失败详细信息
+- en: Part of the TDD approach is to define the tests and watch them fail before implementing
+    the actual code. The next step is working on the `filterArray` function to make
+    the test pass with the minimum code required.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TDD方法的一部分是在实现实际代码之前定义测试并观察其失败。下一步是修改`filterArray`函数以使用最少的代码使测试通过。
+- en: 'Here is an example implementation of `filterArray` using `filter()` and `toLowerCase()`:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是使用`filter()`和`toLowerCase()`实现`filterArray`的示例：
+- en: '[PRE15]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: With this code, our test should pass ([Figure 11-3](#figure_chap10_03)).
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这段代码，我们的测试应该通过（[图11-3](#figure_chap10_03)）。
+- en: '![Screenshot displaying a stack trace for each test and details of the failed
+    test](assets/lvue_1103.png)'
+  id: totrans-77
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示每个测试的堆栈跟踪和失败测试的详细信息的截图](assets/lvue_1103.png)'
+- en: Figure 11-3\. Test passes
+  id: totrans-78
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图11-3\. 测试通过
+- en: 'At this point, you can create more tests to cover the rest of the function’s
+    scenarios. For example, when the key doesn’t exist in the array’s element (`item[key]`
+    is `undefined`), or when the `term` is case-insensitive:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，您可以创建更多的测试来覆盖函数场景的其余部分。例如，当数组元素中的键不存在（`item[key]`为`undefined`）或`term`不区分大小写时：
+- en: '[PRE16]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: In the terminal, you will see the tests displayed with the relevant name ([Figure 11-4](#figure_chap10_04))
+    in a flat order.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在终端中，您将看到以扁平顺序显示的测试，带有相关名称（[图11-4](#figure_chap10_04)）。
+- en: '![Screenshot displaying a stack trace for each test and details of the failed
+    test](assets/lvue_1104.png)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示每个测试的堆栈跟踪和失败测试的详细信息的截图](assets/lvue_1104.png)'
+- en: Figure 11-4\. Displaying the tests in a flat order
+  id: totrans-83
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图11-4\. 以扁平顺序显示的测试
+- en: 'As the number of tests in a file and the number of test files grow, the flat
+    order can be hard to read and understand. To make it readable per functionality,
+    use `describe()` to group the tests into logical blocks, each with the appropriate
+    block name:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着文件中的测试数量和测试文件数量的增加，扁平顺序可能会变得难以阅读和理解。为了使每个功能单元可读，可以使用`describe()`将测试分组到逻辑块中，每个块具有适当的块名称：
+- en: '[PRE17]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Vitest will display the tests in a more organized hierarchy, as seen in [Figure 11-5](#figure_chap10_05).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vitest将以更有组织的层次结构显示测试，如[图 11-5](#figure_chap10_05)所示。
+- en: '![Screenshot displaying a stack trace for each test and details of the failed
+    test](assets/lvue_1105.png)'
+  id: totrans-87
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示每个测试的堆栈跟踪和失败测试的详细信息的屏幕截图](assets/lvue_1105.png)'
+- en: Figure 11-5\. Displaying the tests per group
+  id: totrans-88
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-5\. 每组测试的显示
+- en: Note
+  id: totrans-89
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: We can move `pizzas` and `result` inside the `describe` block. This ensures
+    the scope of these variables is relevant only within the `filterArray` test group.
+    Otherwise, once this test suite runs, these two variables will be available in
+    the global test scope and can overlap other variables with the same name, causing
+    unwanted behavior.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以将`pizzas`和`result`移至`describe`块内部。这样做可以确保这些变量的作用域仅在`filterArray`测试组内相关。否则，一旦这个测试套件运行，这两个变量将在全局测试作用域中可用，并且可能与具有相同名称的其他变量重叠，导致不希望的行为。
+- en: At this point, we have learned how to write tests for a function with the TDD
+    approach using `it()`, `expect()`, and grouping them with `expect()`. While TDD
+    is handy if we understand all the desired scenarios for our function, it can be
+    challenging for beginners to adapt and follow. Consider combining TDD and other
+    approaches rather than following a single process.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经学会了如何使用TDD方法编写函数测试，使用`it()`，`expect()`编写测试用例，并使用`describe()`分组。虽然TDD在我们理解函数的所有期望场景时非常方便，但对于初学者来说，要适应和遵循这种方法可能有挑战性。考虑结合TDD和其他方法，而不是单一过程。
+- en: Note
+  id: totrans-92
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: You can also use `test()` for `it()`, `assert()`, and for `expect()` as their
+    alternatives. While its name should start with “should do something” representing
+    a coherent sentence (such as “it should return a filtered array”), `test` can
+    be any meaningful name.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以使用`test()`代替`it()`，`assert()`和`expect()`作为它们的替代品。虽然它的名称应以“should do something”开头，表示一个连贯的句子（例如“它应返回一个过滤后的数组”），但`test`可以是任何有意义的名称。
+- en: Since composables in Vue are JavaScript functions that use Vue’s Composition
+    API, using Vitest to test them is simple. Next, we will explore how to write tests
+    for composables, starting with the non-lifecycle ones.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于Vue中的组合式是使用Vue的组合API的JavaScript函数，因此使用Vitest测试它们非常简单。接下来，我们将探讨如何为组合式编写测试，从非生命周期函数开始。
+- en: Testing Non-Lifecycle Composables
+  id: totrans-95
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试非生命周期的组合函数
+- en: 'We will start with a composition function, `useFilter`, that returns an object
+    containing the following variables:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将从一个组合函数`useFilter`开始，该函数返回一个包含以下变量的对象：
+- en: '`filterBy`'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`filterBy`'
+- en: The key to filtering by
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 过滤的关键
+- en: '`filterTerm`'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`filterTerm`'
+- en: The term to filter by
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于过滤的术语
+- en: '`filteredArray`'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`filteredArray`'
+- en: The filtered array
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 过滤后的数组
+- en: '`order`'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`order`'
+- en: The order of the filtered array, with the default value of `asc`
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 过滤数组的顺序，默认值为`asc`
+- en: It accepts a reactive array, `arr`, a `key`, and a `term` as initial values
+    for the filtered array, the filter key, and the filter term.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它接受一个响应式数组`arr`，一个过滤键`key`和一个过滤术语`term`作为过滤数组、过滤键和过滤术语的初始值。
+- en: 'The implementation for `useFilter` is as follows:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useFilter`的实现如下：'
+- en: '[PRE18]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '[![1](assets/1.png)](#co_testing_in_vue_CO1-1)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_testing_in_vue_CO1-1)'
+- en: Declare `arr` as a reactive `Ref` type of `ArrayObject` and `key` and `term`
+    as `string` types
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`arr`声明为响应式`Ref`类型的`ArrayObject`，并将`key`和`term`声明为`string`类型
+- en: '[![2](assets/2.png)](#co_testing_in_vue_CO1-2)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_testing_in_vue_CO1-2)'
+- en: Create `filterBy`, `filterTerm`, and `order` as `ref()` with the initial values
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建`filterBy`，`filterTerm`和`order`作为具有初始值的`ref()`
+- en: '[![3](assets/3.png)](#co_testing_in_vue_CO1-3)'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_testing_in_vue_CO1-3)'
+- en: Create `filteredArray` as `computed()`, reacting to changes of `filterBy`, `filterTerm`,
+    `order`, and `arr`
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`filteredArray`创建为`computed()`，以反应`filterBy`，`filterTerm`，`order`和`arr`的更改
+- en: 'In the `tests/` folder, we create a file `useFilter.test.ts` to test `useFilter`,
+    with the following setup:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`tests/`文件夹中，我们创建一个名为`useFilter.test.ts`的文件来测试`useFilter`，具体设置如下：
+- en: '[PRE19]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Since `books` is a constant array and not a Vue-reactive object, in our test
+    case we will wrap it with `ref()` to enable its reactivity before passing it to
+    the function for testing:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于`books`是一个常量数组，而不是Vue响应式对象，在我们的测试案例中，我们将在将其传递给函数进行测试之前，用`ref()`包装它以启用其响应性：
+- en: '[PRE20]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'We also declare the expected `result` based on the `books` array value. Now
+    we can write our first reactivity test case, where we assert the `useFilter` function
+    to return the updated filtered array when changing `filterTerm`:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还根据`books`数组的值声明了预期的`result`。现在我们可以编写我们的第一个响应性测试用例，在更改`filterTerm`时，断言`useFilter`函数返回更新后的过滤数组：
+- en: '[PRE21]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: When we run the test, it should pass with the output shown in [Figure 11-6](#figure_ch10_composable_1).
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们运行测试时，输出应如 [图 11-6](#figure_ch10_composable_1) 所示，测试应该通过。
+- en: '![A screenshot of the passing tests for +useFilter+](assets/lvue_1106.png)'
+  id: totrans-121
+  prefs: []
+  type: TYPE_IMG
+  zh: '![+useFilter+的测试通过截图](assets/lvue_1106.png)'
+- en: Figure 11-6\. All the tests for `useFilter` pass
+  id: totrans-122
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-6。所有针对`useFilter`的测试都通过了。
+- en: We can continue writing the test cases for `filterBy` and `order` in the same
+    approach and have `useFilter` fully test-covered. In this example of `useFilter`,
+    we asserted a composable that uses `ref` and `computed` under the hood. We can
+    apply the same asserting practice to composables with similar APIs like `watch`,
+    `reactive`, `provide`, etc. However, for composables that use `onMounted`, `onUpdated`,
+    `onUnmounted`, etc., we use a different approach to test them, discussed next.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以继续编写针对`filterBy`和`order`的测试用例，并完全覆盖`useFilter`。在此`useFilter`示例中，我们断言了一个使用底层`ref`和`computed`的可组合体。我们可以将相同的断言实践应用于具有类似
+    API 的可组合体，如`watch`、`reactive`、`provide`等。然而，对于使用`onMounted`、`onUpdated`、`onUnmounted`等的组合件，我们使用不同的方法来测试它们，下面讨论。
+- en: Testing Composables with Lifecycle Hook
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用生命周期钩子测试组合件
+- en: 'The following composable, `useFetch`, uses `onMounted` to fetch data from an
+    API:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的可组合体`useFetch`使用`onMounted`从 API 中获取数据。
+- en: '[PRE22]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: The function receives a `url` parameter; fetches data from the given `url` before
+    mounting the component; updates data, errors, and loading values accordingly;
+    and returns them. Since this composable relies on `onBeforeMount` of a component’s
+    lifecycle to fetch data, we must create a Vue component and simulate the mounting
+    process to test it.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该函数接收一个`url`参数；在挂载组件之前从给定的`url`获取数据；根据情况更新数据、错误和加载值；然后返回它们。由于这个可组合依赖于组件生命周期的`onBeforeMount`来获取数据，我们必须创建一个
+    Vue 组件并模拟挂载过程来测试它。
+- en: 'We can do this by using `createApp` from the `vue` package and creating a component/app
+    that uses `useFetch` in its `setup` hook:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以通过使用`vue`包中的`createApp`并创建一个在其`setup`钩子中使用`useFetch`的组件/应用程序来实现这一点：
+- en: '[PRE23]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'The `withSetup` function takes a `composable` and returns an array of `result`
+    of the composable execution and the `app` instance created. We can then use `withSetup`
+    in all our test cases to mimic the creation process of a component that uses `useFetch`:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`withSetup`函数接受一个`composable`并返回一个`result`的数组，其中包含可组合执行的结果和创建的`app`实例。然后，我们可以在所有测试案例中使用`withSetup`来模仿使用`useFetch`的组件的创建过程：'
+- en: '[PRE24]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'However, there is one issue here. `useFetch` is using `fetch` API to fetch
+    data; it is not a good practice to use the actual API in the test for these reasons:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这里有一个问题。`useFetch`正在使用`fetch` API来获取数据；在测试中使用实际的 API 不是一个好的做法，原因如下：
+- en: The test will fail if the API is down or the URL is invalid.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果 API 崩溃或 URL 无效，测试将失败。
+- en: The test will fail if the API is slow.
+  id: totrans-134
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果 API 响应慢，测试将失败。
+- en: 'Thus, we need to mock the `fetch` API to simulate the response by using the
+    `vi.spyOn` method:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们需要模拟`fetch` API以使用`vi.spyOn`方法模拟响应：
+- en: '[PRE25]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'We can place the `fetchSpy` declaration within the `describe` section to ensure
+    the isolation of this spy from other test suites. And in the `beforeEach` hook,
+    we need to reset every mocked implementation and value before running the test
+    case with the `mockClear()` method:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以将`fetchSpy`声明放在`describe`部分中，以确保这个 spy 与其他测试套件隔离开来。并且在`beforeEach`钩子中，我们需要在运行测试用例之前重置每个模拟的实现和值，使用`mockClear()`方法：
+- en: '[PRE26]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Let’s write our test. We will first mock the `fetch` API to return a successful
+    response with the `mockResolvedValueOnce` method:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们写我们的测试。我们将首先模拟`fetch` API以使用`mockResolvedValueOnce`方法返回成功的响应：
+- en: '[PRE27]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'After that, we can assert the `data` value of the `result` to be equal to the
+    mocked data:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在那之后，我们可以断言`result`的`data`值等于模拟数据：
+- en: '[PRE28]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'We can also expect calling the `fetch` with the given `url` with the `toHaveBeenCalledWith`
+    method:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以期望使用`toHaveBeenCalledWith`方法调用给定`url`的`fetch`：
+- en: '[PRE29]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'And finally, we need to unmount the app to clean up the test environment:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们需要卸载应用程序以清理测试环境：
+- en: '[PRE30]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: At this point, we expect the test to pass successfully. Unfortunately, the test
+    will still fail. The reason is that while the `fetch` API is asynchronous, the
+    component’s lifecycle hook `beforeMount` isn’t. The hook execution can finish
+    before the `fetch` API is resolved, causing the `data` value to stay unchanged
+    ([Figure 11-7](#figure_ch10_failing_fetch_test)).
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，我们期望测试能够成功通过。不幸的是，测试仍然会失败。原因是，虽然`fetch` API是异步的，但组件的生命周期钩子`beforeMount`不是。在`fetch`
+    API 解析之前，钩子执行可能完成，导致`data`值保持不变（[图 11-7](#figure_ch10_failing_fetch_test)）。
+- en: '![A screenshot showing the details of the failing test for useFetch](assets/lvue_1107.png)'
+  id: totrans-148
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 useFetch 测试失败详情的截图](assets/lvue_1107.png)'
+- en: Figure 11-7\. Failing test for `useFetch`
+  id: totrans-149
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-7\. `useFetch` 测试未通过
+- en: 'To fix this issue, we need help from another package, Vue Test Utils (`@vue/test-utils`),
+    [the official testing utility library for Vue](https://oreil.ly/dZILU). This package
+    offers a set of utility methods to help test Vue components. We will import and
+    use `flushPromises` from this package to wait for the `fetch` API to resolve before
+    asserting the `data` value:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要解决此问题，我们需要另一个包的帮助，Vue Test Utils（`@vue/test-utils`），[Vue 的官方测试实用工具库](https://oreil.ly/dZILU)。此包提供了一组实用方法来帮助测试
+    Vue 组件。我们将从该包中导入并使用 `flushPromises` 来等待 `fetch` API 解析完成后再断言 `data` 值：
+- en: '[PRE31]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: The test should pass successfully ([Figure 11-8](#figure_ch10_passing_fetch_test)).
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试应该成功通过（[图 11-8](#figure_ch10_passing_fetch_test)）。
+- en: '![A screenshot showing the tests passed for useFetch in green](assets/lvue_1108.png)'
+  id: totrans-153
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示 useFetch 通过测试的截图](assets/lvue_1108.png)'
+- en: Figure 11-8\. Passing the test for `useFetch`
+  id: totrans-154
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-8\. `useFetch` 通过测试
+- en: 'You can also assert the `loading` value by placing the assertion before the
+    `flush` `Promises` call:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以通过在调用 `flush Promises` 之前放置断言来断言 `loading` 值：
+- en: '[PRE32]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'Another benefit of mocking the `fetch` API is that we can simulate the failure
+    response by using the `mockRejectedValueOnce` method and test our composable’s
+    error-handling logic:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `mockRejectedValueOnce` 方法模拟 `fetch` API 的失败响应还有一个好处，即我们可以测试我们组合函数的错误处理逻辑：
+- en: '[PRE33]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: That’s it. You can apply the same mocking approach to external test APIs in
+    your applications or mock any dependent functions that are already tested and
+    reduce the complexity of your test suites. We have successfully tested our `useFetch`
+    method with Vitest and Vue Test Utils.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就这样。您可以将相同的模拟方法应用于应用程序中的外部测试 API，或者模拟已经测试过的任何依赖函数，并减少测试套件的复杂性。我们已成功使用 Vitest
+    和 Vue Test Utils 测试了我们的 `useFetch` 方法。
+- en: Next, we will explore how to test a Vue component with Vitest and Vue Test Utils.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将探讨如何使用 Vitest 和 Vue Test Utils 测试 Vue 组件。
+- en: Testing Components Using Vue Test Utils
+  id: totrans-161
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Vue Test Utils 进行组件测试
+- en: The Vue engine uses the configurations of the Vue components to create and manage
+    component instance updates on the browser DOM. Testing components means we will
+    test the components’ rendering results to the DOM. We set our `test.environment`
+    to `jsdom` in the `vite.config.ts` for simulating the browser environment, which
+    doesn’t exist in the Node.js environment where the tests are running. We also
+    use the methods like `mount`, `shallowMount`, etc., from the `@vue/test-utils`
+    package to help mount the component and assert the rendering results from a virtual
+    Vue node to a DOM element.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 引擎使用 Vue 组件的配置来创建和管理浏览器 DOM 上组件实例的更新。测试组件意味着我们将测试组件渲染到 DOM 上的结果。我们在 `vite.config.ts`
+    中将 `test.environment` 设置为 `jsdom`，用于模拟浏览器环境，这在运行测试的 Node.js 环境中是不存在的。我们还使用 `@vue/test-utils`
+    包中的 `mount`、`shallowMount` 等方法来帮助挂载组件，并断言从虚拟 Vue 节点到 DOM 元素的渲染结果。
+- en: Let’s look at our `PizzaCard.vue` component, shown in [Example 11-1](#ch10_pizza_card).
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看我们的 `PizzaCard.vue` 组件，如 [示例 11-1](#ch10_pizza_card) 所示。
+- en: Example 11-1\. `PizzaCard` component
+  id: totrans-164
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 11-1\. `PizzaCard` 组件
+- en: '[PRE34]'
+  id: totrans-165
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'We will create a test file `tests/PizzaCard.test.ts` to test the component.
+    We will import the `shallowMount` method from `@vue/test-utils` to mount the element
+    within the file. The `shallowMount` function receives two main arguments: the
+    Vue component to mount, and an object containing additional data for mounting
+    the component, such as props’ values, stubs, etc. The following code demonstrates
+    how the test file looks, with the initial value for the `pizza` prop:'
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个名为 `tests/PizzaCard.test.ts` 的测试文件来测试该组件。我们将从 `@vue/test-utils` 中导入 `shallowMount`
+    方法来在文件中进行挂载。`shallowMount` 函数接收两个主要参数：要挂载的 Vue 组件，以及包含用于挂载组件的额外数据的对象，如 props 的值、stub
+    等。以下代码展示了测试文件的外观，包括 `pizza` prop 的初始值：
+- en: '[PRE35]'
+  id: totrans-167
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Using shallowMount vs mount
+  id: totrans-168
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 `shallowMount` vs `mount`
+- en: The `shallowMount` method is a wrapper around the `mount` method with its `shallow`
+    flag active. It is best to use `shallowMount` to render and test the component
+    without caring about its children. If you want to try the children components,
+    use the `mount` method instead.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`shallowMount` 方法是 `mount` 方法的一个包装，其 `shallow` 标志处于激活状态。最好使用 `shallowMount`
+    渲染和测试组件，而不必关心其子组件。如果您想测试子组件，请改用 `mount` 方法。'
+- en: 'The `shallowMount` method returns a Vue instance, `wrapper`, with some helper
+    methods to allow us to mimic UI interactions with the component. Once we have
+    the wrapper instance, we can write our assertions. For example, we can use the
+    `find` method to find the DOM element with the class selector `pizza- -details-wrapper`
+    and assert its existence:'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`shallowMount`方法返回一个Vue实例`wrapper`，具有一些辅助方法，允许我们模拟与组件的UI交互。一旦我们有了包装器实例，我们可以编写我们的断言。例如，我们可以使用`find`方法来查找具有类选择器`pizza- -details-wrapper`的DOM元素并断言其存在：'
+- en: '[PRE36]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'Similarly, we can assert the text content of the `.pizza- -inventory-stock`
+    and `.pizza- -inventory-price` elements with the `text()` method:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，我们可以使用`text()`方法断言`.pizza- -inventory-stock`和`.pizza- -inventory-price`元素的文本内容：
+- en: '[PRE37]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'The `shallowMount` method also provides the `html` property to assert the rendered
+    HTML of the component. We can then use `toMatchSnapshot` to test the HTML snapshot
+    of the element:'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`shallowMount`方法还提供`html`属性来断言组件的渲染HTML。然后，我们可以使用`toMatchSnapshot`来测试元素的HTML快照：'
+- en: '[PRE38]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: Upon running the test, the testing engine will create a snapshot file, `PizzaCard.test.ts.snap`,
+    and store the HTML snapshot of the component. On the next test run, Vitest will
+    validate the component’s HTML rendering against the existing snapshot, ensuring
+    the component’s stability in complex app development.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行测试时，测试引擎将创建一个快照文件`PizzaCard.test.ts.snap`，并存储组件的HTML快照。在下一次测试运行时，Vitest将根据现有快照验证组件的HTML渲染，确保组件在复杂应用开发中的稳定性。
+- en: Using Snapshots
+  id: totrans-177
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用快照
+- en: If you change the component’s template, the snapshot test will fail. To solve
+    this issue, you must update the snapshot by running the test with the `-u` flag
+    as `yarn test -u`.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果更改组件的模板，快照测试将失败。要解决此问题，您必须通过带有`-u`标志运行测试来更新快照，例如`yarn test -u`。
+- en: Due to the limitations of snapshot testing, you should use it only for the components
+    that are not likely to change. A more recommended approach is to test HTML rendering
+    in E2E tests using PlaywrightJS.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于快照测试的限制，您应仅在不太可能更改的组件上使用它。更推荐的方法是使用PlaywrightJS在E2E测试中测试HTML渲染。
+- en: 'The instance received from the `find()` method is a wrapper around the DOM
+    element, with various methods to assert the element’s attributes and properties.
+    We will add another test case where we will assert the `src` and `alt` attributes
+    of the `img` element using the `attributes()` method:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从`find()`方法获取的实例是DOM元素周围的包装器，具有各种方法来断言元素的属性和属性。我们将添加另一个测试案例，其中我们将使用`attributes()`方法来断言`img`元素的`src`和`alt`属性：
+- en: '[PRE39]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Let’s make the test fail by changing the `pizza.title` to a text of `Pineapple
+    pizza`. As [Figure 11-9](#ch10_pineapple-pizza-fail) shows, the test will fail
+    and show this message.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过将`pizza.title`更改为`Pineapple pizza`的文本来使测试失败。如[图 11-9](#ch10_pineapple-pizza-fail)所示，测试将失败并显示此消息。
+- en: '![Test failure message when trying to test the image alt text](assets/lvue_1109.png)'
+  id: totrans-183
+  prefs: []
+  type: TYPE_IMG
+  zh: '![测试失败消息，尝试测试图像的alt文本](assets/lvue_1109.png)'
+- en: Figure 11-9\. Assertion of image alt text failed
+  id: totrans-184
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-9\. 图像alt文本断言失败
+- en: 'As this screenshot shows, the received value is `Test Pizza`, highlighted in
+    red, and the expected value is green. We also know the reason for the failure:
+    “expected `Test Pizza` to deeply equal `Pineapple pizza`,” with a pointer to the
+    line where the test fails. This information lets us quickly fix the test or check
+    our implementation to ensure the expected behavior is correct.'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如此屏幕截图所示，接收到的值为`Test Pizza`，突出显示为红色，而预期值为绿色。我们也知道失败的原因：“预期`Test Pizza`与`Pineapple
+    pizza`深度相等”，并指向测试失败的行。这些信息让我们可以快速修复测试或检查我们的实现，以确保预期行为的正确性。
+- en: Other practical methods for asserting the component’s interaction and data communication
+    are the `trigger()` method of the DOM wrapper instance and `emitted()` of the
+    wrapper instance. We will modify the implementation of the `PizzaCard` component
+    to add an “Add to cart” button and test the button’s behavior.
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 断言组件的交互和数据通信的其他实用方法包括DOM包装器实例的`trigger()`方法和包装器实例的`emitted()`方法。我们将修改`PizzaCard`组件的实现，以添加一个“加入购物车”按钮并测试按钮的行为。
+- en: Testing Interaction and Events of a Component
+  id: totrans-187
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试组件的交互和事件
+- en: 'We will add the following code to the `PizzaCard` component for a new Add to
+    cart button:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在`PizzaCard`组件中添加以下代码，以新增一个“加入购物车”按钮：
+- en: '[PRE40]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'The button accepts a `click` event, which triggers the `addCart` method. The
+    `addCart` method will emit a `add-to-cart` event with the `pizza.id` and the new
+    quantity as the payload. We can then test the `addCart` method by asserting the
+    emitted event and its payload. First, we will look for the button using the `find()`
+    method, and then trigger the `click` event using the `trigger()` method:'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按钮接受 `click` 事件，触发 `addCart` 方法。`addCart` 方法将以 `add-to-cart` 事件的形式发出，其中包含 `pizza.id`
+    和新数量作为负载。我们可以通过断言发出的事件及其负载来测试 `addCart` 方法。首先，我们将使用 `find()` 方法查找按钮，然后使用 `trigger()`
+    方法触发 `click` 事件：
+- en: '[PRE41]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'We will execute the `wrapper.emitted()` function to receive a map of emitted
+    events, with the key being the event name, and the value is an array of received
+    payloads. Each payload is an array of arguments passed to the `emits()` function
+    apart from the event name. For instance, when we emit the `add-to-cart` event
+    with the payload `{ id: 1, quantity: 1 }`, the emitted event will be `{ *add-to-cart*:
+    [[{ id: 1, quantity: 1 }]] }`.'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们将执行 `wrapper.emitted()` 函数以接收发出事件的映射，键为事件名称，值为接收的负载数组。每个负载是传递给 `emits()`
+    函数的参数数组，除了事件名称。例如，当我们使用负载 `{ id: 1, quantity: 1 }` 发出 `add-to-cart` 事件时，发出的事件将为
+    `{ *add-to-cart*: [[{ id: 1, quantity: 1 }]] }`。'
+- en: 'We can now assert the emitted event and its payload with the following code:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以使用以下代码断言发出的事件及其负载：
+- en: '[PRE42]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: Testing a Component That Uses a Pinia Store
+  id: totrans-195
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 测试使用 Pinia 存储的组件
+- en: You can use `createTestingPinia()` from the `@pinia/testing` package to create
+    a testing Pinia instance and plug it in the component as a global plugin during
+    mounting. This will allow you to test the component without mocking the store
+    or using the real store instance.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以使用 `@pinia/testing` 包中的 `createTestingPinia()` 方法来创建一个测试 Pinia 实例，并在组件挂载时将其作为全局插件引入。这样可以在不模拟存储或使用真实存储实例的情况下测试组件。
+- en: The test passes successfully, as expected. At this point, we have covered the
+    basic testing of components and composables with Vitest and Vue Test Utils. The
+    following section will look at using Vitest with a GUI.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如预期地，测试通过。此时，我们已经涵盖了使用 Vitest 和 Vue Test Utils 进行组件和组合的基本测试。接下来的部分将介绍如何在带有 GUI
+    的 Vitest 中使用。
+- en: Using Vitest with a GUI
+  id: totrans-198
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用带有 GUI 的 Vitest
+- en: 'In some scenarios, looking at the terminal (or command line) outputs can be
+    complex, and having a Graphic User Interface (GUI) can be beneficial. For such
+    cases, Vitest offers `@vitest/ui` as its extra dependency along the command parameter
+    `--ui`. To start using the Vitest UI, you need to install `@vitest/ui` with the
+    following command in the terminal:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些场景下，查看终端（或命令行）输出可能会很复杂，使用图形用户界面 (GUI) 可能更为方便。对于这种情况，Vitest 提供了 `@vitest/ui`
+    作为其额外的依赖项，并通过命令参数 `--ui` 使用。要开始使用 Vitest UI，您需要在终端中使用以下命令安装 `@vitest/ui`：
+- en: '[PRE43]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: When running the command `yarn test --ui`, Vite will start a local server for
+    its UI app and launch it on the browser, as shown in [Figure 11-10](#ch10_vitest-ui).
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行命令 `yarn test --ui` 后，Vite 将启动一个本地服务器用于其 UI 应用，并在浏览器中打开，如 [图 11-10](#ch10_vitest-ui)
+    所示。
+- en: '![Vitest UI dashboard screenshot](assets/lvue_1110.png)'
+  id: totrans-202
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Vitest UI 仪表板截图](assets/lvue_1110.png)'
+- en: Figure 11-10\. Vitest UI
+  id: totrans-203
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-10\. Vitest UI
+- en: On the left-side pane, we can see the list of test files with their status,
+    indicated by relevant colors and icons. On the main dashboard is a quick summary
+    of the test results, including the number of tests, the number of passed tests,
+    and the number of failed tests. We can select a single test using the left-side
+    pane and review each test case report, its module graph, and the implementation
+    code for the tests. [Figure 11-11](#figure-ch10_vitest-ui) shows the test report
+    for the `PizzaCard` component.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在左侧窗格中，我们可以看到测试文件列表及其状态，状态通过相关的颜色和图标表示。主仪表板上显示了测试结果的快速摘要，包括测试总数、通过测试数和失败测试数。我们可以使用左侧窗格选择单个测试，并查看每个测试用例报告、模块图和测试代码的实现。[图 11-11](#figure-ch10_vitest-ui)
+    显示了 `PizzaCard` 组件的测试报告。
+- en: '![Vitest UI test report for PizzaCard component](assets/lvue_1111.png)'
+  id: totrans-205
+  prefs: []
+  type: TYPE_IMG
+  zh: '![PizzaCard 组件的 Vitest UI 测试报告](assets/lvue_1111.png)'
+- en: Figure 11-11\. Vitest UI test report for `PizzaCard` component
+  id: totrans-206
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-11\. `PizzaCard` 组件的 Vitest UI 测试报告
+- en: You can also run the tests using the GUI by clicking the Run (or Rerun all)
+    tests icon, as seen in [Figure 11-12](#figure_ch10_run-tests).
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以通过单击图 11-12\. 的“运行（或重新运行所有）测试”图标来使用 GUI 运行测试。
+- en: '![Run tests icon](assets/lvue_1112.png)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_IMG
+  zh: '![运行测试图标](assets/lvue_1112.png)'
+- en: Figure 11-12\. Run tests using the GUI
+  id: totrans-209
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-12\. 使用 GUI 运行测试
+- en: Using the GUI can be beneficial in some cases, but it can also be a distraction
+    when you are working on a project and need to watch the tests during development.
+    In this case, using the terminal may be a better option, and to review the test
+    results, you can choose between the GUI, or the test coverage runner, which we
+    will discuss next.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些情况下，使用GUI可能会很有益，但在项目开发过程中需要观看测试时，它也可能会分散注意力。在这种情况下，使用终端可能是一个更好的选择，要查看测试结果，可以选择GUI或测试覆盖运行器，接下来我们将讨论这一点。
+- en: Using Vitest with a Coverage Runner
+  id: totrans-211
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Vitest与覆盖运行器
+- en: Writing tests is straightforward, but knowing if we write enough tests to cover
+    all the scenarios of our test target is not. To create a sufficient testing system
+    for our application, we use *code coverage* practice, which measures how much
+    of our code we cover with our tests.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编写测试很简单，但要知道我们是否编写了足够的测试来覆盖我们测试目标的所有场景是不容易的。为了为我们的应用程序创建一个足够的测试系统，我们使用*代码覆盖*实践，它可以衡量我们用测试覆盖的代码量。
+- en: 'There are various tools for measuring code coverage and generating understandable
+    reports. One of the most common tools is Istanbul, a JavaScript testing coverage
+    tool. With Vitest, we can integrate Istanbul into our testing system using the
+    `@vitest/coverage-istanbul` package. To install the package, run the following
+    command in the terminal:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有各种工具用于测量代码覆盖率并生成易于理解的报告。其中一个最常见的工具是Istanbul，一个JavaScript测试覆盖工具。通过Vitest，我们可以使用`@vitest/coverage-istanbul`包将Istanbul集成到我们的测试系统中。要安装该包，请在终端中运行以下命令：
+- en: '[PRE44]'
+  id: totrans-214
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'After installing the package, we can configure the `test.coverage` section
+    in the `vite.config.ts` file with the provider as `istanbul`:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装完包之后，我们可以在`vite.config.ts`文件中配置`test.coverage`部分，提供者为`istanbul`：
+- en: '[PRE45]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: 'We also add a new script command in `package.json` to run the tests with coverage
+    reports:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还在`package.json`中添加了一个新的脚本命令来运行带覆盖报告的测试：
+- en: '[PRE46]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: When we run our tests using the command `yarn test:coverage`, we will see the
+    coverage reports displayed in the terminal, as shown in [Figure 11-13](#figure_ch10_coverage-report).
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们使用命令`yarn test:coverage`运行测试时，将在终端中看到覆盖报告，如[图 11-13](#figure_ch10_coverage-report)所示。
+- en: '![Coverage report on terminal](assets/lvue_1113.png)'
+  id: totrans-220
+  prefs: []
+  type: TYPE_IMG
+  zh: '![终端上的覆盖报告](assets/lvue_1113.png)'
+- en: Figure 11-13\. Coverage report in terminal
+  id: totrans-221
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-13\. 终端中的覆盖报告
+- en: 'The Istanbul report tool will show you the percentage of your code in each
+    file your tests cover during the testing execution process, dividing it into four
+    categories: statements, branches, functions, and lines. It will also inform you
+    of the line numbers of the uncovered code in the last column. For example, in
+    [Figure 11-13](#figure_ch10_coverage-report), for `composables/``useFetch.ts`,
+    we saw `13,18` in the *Uncovered Lines* column, indicating that our test for this
+    file didn’t cover the code in line 13 and line 18.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Istanbul报告工具将在测试执行过程中显示您的代码在每个文件中被测试覆盖的百分比，将其分为四个类别：语句、分支、函数和行。它还将在最后一列中告知您未覆盖代码的行号。例如，在[图 11-13](#figure_ch10_coverage-report)中，对于`composables/useFetch.ts`，我们看到*未覆盖行*列中的`13,18`，表明我们对该文件的测试未覆盖第13行和第18行的代码。
+- en: However, the terminal report is not always readable. For such a purpose, Istanbul
+    will also generate a `coverage` folder in the `test.root` directory defined in
+    `vite.config.ts`, or the root of the project. This folder contains the HTML reports
+    for the coverage, denoted by `index.html`. You can open this file in the browser
+    to see a prettier and more readable version of the coverage report, as shown in
+    [Figure 11-14](#figure_ch10_coverage-report-html).
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，终端报告并不总是易读的。出于这样的目的，Istanbul还将在定义的`vite.config.ts`中的`test.root`目录或项目根目录中生成一个`coverage`文件夹。该文件夹包含HTML覆盖率报告，用`index.html`表示。您可以在浏览器中打开此文件以查看更漂亮和更可读的覆盖报告，如[图 11-14](#figure_ch10_coverage-report-html)所示。
+- en: '![Coverage report in HTML](assets/lvue_1114.png)'
+  id: totrans-224
+  prefs: []
+  type: TYPE_IMG
+  zh: '![HTML中的覆盖报告](assets/lvue_1114.png)'
+- en: Figure 11-14\. Coverage report in HTML
+  id: totrans-225
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-14\. HTML中的覆盖报告
+- en: Note
+  id: totrans-226
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you set the `root` to point to the `src/tests` folder, you should change
+    it to `src`. Otherwise, Istanbul can’t locate and analyze the source files’ coverage.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果将`root`设置为指向`src/tests`文件夹，则应将其更改为`src`。否则，Istanbul将无法定位和分析源文件的覆盖率。
+- en: The HTML version displays test coverage by folders and files, with their names
+    on the first column, *File*. The second column, with the progress bar, shows the
+    coverage percentage for each file in colors (green means fully covered, yellow
+    means partly covered, and red means not meeting the acceptance coverage level).
+    The other columns show the coverage breakdown in statements, branches, functions,
+    and lines.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTML 版本显示了按文件夹和文件显示的测试覆盖率，第一列显示它们的名称，*File*。第二列是进度条，显示每个文件的覆盖百分比，以颜色表示（绿色表示完全覆盖，黄色表示部分覆盖，红色表示未达到接受的覆盖水平）。其他列显示语句、分支、函数和行的覆盖率详细信息。
+- en: We can click on each folder name to see the breakdown report per file within
+    this folder, such as in */composables* in [Figure 11-15](#figure_ch10_coverage_composables).
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以点击每个文件夹名称来查看此文件夹内每个文件的详细报告，比如在 */composables* 中的 [Figure 11-15](#figure_ch10_coverage_composables)。
+- en: '![Coverage report for composables](assets/lvue_1115.png)'
+  id: totrans-230
+  prefs: []
+  type: TYPE_IMG
+  zh: '![composables 的覆盖报告](assets/lvue_1115.png)'
+- en: Figure 11-15\. Coverage report for composables
+  id: totrans-231
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 11-15\. composables 的覆盖报告
+- en: You can click on each file name to see the highlights of untested code lines
+    in red and the number of times a line we covered (like `3x`), as shown in [Figure 11-16](#figure_ch10_coverage_composables-useFetch).
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以点击每个文件名以查看未测试代码行的突出显示（红色）以及覆盖的次数（例如 `3x`），如 [Figure 11-16](#figure_ch10_coverage_composables-useFetch)
+    所示。
+- en: '![Coverage report for useFetch](assets/lvue_1116.png)'
+  id: totrans-233
+  prefs: []
+  type: TYPE_IMG
+  zh: '![useFetch 的覆盖报告](assets/lvue_1116.png)'
+- en: Figure 11-16\. Coverage report for useFetch
+  id: totrans-234
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 11-16\. useFetch 的覆盖报告
+- en: The HTML report version is also interactive during watch mode, meaning that
+    it will update the coverage report automatically when you change the code or the
+    tests. This mechanism is handy during development, as you can see the coverage
+    report changes in real time.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTML 报告版本在监视模式下也是交互式的，这意味着当您更改代码或测试时，它将自动更新覆盖报告。这种机制在开发过程中非常方便，因为您可以实时查看覆盖报告的变化。
+- en: 'We can also set the coverage threshold for each category using the `test.coverage`
+    section in `vite.config.ts`:'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以在 `vite.config.ts` 的 `test.coverage` 部分设置每个类别的覆盖率阈值：
+- en: '[PRE47]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: In this code, we set the coverage threshold for each category to 80%. If the
+    coverage percentage for any type is lower than the threshold, the test will fail
+    with an error message, as seen in [Figure 11-17](#figure_ch10_coverage-threshold).
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这段代码中，我们将每个类别的覆盖率阈值设置为 80%。如果任何类型的覆盖率低于阈值，测试将失败并显示错误消息，如 [Figure 11-17](#figure_ch10_coverage-threshold)
+    所示。
+- en: '![Coverage threshold error](assets/lvue_1117.png)'
+  id: totrans-239
+  prefs: []
+  type: TYPE_IMG
+  zh: '![覆盖阈值错误](assets/lvue_1117.png)'
+- en: Figure 11-17\. Error when a test doesn’t meet the coverage threshold
+  id: totrans-240
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 11-17\. 当测试未达到覆盖率阈值时出现的错误
+- en: Code coverage is essential for testing since it provides the benchmark to help
+    you protect your code from bugs and ensure the quality of your application. However,
+    it is just a tool to help you manage your tests, and you still need to write good
+    tests to ensure your code quality and standards.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 代码覆盖对于测试非常重要，因为它提供了帮助您保护代码免受错误和确保应用程序质量的基准。但是，它只是帮助您管理测试的工具，您仍然需要编写良好的测试来确保代码质量和标准。
+- en: Setting the Threshold Number
+  id: totrans-242
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 设置阈值数
+- en: Try to keep your coverage threshold number between 80% and 85%. It can be overkill
+    if you set it to more than 85%. If less than 80%, it can be too low since you
+    may miss some edge cases that cause bugs in your application.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尝试将您的覆盖阈值保持在 80% 到 85% 之间。如果设置超过 85%，可能会过度，如果低于 80%，可能会过低，因为您可能会错过一些会导致应用程序中出现错误的边缘情况。
+- en: We have explored unit testing using Vitest and other tools like Vue Test Utils
+    for Vue-specific testing and Istanbul for code coverage. We will move to the next
+    testing level, where we will learn how to write E2E tests for our application
+    using PlaywrightJS.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经探索了使用 Vitest 进行单元测试以及像 Vue Test Utils（用于 Vue 特定测试）和 Istanbul（用于代码覆盖）等其他工具。接下来，我们将进入下一个测试级别，学习如何使用
+    PlaywrightJS 编写应用程序的端到端测试。
+- en: End-to-End Testing with PlaywrightJS
+  id: totrans-245
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 PlaywrightJS 进行端到端测试
+- en: '[PlaywrightJS](https://oreil.ly/sIUKp), or Playwright, is a fast, reliable
+    cross-browser end-to-end testing framework. It supports programming languages
+    besides JavaScript, such as Python, Java, and C#. It also supports multiple browser
+    rendering engines like WebKit, Firefox, and Chromium, allowing us to perform testing
+    in cross-browser environments on the same codebase.'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[PlaywrightJS](https://oreil.ly/sIUKp)，或称 Playwright，是一个快速、可靠的跨浏览器端到端测试框架。除了
+    JavaScript，它还支持其他编程语言，如 Python、Java 和 C#。它还支持多个浏览器渲染引擎，如 WebKit、Firefox 和 Chromium，允许我们在同一代码库中的跨浏览器环境中进行测试。'
+- en: 'To start using Playwright, run the following command:'
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始使用Playwright，请运行以下命令：
+- en: '[PRE48]'
+  id: totrans-248
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: Yarn will run the creation script for Playwright, with the prompts asking for
+    the test location (`e2e`), if we want to install GitHub Actions as the pipeline
+    tool for CI/CD, and if it should install Playwright browsers. [Figure 11-18](#figure_ch10_playwright-creation)
+    shows an example of a configuration for initializing Playwright in our application.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当Yarn运行Playwright创建脚本时，会提示询问测试位置（`e2e`）、是否要将GitHub Actions安装为CI/CD管道工具以及是否应安装Playwright浏览器。[图 11-18](#figure_ch10_playwright-creation)展示了初始化Playwright在我们应用中的配置示例。
+- en: '![A screenshot of the prompts for initializing Playwright](assets/lvue_1118.png)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_IMG
+  zh: '![初始化Playwright时的提示截图](assets/lvue_1118.png)'
+- en: Figure 11-18\. Initializing Playwright with prompts
+  id: totrans-251
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-18\. 使用提示初始化Playwright
+- en: After the initialization process, we will see a new `e2e` folder in the root
+    of our project, with a single `example.spec.ts` file. Also, Playwright will generate
+    a configuration file, `playwright.config.ts`, for our project, modifying the `package.json`
+    with the relevant packages and another `test-examples` folder containing a working
+    test example for a todo component using Playwright.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初始化过程完成后，我们将在项目根目录下看到一个新的`e2e`文件夹，并包含一个名为`example.spec.ts`的单个文件。此外，Playwright将为我们的项目生成一个名为`playwright.config.ts`的配置文件，并通过相关包修改`package.json`，另外还会生成一个名为`test-examples`的文件夹，其中包含一个使用Playwright测试待办事项组件的工作测试示例。
+- en: 'We can now add a new script command in our `package.json` to run our E2E tests
+    using Playwright:'
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在`package.json`中添加一个新的脚本命令来使用Playwright运行我们的E2E测试：
+- en: '[PRE49]'
+  id: totrans-254
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Similarly, we can add the following command to run the coverage reporter on
+    our tests:'
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，我们可以添加以下命令来在我们的测试上运行覆盖率报告生成器：
+- en: '[PRE50]'
+  id: totrans-256
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: By default, Playwright comes with an HTML coverage reporter, and this reporter
+    runs when any test fails during the test run. We can try to run the tests using
+    these commands and see the example tests passed.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认情况下，Playwright带有HTML覆盖率报告生成器，并且此报告生成器在测试运行期间任何测试失败时运行。我们可以尝试使用这些命令运行测试并查看示例测试是否通过。
+- en: 'Let’s look at the `playwright.config.ts` and see what it contains:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看`playwright.config.ts`并查看其内容：
+- en: '[PRE51]'
+  id: totrans-259
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'The configuration file exports an instance created by the `defineConfig()`
+    method, based on a set of configuration options with the following main properties:'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 配置文件通过`defineConfig()`方法导出一个实例，基于一组配置选项，主要包括以下主要属性：
+- en: '`testDir`'
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`testDir`'
+- en: The directory where we store the tests. We usually define it during the initialization
+    process (`e2e` in our case).
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储测试的目录。通常我们在初始化过程中定义它（在我们的情况下为`e2e`）。
+- en: '`projects`'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`projects`'
+- en: The list of browser projects for running the tests. We can import `devices`
+    from the same `@playwright/test` package and select the relevant setup to define
+    the browser’s configuration for Playwright to `use`, such as `devices[*Desktop
+    Chrome*]` for the Chromium browser.
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行测试的浏览器项目列表。我们可以从同一`@playwright/test`包中导入`devices`并选择相关设置，以定义Playwright使用的浏览器配置，如`devices[*Desktop
+    Chrome*]`用于Chromium浏览器。
+- en: '`worker`'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker`'
+- en: The number of parallel workers to run the tests on. This feature is helpful
+    when we have many tests and need to run them in parallel to speed up the test
+    process.
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并行运行测试的工作线程数。当我们有许多测试需要并行运行以加快测试过程时，此功能非常有用。
+- en: '`use`'
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`use`'
+- en: The configuration object for the test runner, including an optional `baseURL`
+    as the base URL and `trace` to enable the trace recording for failed tests on
+    retry.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 测试运行程序的配置对象，包括可选的`baseURL`作为基础URL和`trace`以在重试时启用失败测试的跟踪记录。
+- en: Other properties can customize our Playwright test runner as needed. See the
+    complete list of configuration options at the [Playwright documentation](https://oreil.ly/nXapE).
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他属性可以根据需要自定义我们的Playwright测试运行程序。请参阅[Playwright文档](https://oreil.ly/nXapE)获取完整的配置选项列表。
+- en: 'We will leave the file as is and write our first E2E test for our application.
+    Let’s head to the `vite.config.ts` and make sure we have the following configuration
+    for the local server:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将保留文件的现状并为我们的应用编写第一个E2E测试。让我们转到`vite.config.ts`并确保我们有以下本地服务器配置：
+- en: '[PRE52]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'By setting the port to 3000, we ensure our local URL will always be *http://localhost:3000*.
+    Next, we will create a new E2E test file in the `e2e` folder with the name `PizzasView.spec.ts`,
+    dedicated to testing the *“/pizzas”* page. The *“/pizzas”* page uses the `PizzasView`
+    view component to display a list of pizzas with the following template:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过将端口设置为 3000，我们确保我们的本地 URL 始终是*http://localhost:3000*。接下来，我们将在`e2e`文件夹中创建名为`PizzasView.spec.ts`的新
+    E2E 测试文件，专门用于测试*“/pizzas”*页面。*“/pizzas”* 页面使用`PizzasView`视图组件以以下模板显示 pizza 列表：
+- en: '[PRE53]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'We want to write the tests for this page. Like Vitest, we start by wrapping
+    the test file with a `test.describe()` block, where we import `test` from `@playwright/test`
+    package. We then ensure the test runner will always navigate to our target page
+    before testing the page content using the `test.beforeEach()` hook:'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们希望为此页面编写测试。与 Vitest 类似，我们首先使用来自`@playwright/test`包的`test`导入，将测试文件包装在`test.describe()`块中。然后，我们确保测试运行器在测试页面内容之前始终导航到我们的目标页面，使用`test.beforeEach()`钩子：
+- en: '[PRE54]'
+  id: totrans-275
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'We also ensure the page is closed after finishing the tests using the `test.afterEach()`
+    hook:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还确保在完成测试后使用`test.afterEach()`钩子关闭页面：
+- en: '[PRE55]'
+  id: totrans-277
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'We can start writing our first test for the page, such as checking the page
+    title. We can use the `page.locator()` method to locate the page element. In this
+    case, it is the `h1` element and asserts its content to be the text `Pizzas`:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以开始编写页面的第一个测试，例如检查页面标题。我们可以使用`page.locator()`方法定位页面元素。在本例中，它是`h1`元素，并断言其内容为文本`Pizzas`：
+- en: '[PRE56]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: We can run the test using the `yarn test:e2e` command and see the test passed
+    ([Figure 11-19](#figure_ch10_test_passed_pw)).
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用`yarn test:e2e`命令运行测试，并查看测试是否通过（[图 11-19](#figure_ch10_test_passed_pw)）。
+- en: '![Passing E2E test with Playwright](assets/lvue_1119.png)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用 Playwright 通过 E2E 测试通过](assets/lvue_1119.png)'
+- en: Figure 11-19\. Test report showing passing E2E tests with Playwright
+  id: totrans-282
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-19\. 使用 Playwright 通过 E2E 测试的测试报告
+- en: 'Great! We can add more tests to the file, such as checking the search functionality.
+    We can locate the search `input` element using its tag name or the `data-testid`
+    attribute as a better approach. To use the `data-testid` attribute, we need to
+    add it to the `input` in the `PizzasView` component template:'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！我们可以向文件添加更多测试，例如检查搜索功能。我们可以使用标签名称或`data-testid`属性定位搜索`input`元素作为更好的方法。要使用`data-testid`属性，我们需要在`PizzasView`组件模板中的`input`中添加它：
+- en: '[PRE57]'
+  id: totrans-284
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: 'Then, we can locate the element using the `data-testid` attribute in our new
+    test and `fill` it with the search term `Hawaiian`:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以在我们的新测试中使用`data-testid`属性定位元素，并使用搜索词`Hawaiian`进行`fill`：
+- en: '[PRE58]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'To assert the result of the search, we will head to the `PizzaCard` implementation
+    and add the `data-testid` attribute to the container element with the value of
+    `pizza.title`:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要断言搜索结果，请前往`PizzaCard`实现，并将`data-testid`属性添加到包含值`pizza.title`的容器元素中：
+- en: '[PRE59]'
+  id: totrans-288
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'Back to our `PizzasView.spec.ts` file, we can assert the visibility of pizza
+    card with the `data-testid` attribute containing the search term on the page:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到我们的`PizzasView.spec.ts`文件，我们可以使用包含搜索词的`data-testid`属性断言页面上 pizza 卡片的可见性：
+- en: '[PRE60]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: We can rerun the test suite and see the tests passed ([Figure 11-20](#figure_ch10_test_passed_pw_2)).
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以重新运行测试套件，并查看测试是否通过（[图 11-20](#figure_ch10_test_passed_pw_2)）。
+- en: '![Passing E2E test with Playwright](assets/lvue_1120.png)'
+  id: totrans-292
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用 Playwright 通过 E2E 测试通过](assets/lvue_1120.png)'
+- en: Figure 11-20\. Test report showing the search tests passed
+  id: totrans-293
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-20\. 显示搜索测试通过的测试报告
+- en: We can also click on each test displayed in the report to view the test details,
+    including the test steps, their execution time, and any errors that occurred during
+    the test execution in a target browser environment ([Figure 11-21](#figure_ch10_test_details_pw)).
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以点击报告中显示的每个测试，以查看测试详细信息，包括测试步骤、执行时间以及在目标浏览器环境中执行测试时发生的任何错误（[图 11-21](#figure_ch10_test_details_pw)）。
+- en: '![Test details report with Playwright in Chromium](assets/lvue_1121.png)'
+  id: totrans-295
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在 Chromium 中使用 Playwright 的测试详细报告](assets/lvue_1121.png)'
+- en: Figure 11-21\. Details report for a single test run on Chromium
+  id: totrans-296
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-21\. Chromium 上单次测试运行的详细报告
+- en: Note
+  id: totrans-297
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注
+- en: You must use `await` for `page.isVisible()` method, as it returns a `Promise`.
+    Otherwise, the test will fail since Playwright will execute the assertion before
+    the `isVisible()` process returns the result.
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于`page.isVisible()`方法，您必须使用`await`，因为它返回一个`Promise`。否则，由于 Playwright 在`isVisible()`进程返回结果之前执行断言，测试将失败。
+- en: 'Let’s edit our search test to make it fail by changing the search term to `Cheese`
+    instead of `Hawaiian`:'
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们编辑我们的搜索测试，将搜索词从`Hawaiian`更改为`Cheese`，使其失败：
+- en: '[PRE61]'
+  id: totrans-300
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: We can rerun the test suite and see if the test failed ([Figure 11-22](#figure_ch10_test_failed_pw)).
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以重新运行测试套件，查看测试是否失败（参见 [图 11-22](#figure_ch10_test_failed_pw)）。
+- en: '![Failed E2E test with Playwright for a search term](assets/lvue_1122.png)'
+  id: totrans-302
+  prefs: []
+  type: TYPE_IMG
+  zh: '![使用 Playwright 在搜索词上进行 E2E 测试失败的屏幕截图](assets/lvue_1122.png)'
+- en: Figure 11-22\. Test report showing the search test failed
+  id: totrans-303
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-22\. 显示搜索测试失败的测试报告
+- en: The report shows which step the test failed. Let’s debug it.
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 报告显示测试在哪一步骤失败了。让我们来调试一下。
+- en: Debugging E2E Tests Using Playwright Test Extension for VSCode
+  id: totrans-305
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Playwright 测试扩展进行 E2E 测试调试
+- en: We can install the [Playwright Test for VSCode extension](https://oreil.ly/9zlFB)
+    to debug a failed test. This extension will add another section on the Testing
+    tab of VSCode, and auto-detect the relevant Playwright tests within the project,
+    as shown in [Figure 11-23](#figure_ch10_test_debug_pw_2).
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以安装 [VSCode 的 Playwright 测试扩展](https://oreil.ly/9zlFB) 来调试一个失败的测试。该扩展将在 VSCode
+    的测试选项卡上添加另一个部分，并自动检测项目中的相关 Playwright 测试，如 [图 11-23](#figure_ch10_test_debug_pw_2)
+    所示。
+- en: '![A screenshot showing the Playwright tests in the project listed in the Testing
+    tab of VSCode](assets/lvue_1123.png)'
+  id: totrans-307
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在 VSCode 的测试选项卡中列出项目中 Playwright 测试的屏幕截图](assets/lvue_1123.png)'
+- en: Figure 11-23\. Testing tab displays the Playwright tests in the project
+  id: totrans-308
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-23\. 测试选项卡显示项目中的 Playwright 测试
+- en: We can run the tests or a single test using the actions available on this view.
+    We can also add breakpoints (denoted by the red dot) to debug a target test ([Figure 11-24](#figure_ch10_test_debug_pw_3)).
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用此视图上可用的操作来运行测试或单个测试。我们还可以添加断点（由红点表示），以调试目标测试（参见 [图 11-24](#figure_ch10_test_debug_pw_3)）。
+- en: '![Adding breakpoints to debug a test](assets/lvue_1124.png)'
+  id: totrans-310
+  prefs: []
+  type: TYPE_IMG
+  zh: '![添加断点以调试测试](assets/lvue_1124.png)'
+- en: Figure 11-24\. Adding breakpoints to debug a test
+  id: totrans-311
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-24\. 添加断点以调试测试
+- en: To start debugging, navigate to the search test in the Test Explorer pane and
+    click on the “Debug” icon ([Figure 11-25](#figure_ch10_test_debug_pw_4)). Hovering
+    on the “Debug” icon will display the text “Debug Text.”
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要开始调试，请导航到测试资源管理器窗格中的搜索测试，并单击“调试”图标（参见 [图 11-25](#figure_ch10_test_debug_pw_4)）。将鼠标悬停在“调试”图标上将显示文本“调试文本”。
+- en: '![Debugging a test button](assets/lvue_1125.png)'
+  id: totrans-313
+  prefs: []
+  type: TYPE_IMG
+  zh: '![调试测试按钮](assets/lvue_1125.png)'
+- en: Figure 11-25\. Run a test in debug mode
+  id: totrans-314
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-25\. 以调试模式运行测试
+- en: Upon running, Playwright will open a browser window (such as Chromium) and execute
+    the test steps. Once the test runner reaches the breakpoint, it will stop and
+    wait for us to continue the execution manually. Then we can hover over the variables
+    to see their values or head to the testing browser to inspect the elements ([Figure 11-26](#figure_ch10_test_debug_pw_5)).
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行时，Playwright 将打开一个浏览器窗口（如 Chromium）并执行测试步骤。一旦测试运行器达到断点，它将停止并等待我们手动继续执行。然后我们可以悬停在变量上查看它们的值，或者前往测试浏览器检查元素（参见
+    [图 11-26](#figure_ch10_test_debug_pw_5)）。
+- en: '![Debugging a test](assets/lvue_1126.png)'
+  id: totrans-316
+  prefs: []
+  type: TYPE_IMG
+  zh: '![调试一个测试](assets/lvue_1126.png)'
+- en: Figure 11-26\. Debugging the search test
+  id: totrans-317
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-26\. 调试搜索测试
+- en: What’s left is to fix the test and continue the debugging process until the
+    test passes.
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 剩下的工作是修复测试并继续调试过程，直到测试通过。
+- en: We have learned how to create basic E2E tests with Playwright and how to debug
+    them with the help of external tools. Playwright provides many other features,
+    such as generating the test based on the actual interaction with the application
+    or performing accessibility testing with the `@axe-core/playwright` package. Check
+    out other features and see how Playwright can help create better E2E tests for
+    your application.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们学习了如何使用 Playwright 创建基本的 E2E 测试，并如何借助外部工具进行调试。Playwright 还提供许多其他功能，例如根据与应用程序的实际交互生成测试，或使用
+    `@axe-core/playwright` 包执行辅助功能测试。了解其他功能，看看 Playwright 如何帮助您为应用程序创建更好的 E2E 测试。
+- en: Summary
+  id: totrans-320
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: This chapter introduced the concept of testing and how to use Vitest as a unit
+    testing tool for Vue applications. We learned how to write basic tests for components
+    and composables with Vitest and Vue Test Utils and how to use external packages
+    such as a coverage runner and Vitest UI for a better UI experience. We also explored
+    creating E2E tests with PlaywrightJS, ensuring code confidence throughout our
+    application.
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了测试的概念以及如何在 Vue 应用程序中使用 Vitest 作为单元测试工具。我们学习了如何使用 Vitest 和 Vue Test Utils
+    为组件和可组合项编写基本测试，以及如何使用覆盖率运行器和 Vitest UI 等外部包提供更好的用户界面体验。我们还探讨了如何使用 PlaywrightJS
+    创建 E2E 测试，确保在整个应用程序中的代码可信度。
+- en: ^([1](ch11.html#id1547-marker)) If you are new to TDD, start with [*Learning
+    Test-Driven Development* by Saleem Siddiqui (O’Reilly)](https://oreil.ly/TqUwM).
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch11.html#id1547-marker)) 如果你对TDD还不熟悉，可以从[*《学习测试驱动开发》 by Saleem Siddiqui
+    (O’Reilly)*](https://oreil.ly/TqUwM) 开始。
+- en: ^([2](ch11.html#id1566-marker)) JSDOM is an open source library that acts as
+    a headless browser that implements the web standards, providing a simulated environment
+    for testing any web-related code.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch11.html#id1566-marker)) JSDOM 是一个开源库，充当无头浏览器，实现了Web标准，为测试任何与Web相关的代码提供了模拟环境。

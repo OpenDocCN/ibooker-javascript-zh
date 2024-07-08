@@ -1,0 +1,1297 @@
+- en: Chapter 16\. Single-Page Applications
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第16章 单页应用
+- en: 'The term *single-page application* (SPA) is something of a misnomer, or it
+    is at least confusing two meanings of the word “page.” SPAs, from the user’s perspective,
+    can (and usually do) still appear to have different pages: the home page, the
+    Vacations page, the About page, and so on. As a matter of fact, you could create
+    a traditional server-side rendered application and an SPA that were indistinguishable
+    to the user.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “单页应用”（SPA）这个术语在某种程度上有点误导，或者至少混淆了“页面”这个词的两种含义。从用户的角度来看，SPA 可以（而且通常会）看起来像有不同页面：主页、度假页面、关于页面等。事实上，你可以创建一个对用户来说无法区分的传统服务器端渲染应用程序和
+    SPA。
+- en: The “single page” has more to do with where and how the HTML is constructed
+    than the user’s experience. In an SPA, the server delivers a single HTML bundle
+    when the user first loads the application,^([1](ch16.xhtml#idm45053580304888))
+    and any changes in the UI (which may appear as different pages to the user) are
+    the result of JavaScript manipulating the DOM in response to user activity or
+    network events.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: “单页”更多地涉及 HTML 如何以及在哪里构建，而不是用户的体验。在 SPA 中，当用户首次加载应用时，服务器会提供一个单个的 HTML 捆绑包，^([1](ch16.xhtml#idm45053580304888))
+    UI 中的任何变化（对用户来说可能看起来像不同的页面）都是 JavaScript 响应用户活动或网络事件而操作 DOM 的结果。
+- en: SPAs still need to communicate frequently with the server, but HTML is usually
+    only sent as part of that first request. After that, only JSON data and static
+    assets are transferred between the client and server.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SPA 仍然需要频繁地与服务器通信，但通常只有 HTML 作为第一次请求的一部分发送。之后，客户端和服务器之间仅传输 JSON 数据和静态资源。
+- en: Understanding the reason for this now-dominant approach to web application development
+    requires a little history….
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解这种现在主导的 Web 应用程序开发方法需要一点历史......
+- en: A Short History of Web Application Development
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 网页应用程序开发的简短历史。
+- en: 'The way we approach web development has undergone a massive shift in the last
+    10 years, but one thing has remained relatively consistent: the components involved
+    in a website or web application. Namely:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在过去的10年里对待 Web 开发的方式发生了巨大的变化，但有一件事情保持相对一致：网站或 Web 应用程序中涉及的组件。具体来说：
+- en: HTML and the Document Object Model (DOM)
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: HTML 和文档对象模型（DOM）。
+- en: JavaScript
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: JavaScript
+- en: CSS
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: CSS。
+- en: 'Static assets (generally multimedia: images and videos, etc.)'
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 静态资源（通常是多媒体：图像和视频等）。
+- en: Put together by a browser, these components are what provide the user experience.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由浏览器组合在一起的这些组件构成了用户体验。
+- en: '*How* that experience is constructed, however, started shifting drastically
+    around 2012\. Today, the dominant paradigm for web development is *single-page
+    applications*, or SPAs.'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这种体验是如何构建的在2012年左右发生了显著变化。如今，Web 开发的主导范式是“单页应用”（SPA）。
+- en: To understand SPAs, we need to understand what to contrast them with, so we’re
+    going to go even further back in time, to 1998, the year before the term “Web
+    2.0” was first whispered, and eight years before jQuery was introduced.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解单页应用（SPA），我们需要了解与之对比的内容，因此我们将回溯到更早的时间，即 1998 年，这是“Web 2.0”一词首次被提出之前的一年，也是
+    jQuery 推出八年之前。
+- en: In 1998, the dominant method for delivering web applications was for web servers
+    to send HTML, CSS, JavaScript, and multimedia assets *in response to every request*.
+    Imagine you’re watching TV, and you want to change the channel. The metaphorical
+    equivalent here is that you would have to throw away your TV, go buy another one,
+    schlep it into your house, and set it up—just to change the channel (navigate
+    to a different page, even on the same site).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在1998年，交付 Web 应用程序的主流方法是在每次请求时由 Web 服务器发送 HTML、CSS、JavaScript 和多媒体资源。想象一下你在看电视，想换频道。在这里的比喻相当于你需要扔掉你的电视，买另一个，搬到家里并设置它——只是为了换台（即切换到不同页面，即使是同一站点内部）。
+- en: The problem with this approach is that there’s a lot of overhead involved. Sometimes
+    the HTML—or large chunks of it—wouldn’t change at all. The CSS changed even less.
+    Browsers mitigated some of this overhead cost by caching assets, but the pace
+    of innovation in web applications was straining this model.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的问题在于涉及大量的开销。有时 HTML——或者大部分 HTML——根本不会改变。CSS 的变化更少。浏览器通过缓存资源来缓解一些开销，但 Web
+    应用程序的创新速度正在使这种模型变得紧张。
+- en: In 1999, the term “Web 2.0” was coined to try to describe the richness of experience
+    that people were beginning to expect from websites. The years between 1999 and
+    2012 saw technological advancements that were laying the groundwork for SPAs.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 1999年，"Web 2.0"这个术语被创造出来，试图描述人们开始期望从网站上获得的丰富体验。1999年至2012年间，技术进步为单页面应用奠定了基础。
+- en: Clever web developers began to realize that if they were going to keep their
+    users engaged, the overhead of shipping the entire website every time the user
+    wanted to (metaphorically) change the channel was unacceptable. These developers
+    realized that not every change in an application required information from the
+    server, and not every change that required information from the server needed
+    the entire application just to deliver a small change.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 聪明的Web开发人员开始意识到，如果他们要让用户保持参与，那么每次用户想要（比喻性地）切换频道时，发送整个网站的开销都是不可接受的。这些开发人员意识到，并非应用程序中的每个变化都需要从服务器获取信息，而且并非每个需要从服务器获取信息的变化都需要整个应用程序才能实现小变化的交付。
+- en: 'In this period from 1999 to 2012, pages were still generally pages: when you
+    first went to a website, you got the HTML, the CSS, and the static assets. When
+    you navigated to a different page, you would get different HTML, different static
+    assets, and sometimes different CSS. However, on each page, the page itself might
+    change in response to user interaction, and instead of asking the server for a
+    whole new application, JavaScript would change the DOM directly. If information
+    needed to be fetched from the server, that information was sent in XML or JSON,
+    without all the attendant HTML. It was, once again, up to the JavaScript to interpret
+    the data and change the user interface accordingly. In 2006, jQuery was introduced,
+    which significantly eased the burden of DOM manipulation *and* dealing with network
+    requests.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个1999年至2012年的时期，页面仍然通常是页面：当您第一次访问网站时，您得到的是HTML、CSS和静态资产。当您导航到另一个页面时，您会得到不同的HTML、不同的静态资产，有时候还有不同的CSS。然而，每个页面上，页面本身可能会因用户交互而改变，而不是向服务器请求全新的应用，JavaScript会直接改变DOM。如果需要从服务器获取信息，这些信息会以XML或JSON的形式发送，没有所有相关的HTML。再次说起，需要JavaScript解释数据并相应地更改用户界面。2006年，jQuery被引入，大大减轻了DOM操作的负担*和*处理网络请求。
+- en: Many of these changes were being driven by the increasing power of computers
+    and—by extension—browsers, Web developers were finding that more and more of the
+    work to make a website or web application look pretty could be done directly on
+    the user’s computer instead of being done on the server and then sent to the user.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些变化中的许多是由于计算机和——由此推断——浏览器的增强能力，Web开发人员发现要使网站或Web应用程序看起来更漂亮，越来越多的工作可以直接在用户的计算机上完成，而不是在服务器上完成，然后发送给用户。
+- en: This shift in approach went into overdrive in the late 2000s, when smartphones
+    were introduced. Now, not only were browsers capable of doing more, but people
+    wanted to access web applications *over wireless networks*. Suddenly, the overhead
+    cost of sending data went up, making it even more attractive to ship as little
+    as possible over the network, and let the browser do as much work as possible.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的转变在21世纪初进入了高速发展阶段，当时智能手机开始引入。现在，不仅浏览器能够做更多的事情，而且人们希望在*无线网络*上访问Web应用程序。突然之间，发送数据的开销上升，使尽可能少地通过网络发送数据变得更有吸引力，让浏览器尽可能多地完成工作。
+- en: 'By 2012, it was common practice to try to send as little information as possible
+    over the network, and do as much as possible in the browser. Like the primordial
+    soup giving rise to the first life, this rich environment provided the conditions
+    for the natural evolution of the this technique: the single-page application.'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到2012年，试图通过网络发送尽可能少的信息，并在浏览器中尽可能多地进行操作成为常见做法。就像原始汤浓缩成了第一个生命体一样，这种丰富的环境为这种技术的自然演化提供了条件：单页面应用。
+- en: 'The idea is simple enough: for any given web application, the HTML, JavaScript,
+    and CSS (if any) are shipped *exactly once*. Once the browser has the HTML, it
+    is up to the JavaScript to make all changes to the DOM to make the user feel that
+    they are navigating to a different page. No more does the server need to send
+    different HTML when you navigate from the home page to the Vacations page, for
+    example.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个想法很简单：对于任何给定的web应用程序，HTML、JavaScript和CSS（如果有的话）只需要*发送一次*。一旦浏览器得到了HTML，就由JavaScript来对DOM进行所有更改，使用户感觉自己正在导航到一个不同的页面。例如，当用户从主页导航到"假期"页面时，服务器不再需要发送不同的HTML。
+- en: 'Of course the server is still involved: it’s still responsible for providing
+    up-to-date data, and being the “single source of truth” in a multiuser application.
+    But in an SPA architecture, the way the application appears to the user is no
+    longer the concern of the server: it’s the concern of JavaScript and the frameworks
+    that enable this clever illusion.'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，服务器仍然参与其中：它仍然负责提供最新的数据，并在多用户应用程序中作为“单一真相来源”。但在 SPA 架构中，应用程序对用户的呈现方式不再是服务器的关注点：这是
+    JavaScript 和支持这一巧妙幻觉的框架的关注点。
+- en: 'While Angular is generally considered the first SPA framework, it has been
+    joined by many others: React, Vue, and Ember being the most prominent among Angular’s
+    competition.'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 Angular 通常被认为是第一个 SPA 框架，但现在已经有许多其他框架加入其中：React、Vue 和 Ember 是 Angular 竞争中最突出的几个。
+- en: If you are new to development, SPAs may be your only frame of reference, making
+    this simply some interesting history. But if you’re a veteran, you may find the
+    shift confusing and jarring. Whichever group you fall into, this chapter is designed
+    to help you understand how web applications are delivered as SPAs, and what the
+    role of Express is in that.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你是新手开发者，SPA 可能是你唯一的参考框架，使这些内容仅仅是一些有趣的历史。但如果你是老手，可能会觉得这种转变令人困惑和不适应。无论你属于哪一类，本章旨在帮助你理解
+    Web 应用如何以 SPA 形式提供，并且 Express 在其中的角色。
+- en: This history is relevant to Express because the role of the server has changed
+    during this shift in web development techniques. When the first edition of this
+    book was published, Express was still commonly used to serve multi-page applications
+    (along with the APIs that supported Web 2.0–like functionality). Now Express is
+    almost entirely used to serve SPAs, development servers, and APIs, reflecting
+    the changing nature of web development.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段历史对 Express 很重要，因为在 Web 开发技术转变期间，服务器的角色发生了变化。当本书的第一版出版时，Express 还常用于提供多页面应用程序（以及支持类似
+    Web 2.0 功能的 API）。现在，Express 几乎完全用于提供 SPA、开发服务器和 API，反映了 Web 开发性质的变化。
+- en: 'Interestingly, there are still valid reasons for a web application to be able
+    to serve a specific page (instead of the “generic” page, which will be reformatted
+    by the browser). While this may seem like we are coming full-circle, or throwing
+    away the gains of SPAs, the technique to do this better mirrors the architecture
+    of SPAs. Called *server-side rendering* (SSR), this technique allows the servers
+    to use the same code that the browser uses to create individual pages to increase
+    first-page load. The key here is that the server doesn’t have to do much thinking:
+    it simply uses the same techniques as the browser to generate a specific page.
+    This kind of SSR is usually done to enhance first-page loading experience, and
+    to support search engine optimization. It’s a more advanced topic that we won’t
+    be covering here, but you should be aware of the practice.f1603.450'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有趣的是，仍然有有效的理由让 Web 应用程序能够提供特定页面（而不是由浏览器重新格式化的“通用”页面）。虽然这看起来可能是一个全面的循环，或者是丢弃
+    SPA 的收益，但这种技术更好地反映了 SPA 的架构。称为*服务器端渲染*（SSR）的这种技术允许服务器使用与浏览器相同的代码来创建单个页面，以增强首次页面加载体验。关键在于服务器不需要做太多思考：它只需使用与浏览器相同的技术来生成特定页面。这种
+    SSR 通常用于增强首次页面加载体验和支持搜索引擎优化。这是一个更高级的主题，我们在这里不会详细讨论，但你应该了解这种实践的存在。
+- en: Now that we have some insight into how and why SPAs came into being, let’s look
+    at the SPA frameworks that are available today.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们对 SPA 的起源及其原因有了一些了解，让我们来看看当前可用的 SPA 框架。
+- en: SPA Technologies
+  id: totrans-29
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: SPA 技术
+- en: 'There are many choices for SPA technologies now:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在有许多选择的 SPA 技术：
+- en: React
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React
+- en: For the moment, React seems to be the king of the SPA hill, though there are
+    former greats (Angular) on one side of it, and ambitious usurpers (Vue) on the
+    other side. Sometime in 2018, React surpassed Angular in usage statics. React
+    is an open source library, but it started its life as a Facebook project, and
+    Facebook is still an active contributor. We’ll be using React for our Meadowlark
+    Travel refactor.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，React 似乎是单页应用（SPA）领域的霸主，尽管它的一侧有昔日的巨头（Angular），另一侧有雄心勃勃的挑战者（Vue）。在 2018 年某个时刻，React
+    在使用统计上超过了 Angular。React 是一个开源库，但它起源于 Facebook 项目，而且 Facebook 仍然是其活跃的贡献者。我们将在 Meadowlark
+    Travel 的重构中使用 React。
+- en: Angular
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Angular
+- en: 'By most accounts, the “original” SPA, Google’s Angular became massively popular
+    but was eventually dethroned by React. In late 2014, Angular announced version
+    2, which was a massive change from the first version, and alienated many existing
+    users and scared off new ones. I believe this shift (while probably necessary)
+    contributed to React eventually outpacing Angular. Another reason is that Angular
+    is a much larger framework than React. This has advantages and disadvantages:
+    Angular provides a much more complete architecture for building full applications,
+    and there’s always a clear “Angular way” to do things, whereas frameworks like
+    React and Vue leave a lot more up to personal choice and creativity. Regardless
+    of which approach is better, bigger frameworks are more ponderous and slow to
+    evolve, which gave React an innovation edge.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 据大多数人说，作为“原始”的单页应用程序（SPA），Google 的 Angular 变得非常流行，但最终被 React 所取代。在2014年末，Angular
+    宣布了第2版，这是与第一版相比的巨大变化，使许多现有用户感到陌生，也吓跑了新用户。我相信这种转变（虽然可能是必要的）促使 React 最终超越了 Angular。另一个原因是
+    Angular 比 React 更庞大的框架。这既有优点也有缺点：Angular 提供了一个更完整的构建全应用程序的架构，始终有一个明确的“Angular
+    方式”去做事，而像 React 和 Vue 这样的框架则更多地由个人选择和创造力决定。无论哪种方式更好，更大的框架更笨重且演进缓慢，这给了 React 创新的优势。
+- en: Vue.js
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue.js
+- en: An upstart challenger to React, and the brainchild of a single developer, Evan
+    You. In a remarkably short time, it has gained an impressive following, and it
+    is extremely well-liked by its adherents, but it is still far behind React’s runaway
+    popularity. I have had some experience with Vue, and I appreciate its clear documentation
+    and lightweight approach, but I have come to prefer React’s architecture and philosophy.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为 React 的一个新兴挑战者，由单一开发者 Evan You 的心血结晶。在非常短的时间内，它已经获得了令人印象深刻的追随者，其粉丝们非常喜欢它，但它仍然远远落后于
+    React 的独占鳌头。我对 Vue 有一些经验，我欣赏它清晰的文档和轻量级的方法，但我更喜欢 React 的架构和理念。
+- en: Ember
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Ember
+- en: Like Angular, Ember offers a comprehensive application framework. There’s a
+    large and active development community and, while not as innovative as React or
+    Vue, it offers a lot of functionality and clarity. I have found I far prefer lighter
+    frameworks, and have stuck with React for this reason.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像 Angular 一样，Ember 提供了一个全面的应用程序框架。有一个庞大且活跃的开发社区，虽然不像 React 或 Vue 那样创新，但提供了很多功能和清晰度。我发现我更喜欢更轻量的框架，因此一直使用
+    React。
+- en: Polymer
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Polymer
+- en: I have no experience with Polymer, but it is backed by Google, which lends it
+    credibility. People seem to be curious about what Polymer is bringing to the table,
+    but I haven’t seen a lot of people rushing to adopt it.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我对 Polymer 没有经验，但它由 Google 支持，这使它具备了可信度。人们似乎对 Polymer 带来了什么很感兴趣，但我还没有看到有很多人急于采用它。
+- en: If you’re looking for a robust out-of-the-box framework, and you don’t mind
+    coloring within the lines, you should consider Angular or Ember. If you want room
+    for creative expression and innovation, I recommend React or Vue. I don’t yet
+    know where Polymer fits in yet, but it’s worth keeping an eye on.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您正在寻找一个强大的开箱即用的框架，并且不介意在规定范围内操作，您应该考虑 Angular 或 Ember。如果您希望有创造性表达和创新的空间，我推荐使用
+    React 或 Vue。我还不知道 Polymer 的定位，但值得关注。
+- en: Now that we’ve seen the players, let’s move forward with React, and refactor
+    Meadowlark Travel as an SPA!
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经看到了这些竞争者，让我们继续使用 React，并将 Meadowlark Travel 重构为 SPA！
+- en: Creating a React App
+  id: totrans-43
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建 React 应用程序
+- en: 'The best way to get started with a React app is to use the `create-react-app`
+    (CRA) utility, which creates all of the boilerplate, developer tooling, and provides
+    a minimal starter application that you can build on. Furthermore, `create-react-app`
+    will keep its configuration up-to-date so you can focus on building your application
+    instead of on framework tooling. That said, if you ever reach the point where
+    you need to configure your tooling, you can “eject” your application: you’ll lose
+    the ability to keep up-to-date with the latest CRA tooling, but you’ll have full
+    control over all of the application configuration.'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用 React 应用程序的最佳方式是使用 `create-react-app`（CRA）实用工具，它创建所有样板文件、开发工具，并提供一个最小的起始应用程序，供您构建。此外，`create-react-app`
+    将保持其配置最新化，因此您可以专注于构建应用程序，而不是框架工具。尽管如此，如果您需要配置工具的时候，可以“eject”应用程序：您将失去保持最新 CRA
+    工具的能力，但将完全控制应用程序的所有配置。
+- en: Unlike what we’ve been doing so far, where all of our application artifacts
+    lived alongside our Express application, SPAs are best thought of as a completely
+    separate, independent application. To that end, we’ll have *two* application roots
+    instead of one. For clarity, when I’m referring to the directory where your Express
+    application lives, I’ll say the *server root*, and for the directory where your
+    React application lives, I’ll say the *client root*. The *application root* is
+    where both of those directories now live.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与迄今为止我们所做的不同，其中所有应用程序构件与我们的Express应用程序并排存在不同，SPA最好被视为一个完全独立的应用程序。为此，我们将拥有*两个*应用程序根目录而不是一个。为了清晰起见，当我提到您的Express应用程序所在的目录时，我将称之为*服务器根*，而当我提到您的React应用程序所在的目录时，我将称之为*客户端根*。*应用程序根*是现在这两个目录都位于其中的位置。
+- en: So go to your application root and create a directory called *server*; this
+    is where your Express server will live. Don’t create a directory for your client
+    app; CRA will do that for us.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所以，进入您的应用程序根目录并创建一个名为*server*的目录；这将是您的Express服务器所在的位置。不要为客户端应用程序创建一个目录；CRA将为我们完成这项工作。
+- en: Before we run CRA, we should install [Yarn](https://yarnpkg.com). Yarn is a
+    package manager like npm…actually, yarn is mostly a drop-in replacement for npm.
+    It’s not mandatory for React development, but it is the de facto standard, and
+    not using it would be swimming upstream. There are some minor differences in usage
+    between Yarn and npm, but the only one you’ll probably notice is that you run
+    `yarn add` instead of `npm install`. To install Yarn, simply follow [the Yarn
+    installation instructions](http://bit.ly/2xHZ2Cx).
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在运行CRA之前，我们应该安装[Yarn](https://yarnpkg.com)。Yarn是一个像npm一样的包管理器...实际上，yarn在很大程度上是npm的替代品。对于React开发并非强制使用，但它是事实上的标准，不使用它将会很麻烦。在Yarn和npm的使用方式之间有一些细微差别，但您可能唯一会注意到的是，您应该运行`yarn
+    add`而不是`npm install`。要安装Yarn，只需按照[Yarn安装说明](http://bit.ly/2xHZ2Cx)操作即可。
+- en: 'Once you’ve installed Yarn, run the following from your application root:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装了Yarn后，请从应用程序根目录运行以下命令：
+- en: '[PRE0]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Now go into your client directory and type `yarn start`. After a few seconds,
+    you’ll see a new browser window pop up, with your React app running in it!
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在进入您的客户端目录并输入`yarn start`。几秒钟后，您将看到一个新的浏览器窗口弹出，其中运行着您的React应用程序！
+- en: Go ahead and leave the terminal window running. CRA has really good support
+    for “hot reloading,” so when you make changes in your source code, it will get
+    built *very* quickly and the browser will automatically reload. Once you get used
+    to it, you won’t be able to live without it.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要关闭终端窗口。CRA对“热重载”支持非常好，因此当您在源代码中进行更改时，它会快速构建，*非常*迅速，浏览器将自动重新加载。
+- en: React Basics
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React基础
+- en: React has excellent documentation, which I won’t re-create here. So if you’re
+    new to React, start with the [Intro to React](http://bit.ly/36VdKUq) tutorial,
+    and then the [Main Concepts](http://bit.ly/2KgT939) guide.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React有出色的文档，这里不再重复。因此，如果您是React的新手，请从[React入门](http://bit.ly/36VdKUq)教程开始，然后参阅[主要概念](http://bit.ly/2KgT939)指南。
+- en: 'You’ll find that React is organized around *components*, which are the main
+    building blocks of React. Everything the user sees or interacts with is generally
+    a component in React. Let’s take a look at *client/src/App.js* (the contents of
+    yours may differ slightly—CRA does change over time):'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将发现React围绕*组件*组织，这些组件是React的主要构建块。用户看到或与之交互的所有内容通常都是React中的组件。让我们来看看*client/src/App.js*（您的内容可能略有不同——CRA随时间变化）：
+- en: '[PRE1]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: One of the core concepts in React is that the UI is generated by *functions*.
+    And the simplest React component is just a function that returns HTML, as we see
+    here. You may be looking at this and thinking that it isn’t valid JavaScript;
+    it looks like HTML is mixed in! The reality is a little more complicated. React,
+    by default, enables a superset of JavaScript called JSX. JSX allows you to write
+    what looks like HTML. It’s not *actually* HTML; it creates React elements, and
+    the purpose of a React element is to (eventually) correspond to a DOM element.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React的一个核心概念是UI由*函数*生成。最简单的React组件只是返回HTML的函数，如我们在这里看到的。您可能正在看这个并认为它不是有效的JavaScript；它看起来像混合了HTML！事实上，情况稍微复杂一些。React默认启用一种称为JSX的JavaScript超集。JSX允许您编写看起来像HTML的内容。它不是*真正的*HTML；它创建React元素，而React元素的目的是（最终）对应于DOM元素。
+- en: At the end of the day, however, you can think of it as HTML. Here, `App` is
+    a function that will render the HTML corresponding to the JSX it returns.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但归根结底，您可以将其视为HTML。这里，`App`是一个函数，将呈现与其返回的JSX相对应的HTML。
+- en: 'A couple of things to note: since JSX is close to—but not exactly—HTML, there
+    are some subtle differences. You may have already noticed we use `className` instead
+    of `class`, which is because `class` is a reserved word in JavaScript.'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的几点：由于JSX与HTML接近但不完全相同，存在一些细微的差异。您可能已经注意到我们使用`className`而不是`class`，这是因为`class`是JavaScript中的保留字。
+- en: 'All you have to do to specify HTML is to start an HTML element anywhere an
+    expression is expected. You can also “go back to” JavaScript with curly braces
+    within the HTML. For example:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要指定HTML，你只需在任何表达式预期的地方启动HTML元素。你还可以在HTML中使用花括号“回到”JavaScript。例如：
+- en: '[PRE2]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'In this example, the `<div>` starts the HTML, and the curly brackets around
+    `value` drop back into JavaScript to provide the number stored in `value`. We
+    could have just as easily inlined the calculation:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，`<div>`开始HTML，并且围绕`value`的花括号回到JavaScript，以提供存储在`value`中的数字。我们也可以轻松地内联计算：
+- en: '[PRE3]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Any valid JavaScript expression can be contained within curly brackets within
+    JSX—including other HTML elements! A common use case of this is rendering lists:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 任何有效的JavaScript表达式都可以包含在JSX中的花括号内，包括其他HTML元素！这种常见用例是渲染列表：
+- en: '[PRE4]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'A couple of things to note about this example. First, note that we mapped over
+    our colors to return the `<li>` elements. This is critical: JSX works entirely
+    by evaluating *expressions*. So the `<ul>` has to contain either an expression
+    or an array of expressions. If you changed the `map` to a `forEach`, you would
+    find that the `<li>` elements would not get rendered. Second, note that the `<li>`
+    elements receive a property `key`: this is a performance concession. For React
+    to know when to re-render the elements in an array, it needs a unique key for
+    each element. Since our array elements are unique, we just used that value, but
+    commonly you would use a an ID or—if nothing else is available—the index of the
+    item in the array.'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于这个例子要注意的几点事项。首先，请注意，我们映射了我们的颜色来返回`<li>`元素。这是至关重要的：JSX完全通过评估*表达式*来工作。因此，`<ul>`必须包含一个表达式或表达式数组。如果您将`map`更改为`forEach`，您会发现`<li>`元素不会被渲染。其次，请注意，`<li>`元素接收一个名为`key`的属性：这是性能的妥协。为了让React知道何时重新渲染数组中的元素，它需要每个元素的唯一键。由于我们的数组元素是唯一的，我们只使用了该值，但通常您会使用ID或者如果没有其他可用选项，数组中项目的索引。
+- en: I encourage you to play around with some of these examples in the JSX in *client/src/App.js*
+    before moving on. If you’ve left `yarn start` running, every time you save your
+    changes, they will be automatically reflected in the browser, which should speed
+    up your learning cycle.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我鼓励您在移动之前在*client/src/App.js*中尝试一些这些JSX示例。如果您保持`yarn start`运行，每次保存更改时，它们都会自动反映在浏览器中，这应该加快您的学习周期。
+- en: We have one more topic to touch on before we move on from React basics, and
+    that concept is *state*. Every component can have its own state, which basically
+    means that “data associated with the component that can change.” A shopping cart
+    is a great example of this. A shopping cart component’s state would contain a
+    list of items; as you add and remove items from the cart, the component’s state
+    is changing. It may seem like an overly simple or obvious concept, but most of
+    the details of making a React application come down to effectively designing and
+    managing the state of your components. We’ll see an example of state when we tackle
+    the Vacations page.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们从React基础知识中继续之前，还有一个主题需要涉及，那就是*状态*。每个组件都可以有自己的状态，这基本上意味着“与组件相关联的可以改变的数据”。购物车就是一个很好的例子。购物车组件的状态将包含一个项目列表；当您向购物车添加和删除项目时，组件的状态会发生变化。这似乎是一个过于简单或显而易见的概念，但是设计和管理组件状态的细节是制作React应用程序的大部分内容。当我们处理假期页面时，我们将看到状态的一个示例。
+- en: Let’s move on and create our Meadowlark Travel home page.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们继续并创建我们的Meadowlark Travel首页。
+- en: The Home Page
+  id: totrans-69
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 主页
+- en: 'Recall from our Handlebars views that we had a main “layout” file that established
+    the primary look and feel of our website. Let’s start by focusing on what’s in
+    the `<body>` tag (except the scripts):'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从我们的Handlebars视图中回想起，我们有一个主要的“布局”文件，建立了我们网站的主要外观和感觉。让我们首先关注`<body>`标签中的内容（除了脚本）：
+- en: '[PRE5]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: This will be pretty easy to refactor into a React component. First, we copy
+    our own logo into the *client/src* directory. Why not the *public* directory?
+    For small or commonly used graphical items, it may be more efficient to inline
+    them in the JavaScript bundle, and the bundler that you got with CRA will make
+    an intelligent choice about that. The example app you got from CRA placed its
+    logo directly in the *client/src* directory, but I still like collecting image
+    assets in a subdirectory, so put our logo (*logo.png*) in *client/src/img/logo.png*.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将很容易重构为一个 React 组件。首先，我们将自己的 logo 复制到 *client/src* 目录下。为什么不放在 *public* 目录下？对于小型或常用的图形项，将它们嵌入
+    JavaScript 打包文件可能更有效，而 CRA 提供的打包工具会智能地做出选择。您从 CRA 获取的示例应用程序直接将其 logo 放在 *client/src*
+    目录下，但我仍然喜欢将图像资源收集到子目录中，因此将我们的 logo (*logo.png*) 放在 *client/src/img/logo.png* 中。
+- en: 'The only other tricky bit is what to do about `{{{body}}}`? In our views, this
+    is where another view would be rendered—the content for the specific page you’re
+    on. We can replicate the same basic idea in React. Since all content is rendered
+    in the form of components, we’re just going to render another component here.
+    We’ll start with an empty Home component and build that out in a moment:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个棘手的地方是怎么处理 `{{{body}}}`？在我们的视图中，这是另一个视图将被呈现的地方——您所在页面的内容。我们可以在 React 中复制相同的基本思想。由于所有内容都以组件形式呈现，我们只需在此处呈现另一个组件。我们将从一个空的
+    Home 组件开始，并立即构建它：
+- en: '[PRE6]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'We’re using the same approach that the sample app did for CSS: we can simply
+    create a CSS file and import it. So we can edit that file and apply whatever styles
+    we need to. We’ll keep things basic for this example, though nothing fundamental
+    has changed in the way we style HTML with CSS, so we still have all the tools
+    we’re used to.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在使用与样本应用程序相同的方法处理 CSS：我们可以简单地创建一个 CSS 文件并导入它。因此，我们可以编辑该文件并应用所需的任何样式。尽管在这个示例中我们保持基本设置，但在用
+    CSS 样式化 HTML 方面并没有根本性的变化，因此我们仍然拥有我们习惯使用的所有工具。
+- en: Note
+  id: totrans-76
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: CRA sets up linting for you, and as you progress through this chapter, you’ll
+    probably see warnings (both in the CRA terminal output and in your browser’s JavaScript
+    console). This is only because we’re adding things incrementally; by the time
+    we reach the end of this chapter, there should be no more warnings…if there are,
+    make sure you haven’t missed a step! You can also check the companion repository.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CRA 为您设置了 linting，在本章的进行过程中，您可能会看到警告（在 CRA 终端输出和浏览器的 JavaScript 控制台中都有）。这仅是因为我们逐步添加东西；到达本章末尾时，应该不会再有警告……如果有的话，请确保没有漏掉任何步骤！您还可以检查伴随的存储库。
+- en: Routing
+  id: totrans-78
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 路由
+- en: 'The core concept of routing we learned about in [Chapter 14](ch14.xhtml#ch_routing)
+    hasn’t changed: we’re still using the URL path to determine what part of the interface
+    the user is seeing. The difference is that it’s up to the client application to
+    handle that. Changing the UI based on the route is the client app’s responsibility:
+    if the navigation requires new or updated data from the server, that’s fine, and
+    it’s up to the client app to request that from the server.'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在 [第 14 章](ch14.xhtml#ch_routing) 中学到的路由的核心概念没有改变：我们仍然使用 URL 路径来确定用户看到界面的哪一部分。不同之处在于，由客户端应用程序负责处理这一点。根据路由更改
+    UI 是客户端应用程序的责任：如果导航需要来自服务器的新数据或更新数据，那很好，客户端应用程序负责从服务器请求。
+- en: 'There are a lot of options for—and a lot of strong opinions about—routing in
+    React apps. However, there is a dominant library for routing: [React Router](http://bit.ly/32GvAXK).
+    There’s quite a lot I don’t like about React Router, but it’s so common that you’re
+    bound to come across it. Furthermore, it is a good option to get something basic
+    up and running, and for those two reasons, we’ll be using it here.'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于在 React 应用中进行路由，有很多选择，以及很多关于此的强烈意见。然而，有一个主要的路由库：[React Router](http://bit.ly/32GvAXK)。我对
+    React Router 不太满意的地方很多，但它如此普遍，您肯定会遇到它。此外，它是一个很好的选择来快速启动基本项目，出于这两个原因，我们将在这里使用它。
+- en: 'We’ll get started by installing the DOM version of React Router (there’s also
+    a version for React Native, for mobile development):'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将安装 React Router 的 DOM 版本开始（还有一个适用于 React Native 的版本，用于移动开发）：
+- en: '[PRE7]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Now we’ll hook up the router, and add an About and a Not Found page. We’ll
+    also link the site logo back to the home page:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将连接路由器，并添加关于页面和未找到页面。我们还将把站点标志链接回主页：
+- en: '[PRE8]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'The first thing to notice is that we’re wrapping our entire application in
+    a `<Router>` component. This is what enables the routing, as you might expect.
+    Inside `<Router>`, we can use `<Route>` to conditionally render a component based
+    on the URL path. We’ve placed our content routes inside a `<Switch>` component:
+    this ensures that only *one* of the components contained therein gets rendered.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先要注意的是，我们将整个应用程序包装在 `<Router>` 组件中。这是启用路由的关键。在 `<Router>` 内部，我们可以使用 `<Route>`
+    根据 URL 路径条件性地渲染组件。我们将内容路由放在 `<Switch>` 组件中：这确保其中包含的组件只会*一个*被渲染。
+- en: There are some subtle differences between the routing we’ve done with Express
+    and React Router. In Express, we would render the page according to the first
+    successful match (or the 404 page if one couldn’t be found). With React Router,
+    the path is simply a “hint” to determine what combination of components should
+    display. In this way, it’s more flexible than routing with Express. Because of
+    this, React Router routes behave by default as if they have an asterisk (`*`)
+    at the end. That is, the route `/` would, by default, match *every* page (since
+    they all start with a forward slash). Because of this, we use the `exact` property
+    to make this route behave more like an Express route. Similarly, without the `exact`
+    property, the `/about` route would also match `/about/contact`, which is probably
+    not what we want. For your main content routing, it’s likely that you’ll want
+    all of your routes (except the Not Found route) to have `exact`. Otherwise, you
+    will have to make sure to arrange them correctly within the `<Switch>` so they
+    match in the correct order.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Express 和 React Router 中，我们完成的路由有一些微妙的差异。在 Express 中，我们会根据第一个成功匹配的路径来渲染页面（或者如果找不到则显示
+    404 页面）。而在 React Router 中，路径只是一个“提示”，用于确定应该显示哪些组件的组合。因此，它比在 Express 中的路由更加灵活。由于这一点，React
+    Router 的路由默认行为就好像在路径末尾有一个星号 (`*`)。也就是说，默认情况下，路径 `/` 将匹配 *每个* 页面（因为它们都以斜杠开头）。因此，我们使用
+    `exact` 属性来使此路由行为更像是 Express 中的路由。类似地，如果没有 `exact` 属性，`/about` 路径也会匹配 `/about/contact`，这可能不是我们想要的结果。对于主要内容路由，很可能希望除了“未找到”路由之外，所有路由都使用
+    `exact`。否则，您需要确保在 `<Switch>` 内正确排列它们，以便以正确的顺序匹配。
+- en: 'The second thing to notice is the use of `<Link>`. You might be wondering why
+    we don’t just use `<a>` tags. The problem with `<a>` tags is that—without some
+    extra work—the browser will dutifully treat them as “going elsewhere” even if
+    it’s on the same site, and it will result in a new HTTP request to the server…and
+    the HTML and the CSS will be downloaded again, defeating the SPA agenda. It will
+    *work* in the sense that when the page loads, React Router will do the right thing,
+    but it won’t be as fast or efficient, invoking unnecessary network requests. Seeing
+    the difference is actually an instructive exercise that should drive home the
+    nature of SPAs. As an experiment, create two navigation elements, one using `<Link>`
+    and another using `<a>`:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二点需要注意的是使用 `<Link>`。您可能会想知道为什么我们不直接使用 `<a>` 标签。`<a>` 标签的问题在于——即使在同一网站上，如果没有额外的工作，浏览器仍会如实处理它们“跳转到其他地方”，并且会导致向服务器发送新的
+    HTTP 请求……从而再次下载 HTML 和 CSS，破坏了单页面应用程序的目标。它会在页面加载时*工作*，React Router 会按预期执行正确的操作，但速度和效率不如预期，会引发不必要的网络请求。实际上，看到差异是一个有益的练习，可以帮助理解单页面应用程序的本质。作为一个实验，创建两个导航元素，一个使用
+    `<Link>`，另一个使用 `<a>`：
+- en: '[PRE9]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Then open your dev tools, open the Network tab, clear the traffic, and click
+    “Preserve log” (on Chrome). Now click the “Home (SPA)” link and notice there’s
+    no network traffic at all. Click the “Home (reload)” link and observe the network
+    traffic. And that, in a nutshell, is the nature of an SPA.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后打开您的开发工具，切换到网络选项卡，清除流量，点击“保留日志”（在 Chrome 中）。现在点击“Home (SPA)”链接，并注意根本没有网络流量。点击“Home
+    (reload)”链接，观察网络流量。简言之，这就是单页面应用程序的本质。
+- en: Vacations Page—Visual Design
+  id: totrans-90
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 度假页面—视觉设计
+- en: 'So far we’ve just been building a pure frontend application…so where does Express
+    come in? Our server is still the single source of truth. In particular, it maintains
+    the database of vacations that we want to display on our site. Fortunately, we’ve
+    already done most of the work in [Chapter 15](ch15.xhtml#ch_rest_apis_and_json):
+    we exposed an API that will return our vacations in JSON format, ready for use
+    in a React application.'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们只是在构建纯前端应用程序……那么 Express 又是如何介入的呢？我们的服务器仍然是真实数据的唯一来源。特别是，它维护我们希望在网站上显示的度假信息数据库。幸运的是，在[第15章](ch15.xhtml#ch_rest_apis_and_json)中，我们已经完成了大部分工作：我们公开了一个可以返回
+    JSON 格式度假信息的 API，已准备好在 React 应用程序中使用。
+- en: Before we hook those two things up, however, let’s go ahead and build our Vacations
+    page. There won’t be any vacations to render, but let’s not let that stop us.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过，在我们连接这两件事之前，让我们继续构建我们的假期页面。我们不会有任何假期可渲染，但让我们不要因此而停下来。
+- en: 'In the previous section, we included all of the content pages in *client/src/App.js*,
+    which is generally considered poor practice: its more conventional for each component
+    to live in its own file. So we’ll take the time to break our `Vacations` component
+    out into its own component. Create the file *client/src/Vacations.js*:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前面的部分中，我们在*client/src/App.js*中包含了所有内容页面，这通常被认为是不好的做法：每个组件通常应该存在于自己的文件中。因此，我们将花时间将我们的`Vacations`组件分离出来成为自己的组件。创建文件*client/src/Vacations.js*：
+- en: '[PRE10]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'What we have so far is pretty simple: we’re just returning a `<div>` that contains
+    additional `<div>` elements, each of which represents a vacation. So where is
+    this `vacations` variable coming from? In this example, we’re using a newer feature
+    of React, called *React hooks*. Prior to hooks, if a component wanted to have
+    its own state (in this case, a list of vacations), you had to use a class implementation.
+    Hooks enable us to have function-based components that have their own state. In
+    our `Vacations` function, we call `useState` to set up our state. Note we pass
+    an empty array to `useState`: that will be the initial value of `vacations` in
+    state (we’ll discuss how we populate that shortly). What `setState` returns is
+    an array containing the state value itself (`vacations`) and a way to update the
+    state (`setVacations`).'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们的做法相当简单：我们只是返回一个包含额外`<div>`元素的`<div>`，每个元素表示一个假期。那么这个`vacations`变量是从哪里来的呢？在这个示例中，我们使用了React的一个新特性，称为*React
+    hooks*。在使用hooks之前，如果一个组件想要有自己的状态（在本例中是假期列表），你必须使用类实现。Hooks使我们能够有自己状态的基于函数的组件。在我们的`Vacations`函数中，我们调用`useState`来设置我们的状态。注意，我们将一个空数组传递给`useState`：这将是状态中`vacations`的初始值（我们稍后将讨论如何填充它）。`setState`返回的是一个包含状态值本身（`vacations`）和更新状态的方法（`setVacations`）的数组。
+- en: 'You may wonder why we can’t modify `vacations` directly: it’s just an array,
+    so couldn’t we call `push` to add vacations to it? We could, but this would be
+    defeating the very purpose of React’s state management system, which ensures consistency,
+    performance, and communication between components.'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也许你会想为什么我们不能直接修改`vacations`：它只是一个数组，所以我们不能调用`push`来添加假期吗？我们可以，但这将违背React状态管理系统的初衷，该系统确保组件之间的一致性、性能和通信。
+- en: You may also be wondering about what looks like an empty component (`<>…</>`)
+    surrounding our vacations. This is called a [*fragment*](http://bit.ly/2ryneVj).
+    The fragment is necessary because every component must render a single element.
+    In our case, we have two elements, the `<h2>` and the `<div>`. The fragment simply
+    provides a “transparent” root element in which to contain these two elements so
+    we can render a single element.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能还想知道我们的假期周围看起来像一个空组件(`<>...</>`)的情况。这被称为[*fragment*](http://bit.ly/2ryneVj)。片段是必需的，因为每个组件必须渲染一个单一元素。在我们的情况下，我们有两个元素，`<h2>`和`<div>`。片段简单地提供了一个“透明”的根元素，用于包含这两个元素，以便我们可以渲染一个单一元素。
+- en: 'Let’s add our `Vacations` component to our application, even though there aren’t
+    yet any vacations to show. In *client/src/App.js*, first import your vacations
+    page:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将我们的`Vacations`组件添加到我们的应用程序中，即使现在还没有任何假期可显示。在*client/src/App.js*中首先导入您的假期页面：
+- en: '[PRE11]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Then all we have to do is create a route for it in our router’s `<Switch>`
+    component:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们只需在我们路由器的`<Switch>`组件中创建一个路由：
+- en: '[PRE12]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Go ahead and save that; your application should automatically reload, and you
+    can navigate to your */vacations* page, though there isn’t much interesting to
+    see yet. Now that we have most of the client infrastructure in place, let’s turn
+    our attention to integrating with Express.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继续保存；您的应用程序应该会自动重新加载，您可以导航到*/vacations*页面，尽管现在还没有太多有趣的内容可见。现在我们已经大部分客户端基础设施就位，让我们转向与Express集成。
+- en: Vacations Page—Server Integration
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 假期页面——服务器集成
+- en: We’ve already done most of the work necessary for the Vacations page; we have
+    an API endpoint that gets vacations from the database and returns them in JSON
+    format. Now we have to figure out how to get the server and the client communicating.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经完成了大部分假期页面所需的工作；我们有一个从数据库获取假期并以JSON格式返回它们的API端点。现在我们需要弄清楚如何使服务器和客户端进行通信。
+- en: 'We can start with our work from [Chapter 15](ch15.xhtml#ch_rest_apis_and_json);
+    we don’t need to add anything to it, but we can take some things away that we
+    no longer need. We can remove the following:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以从[第15章](ch15.xhtml#ch_rest_apis_and_json)开始工作；我们不需要添加任何内容，但我们可以删除一些我们不再需要的东西。我们可以移除以下内容：
+- en: Handlebars and views support (we’ll leave the static middleware, though, for
+    reasons we’ll see later).
+  id: totrans-106
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Handlebars和视图支持（尽管我们会保留静态中间件，原因稍后会看到）。
+- en: Cookies and sessions (our SPA may still use cookies, but it no longer needs
+    the server’s help here…and we think about sessions in a completely different way).
+  id: totrans-107
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Cookies和sessions（我们的SPA可能仍然使用cookies，但它在这里不再需要服务器的帮助……而我们会以完全不同的方式思考sessions）。
+- en: All routes that render a view (we obviously keep the API routes, however).
+  id: totrans-108
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 所有渲染视图的路由（显然我们保留API路由）。
+- en: 'This leaves us with a much simplified server. So what do we do with it now?
+    The first thing we have to do is address the fact that we’ve been using port 3000,
+    and the CRA development server also uses port 3000 by default. We could change
+    either, so I’m going to arbitrarily suggest changing the Express port. I usually
+    use 3033—just because I like the sound of that number. You’ll recall that we set
+    the default port in our *meadowlark.js*, so we just need to change it:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们留下了一个简化的服务器。那么现在我们该怎么处理它呢？我们首先要解决的问题是我们一直在使用3000端口，而CRA开发服务器默认也使用3000端口。我们可以任意更改其中一个，所以我建议将Express端口更改为3033—只是因为我喜欢那个数字的音调。你会记得我们在*meadowlark.js*中设置了默认端口，所以我们只需要改变它：
+- en: '[PRE13]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: We could, of course, use an environment variable to control it, but since we’re
+    going to frequently use it together with our SPA dev server, we might as well
+    change the code.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，我们可以使用环境变量来控制它，但由于我们经常与SPA开发服务器一起使用它，我们可能会改变代码。
+- en: 'Now that both servers are running, we can communicate between them. But how?
+    In our React app, we could do something like this:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在两个服务器都在运行，我们可以在它们之间通信。但是怎么做呢？在我们的React应用中，我们可以做类似这样的事情：
+- en: '[PRE14]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: The problem with that approach is that we’re going to be making requests like
+    that all over our application…and now we’re embedding `[*http://localhost:3033*](http://localhost:3033)`
+    all over the place…which isn’t going to work in production, and it may not work
+    on your colleague’s computer because maybe it needs to use different ports, and
+    maybe the port needs to be different for the testing servers…and on and on. Using
+    this approach is asking for a configuration headache. Yes, you could store the
+    base URL as a variable that you use everywhere, but there’s a better way.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的问题在于我们将在整个应用程序中频繁使用这样的请求……现在我们到处都嵌入了`[*http://localhost:3033*](http://localhost:3033)`，这在生产环境中行不通，可能在同事的电脑上也不行，因为可能需要使用不同的端口，测试服务器的端口可能也不同……这种方法会带来配置上的麻烦。当然，你可以将基础URL存储为一个变量，然后在所有地方使用它，但有更好的方法。
+- en: 'In the ideal world, from your application’s perspective, everything’s hosted
+    from the same place: it’s the same protocol, host, and port to get the HTML, the
+    static assets, and the API. It simplifies a lot of things and ensures consistency
+    in your source code. If everything’s coming from the same place, you can simply
+    omit the protocol, host and port, and just call `fetch(*/api/vacations*)`. It’s
+    a nice approach, and fortunately very easy to do!'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在理想情况下，从你的应用程序的角度来看，所有内容都是从同一个地方托管的：使用相同的协议、主机和端口获取HTML、静态资产和API。这简化了很多事情，并确保了源代码的一致性。如果所有内容都来自同一个地方，你可以简单地省略协议、主机和端口，只需调用`fetch(*/api/vacations*)`。这是一个很好的方法，幸运的是非常容易实现！
+- en: 'The configuration for CRA comes with *proxy* support, allowing you to pass
+    web requests on to your API. Edit your *client/package.json* file, and add the
+    following:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CRA的配置支持*proxy*，允许你将web请求传递给你的API。编辑你的*client/package.json*文件，并添加以下内容：
+- en: '[PRE15]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: It doesn’t matter where you add it. I usually put it between `"private"` and
+    `"dependencies"` just because I like to see it high in the file. Now—as long as
+    your Express server is running on port 3033—your CRA development server will pass
+    API requests through to your Express server.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它添加在哪里并不重要。我通常将它放在`"private"`和`"dependencies"`之间，因为我喜欢在文件中尽量靠前看到它。现在，只要你的Express服务器运行在3033端口上，你的CRA开发服务器将通过API请求传递到你的Express服务器。
+- en: 'Now that that configuration is in place, let’s use an *effect* (another React
+    hook) to fetch and update vacation data. Here’s the entire `Vacations` component
+    with the `useEffect` hook:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在配置完成，让我们使用*effect*（另一个React hook）来获取并更新假期数据。这里是整个`Vacations`组件与`useEffect`
+    hook：
+- en: '[PRE16]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: As before, `useState` is configuring our component state to have a `vacations`
+    array, with a companion setter. Now we’ve added `useEffect`, which calls our API
+    to retrieve vacations, and then calls that setter asynchronously. Note that we
+    pass in an empty array as the second argument to `useEffect`; this is a signal
+    to React that this effect should be run only once, when the component is mounted.
+    On the surface, that may seem like an odd way to signal that, but once you learn
+    more about hooks, you’ll see that it’s actually quite consistent. To learn more
+    about hooks, see the [React hooks documentation](http://bit.ly/34MGSeK).
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与之前一样，`useState`正在配置我们的组件状态，使其拥有一个`vacations`数组，并带有一个伴随的setter。现在我们添加了`useEffect`，它调用我们的API来检索度假，并异步调用该setter。请注意，我们将空数组作为`useEffect`的第二个参数传入；这是向React发出的一个信号，表示此效果应在组件挂载时仅运行一次。表面上看，这可能看起来是一种奇怪的信号方式，但一旦您更多地了解了hooks，您就会发现它其实是相当一致的。要了解更多关于hooks的信息，请参阅[React
+    hooks文档](http://bit.ly/34MGSeK)。
+- en: Hooks are relatively new—they were added in version 16.8 in February 2019—so
+    even if you have some experience with React, you may not be familiar with hooks.
+    I firmly believe that hooks are an excellent innovation in the React architecture,
+    and, while they may seem alien at first, you’ll find that they actually simplify
+    your components and reduce some of the trickier state-related mistakes that people
+    commonly make.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Hooks是相对较新的东西—它们是在2019年2月的16.8版本中添加的—因此，即使您对React有一些经验，您可能对hooks并不熟悉。我坚信hooks是React体系结构中的一个极好的创新，尽管它们一开始可能看起来很陌生，但您会发现它们实际上简化了您的组件并减少了人们普遍犯的一些棘手的与状态相关的错误。
+- en: Now that we’ve learned how to retrieve data from the server, let’s turn our
+    attention to sending information the other way.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经学会了如何从服务器检索数据，让我们把注意力转向以相反方式发送信息。
+- en: Sending Information to the Server
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 向服务器发送信息
+- en: 'We already have an API endpoint to make changes on the server; we have an endpoint
+    to be emailed when is back in season. Let’s go ahead and modify our `Vacations`
+    component to show a sign-up form for vacations that are out of season. In true
+    React fashion, we’ll create two new components: we’ll break out the individual
+    vacation view into `Vacation` and a `NotifyWhenInSeason` component. We could do
+    it all in one, but the recommended approach to React development is to have many
+    specific-purpose components instead of gigantic multipurpose components (for the
+    sake of brevity, however, we are going to stop short of putting these components
+    in their own files: I’ll leave that as a reader’s exercise):'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经有一个API端点用于在服务器上进行更改；当（假期）回到季节时，我们有一个端点用于发送电子邮件通知。让我们继续修改我们的`Vacations`组件，使其显示一个针对不在季节内的度假的注册表单。按照React的风格，我们将创建两个新组件：我们将把单个假期视图拆分成`Vacation`和`NotifyWhenInSeason`组件。我们可以把它们都放在一个组件中，但React开发的推荐方法是拥有很多特定目的的组件，而不是庞大的通用组件（为了简洁起见，我们将不会把这些组件放在它们自己的文件中：我会把这留给读者做练习）：
+- en: '[PRE17]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Now, if you have any vacations that have `inSeason` as `false` (and you will,
+    unless you changed your database or initialization scripts), you will update the
+    form. Now let’s hook up our button to make the API call. Modify `NotifyWhenInSeason`:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果您有任何`inSeason`为`false`的假期（除非您更改了数据库或初始化脚本），您将更新表单。现在让我们连接按钮来进行API调用。修改`NotifyWhenInSeason`：
+- en: '[PRE18]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'We’re choosing here to have the component track two different values: the email
+    address as the user types it, and the final value after they press OK. The former
+    is a technique known as *controlled components*, and you can read more about it
+    on the [React forms documentation](http://bit.ly/2X9P9qh). The latter we’re keeping
+    track of so we can know when the user took the action of pressing OK so we can
+    change the UI accordingly. We could have also had a simple boolean “registered,”
+    but this allows our UI to remind the user what email they registered with.'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们选择让该组件跟踪两个不同的值：用户在输入时的电子邮件地址，以及他们按下“确定”后的最终值。前者是一种被称为*受控组件*的技术，您可以在[React表单文档](http://bit.ly/2X9P9qh)中了解更多信息。我们追踪后者是为了在用户执行了按下“确定”的操作时了解，以便我们可以相应地更改UI。我们也可以简单地使用布尔值“registered”，但这样可以让我们的UI提醒用户他们注册时使用的电子邮件。
+- en: 'We also had to do a little more work with our API communication: we had to
+    specify the method (`POST`), encode the body as JSON, and specify the content
+    type.'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还需要与我们的API通信做更多的工作：我们必须指定方法（`POST`），将主体编码为JSON，并指定内容类型。
+- en: Note that we make a decision about which UI to return. If the user has already
+    registered, we return a simple message, and if they haven’t, we render the form.
+    This is a very common pattern in React.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们要决定返回哪种UI。如果用户已经注册，我们返回一个简单的消息；如果他们没有，我们呈现表单。这在React中是非常常见的模式。
+- en: Whew! It seems like a lot of work for that small bit of functionality…and pretty
+    crude functionality at that. Our error-handling if there’s something wrong with
+    the API call is functional, but less than user-friendly, and while the component
+    will remember which vacations we’ve signed up for, it will do so only while we’re
+    on this page. If we navigate away and come back, we’ll see the form again.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哎呀！为了那么少的功能而做那么多工作……而且功能也相当简陋。如果API调用出现问题，我们的错误处理功能虽然有效，但不够用户友好；而组件将只在我们停留在这个页面时记住我们注册的假期。如果我们离开再回来，我们将再次看到表单。
+- en: There are steps we could take to make this code a little more palatable. For
+    starters, we might write an API wrapper that will handle the messy details of
+    encoding input and determining errors; that will certainly pay dividends as we
+    use more and more API endpoints. There are also many popular form-processing frameworks
+    for React that go a long way to ease the burden of form processing.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要使这段代码更易理解，我们可以采取一些步骤。首先，我们可以编写一个API包装器，处理编码输入和确定错误的混乱细节；随着我们使用更多的API端点，这将带来显著的回报。此外，React还有许多流行的表单处理框架，可以大大减轻表单处理的负担。
+- en: Addressing the problem of “remembering” what vacations the user has signed up
+    for is a little trickier. What would really serve us would be a way for our vacation
+    objects to have that information available (whether or not the user had registered).
+    However, our special-purpose component doesn’t know anything about the vacation;
+    it’s only given the SKU. In the next section, we’ll talk about *state management*,
+    which points to a solution to that problem.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 解决“记住”用户注册了哪些假期的问题有点棘手。真正有用的是让我们的假期对象具备这些信息（无论用户是否注册）。然而，我们的专用组件对假期一无所知；它只知道SKU。在下一节中，我们将讨论*状态管理*，这将指向解决这个问题的方案。
+- en: State Management
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 状态管理
+- en: 'Most of the architectural work that goes into planning and designing a React
+    application is focused around state management—and not usually the state management
+    of single components, but how they share and coordinate state. Our sample application
+    does share some state: the `Vacations` component passes down a vacation object
+    to the `Vacation` component, and the `Vacation` component in turn passes down
+    the vacation’s SKU to the `NotifyWhenInSeason` listener. But so far, our information
+    is only flowing *down* the tree; what happens when information needs to go back
+    *up*?'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大部分规划和设计React应用程序的架构工作都集中在状态管理上，通常不是单个组件的状态管理，而是它们如何共享和协调状态。我们的示例应用程序确实共享了一些状态：`Vacations`组件向下传递了一个假期对象给`Vacation`组件，而`Vacation`组件则将假期的SKU传递给`NotifyWhenInSeason`监听器。但到目前为止，我们的信息只在树中*向下*流动；当信息需要向*上*返回时会发生什么呢？
+- en: The most common approach is to pass functions around that are responsible for
+    updating state. For example, the `Vacations` component might have a function for
+    modifying a vacation, which it could pass to `Vacation`, which could in turn be
+    passed down to `NotifyWhenInSeason`. When `NotifyWhenInSeason` calls it to modify
+    the vacation, `Vacations`, at the top of the tree, would recognize that things
+    had changed, which would cause it to re-render, which in turns causes all of its
+    descendants to re-render.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最常见的方法是传递负责更新状态的函数。例如，`Vacations`组件可能有一个用于修改假期的函数，它可以传递给`Vacation`，然后再传递给`NotifyWhenInSeason`。当`NotifyWhenInSeason`调用它来修改假期时，树的顶部的`Vacations`将意识到事情已经改变，这将导致它重新渲染，从而使其所有后代都重新渲染。
+- en: 'It sounds exhausting and complicated, and sometimes it can be, but there are
+    techniques that can help. They are so varied and sometimes complex that we can’t
+    completely cover them here (nor is this a book about React), but I can point you
+    to some further reading:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 听起来很累人和复杂，并且有时确实如此，但有些技术可以帮助解决这些问题。它们如此多样和有时复杂，以至于我们无法在这里完全覆盖它们（这也不是一本关于React的书），但我可以指引你进一步阅读：
+- en: '[Redux](https://redux.js.org)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Redux](https://redux.js.org)'
+- en: Redux is usually the first thing that comes to people’s minds when they think
+    about comprehensive state management for React applications. It was one of the
+    first formalized state management architectures, and it is still incredibly popular.
+    In concept, it is extremely simple, and it is still the state management framework
+    that I prefer. Even if you don’t end up choosing Redux, I recommend you watch
+    the [free tutorial videos](https://egghead.io/courses/getting-started-with-redux)
+    by its creator, Dan Abramov.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Redux通常是人们在考虑React应用程序的全面状态管理时首先想到的东西。它是最早形式化的状态管理架构之一，仍然非常流行。在概念上，它非常简单，这仍然是我喜欢的状态管理框架。即使最终你不选择Redux，我建议你观看其创建者Dan
+    Abramov的[免费教程视频](https://egghead.io/courses/getting-started-with-redux)。
+- en: '[MobX](https://mobx.js.org)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[MobX](https://mobx.js.org)'
+- en: MobX came along after Redux. It has gained an impressive following in a short
+    amount of time and is probably the second most popular state container, behind
+    Redux. MobX can certainly result in code that seems easier to write, but I still
+    feel that Redux has an edge in providing a good framework as your application
+    scales, even with its increased boilerplate.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MobX在Redux之后出现。它在短时间内获得了令人印象深刻的追随者，并且可能是第二受欢迎的状态容器，仅次于Redux。MobX确实可以导致看起来更容易编写的代码，但我仍然觉得Redux在应用程序扩展时提供了更好的框架，即使它增加了样板代码。
+- en: '[Apollo](https://www.apollographql.com)'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Apollo](https://www.apollographql.com)'
+- en: Apollo isn’t a state management library *per se*, but the way its used often
+    takes the place of one. It’s essentially a frontend interface for [GraphQL](https://graphql.org)--an
+    alternative to REST APIs—that offers a lot of integration with React. If you’re
+    using GraphQL (or interested in it), it’s definitely worth looking into.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Apollo并不是一个状态管理库* per se*，但通常它的使用方式可以替代其中的一个。它本质上是一个前端接口，用于[GraphQL](https://graphql.org)，作为REST
+    API的替代方案，与React有很多集成。如果你在使用GraphQL（或者对它感兴趣），那么它绝对值得一试。
+- en: '[React Context](https://reactjs.org/docs/context.html)'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[React Context](https://reactjs.org/docs/context.html)'
+- en: React itself has gotten into the game by providing the Context API, now built
+    into React. It accomplishes some of the same things that Redux does with less
+    boilerplate. However, I feel that React Context is less robust and that Redux
+    is a better choice for applications as they grow.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React本身已经通过提供内置的Context API参与了这场游戏。它实现了Redux相同的一些功能，但是减少了样板代码。然而，我觉得React Context不够健壮，Redux在应用程序不断增长时是更好的选择。
+- en: When you start out with React, you can essentially ignore the complexities of
+    state management across your application, but pretty quickly you’ll realize the
+    need for a more organized way to manage state. When you reach that point, you’ll
+    want to look into some of these options and pick one that resonates with you.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你刚开始使用React时，你可以基本上忽略跨应用程序的状态管理的复杂性，但很快你会意识到需要一种更有组织的方式来管理状态。当你达到这一点时，你会想要研究一些选项，并选择一个适合你的选项。
+- en: Deployment Options
+  id: totrans-148
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 部署选项
+- en: So far, we’ve been using CRA’s built-in development server—which really is the
+    best choice for development, and I recommend sticking with it. However, when it
+    comes time for deployment, it’s not a suitable choice. Fortunately, CRA comes
+    loaded with a build script that creates a bundle optimized for production, and
+    then you have many options. When you’re ready to create a deployment bundle, simply
+    run `yarn build`, and a *build* directory will be created. All of the assets in
+    the *build* directory are static and can be deployed anywhere.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们一直在使用CRA内置的开发服务器——这确实是开发的最佳选择，我建议坚持使用它。然而，当谈到部署时，它并不是一个合适的选择。幸运的是，CRA带有一个构建脚本，用于创建一个针对生产优化的捆绑包，然后你有很多选择。当你准备创建部署捆绑包时，只需运行`yarn
+    build`，然后将创建一个*build*目录。*build*目录中的所有资产都是静态的，可以部署到任何地方。
+- en: 'My current deployment of choice is to put the CRA build in an AWS S3 bucket
+    with [Static Website Hosting](https://amzn.to/3736fuT) turned on. This is far
+    from the only option: every major cloud provider and CDN offers something similar.'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我目前首选的部署方式是将CRA构建放入带有[静态网站托管](https://amzn.to/3736fuT)的AWS S3存储桶中。这远非唯一选择：每个主要的云提供商和CDN都提供类似的功能。
+- en: In this configuration, we have to create routing so that the API calls are routed
+    to your Express server and your static bundle is served from a CDN. For my AWS
+    deployments, I use [AWS CloudFront](https://amzn.to/2KglZRb) to perform this routing;
+    the static assets are served from the aforementioned S3 bucket, and the API requests
+    are routed to either an Express server on an EC2 instance, or on a Lambda.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种配置中，我们必须创建路由，以便将API调用路由到您的Express服务器，并从CDN提供您的静态bundle。对于我的AWS部署，我使用[AWS
+    CloudFront](https://amzn.to/2KglZRb)执行此路由；静态资产从前述的S3存储桶中提供，并且API请求被路由到EC2实例上的Express服务器或Lambda上。
+- en: Another option is to let Express do the whole thing. This has the advantage
+    of being able to consolidate your entire application onto a single server, which
+    makes for a pretty simple deployment, and makes management easy. It may not be
+    ideal for scalability or performance, but it’s a valid choice for small applications.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个选择是让Express来完成所有工作。这样做的优点是能够将整个应用程序集中到一个单一的服务器上，这样部署会相当简单，管理也很方便。虽然这种方式可能不太适合可扩展性或性能，但对于小型应用程序来说是一个有效的选择。
+- en: To serve your application entirely from Express, simply take contents of the
+    *build* directory that was created when you ran `yarn build`, and copy it into
+    the *public* directory in your Express application. As long as you have your static
+    middleware linked in, it will automatically serve the *index.html* file, which
+    is all you need.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要完全通过Express提供您的应用程序，只需将运行`yarn build`时创建的*build*目录中的内容复制到Express应用程序的*public*目录中。只要您链接了静态中间件，它将自动提供*index.html*文件，这就是您所需的一切。
+- en: 'Go ahead and try it: if your Express server is still running on port 3033,
+    you should be able to visit *http://localhost:3033* and see the same application
+    that your CRA dev server is providing!'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不妨试试：如果你的Express服务器仍在3033端口运行，你应该能够访问*http://localhost:3033*，看到与CRA开发服务器提供的相同应用程序！
+- en: Note
+  id: totrans-155
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In case you’re wondering how CRA’s dev server works, it uses a package called
+    `webpack-dev-server`, which uses Express under the hood! So it all comes back
+    to Express in the end!
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想了解CRA的开发服务器是如何工作的，它使用了一个名为`webpack-dev-server`的包，其底层使用了Express！所以最终一切都与Express有关！
+- en: Conclusion
+  id: totrans-157
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: This chapter has only scratched the surface of React, and the technologies that
+    swirl around it. If you want to take a deeper dive into React, [*Learning React*](https://oreil.ly/ROqku)
+    by Alex Banks and Eve Porcello (O’Reilly) is a great place to start. This book
+    also covers state management with Redux (however, it does not currently cover
+    hooks). The [official React documentation](http://bit.ly/37377Qb) is also comprehensive
+    and well-written.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章仅仅触及了React及其周围的技术表面。如果你想深入了解React，[*学习React*](https://oreil.ly/ROqku)（由Alex
+    Banks和Eve Porcello编著，O'Reilly出版）是一个很好的起点。这本书还涵盖了使用Redux进行状态管理（不过目前还不包括hooks）。[官方React文档](http://bit.ly/37377Qb)也非常全面和详细。
+- en: SPAs have certainly changed the way we think about and deliver web applications,
+    and have enabled significant performance improvements, especially on mobile. Even
+    though Express was written in an era when most HTML was still substantially rendered
+    on the server, it has certainly not made Express obsolete. Quite the contrary,
+    the need to provide APIs to single-page applications has, if anything, given Express
+    new life!
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单页应用程序（SPAs）确实改变了我们思考和交付Web应用程序的方式，并显著提升了性能，尤其是在移动设备上。即使Express是在大多数HTML仍然主要在服务器上渲染的时代编写的，它并没有使Express过时。相反，为单页应用程序提供API的需求使得Express焕发了新生命！
+- en: 'It should also be clear from reading this chapter that it’s really all the
+    same game: data getting sent back and forth between browsers and servers. It’s
+    only the nature of that data that’s changed, and getting used to changing HTML
+    through dynamic DOM manipulation.'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从阅读本章中应该也能清楚地看出，这确实都是相同的游戏：数据在浏览器和服务器之间来回传递。只是数据的性质发生了变化，我们要适应通过动态DOM操作改变HTML的方式。
+- en: ^([1](ch16.xhtml#idm45053580304888-marker)) For performance reasons, the bundle
+    might be split into “chunks” that are loaded as needed (called *lazy loading*),
+    but the principle is the same.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch16.xhtml#idm45053580304888-marker))出于性能考虑，bundle可能会被拆分为按需加载的“chunk”（称为*lazy
+    loading*），但其原理是一样的。

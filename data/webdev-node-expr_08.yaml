@@ -1,0 +1,770 @@
+- en: Chapter 8\. Form Handling
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第8章 表单处理
+- en: The usual way you collect information from your users is to use HTML *forms*.
+    Whether you let the browser submit the form normally, use Ajax, or employ fancy
+    frontend controls, the underlying mechanism is generally still an HTML form. In
+    this chapter, we’ll discuss the different methods for handling forms, form validation,
+    and file uploads.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 收集用户信息的通常方法是使用HTML *表单*。无论您是让浏览器正常提交表单，使用Ajax还是使用复杂的前端控件，其基础机制通常仍然是HTML表单。在本章中，我们将讨论处理表单、表单验证和文件上传的不同方法。
+- en: Sending Client Data to the Server
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 将客户端数据发送到服务器
+- en: 'Broadly speaking, your two options for sending client data to the server are
+    the querystring and the request body. Normally, if you’re using the querystring,
+    you’re making a `GET` request, and if you’re using the request body, you’re using
+    a `POST` request. (The HTTP protocol doesn’t prevent you from doing it the other
+    way around, but there’s no point to it: best to stick to standard practice here.)'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，发送客户端数据到服务器有两种选择：查询字符串和请求体。通常，如果你使用查询字符串，你是在进行`GET`请求；如果使用请求体，则是在进行`POST`请求。（HTTP协议不会阻止你反过来做，但这没有意义：最好在这里坚持标准做法。）
+- en: 'It is a common misperception that `POST` is secure and `GET` is not: in reality,
+    both are secure if you use HTTPS, and neither is secure if you don’t. If you’re
+    not using HTTPS, an intruder can look at the body data for a `POST` just as easily
+    as the querystring of a `GET` request. However, if you’re using `GET` requests,
+    your users will see all of their input (including hidden fields) in the querystring,
+    which is ugly and messy. Also, browsers often place limits on querystring length
+    (there is no such restriction for body length). For these reasons, I generally
+    recommend using `POST` for form submission.'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种常见的误解是`POST`是安全的，而`GET`不安全：实际上，如果您使用HTTPS，两者都是安全的，如果不使用HTTPS，则两者都不安全。如果不使用HTTPS，入侵者可以轻松查看`POST`请求的正文数据，就像可以查看`GET`请求的查询字符串一样。但是，如果使用`GET`请求，用户将在查询字符串中看到所有输入的内容（包括隐藏字段），这样看起来很乱且不美观。此外，浏览器通常会对查询字符串的长度设置限制（对于请求正文长度没有此限制）。因此，我通常建议在表单提交时使用`POST`。
+- en: HTML Forms
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: HTML表单
+- en: 'This book is focusing on the server side, but it’s important to understand
+    some basics about constructing HTML forms. Here’s a simple example:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本书侧重于服务器端，但了解构建HTML表单的一些基础知识也很重要。这里有一个简单的例子：
+- en: '[PRE0]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Notice the method is specified explicitly as `POST` in the `<form>` tag; if
+    you don’t do this, it defaults to `GET`. The `action` attribute specifies the
+    URL that will receive the form when it’s posted. If you omit this field, the form
+    will be submitted to the same URL the form was loaded from. I recommend that you
+    always provide a valid `action`, even if you’re using Ajax (this is to prevent
+    you from losing data; see [Chapter 22](ch22.xhtml#ch_maintenance) for more information).
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在`<form>`标签中明确指定了方法为`POST`；如果不这样做，默认为`GET`。`action`属性指定了表单提交时将接收数据的URL。如果省略此字段，表单将提交到加载表单的同一URL。我建议您始终提供一个有效的`action`，即使您在使用Ajax（这是为了防止数据丢失；更多信息请参见[第22章](ch22.xhtml#ch_maintenance)）。
+- en: 'From the server’s perspective, the important attributes in the `<input>` fields
+    are the `name` attributes: that’s how the server identifies the field. It’s important
+    to understand that the `name` attribute is distinct from the `id` attribute, which
+    should be used for styling and frontend functionality only (it is not passed to
+    the server).'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从服务器的角度来看，在`<input>`字段中，重要的属性是`name`属性：这是服务器识别字段的方式。重要的是要理解，`name`属性与`id`属性是不同的，`id`属性仅用于样式和前端功能（不会传递到服务器）。
+- en: 'Note the hidden field: this will not render in the user’s browser. However,
+    you should not use it for secret or sensitive information; all the user has to
+    do is examine the page source, and the hidden field will be exposed.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意隐藏字段：这些字段不会在用户的浏览器中显示。但是，不应将其用于秘密或敏感信息；只需查看页面源代码，隐藏字段就会被公开。
+- en: HTML does not restrict you from having multiple forms on the same page (this
+    was an unfortunate restriction of some early server frameworks; ASP, I’m looking
+    at you). I recommend keeping your forms logically consistent; a form should contain
+    all the fields you would like submitted at once (optional/empty fields are OK)
+    and none that you don’t. If you have two different actions on a page, use two
+    different forms. An example of this would be to have a form for a site search
+    and a separate form for signing up for an email newsletter. It is possible to
+    use one large form and figure out what action to take based on what button a person
+    clicked, but it is a headache and often not friendly for people with disabilities
+    (because of the way accessibility browsers render forms).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTML 不限制您在同一页上拥有多个表单（这是一些早期服务器框架的不幸限制；ASP，我在看你）。我建议保持您的表单在逻辑上一致；一个表单应包含您希望一次提交的所有字段（可选/空字段是可以的），并且不应包含您不需要的字段。如果在页面上有两个不同的操作，应使用两个不同的表单。例如，一个用于网站搜索，另一个用于订阅电子邮件通讯。也可以使用一个大型表单，并根据用户点击的按钮决定采取什么操作，但这会很麻烦，通常对于残障人士不友好（因为辅助功能浏览器渲染表单的方式）。
+- en: When the user submits the form in this example, the */process* URL will be invoked,
+    and the field values will be transmitted to the server in the request body.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，当用户提交表单时，将调用 */process* URL，并将字段值传输到请求体中的服务器。
+- en: Encoding
+  id: totrans-13
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 编码
+- en: When the form is submitted (either by the browser or via Ajax), it must be encoded
+    somehow. If you don’t explicitly specify an encoding, it defaults to `application/x-www-form-urlencoded`
+    (this is just a lengthy media type for “URL encoded”). This is a basic, easy-to-use
+    encoding that’s supported by Express out of the box.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当表单提交时（无论是通过浏览器还是通过 Ajax），都必须以某种方式对其进行编码。如果您不明确指定编码方式，默认为 `application/x-www-form-urlencoded`（这只是“URL
+    编码”的一个较长的媒体类型）。这是一种基本的、易于使用的编码方式，Express 默认支持。
+- en: If you need to upload files, things get more complicated. There’s no easy way
+    to send files using URL encoding, so you’re forced to use the `multipart/form-data`
+    encoding type, which is not handled directly by Express.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果需要上传文件，则情况变得更加复杂。没有简单的方法可以使用 URL 编码发送文件，因此必须使用 `multipart/form-data` 编码类型，这种类型不会被
+    Express 直接处理。
+- en: Different Approaches to Form Handling
+  id: totrans-16
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 表单处理的不同方法
+- en: 'If you’re not using Ajax, your only option is to submit the form through the
+    browser, which will reload the page. However, *how* the page is reloaded is up
+    to you. There are two things to consider when processing forms: what path handles
+    the form (the action) and what response is sent to the browser.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您不使用 Ajax，唯一的选项是通过浏览器提交表单，这将重新加载页面。但是，如何重新加载页面由您决定。在处理表单时有两件事需要考虑：处理表单的路径（操作）和发送给浏览器的响应。
+- en: 'If your form uses `method="POST"` (which is recommended), it is quite common
+    to use the same path for displaying the form and processing the form: these can
+    be distinguished because the former is a `GET` request, and the latter is a `POST`
+    request. If you take this approach, you can omit the `action` attribute on the
+    form.'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的表单使用 `method="POST"`（推荐使用），通常会使用相同的路径来显示表单和处理表单：这些可以区分，因为前者是 `GET` 请求，后者是
+    `POST` 请求。如果采用这种方法，可以在表单上省略 `action` 属性。
+- en: The other option is to use a separate path to process the form. For example,
+    if your contact page uses the path */contact*, you might use the path */process-contact*
+    to process the form (by specifying `action="/process-contact"`). If you use this
+    approach, you have the option of submitting the form via `GET` (which I do not
+    recommend; it needlessly exposes your form fields on the URL). Using a separate
+    endpoint for form submission might be preferred if you have multiple URLs that
+    use the same submission mechanism (for example, you might have an email sign-up
+    box on multiple pages on the site).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种选择是使用单独的路径来处理表单。例如，如果您的联系页面使用路径 */contact*，您可以使用路径 */process-contact* 来处理表单（通过指定
+    `action="/process-contact"`）。如果使用这种方法，您可以选择通过 `GET` 提交表单（我不推荐这样做；它会不必要地将您的表单字段暴露在
+    URL 上）。如果您有多个使用相同提交机制的 URL，则可能更喜欢使用单独的端点进行表单提交（例如，您可能在站点的多个页面上都有一个电子邮件注册框）。
+- en: 'Whatever path you use to process the form, you have to decide what response
+    to send back to the browser. Here are your options:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论您用于处理表单的路径是什么，都必须决定发送回浏览器的响应。以下是您的选择：
+- en: Direct HTML response
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直接的 HTML 响应
+- en: After processing the form, you can send HTML directly back to the browser (a
+    view, for example). This approach will produce a warning if the user attempts
+    to reload the page and can interfere with bookmarking and the Back button, and
+    for these reasons, it is not recommended.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 处理表单后，您可以直接向浏览器发送 HTML（例如，一个视图）。这种方法会在用户尝试重新加载页面时产生警告，并且可能会干扰书签和返回按钮，因此不建议使用。
+- en: 302 redirect
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 302 重定向
+- en: While this is a common approach, it is a misuse of the original meaning of the
+    302 (Found) response code. HTTP 1.1 added the 303 (See Other) response code, which
+    is preferable. Unless you have reason to target browsers made before 1996, you
+    should use 303 instead.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这是一种常见的方法，但这是对 302（已找到）响应代码原始意义的误用。HTTP 1.1 添加了 303（查看其他）响应代码，这是更可取的。除非你有理由针对
+    1996 年之前制作的浏览器，否则应使用 303。
+- en: 303 redirect
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 303 重定向
+- en: The 303 (See Other) response code was added in HTTP 1.1 to address the misuse
+    of the 302 redirect. The HTTP specification specifically indicates that the browser
+    should use a `GET` request when following a 303 redirect, regardless of the original
+    method. This is the recommended method for responding to a form submission request.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP 1.1 中添加的 303（查看其他）响应代码是为了解决 302 重定向的误用。HTTP 规范明确指示浏览器在遵循 303 重定向时应使用 `GET`
+    请求，而不管原始方法如何。这是对表单提交请求做出响应的推荐方法。
+- en: 'Since the recommendation is that you respond to a form submission with a 303
+    redirect, the next question is, “Where does the redirection point to?” The answer
+    to that is up to you. Here are the most common approaches:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于建议您对表单提交做出 303 重定向响应，下一个问题是：“重定向指向哪里？”这个问题的答案取决于你。以下是最常见的方法：
+- en: Redirect to dedicated success/failure pages
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重定向到专用成功/失败页面
+- en: 'This method requires that you dedicate URLs for appropriate success or failure
+    messages. For example, if the user signs up for promotional emails but there was
+    a database error, you might want to redirect to */error/database*. If a user’s
+    email address were invalid, you could redirect to */error/invalid-email*, and
+    if everything was successful, you could redirect to */promo-email/thank-you*.
+    One of the advantages of this method is that it’s analytics friendly: the number
+    of visits to your */promo-email/thank-you* page should roughly correlate to the
+    number of people signing up for your promotional email. It is also straightforward
+    to implement. It has some downsides, however. It does mean you have to allocate
+    URLs to every possibility, which means pages to design, write copy for, and maintain.
+    Another disadvantage is that the user experience can be suboptimal: users like
+    to be thanked, but then they have to navigate back to where they were or where
+    they want to go next. This is the approach we’ll be using for now: we’ll switch
+    to using flash messages (not to be confused with Adobe Flash) in [Chapter 9](ch09.xhtml#ch_cookies_and_sessions).'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该方法要求您为适当的成功或失败消息指定 URL。例如，如果用户注册了促销邮件，但出现了数据库错误，您可能希望重定向到 */error/database*。如果用户的电子邮件地址无效，您可以重定向到
+    */error/invalid-email*，如果一切顺利，您可以重定向到 */promo-email/thank-you*。该方法的优势之一是它对分析友好：您
+    */promo-email/thank-you* 页面的访问次数应该大致对应于注册促销电子邮件的人数。它也很容易实现。然而，它也有一些缺点。这确实意味着您必须为每种可能性分配
+    URL，这意味着需要设计页面，编写副本，并进行维护。另一个缺点是用户体验可能不够理想：用户喜欢被感谢，但后来他们必须返回到他们之前或想要去的地方。这是我们目前将要使用的方法：我们将在[第
+    9 章](ch09.xhtml#ch_cookies_and_sessions)中切换到使用闪存消息（不要与 Adobe Flash 混淆）。
+- en: Redirect to the original location with a flash message
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重定向到原始位置并显示闪存消息
+- en: For small forms that are scattered throughout your site (like an email sign-up,
+    for example), the best user experience is not to interrupt the user’s navigation
+    flow. That is, provide a way to submit an email address without leaving the page.
+    One way to do this, of course, is Ajax, but if you don’t want to use Ajax (or
+    you want your fallback mechanism to provide a good user experience), you can redirect
+    back to the page the user was originally on. The easiest way to do this is to
+    use a hidden field in the form that’s populated with the current URL. Since you
+    want there to be some feedback that the user’s submission was received, you can
+    use flash messages.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于遍布网站的小型表单（例如电子邮件注册），最好的用户体验是不要中断用户的导航流程。也就是说，提供一种在不离开页面的情况下提交电子邮件地址的方式。当然，其中一种方法是使用
+    Ajax，但如果你不想使用 Ajax（或者你希望备用机制提供良好的用户体验），你可以重定向回用户最初所在的页面。实现这一点最简单的方法是在表单中使用一个隐藏字段，该字段填充当前
+    URL。由于你希望能够提供反馈，告知用户提交已收到，你可以使用闪存消息。
+- en: Redirect to a new location with a flash message
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重定向到一个新的位置，并显示闪存消息。
+- en: Large forms generally have their own page, and it doesn’t make sense to stay
+    on that page once you’ve submitted the form. In this situation, you have to make
+    an intelligent guess about where the user might want to go next and redirect accordingly.
+    For example, if you’re building an admin interface, and you have a form to create
+    a new vacation package, you might reasonably expect your user to want to go to
+    the admin page that lists all vacation packages after submitting the form. However,
+    you should still employ a flash message to give the user feedback about the result
+    of the submission.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大型表单通常有它们自己的页面，一旦提交表单，留在该页面是没有意义的。在这种情况下，你必须智能猜测用户可能希望去哪里，并相应地进行重定向。例如，如果你正在构建一个管理界面，并且有一个表单用于创建新的度假套餐，你可以合理地期望用户提交表单后想要进入显示所有度假套餐的管理页面。然而，你仍然应该使用闪存消息向用户反馈提交结果。
+- en: 'If you are using Ajax, I recommend a dedicated URL. It’s tempting to start
+    Ajax handlers with a prefix (for example, */ajax/enter*), but I discourage this
+    approach: it’s attaching implementation details to a URL. Also, as we’ll see shortly,
+    your Ajax handler should handle regular browser submissions as a fail-safe.'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你正在使用 Ajax，我建议使用专用的 URL。虽然以一个前缀（例如 */ajax/enter*）开始 Ajax 处理程序是很诱人的，但我不推荐这种方法：它将实现细节附加到
+    URL 上。另外，正如我们马上会看到的，你的 Ajax 处理程序应该作为常规浏览器提交的容错机制。
+- en: Form Handling with Express
+  id: totrans-35
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Express 处理表单
+- en: If you’re using `GET` for your form handling, your fields will be available
+    on the `req.query` object. For example, if you have an HTML input field with a
+    name attribute of `email`, its value will be passed to the handler as `req.query.email`.
+    There’s really not much more that needs to be said about this approach; it’s just
+    that simple.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用`GET`来处理表单，你的字段将会在`req.query`对象中。例如，如果你有一个名为`email`的HTML输入字段，其值将作为`req.query.email`传递给处理程序。关于这种方法，其实没有太多需要说的，就是这么简单。
+- en: 'If you’re using `POST` (which I recommend), you’ll have to link in middleware
+    to parse the URL-encoded body. First, install the `body-parser` middleware (`npm
+    install body-parser`); then, link it in (*ch08/meadowlark.js* in the companion
+    repo):'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用`POST`（我推荐的方法），你需要链接中间件来解析 URL 编码的主体。首先，安装`body-parser`中间件（`npm install
+    body-parser`）；然后，在伴随代码库中的 *ch08/meadowlark.js* 中链接它：
+- en: '[PRE1]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Once you’ve linked in `body-parser`, you’ll find that `req.body` now becomes
+    available for you, and that’s where all of your form fields will be made available.
+    Note that `req.body` doesn’t prevent you from using the querystring. Let’s go
+    ahead and add a form to Meadowlark Travel that lets the user sign up for a mailing
+    list. For demonstration’s sake, we’ll use the querystring, a hidden field, and
+    visible fields in */views/newsletter-signup.handlebars*:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦链接了`body-parser`中间件，你会发现`req.body`现在可以用了，这是所有表单字段的存放位置。请注意，`req.body`并不妨碍你使用查询字符串。我们继续在
+    Meadowlark Travel 中添加一个表单，让用户可以注册邮件列表。为了演示，我们将在 */views/newsletter-signup.handlebars*
+    中使用查询字符串、一个隐藏字段以及可见字段：
+- en: '[PRE2]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Note we are using Bootstrap styles, as we will be throughout the rest of the
+    book. If you are unfamiliar with Bootstrap, you may want to refer to the [Bootstrap
+    documentation](http://getbootstrap.com).
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们使用 Bootstrap 样式，这将贯穿整本书。如果你对 Bootstrap 不熟悉，可以参考 [Bootstrap 文档](http://getbootstrap.com)。
+- en: 'We’ve already linked in our body parser, so now we need to add handlers for
+    our newsletter sign-up page, processing function, and thank-you page (*ch08/lib/handlers.js*
+    in the companion repo):'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经在我们的 body 解析器中添加了链接，现在我们需要为我们的通讯录注册页面、处理函数和感谢页面添加处理程序（*ch08/lib/handlers.js*在伴随代码库中）：
+- en: '[PRE3]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: (If you haven’t already, create a *views/newsletter-signup-thank-you.handlebars*
+    file.)
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （如果还没有，请创建一个 *views/newsletter-signup-thank-you.handlebars* 文件。）
+- en: 'Lastly, we’ll link our handlers into our application (*ch08/meadowlark.js*
+    in the companion repo):'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们将我们的处理程序链接到我们的应用程序中（*ch08/meadowlark.js*在伴随代码库中）：
+- en: '[PRE4]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: That’s all there is to it. Note that in our handler, we’re redirecting to a
+    “thank you” view. We could render a view here, but if we did, the URL field in
+    the visitor’s browser would remain */process*, which could be confusing. Issuing
+    a redirect solves that problem.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这么简单。请注意，在我们的处理程序中，我们正在重定向到“感谢”视图。我们可以在这里渲染一个视图，但如果这样做，访问者浏览器中的 URL 字段将保持
+    */process*，这可能会令人困惑。发出重定向可以解决这个问题。
+- en: Note
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: It’s important that you use a 303 (or 302) redirect, not a 301 redirect in this
+    instance. 301 redirects are “permanent,” meaning your browser may cache the redirection
+    destination. If you use a 301 redirect and try to submit the form a second time,
+    your browser may bypass the `/process` handler altogether and go directly to */thank-you*
+    since it correctly believes the redirect to be permanent. The 303 redirect, on
+    the other hand, tells your browser, “Yes, your request is valid, and you can find
+    your response here,” and does not cache the redirect destination.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，使用 303（或 302）重定向而不是 301 重定向非常重要。301 重定向是“永久”的，这意味着您的浏览器可能会缓存重定向目标。如果您使用
+    301 重定向并尝试第二次提交表单，您的浏览器可能会完全跳过 `/process` 处理程序，直接转到 */thank-you*，因为它正确地认为重定向是永久的。另一方面，303
+    重定向告诉您的浏览器：“是的，您的请求有效，您可以在这里找到您的响应”，并且不缓存重定向目标。
+- en: With most frontend frameworks, it is more common to see form data sent in JSON
+    form with the `fetch` API, which we’ll be looking at next. However, it’s still
+    good to understand how browsers handle form submission by default, as you will
+    still find forms implemented this way.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数前端框架更倾向于使用 `fetch` API 发送 JSON 格式的表单数据，我们接下来将看一下这个。不过，默认情况下了解浏览器如何处理表单提交仍然很重要，因为你仍然会发现以这种方式实现的表单。
+- en: Let’s turn our attention to form submission with `fetch`.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们关注使用 `fetch` 进行表单提交。
+- en: Using Fetch to Send Form Data
+  id: totrans-52
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Fetch 发送表单数据
+- en: Using the `fetch` API to send JSON-encoded form data is a much more modern approach
+    that gives you more control over the client/server communication and allows you
+    to have fewer page refreshes.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `fetch` API 发送 JSON 编码的表单数据是一种更现代的方法，可以更好地控制客户端/服务器通信，并减少页面刷新。
+- en: Since we are not making round-trip requests to the server, we no longer have
+    to worry about redirects and multiple user URLs (we’ll still have a separate URL
+    for the form processing itself), and for that reason, we’ll just consolidate our
+    entire “newsletter signup experience” under a single URL called */newsletter*.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们不再向服务器发起往返请求，所以不再需要担心重定向和多个用户 URL（我们仍然会为表单处理本身有一个单独的 URL），因此，我们将整个“通讯录注册体验”统一到一个称为
+    */newsletter* 的单一 URL 下。
+- en: 'Let’s start with the frontend code. The contents of the HTML form itself don’t
+    need to be changed (the fields and layout are all the same), but we don’t need
+    to specify an `action` or `method`, and we’ll wrap our form in a container `<div>`
+    element that will make it easier to display our “thank you” message:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从前端代码开始。HTML 表单本身的内容无需更改（字段和布局都相同），但我们不需要指定 `action` 或 `method`，并且我们将在一个容器
+    `<div>` 元素中包装我们的表单，这样可以更容易地显示我们的“感谢”消息：
+- en: '[PRE5]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Then we’ll have a script that intercepts the form submit event and cancels
+    it (using `Event#preventDefault`) so we can handle the form processing ourselves
+    (*ch08/views/newsletter.handlebars* in the companion repo):'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将有一个脚本来拦截表单提交事件并取消它（使用 `Event#preventDefault`），这样我们就可以自己处理表单处理（*ch08/views/newsletter.handlebars*在伴随代码库中）：
+- en: '[PRE6]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Now in our server file (*meadowlark.js*), make sure we’re linking in middleware
+    that can parse JSON bodies, before we specify our two endpoints:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在在我们的服务器文件（*meadowlark.js*）中，请确保我们链接了可以解析 JSON 主体的中间件，然后我们指定我们的两个端点：
+- en: '[PRE7]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Note that we’re putting our form-processing endpoint at a URL starting with
+    `api`; this is a common technique to distinguish between user (browser) endpoints
+    and API endpoints meant to be accessed with `fetch`.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，我们将我们的表单处理端点放在以 `api` 开头的 URL 上；这是一种区分用户（浏览器）端点和 API 端点的常用技术，后者旨在使用 `fetch`
+    访问。
+- en: 'Now we’ll add those endpoints to our *lib/handlers.js* file:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将这些端点添加到我们的 *lib/handlers.js* 文件中：
+- en: '[PRE8]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'We can do whatever processing we need in the form processing handler; usually
+    we would be saving the data to the database. If there are problems, we send back
+    a JSON object with an `err` property (instead of `result: *success*`).'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '我们可以在表单处理处理器中进行任何我们需要的处理；通常情况下，我们会将数据保存到数据库中。如果出现问题，我们会返回一个带有 `err` 属性的 JSON
+    对象（而不是 `result: *success*`）。'
+- en: Tip
+  id: totrans-65
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: In this example, we’re assuming all Ajax requests are looking for JSON, but
+    there’s no requirement that Ajax must use JSON for communication (as a matter
+    of fact, Ajax used to be an acronym in which the “X” stood for XML). This approach
+    is very JavaScript-friendly, as JavaScript is adept in handling JSON. If you’re
+    making your Ajax endpoints generally available or if you know your Ajax requests
+    might be using something other than JSON, you should return an appropriate response
+    *exclusively* based on the `Accepts` header, which we can conveniently access
+    through the `req.accepts` helper method. If you’re responding based only on the
+    `Accepts` header, you might want to also look at [`res.format`](http://bit.ly/33Syx92),
+    which is a handy convenience method that makes it easy to respond appropriately
+    depending on what the client expects. If you do that, you’ll have to make sure
+    to set the `dataType` or `accepts` property when making Ajax requests with JavaScript.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，我们假设所有的 Ajax 请求都希望得到 JSON 响应，但并不要求 Ajax 必须使用 JSON 进行通信（事实上，Ajax 曾经是一个首字母缩略词，其中的
+    “X” 代表 XML）。这种方式非常适合 JavaScript，因为 JavaScript 擅长处理 JSON 数据。如果你的 Ajax 端点是通用的或者你知道你的
+    Ajax 请求可能使用除 JSON 以外的其他内容，你应该根据 `Accepts` 头部返回合适的响应，你可以通过 `req.accepts` 辅助方法方便地访问它。如果你仅仅基于
+    `Accepts` 头部来响应请求，你可能还会想要查看 [`res.format`](http://bit.ly/33Syx92)，这是一个方便的方法，可以根据客户端的期望方便地响应适当的内容。如果这样做，你需要确保在使用
+    JavaScript 发送 Ajax 请求时设置 `dataType` 或 `accepts` 属性。
+- en: File Uploads
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 文件上传
+- en: We’ve already mentioned that file uploads bring a raft of complications. Fortunately,
+    there are some great projects that help make file handling a snap.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经提到文件上传会带来一系列复杂性问题。幸运的是，有一些很棒的项目可以帮助简化文件处理流程。
+- en: 'There are four popular and robust options for multipart form processing: busboy,
+    multiparty, formidable, and multer. I have used all four, and they’re all good,
+    but I feel multiparty is the best maintained, and so we’ll use it here.'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有四个流行且强大的选项用于处理多部分表单：**busboy**、**multiparty**、**formidable** 和 **multer**。我使用过这四种方式，它们都很不错，但我觉得
+    **multiparty** 维护得最好，因此我们将在这里使用它。
+- en: 'Let’s create a file upload form for a Meadowlark Travel vacation photo contest
+    (*views/contest/vacation-photo.handlebars*):'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们为 Meadowlark Travel 的度假照片比赛创建一个文件上传表单 (*views/contest/vacation-photo.handlebars*)：
+- en: '[PRE9]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Note that we must specify `enctype="multipart/form-data"` to enable file uploads.
+    We’re also restricting the type of files that can be uploaded by using the `accept`
+    attribute (which is optional).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，我们必须指定 `enctype="multipart/form-data"` 以启用文件上传。我们还可以通过使用 `accept` 属性（可选）来限制可以上传的文件类型。
+- en: 'Now we need to create route handlers, but we have something of a dilemma. We
+    want to maintain our ability to easily test our route handlers, which will be
+    complicated by multipart form processing (in the same way we use middleware to
+    process other types of body encoding before we even get to our handlers). Since
+    we don’t want to test multipart form decoding ourselves (we can assume this is
+    done thoroughly by multiparty), we’ll keep our handlers “pure” by passing them
+    the already-processed information. Since we don’t know what that looks like yet,
+    we’ll start with the Express plumbing in *meadowlark.js*:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们需要创建路由处理程序，但我们面临一个困境。我们希望能够轻松地测试我们的路由处理程序，但多部分表单处理会增加复杂性（与我们在到达处理程序之前使用中间件处理其他类型的请求主体类似）。由于我们不希望自己测试多部分表单解码过程（我们可以假设
+    **multiparty** 已经彻底处理了这个过程），我们将通过将已处理的信息传递给处理程序来保持它们的“纯洁性”。由于我们还不知道这个过程的具体情况，我们将从
+    *meadowlark.js* 中的 Express 框架开始：
+- en: '[PRE10]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: We’re using multiparty’s `parse` method to parse the request data into the data
+    fields and the files. This method will store the files in a temporary directory
+    on the server, and that information will be returned in the `files` array passed
+    back.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用 **multiparty** 的 `parse` 方法将请求数据解析成数据字段和文件。这个方法会将文件存储在服务器上的临时目录中，并将相关信息返回到传递的
+    `files` 数组中。
+- en: 'So now we have extra information to pass to our (testable) route handler: the
+    fields (which won’t be in `req.body` as in previous examples since we’re using
+    a different body parser) and information about the file(s) that were collected.
+    Now that we know what that looks like, we can write our route handler:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了额外的信息可以传递给我们（可测试的）路由处理程序：字段（由于我们使用了不同的body解析器，所以它们不会像之前的例子一样在`req.body`中）以及收集到的文件的信息。现在我们知道它看起来是什么样子，我们可以编写我们的路由处理程序：
+- en: '[PRE11]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '(Year and month are being specified as *route parameters*, which you’ll learn
+    about in [Chapter 14](ch14.xhtml#ch_routing).) Go ahead and run this and examine
+    the console log. You’ll see that your form fields come across as you would expect:
+    as an object with properties corresponding to your field names. The `files` object
+    contains more data, but it’s relatively straightforward. For each file uploaded,
+    you’ll see there are properties for size, the path it was uploaded to (usually
+    a random name in a temporary directory), and the original name of the file that
+    the user uploaded (just the filename, not the whole path, for security and privacy
+    reasons).'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: （年份和月份被指定为*路由参数*，你会在[第14章](ch14.xhtml#ch_routing)学到有关路由参数的知识。）请继续运行它并检查控制台日志。你会看到你的表单字段以你预期的方式传递过来：作为一个对象，拥有与字段名对应的属性。`files`对象包含更多数据，但相对来说比较简单。对于每个上传的文件，你会看到有关大小、上传路径（通常是临时目录中的随机名称）以及用户上传的文件的原始名称（只是文件名，而不是整个路径，出于安全和隐私考虑）的属性。
+- en: 'What you do with this file is now up to you: you can store it in a database,
+    copy it to a more permanent location, or upload it to a cloud-based file storage
+    system. Remember that if you’re relying on local storage for saving files, your
+    application won’t scale well, making this a poor choice for cloud-based hosting.
+    We will be revisiting this example in [Chapter 13](ch13.xhtml#ch_persistence).'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你对这个文件的处理现在取决于你：你可以将它存储在数据库中，复制到更永久的位置，或者上传到基于云的文件存储系统。请记住，如果你依赖于本地存储来保存文件，你的应用程序将无法很好地扩展，这对基于云的主机来说是一个不好的选择。我们将在[第13章](ch13.xhtml#ch_persistence)再次讨论这个例子。
+- en: File Uploads with Fetch
+  id: totrans-80
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用Fetch进行文件上传
+- en: Happily, using `fetch` for file uploads is nearly identical to letting the browser
+    handle it. The hard work of file uploads is really in the encoding, which is being
+    handled for us with middleware.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 令人高兴的是，使用`fetch`进行文件上传几乎与让浏览器处理一样。文件上传的辛苦工作实际上在于编码，而这些都在中间件中被处理。
+- en: 'Consider this JavaScript to send our form contents using `fetch`:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑使用以下JavaScript使用`fetch`发送我们的表单内容：
+- en: '[PRE12]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'The important detail to note here is that we convert the form element to a
+    [`FormData`](https://mzl.la/2CErVzb) object, which `fetch` can accept directly
+    as the request body. That’s all there is to it! Because the encoding is exactly
+    the same as it was when we let the browser handle it, our handler is almost exactly
+    the same. We just want to return a JSON response instead of a redirect:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里需要注意的重要细节是我们将表单元素转换为[`FormData`](https://mzl.la/2CErVzb)对象，而`fetch`可以直接接受该对象作为请求体。就是这么简单！因为编码方式与我们让浏览器处理时完全相同，所以我们的处理程序几乎完全相同。我们只希望返回一个JSON响应，而不是重定向：
+- en: '[PRE13]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Improving File Upload UI
+  id: totrans-86
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 改善文件上传UI
+- en: The browser’s built-in `<input>` control for file uploads is, shall we say,
+    a bit lacking from a UI perspective. You’ve probably seen drag-and-drop interfaces
+    and file upload buttons that are styled more attractively.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从UI角度来看，浏览器内置的文件上传控件可以说有些欠缺。你可能已经看到过拖放界面和样式更有吸引力的文件上传按钮。
+- en: The good news is that the techniques you’ve learned here will apply to almost
+    all of the popular “fancy” file upload components. At the end of the day, most
+    of them are putting a pretty face on the same form upload mechanism.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好消息是，你在这里学到的技术几乎都适用于大多数流行的“花哨”文件上传组件。归根结底，大部分都是在同一个表单上传机制上面打了一个漂亮的外壳。
+- en: 'Some of the most popular file upload frontends are as follows:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些最受欢迎的文件上传前端如下所示：
+- en: '[jQuery File Upload](http://bit.ly/2Qbcd6I)'
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[jQuery文件上传](http://bit.ly/2Qbcd6I)'
+- en: '[Uppy](http://bit.ly/2rEFWeb) (this one has the benefit of offering support
+    for many popular upload targets)'
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[Uppy](http://bit.ly/2rEFWeb)（这款产品的好处是支持许多热门的上传目标）'
+- en: '[file-upload-with-preview](http://bit.ly/2X5fS7F) (this one gives you full
+    control; you have access to an array of file objects that you can use to construct
+    a `FormData` object to use with `fetch`)'
+  id: totrans-92
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '[带预览的文件上传](http://bit.ly/2X5fS7F)（这个可以让你完全控制；你可以访问文件对象数组，然后用它们构建`FormData`对象，再与`fetch`一起使用）'
+- en: Conclusion
+  id: totrans-93
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter, you learned the various techniques to use for processing forms.
+    We explored the traditional way forms are handled by browsers (letting the browser
+    issue a `POST` request to the server with the form contents and rendering the
+    response from the server, usually a redirect) as well as the increasingly ubiquitous
+    approach of preventing the browser from submitting the form and handling it ourselves
+    with `fetch`.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您学习了用于处理表单的各种技术。我们探讨了传统的浏览器处理表单的方式（让浏览器向服务器发出`POST`请求，包含表单内容并渲染来自服务器的响应，通常是重定向），以及越来越普遍的方法，即防止浏览器提交表单并使用`fetch`自行处理。
+- en: 'We learned about the common ways forms are encoded:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们学习了表单的常见编码方式：
+- en: '`application/x-www-form-urlencoded`'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`application/x-www-form-urlencoded`'
+- en: Default and easy-to-use encoding typically associated with traditional form
+    processing
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 默认且易于使用的编码方式，通常与传统表单处理相关联
+- en: '`application/json`'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`application/json`'
+- en: Common for (nonfile) data sent with `fetch`
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于使用`fetch`发送的（非文件）数据的常见方式
+- en: '`multipart/form-data`'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`multipart/form-data`'
+- en: The encoding to use when you need to transfer files
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于传输文件时使用的编码方式
+- en: Now that we’ve covered how to get user data into our server, let’s turn our
+    attention to *cookies* and *sessions*, which also help synchronize the server
+    and the client.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经介绍了如何将用户数据发送到服务器，让我们把注意力转向*cookies*和*sessions*，它们也有助于同步服务器和客户端。

@@ -1,0 +1,2596 @@
+- en: Chapter 1\. The Entry-Level Stuff
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第一章。入门级内容
+- en: 'Let’s start with a disclaimer: React was made to be used by all. In fact, you
+    could go through life having never read this book and continue to use React without
+    problems! This book dives much deeper into React for those of us who are curious
+    about its underlying mechanism, advanced patterns, and best practices. It lends
+    itself better to knowing how React works instead of learning how to use React.
+    There are plenty of other books that are written with the intent to teach folks
+    how to use React as an end user. In contrast, this book will help you understand
+    React at the level of a library or framework author instead of an end user. In
+    keeping with that theme, let’s go on a deep dive together, starting at the top:
+    the higher-level, entry-level topics. We’ll start with the basics of React, and
+    then dive deeper and deeper into the details of how React works.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们先声明一点：React 被设计成供所有人使用。事实上，你可以一辈子都不读这本书，继续使用 React 而毫无问题！这本书深入探讨 React，适合那些对其基本机制、高级模式和最佳实践感兴趣的人。它更适合了解
+    React 的工作原理，而不是学习如何使用 React。有很多其他书籍旨在教授用户如何作为终端用户使用 React。相比之下，本书将帮助你了解 React，从库或框架作者的角度，而不是终端用户的角度。为了贯彻这一主题，让我们一起深入挖掘，从最高层开始：高级入门话题。我们将从
+    React 的基础知识开始，然后深入到 React 工作的细节。
+- en: In this chapter, we’ll talk about why React exists, how it works, and what problems
+    it solves. We’ll cover its initial inspiration and design, and follow it from
+    its humble beginnings at Facebook to the prevalent solution that it is today.
+    This chapter is a bit of a meta chapter (no pun intended), because it’s important
+    to understand the context of React before we dive into the details.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将讨论 React 存在的原因、它的工作原理以及它解决的问题。我们将介绍它最初的灵感和设计，并从它在 Facebook 起步的谦逊开始，追踪到它如今成为流行解决方案的过程。这一章有点元章节（无双关语），因为在我们深入细节之前了解
+    React 的背景非常重要。
+- en: Why Is React a Thing?
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为什么 React 这么重要？
+- en: 'The answer in one word is: *updates*. In the early days of the web, we had
+    a lot of static pages. We’d fill out forms, hit Submit, and load an entirely new
+    page. This was fine for a while, but eventually web experiences evolved significantly
+    in terms of capabilities. As the capabilities grew, so did our desire for superior
+    user experiences on the web. We wanted to be able to see things update instantly
+    without having to wait for a new page to be rendered and loaded. We wanted the
+    web and its pages to feel *snappier* and more “instant.” The problem was that
+    these instant updates were pretty hard to do *at scale* for a number of reasons:'
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 简而言之，答案是：*更新*。在互联网早期，我们有很多静态页面。我们填写表单，点击提交，加载一个全新的页面。这在一段时间内还算可以，但随着网络体验能力的显著增长，我们渴望在网页上获得更出色的用户体验。我们希望能够即时看到页面更新，而不必等待新页面的渲染和加载。我们希望网页和页面感觉更加*迅速*和更加“即时”。然而，问题在于，这些即时更新在*大规模*情况下相当难以实现，原因有几个：
+- en: Performance
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: Making updates to web pages often caused performance bottlenecks because we
+    were prone to perform work that triggered browsers to recalculate a page’s layout
+    (called a reflow) and repaint the page.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对网页进行更新通常会导致性能瓶颈，因为我们往往会触发浏览器重新计算页面布局（称为回流）并重绘页面。
+- en: Reliability
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可靠性
+- en: Keeping track of state and making sure that the state was consistent across
+    a rich web experience was hard to do because we had to keep track of state in
+    multiple places and make sure that the state was consistent across all of those
+    places. This was especially hard to do when we had multiple people working on
+    the same codebase.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 跟踪状态并确保状态在丰富的网页体验中一致是很困难的，因为我们必须在多个地方跟踪状态，并确保所有这些地方的状态保持一致。当多人在同一代码库上工作时，这一点尤其难以做到。
+- en: Security
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安全性
+- en: We had to be sure to sanitize all HTML and JavaScript that we were injecting
+    into the page to prevent exploits like cross-site scripting (XSS) and cross-site
+    request forgery (CSRF).
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们必须确保对注入页面的所有 HTML 和 JavaScript 进行消毒，以防止跨站脚本（XSS）和跨站请求伪造（CSRF）等利用漏洞。
+- en: To fully understand and appreciate how React solves these problems for us, we
+    need to understand the context in which React was created and the world without
+    or before React. Let’s do that now.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要完全理解和欣赏 React 是如何为我们解决这些问题的，我们需要了解 React 创建的背景以及没有或在 React 之前的世界。让我们现在开始。
+- en: The World Before React
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React 之前的世界
+- en: 'These were some of the large problems for those of us building web apps before
+    React. We had to figure out how to make our apps feel snappy and instant, but
+    also scale to millions of users and work reliably in a safe way. For example,
+    let’s consider a button click: when a user clicks a button, we want to update
+    the user interface to reflect that the button has been clicked. We’ll need to
+    consider at least four different states that the user interface can be in:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 出现之前，对于我们这些构建 Web 应用程序的人来说，这些都是一些大问题。我们必须想办法让应用程序看起来即时响应，同时还要能够扩展到数百万用户并且以安全可靠的方式工作。例如，让我们考虑一个按钮点击的情况：当用户点击按钮时，我们希望更新用户界面以反映按钮已被点击。我们需要考虑用户界面可能处于的至少四种不同状态：
+- en: Pre-click
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 点击前
+- en: The button is in its default state and has not been clicked.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按钮处于默认状态，尚未被点击。
+- en: Clicked but pending
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已点击但待处理
+- en: The button has been clicked, but the action that the button is supposed to perform
+    has not yet completed.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按钮已被点击，但按钮应执行的操作尚未完成。
+- en: Clicked and succeeded
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已点击并成功
+- en: The button has been clicked, and the action that the button is supposed to perform
+    has completed. From here, we may want to revert the button to its pre-click state,
+    or we may want the button to change color (green) to indicate success.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按钮已被点击，并且按钮应执行的操作已完成。从这里，我们可能希望将按钮恢复到其点击前的状态，或者我们可能希望按钮变色（绿色）以表示成功。
+- en: Clicked and failed
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已点击并失败
+- en: The button has been clicked, but the action that the button is supposed to perform
+    has failed. From here, we may want to revert the button to its pre-click state,
+    or we may want the button to change color (red) to indicate failure.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按钮已被点击，但按钮应执行的操作失败了。从这里，我们可能希望将按钮恢复到其点击前的状态，或者我们可能希望按钮变色（红色）以表示失败。
+- en: 'Once we have these states, we need to figure out how to update the user interface
+    to reflect them. Oftentimes, updating the user interface would require the following
+    steps:'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们有了这些状态，我们需要找出如何更新用户界面以反映这些状态。通常情况下，更新用户界面需要以下步骤：
+- en: Find the button in the host environment (often the browser) using some type
+    of element locator API, such as `document.querySelector` or `document.getElementById`.
+  id: totrans-23
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在主机环境（通常是浏览器）中找到按钮，使用某种类型的元素定位器 API，如`document.querySelector`或`document.getElementById`。
+- en: Attach event listeners to the button to listen for click events.
+  id: totrans-24
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将事件侦听器附加到按钮，以监听点击事件。
+- en: Perform any state updates in response to events.
+  id: totrans-25
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在响应事件时执行任何状态更新。
+- en: When the button leaves the page, remove the event listeners and clean up any
+    state.
+  id: totrans-26
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 当按钮离开页面时，移除事件侦听器并清理任何状态。
+- en: 'This is a simple example, but it’s a good one to start with. Let’s say we have
+    a button labeled “Like,” and when a user clicks it, we want to update the button
+    to “Liked.” How do we do this? To start with, we’d have an HTML element:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个简单的示例，但这是一个很好的起点。假设我们有一个标记为“赞”的按钮，当用户点击它时，我们希望将按钮更新为“已赞”。我们该如何做到这一点？首先，我们会有一个
+    HTML 元素：
+- en: '[PRE0]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'We’d need some way to reference this button with JavaScript, so we’d give it
+    an `id` attribute:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要一种方法来在 JavaScript 中引用此按钮，因此我们会给它一个`id`属性：
+- en: '[PRE1]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Great! Now that there’s an `id`, JavaScript can work with it to make it interactive.
+    We can get a reference to the button using `document.getElementById`, and then
+    we’ll add an event listener to the button to listen for click events:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！现在有了一个`id`，JavaScript 可以与之配合使其交互。我们可以使用`document.getElementById`获取按钮的引用，然后为按钮添加事件侦听器以监听点击事件：
+- en: '[PRE2]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Now that we have an event listener, we can do something when the button is
+    clicked. Let’s say we want to update the button to have the label “Liked” when
+    it’s clicked. We can do this by updating the button’s text content:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了一个事件侦听器，当按钮被点击时我们可以做一些事情。假设我们希望在按钮被点击时将按钮标签更新为“已赞”。我们可以通过更新按钮的文本内容来实现这一点：
+- en: '[PRE3]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Great! Now we have a button that says “Like,” and when it’s clicked, it says
+    “Liked.” The problem here is that we can’t “unlike” things. Let’s fix that and
+    update the button to say “Like” again if it’s clicked in its “Liked” state. We’d
+    need to add some state to the button to keep track of whether or not it’s been
+    clicked. We can do this by adding a `data-liked` attribute to the button:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 太棒了！现在我们有了一个标签为“赞”的按钮，当它被点击时，它会显示“已赞”。问题在于我们不能“取消赞”。让我们修复这个问题，如果按钮在其“已赞”状态下被点击，我们将更新按钮以再次显示“赞”。我们需要向按钮添加一些状态来跟踪其是否已被点击。我们可以通过向按钮添加一个`data-liked`属性来实现这一点：
+- en: '[PRE4]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Now that we have this attribute, we can use it to keep track of whether or
+    not the button has been clicked. We can update the button’s text content based
+    on the value of this attribute:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了这个属性，我们可以用它来跟踪按钮是否已被点击。我们可以根据这个属性的值更新按钮的文本内容：
+- en: '[PRE5]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Wait, but we’re just changing the `textContent` of the button! We’re not actually
+    saving the “Liked” state to a database. Normally, to do this we had to communicate
+    over the network, like so:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 等等，但我们只是改变按钮的`textContent`！我们并没有真正将“喜欢”的状态保存到数据库中。通常情况下，我们需要通过网络进行通信，就像这样：
+- en: '[PRE6]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Of course, we’re using `XMLHttpRequest` and `var` to be time relevant. React
+    was released as open source software in 2013, and the more common `fetch` API
+    was introduced in 2015\. In between `XMLHttpRequest` and `fetch`, we had jQuery
+    that often abstracted away some complexity with primitives like `$.ajax()`, `$.post()`,
+    etc.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，我们正在使用`XMLHttpRequest`和`var`以保持时间的相关性。React在2013年作为开源软件发布，更常见的`fetch` API是在2015年引入的。在`XMLHttpRequest`和`fetch`之间，我们有jQuery，通常通过像`$.ajax()`、`$.post()`等原语来抽象一些复杂性。
+- en: 'If we were to write this today, it would look more like this:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果今天我们要编写这个功能，它可能会更像这样：
+- en: '[PRE7]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Without digressing too much, the point now is that we’re communicating over
+    the network, but what if the network request fails? We’d need to update the button’s
+    text content to reflect the failure. We can do this by adding a `data-failed`
+    attribute to the button:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要太偏离主题，现在的重点是我们正在通过网络进行通信，但如果网络请求失败会怎么样？我们需要更新按钮的文本内容来反映失败。我们可以通过向按钮添加`data-failed`属性来实现这一点：
+- en: '[PRE8]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now we can update the button’s text content based on the value of this attribute:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以根据这个属性的值更新按钮的文本内容：
+- en: '[PRE9]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'There’s one more case to handle: the process of currently “liking” a thing.
+    That is, the pending state. To model this in code, we’d set yet another attribute
+    on the button for the pending state by adding `data-pending`, like so:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一个情况需要处理：当前正在“喜欢”某物的过程。也就是说，挂起状态。要在代码中建模这一点，我们可以通过向按钮添加`data-pending`属性来设置挂起状态，就像这样：
+- en: '[PRE10]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Now we can disable the button if a network request is in process so that multiple
+    clicks don’t queue up network requests and lead to odd race conditions and server
+    overload. We can do that like so:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果网络请求正在进行中，我们可以禁用按钮，这样多次点击不会排队进行网络请求，从而导致奇怪的竞态条件和服务器超载。我们可以这样做：
+- en: '[PRE11]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: We can also make use of powerful techniques like debouncing and throttling to
+    prevent users from performing redundant or repetitive actions.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以利用强大的技术，如去抖动（debouncing）和节流（throttling），以防止用户执行冗余或重复的操作。
+- en: Note
+  id: totrans-53
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As a quick aside, we mention debouncing and throttling. For clarity, debouncing
+    delays a function’s execution until after a set time has passed since the last
+    event trigger (e.g., waits for users to stop typing to process input), and throttling
+    limits a function to running at most once every set time interval, ensuring it
+    doesn’t execute too frequently (e.g., processes scroll events at set intervals).
+    Both techniques optimize performance by controlling function execution rates.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 顺便说一句，我们提到了去抖动和节流。为了清晰起见，去抖动会延迟函数的执行，直到自上次事件触发以来经过了一段时间（例如，等待用户停止输入以处理输入），而节流会限制函数在设置的时间间隔内最多运行一次，确保它不会执行得太频繁（例如，以设置的间隔处理滚动事件）。这两种技术通过控制函数执行速率来优化性能。
+- en: 'OK, now our button is kind of robust and can handle multiple states—but some
+    questions still remain:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好的，现在我们的按钮有点强大了，可以处理多种状态——但仍然有一些问题需要解决：
+- en: Is `data-pending` really necessary? Can’t we just check if the button is disabled?
+    Probably not, because a disabled button could be disabled for other reasons, like
+    the user not being logged in or not having permission to click the button.
+  id: totrans-56
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`data-pending`真的有必要吗？我们不能只检查按钮是否已禁用吗？可能不行，因为禁用按钮可能是由于其他原因，比如用户未登录或没有权限点击按钮。'
+- en: 'Would it make more sense to have a `data-state` attribute, where `data-state`
+    can be one of `pending`, `liked`, or `unliked`, instead of so many other data
+    attributes? Probably, but then we’d need to add a large switch/case or similar
+    code block to handle each case. Ultimately, the volume of code to handle both
+    approaches is incomparable: we still end up with complexity and verbosity either
+    way.'
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`data-state`属性会更合理吗？其中`data-state`可以是`pending`、`liked`或`unliked`之一，而不是这么多其他数据属性？也许吧，但然后我们需要添加一个大的switch/case或类似的代码块来处理每种情况。最终，处理两种方法的代码量是不可比的：无论哪种方式，我们仍然会面临复杂性和冗余性。
+- en: How do we test this button in isolation? Can we?
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们如何单独测试这个按钮？我们可以吗？
+- en: Why do we have the button initially written in HTML, and then later work with
+    it in JavaScript? Wouldn’t it be better if we could just create the button in
+    JavaScript with `document.createElement('button')` and then `document.appendChild(likeButton)`?
+    This would make it easier to test and would make the code more self-contained,
+    but then we’d have to keep track of its parent if its parent isn’t `document`.
+    In fact, we might have to keep track of *all* the parents on the page.
+  id: totrans-59
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为什么我们首先在 HTML 中写入按钮，然后在 JavaScript 中处理它？如果我们只需使用 `document.createElement('button')`
+    创建按钮，然后 `document.appendChild(likeButton)`，不是更好吗？这将使测试变得更容易，并使代码更加自包含，但如果其父元素不是
+    `document`，我们就必须跟踪它的父元素。事实上，我们可能需要跟踪页面上的*所有*父元素。
+- en: 'React helps us solve some of these problems but not all of them: for example,
+    the question of how to break up state into separate flags (`isPending`, `hasFailed`,
+    etc.) or a single state variable (like `state`) is a question that React doesn’t
+    answer for us. It’s a question that we have to answer for ourselves. However,
+    React does help us solve the problem of scale: creating a lot of buttons that
+    need to be interactive and updating the user interface in response to events in
+    a minimal and efficient way, and doing this in a testable, reproducible, declarative,
+    performant, predictable, and reliable way.'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 帮助我们解决了其中一些问题，但并非全部问题：例如，如何将状态分解为单独的标志（`isPending`、`hasFailed` 等）或单个状态变量（例如
+    `state`）的问题，并不是 React 为我们提供答案的问题。这是我们必须自己回答的问题。但是，React 确实帮助我们解决了规模的问题：以一种最小化和高效的方式创建需要交互的大量按钮，并根据事件更新用户界面，并以可测试、可重现、声明性、高性能、可预测和可靠的方式执行这些操作。
+- en: Moreover, React helps us make state far more predictable by fully owning the
+    state of the user interface and rendering based on that state. This is in stark
+    contrast to having the state be owned and operated on by the browser, whose state
+    can be largely unreliable due to a number of factors like other client-side scripts
+    running on the page, browser extensions, device constraints, and so many more
+    variables.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，React 帮助我们通过完全拥有用户界面的状态并基于该状态进行渲染，使状态变得更加可预测。这与由浏览器拥有和操作的状态形成鲜明对比，浏览器的状态可能由于多种因素（例如在页面上运行的其他客户端脚本、浏览器扩展、设备限制等）而变得不太可靠。
+- en: 'Our example with the Like button is a very simple example, but it’s a good
+    one to start with. So far, we’ve seen how we can use JavaScript to make a button
+    interactive, but this is a very manual process if we want to do it *well*: we
+    have to find the button in the browser, add an event listener, update the button’s
+    text content, and account for myriad edge cases. This is a lot of work, and it’s
+    not very scalable. What if we had a lot of buttons on the page? What if we had
+    a lot of buttons that needed to be interactive? What if we had a lot of buttons
+    that needed to be interactive, and we needed to update the user interface in response
+    to events? Would we use event delegation (or event bubbling) and attach an event
+    listener to the higher `document`? Or should we attach event listeners to each
+    button?'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 Like 按钮示例是一个非常简单的例子，但是这是一个很好的开始。到目前为止，我们已经看到如何使用 JavaScript 使按钮交互，但是如果我们想要做得*更好*，这是一个非常手动的过程：我们必须在浏览器中找到按钮，添加事件侦听器，更新按钮的文本内容，并考虑多种边缘情况。这是很多工作，并且不太可扩展。如果页面上有很多按钮怎么办？如果我们有很多需要交互的按钮怎么办？如果我们有很多需要交互的按钮，并且需要根据事件更新用户界面怎么办？我们会使用事件委托（或事件冒泡）并将事件侦听器附加到更高级别的
+    `document` 吗？还是应该为每个按钮附加事件侦听器？
+- en: 'As stated in the Preface, this book assumes we have a satisfactory understanding
+    of this statement: browsers render web pages. Web pages are HTML documents that
+    are styled by CSS and made interactive with JavaScript. This has worked great
+    for decades and still does, but building modern web applications that are intended
+    to service a significant (think millions) amount of users with these technologies
+    requires a good amount of abstraction in order to do it safely and reliably with
+    as little possibility for error as possible. Unfortunately, based on the example
+    of the Like button that we’ve been exploring, it’s clear that we’re going to need
+    some help with this.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前言所述，本书假设我们对这一陈述有了满意的理解：浏览器渲染网页。网页是由 HTML 文档样式化为 CSS，并使用 JavaScript 交互式地进行制作。数十年来，这种方法一直运作良好，现在仍然如此，但是要用这些技术构建现代的
+    Web 应用程序，以便服务于大量（想象一下，数百万）用户，就需要在安全性和可靠性方面进行相当程度的抽象，以尽可能减少错误的可能性。不幸的是，根据我们一直在探索的
+    Like 按钮的例子，显然我们需要一些帮助。
+- en: 'Let’s consider another example that’s a little bit more complex than our Like
+    button. We’ll start with a simple example: a list of items. Let’s say we have
+    a list of items and we want to add a new item to the list. We could do this with
+    an HTML form that looks something like this:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑另一个稍微复杂一点的例子，比我们的“喜欢”按钮更复杂。我们从一个简单的例子开始：一个项目列表。假设我们有一个项目列表，并且我们希望向列表中添加一个新项目。我们可以使用一个类似下面的
+    HTML 表单来做到这一点：
+- en: '[PRE12]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'JavaScript gives us access to Document Object Model (DOM) APIs. For the unaware,
+    the DOM is an in-memory model of a web page’s document structure: it’s a tree
+    of objects that represents the elements on your page, giving you ways to interact
+    with them via JavaScript. The problem is, the DOMs on user devices are like an
+    alien planet: we have no way of knowing what browsers they’re using, in what network
+    conditions, and on what operating systems (OS) they’re working. The result? We
+    have to write code that is resilient to all of these factors.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 让我们可以访问文档对象模型（DOM）API。对于不了解的人来说，DOM 是网页文档结构的内存模型：它是表示页面元素的对象树，通过
+    JavaScript 可以与它们进行交互。问题是，用户设备上的 DOM 就像是一个外星行星：我们不知道他们使用的浏览器、网络条件以及操作系统（OS）。结果是什么呢？我们必须编写能够适应所有这些因素的代码。
+- en: 'As we’ve discussed, application state becomes quite hard to predict when it
+    updates without some type of state-reconciliation mechanism to keep track of things.
+    To continue with our list example, let’s consider some JavaScript code to add
+    a new item to the list:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们讨论过的，当更新应用程序状态时，如果没有某种状态协调机制来跟踪事务，应用程序状态变得非常难以预测。继续以我们的列表示例为例，让我们考虑一些 JavaScript
+    代码来向列表中添加新项目：
+- en: '[PRE13]'
+  id: totrans-68
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'This code snippet is written to look as similar as possible to early web applications.
+    Why does this go haywire over time? Mainly because building applications intended
+    to scale this way over time presents some footguns, making them:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码片段是为了尽可能看起来与早期的 Web 应用程序相似。为什么随着时间的推移会变得一团糟？主要是因为构建旨在随时间推移扩展的应用程序会带来一些问题，使它们成为“步枪脚”，这样做会：
+- en: Error prone
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容易出错
+- en: '`addForm`’s `onsubmit` attribute could be easily rewritten by other client-side
+    JavaScript on the page. We could use `addEventListener` instead, but this presents
+    more questions:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`addForm` 的 `onsubmit` 属性可以轻松被页面上的其他客户端 JavaScript 重写。我们可以改用 `addEventListener`，但这会带来更多问题：'
+- en: Where and when would we clean it up with `removeEventListener`?
+  id: totrans-72
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们应该在何时何地使用 `removeEventListener` 进行清理呢？
+- en: Would we accumulate a lot of event listeners over time if we’re not careful
+    about this?
+  id: totrans-73
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们不小心会积累大量的事件侦听器吗？
+- en: What penalties will we pay because of it?
+  id: totrans-74
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 因此我们会支付什么样的代价？
+- en: How does event delegation fit into this?
+  id: totrans-75
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 事件委托如何适应其中？
+- en: Unpredictable
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不可预测
+- en: 'Our sources of truth are mixed: we’re holding list items in a JavaScript array,
+    but relying on existing elements in the DOM (like an element with `id="list-parent"`)
+    to complete our app. Because of these interdependencies between JavaScript and
+    HTML, we have a few more things to consider:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的真相来源混杂：我们在 JavaScript 数组中保存列表项，但依赖于 DOM 中存在的元素（如具有 `id="list-parent"` 的元素）来完成我们的应用程序。由于
+    JavaScript 和 HTML 之间的这些相互依赖，我们还需要考虑一些其他因素：
+- en: What if there are mistakenly multiple elements with the same `id`?
+  id: totrans-78
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果错误地存在多个具有相同 `id` 的元素会怎么样？
+- en: What if the element doesn’t exist at all?
+  id: totrans-79
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果元素根本不存在会怎样？
+- en: What if it’s not a `ul`? Can we append list items (`li` elements) to other parents?
+  id: totrans-80
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果它不是 `ul` 呢？我们能否将列表项 (`li` 元素) 添加到其他父元素中？
+- en: What if we use class names instead?
+  id: totrans-81
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们使用类名而不是 ID 呢？
+- en: Our sources of truth are mixed between JavaScript and HTML, making the truth
+    unreliable. We’d benefit more from having a single source of truth. Moreover,
+    elements are added and removed from the DOM by client-side JavaScript all the
+    time. If we rely on the existence of these specific elements, our app has no guarantees
+    of working reliably as the UI keeps updating. Our app in this case is full of
+    “side effects,” where its success or failure depends on some userland concern.
+    React has remedied this by advocating a functional programming-inspired model
+    where side effects are intentionally marked and isolated.
+  id: totrans-82
+  prefs:
+  - PREF_IND
+  type: TYPE_NORMAL
+  zh: 我们的真相来源混杂在 JavaScript 和 HTML 之间，真相不可靠。我们更希望有一个单一的真相来源。此外，客户端 JavaScript 经常向
+    DOM 添加和删除元素。如果我们依赖于这些特定元素的存在，我们的应用程序就无法保证可靠地工作，因为 UI 不断更新。在这种情况下，我们的应用程序充满了“副作用”，其成功或失败取决于一些用户关注的问题。React
+    通过提倡受函数式编程启发的模型来解决了这个问题，其中副作用被有意标记和隔离。
+- en: Inefficient
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 效率低下
+- en: '`renderListItems` renders items on the screen sequentially. Each mutation of
+    the DOM can be computationally expensive, especially where layout shift and reflows
+    are concerned. Since we’re on an alien planet with unknown computational power,
+    this can be quite unsafe for performance in case of large lists. Remember, we’re
+    intending our large-scale web application to be used by millions worldwide, including
+    those with low-power devices from communities across the world without access
+    to the latest and greatest Apple M3 Max processors. What may be more ideal in
+    this scenario, instead of sequentially updating the DOM per single list item,
+    would be to batch these operations somehow and apply them all to the DOM at the
+    same time. But maybe this isn’t worth doing for us as engineers because perhaps
+    browsers will eventually update the way they work with quick updates to the DOM
+    and automatically batch things for us.'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`renderListItems` 依次在屏幕上呈现项目。每次 DOM 的变化可能在计算上是昂贵的，特别是在涉及布局移动和重排的情况下。因为我们在一个未知计算能力的外星球上，对于大型列表来说这可能相当危险。请记住，我们打算的大规模
+    Web 应用将被全球数百万用户使用，包括那些来自世界各地社区、没有最新和最好的 Apple M3 Max 处理器的低功率设备用户。在这种情况下，与其每次单个列表项的顺序更新
+    DOM，也许更理想的是以某种方式批处理这些操作，并同时应用于 DOM。但也许对我们作为工程师来说这并不值得，因为也许浏览器最终会更新它们处理 DOM 的方式，并自动为我们批处理事务。'
+- en: 'These are some of the problems that have plagued web developers for years before
+    React and other abstractions appeared. Packaging code in a way that was maintainable,
+    reusable, and predictable at scale was a problem without much standardized consensus
+    in the industry. This pain of creating reliable and scalable user interfaces was
+    shared by many web companies at the time. It was at this point on the web that
+    we saw the rise of multiple JavaScript-based solutions that aimed to solve this:
+    Backbone, KnockoutJS, AngularJS, and jQuery. Let’s look at these solutions in
+    turn and see how they solved this problem. This will help us understand how React
+    is different from these solutions, and may even be superior to them.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些都是在 React 和其他抽象出现之前多年来困扰 Web 开发者的问题。以可维护、可重用和可预测的方式打包代码，在行业中没有太多标准化的共识，一直是一个问题。当时许多
+    Web 公司都分享了创建可靠和可伸缩用户界面的痛苦。正是在这个时候，我们看到了多种基于 JavaScript 的解决方案的兴起：Backbone、KnockoutJS、AngularJS
+    和 jQuery。让我们依次看看这些解决方案是如何解决这个问题的。这将帮助我们理解 React 如何与这些解决方案不同，甚至可能比它们更优秀。
+- en: jQuery
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: jQuery
+- en: Let’s explore how we solved some of these issues earlier on the web using tools
+    that predate React and thus learn why React is important. We’ll start with jQuery,
+    and we’ll do so by revisiting our Like button example from earlier.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们探索如何使用比 React 更早的工具解决这些问题，从而了解为什么 React 如此重要。我们将从 jQuery 开始，并通过重新访问之前的“点赞”按钮示例来做到这一点。
+- en: 'To recap, we’ve got a Like button in the browser that we’d like to make interactive:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 概括地说，我们在浏览器中有一个“点赞”按钮，我们希望使其交互：
+- en: '[PRE14]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'With jQuery, we’d add “like” behavior to it as we did earlier, like this:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 jQuery，我们像之前一样为其添加“点赞”行为，如下所示：
+- en: '[PRE15]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: From this example, we observe that we’re binding data to the user interface
+    and using this data binding to update the user interface in place. jQuery as a
+    tool is quite active in directly manipulating the user interface itself.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这个例子中，我们观察到我们正在将数据绑定到用户界面，并使用这些数据绑定来直接更新用户界面。作为一种工具，jQuery 在直接操作用户界面方面非常活跃。
+- en: jQuery runs in a heavily “side-effectful” way, constantly interacting with and
+    altering state outside of its own control. We say this is “side-effectful” because
+    it allows direct and global modifications to the page’s structure from anywhere
+    in the code, including from other imported modules or even remote script execution!
+    This can lead to unpredictable behavior and complex interactions that are difficult
+    to track and reason about, as changes in one part of the page can affect other
+    parts in unforeseen ways. This scattered and unstructured manipulation makes the
+    code hard to maintain and debug.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: jQuery 以一种高度“副作用”的方式运行，不断地与并修改其控制范围外的状态交互。我们说这是“副作用”，因为它允许从代码的任何位置，包括其他导入的模块甚至远程脚本执行，直接和全局地修改页面结构！这可能导致行为不可预测和交互复杂，难以跟踪和理解，因为页面的一个部分的更改可能以不可预见的方式影响其他部分。这种分散和无结构的操作使得代码难以维护和调试。
+- en: 'Modern frameworks address these issues by providing structured, predictable
+    ways to update the UI without direct DOM manipulation. This pattern was common
+    at the time, and it is difficult to reason about and test because the world around
+    the code, that is, the application state adjacent to the code, is constantly changing.
+    At some point, we’d have to stop and ask ourselves: “what is the state of the
+    app in the browser right now?”—a question that became increasingly difficult to
+    answer as the complexity of our applications grew.'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代框架通过提供结构化、可预测的方式更新 UI，而无需直接操作 DOM 来解决这些问题。这种模式在当时很常见，但难以推理和测试，因为代码周围的应用状态——即与代码相邻的应用状态——在不断变化。在某个时刻，我们不得不停下来问自己：“当前浏览器中应用的状态是什么？”——随着我们的应用程序复杂性的增加，这个问题的答案变得越来越困难。
+- en: 'Moreover, this button with jQuery is hard to test because it’s just an event
+    handler. If we were to write a test, it would look like this:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，使用 jQuery 的按钮很难进行测试，因为它只是一个事件处理程序。如果我们要编写一个测试，它将如下所示：
+- en: '[PRE16]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'The only problem is that `$(''#likeButton'')` returns `null` in the testing
+    environment because it’s not a real browser. We’d have to mock out the browser
+    environment to test this code, which is a lot of work. This is a common problem
+    with jQuery: it’s hard to test because it’s hard to isolate the behavior it adds.
+    jQuery also depends heavily on the browser environment. Moreover, jQuery shares
+    ownership of the user interface with the browser, which makes it difficult to
+    reason about and test: the browser owns the interface, and jQuery is just a guest.
+    This deviation from the “one-way data flow” paradigm was a common problem with
+    libraries at the time.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 唯一的问题是在测试环境中`$('#likeButton')`返回`null`，因为它不是一个真实的浏览器。我们需要模拟浏览器环境来测试这段代码，这是很多工作。这是
+    jQuery 的一个常见问题：它很难测试，因为很难隔离其添加的行为。jQuery 还严重依赖于浏览器环境。此外，jQuery 与浏览器共享用户界面的所有权，这使得推理和测试变得困难：浏览器拥有界面，而
+    jQuery 只是一个客人。这种与“单向数据流”范式的偏离是当时库常见的问题。
+- en: 'Eventually, jQuery started to lose its popularity as the web evolved and the
+    need for more robust and scalable solutions became apparent. While jQuery is still
+    used in many production applications, it’s no longer the go-to solution for building
+    modern web applications. Here are some of the reasons why jQuery has fallen out
+    of favor:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着 Web 的发展和对更强大、可扩展解决方案需求的逐渐明显，jQuery 开始失去其流行性。虽然 jQuery 仍然在许多生产应用中使用，但它不再是构建现代
+    Web 应用的首选解决方案。以下是 jQuery 失宠的一些原因：
+- en: Weight and load times
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 体积和加载时间
+- en: One of the significant criticisms of jQuery is its size. Integrating the full
+    jQuery library into web projects adds extra weight, which can be especially taxing
+    for websites aiming for fast load times. In today’s age of mobile browsing, where
+    many users might be on slower or limited data connections, every kilobyte counts.
+    The inclusion of the entire jQuery library can, therefore, negatively impact the
+    performance and experience of mobile users.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: jQuery 的一个显著批评点是其体积过大。将完整的 jQuery 库集成到 Web 项目中会增加额外的负担，尤其是对于追求快速加载时间的网站来说，这一点尤为明显。在当前移动浏览的时代，许多用户可能处于较慢或有限的数据连接状态，每个千字节都至关重要。因此，整个
+    jQuery 库的包含可能会对移动用户的性能和体验产生负面影响。
+- en: A common practice before React was to offer configurators for libraries like
+    jQuery and Mootools where users could cherry-pick the functionality they desired.
+    While this helped ship less code, it did introduce more complexity into the decisions
+    developers had to make, and into the overall development workflow.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 React 出现之前的一种常见做法是为类似 jQuery 和 Mootools 的库提供配置器，用户可以选择他们想要的功能。虽然这有助于减少代码量，但它确实增加了开发者需要做出的决策的复杂性，并增加了整体开发工作流程的复杂性。
+- en: Redundancy with modern browsers
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代浏览器的冗余
+- en: When jQuery first emerged, it addressed many inconsistencies across browsers
+    and provided developers with a unified way to handle these differences in the
+    context of selecting and then modifying elements in the browser. As the web evolved,
+    so did web browsers. Many features that made jQuery a must-have, such as consistent
+    DOM manipulation or network-oriented functionality around data fetching, are now
+    natively and consistently supported across modern browsers. Using jQuery for these
+    tasks in contemporary web development can be seen as redundant, adding an unnecessary
+    layer of complexity.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当jQuery首次出现时，它解决了许多浏览器之间的不一致性，并为开发者提供了一个统一的方式来处理这些差异，从而在选择和修改浏览器中的元素时。随着Web的发展，Web浏览器也在发展。许多使jQuery成为必备的特性，如一致的DOM操作或围绕数据获取的网络导向功能，现代浏览器现在都原生支持并保持一致。在当代Web开发中为这些任务使用jQuery可以被视为多余，增加了不必要的复杂性。
+- en: '`document.querySelector`, for example, quite easily replaces jQuery’s built-in
+    `$` selector API.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，`document.querySelector` 可轻松替代jQuery内置的 `$` 选择器API。
+- en: Performance considerations
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能考虑
+- en: While jQuery simplifies many tasks, it often comes at the cost of performance.
+    Native runtime-level JavaScript methods improve with each browser iteration and
+    thus at some point may execute faster than their jQuery equivalents. For small
+    projects, this difference might be negligible. However, in larger and more complex
+    web applications these complexities can accumulate, leading to noticeable jank
+    or reduced responsiveness.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管jQuery简化了许多任务，但通常以性能为代价。随着每个浏览器版本的提升，本机运行级别的JavaScript方法也在改进，因此在某些情况下可能比其jQuery等效方法执行更快。对于小型项目，这种差异可能微不足道。然而，在更大更复杂的Web应用程序中，这些复杂性可能会积累，导致明显的卡顿或响应速度降低。
+- en: For these reasons, while jQuery played a pivotal role in the web’s evolution
+    and simplified many challenges faced by developers, the modern web landscape offers
+    native solutions that often make jQuery less relevant. As developers, we need
+    to weigh the convenience of jQuery against its potential drawbacks, especially
+    in the context of current web projects.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，尽管jQuery在Web发展中起到了重要作用并简化了开发者面临的许多挑战，但现代Web环境提供了原生解决方案，这些解决方案通常使jQuery的影响力减弱。作为开发者，我们需要权衡jQuery的便利性和潜在的缺点，特别是在当前Web项目的背景下。
+- en: jQuery, despite its drawbacks, was an absolute revolution in the way we interacted
+    with the DOM at the time. So much so that other libraries emerged that used jQuery
+    but added more predictability and reusability to the mix. One such library was
+    Backbone, which was an attempt to solve the same problems React solves today,
+    but much earlier. Let’s dive in.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管jQuery有其缺点，但它在当时绝对革命了我们与DOM交互的方式。以至于出现了其他使用jQuery但增加了可预测性和可重用性的库。其中一个就是Backbone，它试图解决React今天解决的同样问题，只不过比React早得多。让我们深入探讨一下。
+- en: Backbone
+  id: totrans-109
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Backbone
+- en: 'Backbone, developed in the early 2010s, was one of the first solutions to the
+    problems we’ve been exploring in the world before React: state dissonance between
+    the browser and JavaScript, code reuse, testability, and more. It was an elegantly
+    simple solution: a library that provided a way to create “models” and “views.”
+    Backbone had its own take on the traditional MVC (Model-View-Controller) pattern
+    (see [Figure 1-1](#figure1-1)). Let’s understand this pattern a little bit to
+    help us understand React and form the basis of a higher-quality discussion.'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Backbone，在2010年代初开发，是我们在React出现之前探索的问题的第一个解决方案之一：浏览器和JavaScript之间的状态不一致，代码重用性，可测试性等等。它是一个优雅简洁的解决方案：一个提供创建“模型”和“视图”方式的库。Backbone对传统的MVC（模型-视图-控制器）模式有自己的理解（见[图1-1](#figure1-1)）。让我们稍微了解一下这种模式，以帮助我们理解React并形成更高质量的讨论的基础。
+- en: '![mvc](assets/frea_0101.png)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_IMG
+  zh: '![mvc](assets/frea_0101.png)'
+- en: Figure 1-1\. Traditional MVC pattern
+  id: totrans-112
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图1-1\. 传统MVC模式
+- en: The MVC pattern
+  id: totrans-113
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: MVC模式
+- en: 'The MVC pattern is a design philosophy that divides software applications into
+    three interconnected components to separate internal representations of information
+    from how that information is presented to or accepted from the user. Here’s a
+    breakdown:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVC模式是一种设计理念，将软件应用程序划分为三个相互连接的组件，以将信息的内部表示与其向用户呈现或接受的方式分离。以下是详细解析：
+- en: Model
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型
+- en: The Model is responsible for the data and the business rules of the application.
+    The Model is unaware of the View and Controller, ensuring that the business logic
+    is isolated from the user interface.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型负责应用程序的数据和业务规则。模型不知道视图和控制器，确保业务逻辑与用户界面隔离。
+- en: View
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图
+- en: 'The View represents the user interface of the application. It displays data
+    from the Model to the user and sends user commands to the Controller. The View
+    is passive, meaning it waits for the Model to provide data to display and does
+    not fetch or save data directly. The View also does not handle user interaction
+    on its own, but delegates this responsibility to the next component: the Controller.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图代表应用程序的用户界面。它将模型中的数据显示给用户，并将用户命令发送给控制器。视图是被动的，意味着它等待模型提供要显示的数据，不直接获取或保存数据。视图也不单独处理用户交互，而是将这一责任委托给下一个组件：控制器。
+- en: Controller
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制器
+- en: The Controller acts as an interface between the Model and the View. It takes
+    the user input from the View, processes it (with potential updates to the Model),
+    and returns the output display to the View. The Controller decouples the Model
+    from the View, making the system architecture more flexible.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制器充当模型（Model）和视图（View）之间的接口。它从视图获取用户输入，处理它（可能更新模型），然后将输出显示返回给视图。控制器解耦了模型和视图，使系统架构更加灵活。
+- en: The primary advantage of the MVC pattern is the separation of concerns, which
+    means that the business logic, user interface, and user input are separated into
+    different sections of the codebase. This not only makes the application more modular
+    but also easier to maintain, scale, and test. The MVC pattern is widely used in
+    web applications, with many frameworks like Django, Ruby on Rails, and ASP.NET
+    MVC offering built-in support for it.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVC模式的主要优势在于关注点分离，即业务逻辑、用户界面和用户输入被分离到代码库的不同部分。这不仅使应用程序更加模块化，而且更易于维护、扩展和测试。MVC模式在Web应用程序中被广泛使用，许多框架如Django、Ruby
+    on Rails和ASP.NET MVC都内置支持该模式。
+- en: 'The MVC pattern has been a staple in software design for many years, especially
+    in web development. However, as web applications have evolved and user expectations
+    for interactive and dynamic interfaces have grown, some limitations of the traditional
+    MVC have become apparent. Here’s where MVC can fall short and how React addresses
+    these challenges:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 多年来，MVC模式一直是软件设计的重要模式，特别是在Web开发中。然而，随着Web应用程序的发展和用户对交互性和动态界面的期望增长，传统MVC的一些局限性变得显而易见。这就是MVC可能不足的地方，以及React如何解决这些挑战：
+- en: Complex interactivity and state management
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复杂的交互和状态管理
+- en: Traditional MVC architectures often struggle when it comes to managing complex
+    user interfaces with many interactive elements. As an application grows, managing
+    state changes and their effects on various parts of the UI can become cumbersome
+    as controllers pile up, and can sometimes conflict with other controllers, with
+    some controllers controlling views that do not represent them, or the separation
+    between MVC components not accurately scoped in product code.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 传统的MVC架构在处理具有许多交互元素的复杂用户界面时通常会遇到困难。随着应用程序的增长，管理状态变化及其对UI各个部分的影响可能变得笨重，因为控制器堆积，有时可能会与其他控制器发生冲突，某些控制器控制的视图并不代表它们自身，或者MVC组件的分离在产品代码中并不准确。
+- en: 'React, with its component-based architecture and virtual DOM, makes it easier
+    to reason about state changes and their effects on the UI by essentially positing
+    that UI components are like a function: they receive input (props) and return
+    output based on those inputs (elements). This mental model radically simplified
+    the MVC pattern because functions are fairly ubiquitous in JavaScript and much
+    more approachable when compared to an external mental model that is not native
+    to the programming language like MVC.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React以其基于组件的架构和虚拟DOM，通过将UI组件视为函数来简化对状态变化及其对UI的影响的推理过程。这种思维模型大大简化了MVC模式，因为函数在JavaScript中是非常普遍的，而且比起不是编程语言本身的外部思维模型来说更易接近。
+- en: Two-way data binding
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 双向数据绑定
+- en: Some MVC frameworks utilize two-way data binding, which can lead to unintended
+    side effects if not managed carefully, where in some cases either the view becomes
+    out of sync with the model or vice versa. Moreover, with two-way data binding
+    the question of data ownership often had a crude answer, with an unclear separation
+    of concerns. This is particularly interesting because while MVC is a proven model
+    for teams that fully understand the appropriate way to separate concerns for their
+    use cases, these separation rules are seldom enforced—especially when faced with
+    high-velocity output and rapid startup growth—and thus separation of concerns,
+    one of the greatest strengths of MVC, is often turned into a weakness by this
+    lack of enforcement.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些 MVC 框架使用双向数据绑定，如果不小心管理，可能会导致意外的副作用，有时视图与模型之间或者反之之间会不同步。此外，双向数据绑定还涉及数据所有权的问题，答案往往比较简单，对关注点的分离不够清晰。特别是因为虽然
+    MVC 是一个对于完全理解其用例中如何分离关注点的团队来说被证明有效的模型，但是这些分离规则往往不被强制执行，特别是在高速输出和快速启动增长的情况下，这使得关注点分离，MVC
+    的最大优势之一，经常因缺乏执行而成为弱点。
+- en: React leverages a pattern counter to two-way data binding called “unidirectional
+    data flow” (more on this later) to prioritize and even enforce a unidirectional
+    data flow through systems like Forget (which we will also discuss further in the
+    book). These approaches make UI updates more predictable, enable us to separate
+    concerns more clearly, and ultimately are conducive to high-velocity hyper-growth
+    software teams.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 则利用了一种与双向数据绑定相对的模式，称为“单向数据流”（稍后将详细讨论），通过像 Forget 这样的系统优先甚至强制实现了系统中的单向数据流。这些方法使得
+    UI 更新更加可预测，使我们能够更清晰地分离关注点，并最终有利于高速增长的软件团队。
+- en: Tight coupling
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 紧耦合
+- en: In some MVC implementations, the Model, View, and Controller can become tightly
+    coupled, making it hard to change or refactor one without affecting the others.
+    React encourages a more modular and decoupled approach with its component-based
+    model, enabling and supporting colocation of dependencies close to their UI representations.
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在某些 MVC 实现中，模型（Model）、视图（View）和控制器（Controller）可能会紧密耦合，这样一来，如果要修改或重构其中一个，就很难不影响到其他部分。React
+    鼓励更加模块化和解耦的方法，采用其基于组件的模型，支持将依赖项与其 UI 表示靠近并互相支持。
+- en: We don’t need to get too much into the details of this pattern since this is
+    a React book, but for our intents and purposes here, models were conceptually
+    sources of data, and views were conceptually user interfaces that consumed and
+    rendered that data. Backbone exported comfortable APIs to work with these models
+    and views, and provided a way to connect the models and views together. This solution
+    was very powerful and flexible for its time. It was also a solution that was scalable
+    to use and allowed developers to test their code in isolation.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这种模式的细节我们不需要深入讨论，因为这是一本关于 React 的书。但在这里，从我们的意图和目的来看，模型概念上是数据源，视图则是消耗和渲染这些数据的用户界面。Backbone
+    提供了便捷的 API 来处理这些模型和视图，并提供了一种连接模型和视图的方式。在其时间内，这种解决方案非常强大和灵活。它也是一种可扩展使用的解决方案，允许开发者在隔离环境中测试他们的代码。
+- en: 'As an example, here’s our earlier button example, this time using Backbone:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为例子，这里是我们早前的按钮示例，这次使用的是 Backbone：
+- en: '[PRE17]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Notice how `LikeButton` extends `Backbone.View` and how it has a `render` method
+    that returns `this`? We’ll go on to see a similar `render` method in React, but
+    let’s not get ahead of ourselves. It’s also worth noting here that Backbone didn’t
+    include an actual implementation for `render`. Instead, you either manually mutated
+    the DOM via jQuery, or used a templating system like Handlebars.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意`LikeButton`是如何扩展`Backbone.View`的，以及它有一个返回`this`的`render`方法？我们将继续在 React 中看到类似的`render`方法，但我们不要过早地为此感到激动。此外，值得注意的是，Backbone
+    并没有为`render`方法提供实际的实现。而是通过 jQuery 手动变异 DOM，或者使用像 Handlebars 这样的模板系统。
+- en: Backbone exposed a chainable API that allowed developers to colocate logic as
+    properties on objects. Comparing this to our previous example, we can see that
+    Backbone has made it far more comfortable to create a button that is interactive
+    and updates the user interface in response to events.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Backbone 提供了一个可链接的 API，允许开发者将逻辑放置在对象的属性中。与我们之前的例子相比较，我们可以看到 Backbone 显著改进了创建交互式按钮并在响应事件时更新用户界面的舒适度。
+- en: It also does this in a more structured way by grouping logic together. Also
+    note that Backbone has made it more approachable to test this button in isolation
+    because we can create a `LikeButton` instance and then call its `render` method
+    to test it.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它还以更结构化的方式通过将逻辑组合在一起来执行此操作。还要注意，Backbone通过将其更容易接近以测试此按钮，因为我们可以创建一个`LikeButton`实例，然后调用其`render`方法来测试它。
+- en: 'We test this component like so:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们这样测试这个组件：
+- en: '[PRE18]'
+  id: totrans-138
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'We can even test the button’s behavior after its state changes, as in the case
+    of a click event, like so:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们甚至可以测试按钮在其状态改变后的行为，例如点击事件的情况：
+- en: '[PRE19]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'For this reason, Backbone was a very popular solution at the time. The alternative
+    was to write a lot of code that was hard to test and hard to reason about with
+    no guarantees that the code would work as expected in a reliable way. Therefore,
+    Backbone was a very welcome solution. While it gained popularity in its early
+    days for its simplicity and flexibility, it’s not without its criticisms. Here
+    are some of the negatives associated with Backbone.js:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，Backbone在当时是一个非常流行的解决方案。另一种选择是编写大量代码，这些代码很难测试和理解，没有保证代码能够以可靠的方式按预期工作。因此，Backbone是一个非常受欢迎的解决方案。尽管在早期因其简单性和灵活性而广受欢迎，但它并非没有批评。以下是与Backbone.js相关的一些负面因素：
+- en: Verbose and boilerplate code
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 冗长和样板代码
+- en: One of the frequent criticisms of Backbone.js is the amount of boilerplate code
+    developers needed to write. For simple applications, this might not be a big deal,
+    but as the application grows, so does the boilerplate, leading to potentially
+    redundant and hard-to-maintain code.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Backbone.js经常受到批评的一个原因是开发人员需要编写大量样板代码。对于简单的应用程序，这可能不是大问题，但随着应用程序的增长，样板代码也会增加，导致潜在的冗余和难以维护的代码。
+- en: Lack of two-way data binding
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺乏双向数据绑定
+- en: Unlike some of its contemporaries, Backbone.js doesn’t offer built-in two-way
+    data binding. This means that if the data changes, the DOM doesn’t automatically
+    update, and vice versa. Developers often need to write custom code or use plug-ins
+    to achieve this functionality.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其同时代的一些框架不同，Backbone.js没有提供内置的双向数据绑定。这意味着如果数据变化，DOM不会自动更新，反之亦然。开发人员通常需要编写自定义代码或使用插件来实现这种功能。
+- en: Event-driven architecture
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件驱动架构
+- en: Updates to model data can trigger numerous events throughout the application.
+    This cascade of events can become unmanageable, leading to a situation where it’s
+    unclear how changing a single piece of data will affect the rest of the application,
+    making debugging and maintenance difficult. To address these issues, developers
+    often needed to use careful event management practices to prevent the ripple effect
+    of updates across the entire app.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型数据的更新可能会触发应用程序中的大量事件。这种事件级联可能变得难以管理，导致情况不明确，即改变单个数据片段如何影响整个应用程序，使得调试和维护变得困难。为了解决这些问题，开发人员经常需要使用谨慎的事件管理实践，以防止更新的涟漪效应遍布整个应用程序。
+- en: Lack of composability
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺乏可组合性
+- en: Backbone.js lacks built-in features for easily nesting views, which can make
+    composing complex user interfaces difficult. React, in contrast, allows for seamless
+    nesting of components through the children prop, making it much simpler to build
+    intricate UI hierarchies. Marionette.js, an extension of Backbone, attempted to
+    address some of these composition issues, but it does not provide as integrated
+    a solution as React’s component model.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Backbone.js缺乏内置功能以轻松嵌套视图，这使得组合复杂用户界面变得困难。相比之下，React通过children属性允许无缝嵌套组件，使得构建复杂的UI层次结构变得简单得多。Marionette.js作为Backbone的扩展，试图解决一些这些组合问题，但它没有提供像React的组件模型那样集成的解决方案。
+- en: While Backbone.js has its set of challenges, it’s essential to remember that
+    no tool or framework is perfect. The best choice often depends on the specific
+    needs of the project and the preferences of the development team. It’s also worth
+    noting how much web development tools depend on a strong community to thrive,
+    and unfortunately Backbone.js has seen a decline in popularity in recent years,
+    especially with the advent of React. Some would say React killed it, but we’ll
+    reserve judgment for now.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管Backbone.js面临一些挑战，但重要的是要记住，没有工具或框架是完美的。最佳选择通常取决于项目的具体需求和开发团队的偏好。还值得注意的是，Web开发工具如何依赖于强大的社区以蓬勃发展，不幸的是，Backbone.js在近年来的流行度有所下降，特别是随着React的出现。有人会说React击败了它，但我们现在暂且不作评价。
+- en: KnockoutJS
+  id: totrans-151
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: KnockoutJS
+- en: 'Let’s compare this approach with another popular solution at the time: KnockoutJS.
+    KnockoutJS, developed in the early 2010s, was a library that provided a way to
+    create “observables” and “bindings,” making use of dependency tracking whenever
+    state changes.'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将这种方法与当时流行的另一种解决方案：KnockoutJS 进行比较。KnockoutJS 在2010年代初开发，是一个提供创建“可观察对象”和“绑定”的库，利用依赖跟踪来处理状态变化。
+- en: KnockoutJS was among the first, if not the first, reactive JavaScript libraries,
+    where reactivity is defined as values updating in response to state changes in
+    an observable manner. Modern takes on this style of reactivity are sometimes called
+    “signals” and are prevalent in libraries like Vue.js, SolidJS, Svelte, Qwik, modern
+    Angular, and more. We cover these in [Chapter 10](ch10.html#ch10) in more detail.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: KnockoutJS 可能是最早的反应式 JavaScript 库之一，其中反应性被定义为在可观察的方式下响应状态变化的值更新。这种风格的反应性的现代版本有时被称为“信号”，并且在诸如
+    Vue.js、SolidJS、Svelte、Qwik、现代 Angular 等库中很常见。我们在 [第 10 章](ch10.html#ch10) 中会更详细地讨论这些内容。
+- en: 'Observables were conceptually sources of data, and bindings were conceptually
+    user interfaces that consumed and rendered that data: observables were like models,
+    and bindings were like views.'
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 观察者概念上是数据源，绑定是概念上的用户界面，用于消费和渲染这些数据：观察者就像模型，而绑定则像视图。
+- en: However, as a bit of an evolution of the MVC pattern we discussed previously,
+    KnockoutJS instead worked more along a Model-View-ViewModel or MVVM-style pattern
+    (see [Figure 1-2](#figure1-2)). Let’s understand this pattern in some detail.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，作为我们之前讨论的 MVC 模式的一种演变，KnockoutJS 更多地按照模型-视图-视图模型或 MVVM 风格的模式工作（参见 [图 1-2](#figure1-2)）。让我们更详细地了解这种模式。
+- en: '![mvvm](assets/frea_0102.png)'
+  id: totrans-156
+  prefs: []
+  type: TYPE_IMG
+  zh: '![mvvm](assets/frea_0102.png)'
+- en: Figure 1-2\. MVVM pattern
+  id: totrans-157
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-2\. MVVM 模式
+- en: MVVM pattern
+  id: totrans-158
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: MVVM 模式
+- en: 'The MVVM pattern is an architectural design pattern that’s particularly popular
+    in applications with rich user interfaces, such as those built using platforms
+    like WPF and Xamarin. MVVM is an evolution of the traditional Model-View-Controller
+    (MVC) pattern, tailored for modern UI development platforms where data binding
+    is a prominent feature. Here’s a breakdown of the MVVM components:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVVM 模式是一种在具有丰富用户界面的应用程序中特别流行的架构设计模式，例如那些使用 WPF 和 Xamarin 等平台构建的应用程序。MVVM 是传统模型-视图-控制器（MVC）模式的一种演变，专门针对现代
+    UI 开发平台，其中数据绑定是一个突出的特性。以下是 MVVM 组件的详细介绍：
+- en: Model
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型
+- en: Represents the data and business logic of the application.
+  id: totrans-161
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 表示应用程序的数据和业务逻辑。
+- en: Is responsible for retrieving, storing, and processing the data.
+  id: totrans-162
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 负责检索、存储和处理数据。
+- en: Typically communicates with databases, services, or other data sources and operations.
+  id: totrans-163
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通常与数据库、服务或其他数据源和操作通信。
+- en: Is unaware of the View and ViewModel.
+  id: totrans-164
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 不知道视图和视图模型。
+- en: View
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图
+- en: Represents the UI of the application.
+  id: totrans-166
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 表示应用程序的用户界面。
+- en: Displays information to the user and receives user input.
+  id: totrans-167
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 向用户显示信息并接收用户输入。
+- en: In MVVM, the View is passive and doesn’t contain any application logic. Instead,
+    it declaratively binds to the ViewModel, reflecting changes automatically through
+    data binding mechanisms.
+  id: totrans-168
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在 MVVM 中，视图是被动的，不包含任何应用程序逻辑。相反，它通过数据绑定机制声明性地绑定到 ViewModel，通过自动反映更改。
+- en: ViewModel
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图模型
+- en: Acts as a bridge between the Model and the View.
+  id: totrans-170
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 充当模型和视图之间的桥梁。
+- en: Exposes data and commands for the View to bind to. The data here is often in
+    a format that’s display ready.
+  id: totrans-171
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 提供数据和命令供视图绑定。这里的数据通常是一个已经准备好显示的格式。
+- en: Handles user input, often through command patterns.
+  id: totrans-172
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 处理用户输入，通常通过命令模式。
+- en: Contains the presentation logic and transforms data from the Model into a format
+    that can be easily displayed by the View.
+  id: totrans-173
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 包含展示逻辑，并将模型中的数据转换为可以被视图轻松显示的格式。
+- en: Notably, the ViewModel is unaware of the specific View that’s using it, allowing
+    for a decoupled architecture.
+  id: totrans-174
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 值得注意的是，ViewModel 不知道具体使用它的视图，从而实现了解耦的架构。
+- en: 'The key advantage of the MVVM pattern is the separation of concerns similar
+    to MVC, which leads to:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVVM 模式的关键优势是关注点分离，类似于 MVC，这导致：
+- en: Testability
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可测试性
+- en: The decoupling of ViewModel from View makes it easier to write unit tests for
+    the presentation logic without involving the UI.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ViewModel 与 View 的解耦使得更容易为展示逻辑编写单元测试，而无需涉及 UI。
+- en: Reusability
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可重用性
+- en: The ViewModel can be reused across different views or platforms.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ViewModel 可以在不同的视图或平台上重用。
+- en: Maintainability
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可维护性
+- en: With a clear separation, it’s easier to manage, extend, and refactor code.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过清晰的分离，更容易管理、扩展和重构代码。
+- en: Data binding
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据绑定
+- en: The pattern excels in platforms that support data binding, reducing the amount
+    of boilerplate code required to update the UI.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该模式在支持数据绑定的平台上表现突出，减少了更新UI所需的样板代码量。
+- en: Since we discussed both MVC and MVVM patterns, let’s quickly contrast them so
+    that we can understand the differences between them (see [Table 1-1](#table1-1)).
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于我们讨论了MVC和MVVM模式，让我们快速对比它们，以便我们可以理解它们之间的区别（参见[表 1-1](#table1-1)）。
+- en: Table 1-1\. Comparison of MVC and MVVM patterns
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 1-1\. MVC和MVVM模式的比较
+- en: '| Criteria | MVC | MVVM |'
+  id: totrans-186
+  prefs: []
+  type: TYPE_TB
+  zh: '| 标准 | MVC | MVVM |'
+- en: '| --- | --- | --- |'
+  id: totrans-187
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| **Primary purpose** | Primarily for web applications, separating user interface
+    from logic. | Tailored for rich UI applications, especially with two-way data
+    binding, like desktop or SPAs. |'
+  id: totrans-188
+  prefs: []
+  type: TYPE_TB
+  zh: '| **主要目的** | 主要用于Web应用程序，将用户界面与逻辑分离。 | 专为富UI应用程序量身定制，特别是具有双向数据绑定的桌面或单页应用程序。
+    |'
+- en: '| **Components** | Model: data and business logic. View: user interface. Controller:
+    manages user input, updates View. | Model: data and business logic. View: user
+    interface elements. ViewModel: bridge between Model and View. |'
+  id: totrans-189
+  prefs: []
+  type: TYPE_TB
+  zh: '| **组件** | 模型：数据和业务逻辑。视图：用户界面。控制器：管理用户输入，更新视图。 | 模型：数据和业务逻辑。视图：用户界面元素。视图模型：模型与视图之间的桥梁。
+    |'
+- en: '| **Data flow** | User input is managed by the Controller, which updates the
+    Model and then the View. | The View binds directly to the ViewModel. Changes in
+    the View are automatically reflected in the ViewModel and vice versa. |'
+  id: totrans-190
+  prefs: []
+  type: TYPE_TB
+  zh: '| **数据流** | 用户输入由控制器管理，更新模型，然后更新视图。 | 视图直接绑定到视图模型。视图中的更改会自动反映在视图模型中，反之亦然。 |'
+- en: '| **Decoupling** | View is often tightly coupled with the Controller. | High
+    decoupling as ViewModel doesn’t know the specific View using it. |'
+  id: totrans-191
+  prefs: []
+  type: TYPE_TB
+  zh: '| **解耦** | 视图通常与控制器紧密耦合。 | 视图模型具有高解耦性，因为它不知道使用它的具体视图。 |'
+- en: '| **User interaction** | Handled by the Controller. | Handled through data
+    bindings and commands in the ViewModel. |'
+  id: totrans-192
+  prefs: []
+  type: TYPE_TB
+  zh: '| **用户交互** | 由控制器处理。 | 通过视图模型中的数据绑定和命令处理。 |'
+- en: '| **Platform suitability** | Common in web application development (e.g., Ruby
+    on Rails, Django, ASP.NET MVC). | Suited for platforms supporting robust data
+    binding (e.g., WPF, Xamarin). |'
+  id: totrans-193
+  prefs: []
+  type: TYPE_TB
+  zh: '| **平台适用性** | 在Web应用程序开发中常见（例如Ruby on Rails，Django，ASP.NET MVC）。 | 适合支持强大数据绑定的平台（例如WPF，Xamarin）。
+    |'
+- en: 'From this brief comparison, we can see that the real difference between MVC
+    and MVVM patterns is one of coupling and binding: with no Controller between a
+    Model and a View, data ownership is clearer and closer to the user. React further
+    improves on MVVM with its unidirectional data flow, which we’ll discuss in a little
+    bit, by getting *even narrower* in terms of data ownership, such that state is
+    owned by specific components that need them. For now, let’s get back to KnockoutJS
+    and how it relates to React.'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这个简要比较中，我们可以看出MVC和MVVM模式之间真正的区别在于耦合和绑定：在没有控制器介入的模型和视图之间，数据的所有权更清晰，更接近用户。React通过其单向数据流进一步改进了MVVM模式，稍后我们将讨论这一点，通过使状态由需要的特定组件拥有来实现*更窄*的数据所有权。现在，让我们回到KnockoutJS以及它如何与React相关。
+- en: 'KnockoutJS exported APIs to work with these observables and bindings. Let’s
+    look at how we’d implement the Like button in KnockoutJS. This will help us understand
+    “why React” a little better. Here’s the KnockoutJS version of our button:'
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: KnockoutJS导出了用于处理这些可观察对象和绑定的API。让我们看看如何在KnockoutJS中实现喜欢按钮。这将帮助我们更好地理解“为什么选择React”。这是我们按钮的KnockoutJS版本：
+- en: '[PRE20]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: In KnockoutJS, a “view model” is a JavaScript object that contains keys and
+    values that we bind to various elements in our page using the `data-bind` attribute.
+    There are no “components” or “templates” in KnockoutJS, just a view model and
+    a way to bind it to an element in the browser.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在KnockoutJS中，“视图模型”是一个JavaScript对象，它包含我们使用`data-bind`属性绑定到页面各个元素的键和值。在KnockoutJS中没有“组件”或“模板”，只有一个视图模型和一种将其绑定到浏览器元素的方法。
+- en: Our function `createViewModel` is how we’d create a view model with Knockout.
+    We then use `ko.applyBindings` to connect the view model to the host environment
+    (the browser). The `ko.applyBindings` function takes a view model and finds all
+    the elements in the browser that have a `data-bind` attribute, which Knockout
+    uses to bind them to the view model.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的函数`createViewModel`是如何在Knockout中创建视图模型的。然后，我们使用`ko.applyBindings`将视图模型连接到主机环境（浏览器）。`ko.applyBindings`函数接受一个视图模型，并找到所有具有`data-bind`属性的浏览器元素，Knockout使用这些属性将它们绑定到视图模型上。
+- en: 'A button in our browser would be bound to this view model’s properties like
+    so:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器中的一个按钮将绑定到此视图模型的属性，如下所示：
+- en: '[PRE21]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Note that this code has been truncated for simplicity.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，出于简化的原因，此代码已被截断。
+- en: We *bind* the HTML element to the “view model” we created using our `createViewModel`
+    function, and the site becomes interactive. As you can imagine, explicitly subscribing
+    to changes in observables and then updating the user interface in response to
+    these changes is a lot of work. KnockoutJS was a great library for its time, but
+    it also required a lot of boilerplate code to get things done.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用我们的`createViewModel`函数将HTML元素绑定到我们创建的“视图模型”，网站变得交互式。正如您可以想象的那样，显式订阅可观察对象的更改，然后根据这些更改更新用户界面是一项繁重的工作。KnockoutJS在当时是一个很棒的库，但它也需要大量样板代码来完成工作。
+- en: Moreover, view models often grew to be very large and complex, which led to
+    increasing uncertainty around refactors and optimizations to code. Eventually,
+    we ended up with verbose monolithic view models that were hard to test and reason
+    about. Still, KnockoutJS was a very popular solution and a great library for its
+    time. It was also relatively easy to test in isolation, which was a big plus.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，视图模型通常变得非常庞大和复杂，这导致了对重构和代码优化的不确定性逐渐增加。最终，我们得到了冗长的单块视图模型，难以测试和理解。尽管如此，KnockoutJS在当时非常流行，并且是一个很棒的库。它也相对容易在隔离环境中进行测试，这是一个重大的优势。
+- en: 'For posterity, here’s how we’d test this button in KnockoutJS:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了记录下来，这是我们如何在KnockoutJS中测试这个按钮的方法：
+- en: '[PRE22]'
+  id: totrans-205
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: AngularJS
+  id: totrans-206
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: AngularJS
+- en: AngularJS was developed by Google in 2010\. It was a pioneering JavaScript framework
+    that had a significant impact on the web development landscape. It stood in sharp
+    contrast to the libraries and frameworks we’ve been discussing by incorporating
+    several innovative features, the ripples of which can be seen in subsequent libraries,
+    including React. Through a detailed comparison of AngularJS with these other libraries
+    and a look at its pivotal features, let’s try to understand the path it carved
+    for React.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS是由Google在2010年开发的。它是一个开创性的JavaScript框架，对Web开发格局产生了重大影响。它与我们讨论过的库和框架形成鲜明对比，通过整合几个创新功能，这些功能的波及效应可以在后续的库中看到，包括React。通过详细比较AngularJS与其他库，并查看其关键特性，让我们试图理解它为React铺平的道路。
+- en: Two-way data binding
+  id: totrans-208
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 双向数据绑定
+- en: Two-way data binding was a hallmark feature of AngularJS that greatly simplified
+    the interaction between the UI and the underlying data. If the model (the underlying
+    data) changes, the view (the UI) gets updated automatically to reflect the change,
+    and vice versa. This was a stark contrast to libraries like jQuery, where developers
+    had to manually manipulate the DOM to reflect any changes in the data and capture
+    user inputs to update the data.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 双向数据绑定是AngularJS的一个显著特性，极大地简化了UI与底层数据之间的交互。如果模型（底层数据）发生变化，视图（UI）会自动更新以反映这些变化，反之亦然。这与像jQuery这样的库形成了鲜明对比，后者需要开发人员手动操作DOM来反映数据的任何变化，并捕获用户输入以更新数据。
+- en: 'Let’s consider a simple AngularJS application where two-way data binding plays
+    a crucial role:'
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑一个简单的AngularJS应用程序，其中双向数据绑定发挥了关键作用：
+- en: '[PRE23]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: In this application, the `ng-model` directive binds the value of the input field
+    to the variable `name`. As you type into the input field, the model `name` gets
+    updated, and the view—in this case, the greeting `"Hello, {{name}}!"`—gets updated
+    in real time.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个应用程序中，`ng-model`指令将输入字段的值绑定到变量`name`。当您在输入字段中输入时，模型`name`会更新，并且视图——在这种情况下是问候语`"Hello,
+    {{name}}!"`——会实时更新。
+- en: Modular architecture
+  id: totrans-213
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 模块化架构
+- en: AngularJS introduced a modular architecture that allowed developers to logically
+    separate their application’s components. Each module could encapsulate a functionality
+    and could be developed, tested, and maintained independently. Some would call
+    this a precursor to React’s component model, but this is debated.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS引入了一种模块化架构，允许开发人员逻辑上分离其应用程序的组件。每个模块可以封装一个功能，并可以独立开发、测试和维护。有人会称之为React组件模型的前身，但这有争议。
+- en: 'Here’s a quick example:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个快速的例子：
+- en: '[PRE24]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'In the preceding example, the `myApp` module depends on several other modules:
+    `ngRoute`, `appRoutes`, `userCtrl`, and `userService`. Each dependent module could
+    be in its own JavaScript file, and could be developed separately from the main
+    `myApp` module. This concept was significantly different from jQuery and Backbone.js,
+    which didn’t have a concept of a “module” in this sense.'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上面的例子中，`myApp`模块依赖于几个其他模块：`ngRoute`、`appRoutes`、`userCtrl`和`userService`。每个依赖模块可以在自己的JavaScript文件中，并且可以与主`myApp`模块分开开发。这个概念与jQuery和Backbone.js显著不同，后者在这种意义上没有“模块”的概念。
+- en: We inject these dependencies (`appRoutes`, `userCtrl`, etc.) into our root `app`
+    using a pattern called *dependency injection* that was popularized in Angular.
+    Needless to say, this pattern was prevalent before JavaScript modules were standardized.
+    Since then, `import` and `export` statements quickly took over. To contrast these
+    dependencies with React components, let’s talk about dependency injection a little
+    more.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用一种称为*依赖注入*的模式将这些依赖项（`appRoutes`、`userCtrl` 等）注入到我们的根 `app` 中。毋庸置疑，这种模式在
+    JavaScript 模块标准化之前很流行。从那时起，`import` 和 `export` 语句迅速取代了它。为了与 React 组件对比这些依赖项，让我们再多谈一点关于依赖注入。
+- en: Dependency injection
+  id: totrans-219
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 依赖注入
+- en: Dependency injection (DI) is a design pattern where an object receives its dependencies
+    instead of creating them. AngularJS incorporated this design pattern at its core,
+    which was not a common feature in other JavaScript libraries at the time. This
+    had a profound impact on the way modules and components were created and managed,
+    promoting a higher degree of modularity and reusability.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 依赖注入（DI）是一种设计模式，对象接收其依赖项而不是创建它们。AngularJS 在其核心引入了这一设计模式，这在当时并不是其他 JavaScript
+    库的常见特性。这对模块和组件的创建和管理产生了深远影响，推动了更高的模块化和可重用性。
+- en: 'Here is an example of how DI works in AngularJS:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是 AngularJS 中 DI 如何工作的一个例子：
+- en: '[PRE25]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: In the example, `myService` is a service that is injected into the `myController`
+    controller through DI. The controller does not need to know how to create the
+    service. It just declares the service as a dependency, and AngularJS takes care
+    of creating and injecting it. This simplifies the management of dependencies and
+    enhances the testability and reusability of components.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个示例中，`myService` 是一个通过 DI 注入到 `myController` 控制器中的服务。控制器不需要知道如何创建这个服务。它只需声明服务作为依赖项，AngularJS
+    负责创建和注入它。这简化了依赖管理，增强了组件的可测试性和可重用性。
+- en: Comparison with Backbone.js and Knockout.js
+  id: totrans-224
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 与 Backbone.js 和 Knockout.js 的比较
+- en: Backbone.js and Knockout.js were two popular libraries used around the time
+    AngularJS was introduced. Both libraries had their strengths, but they lacked
+    some features that were built into AngularJS.
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 AngularJS 推出时，Backbone.js 和 Knockout.js 是两个流行的库。这两个库都有各自的优势，但它们缺少 AngularJS
+    内置的一些功能。
+- en: 'Backbone.js, for example, gave developers more control over their code and
+    was less opinionated than AngularJS. This flexibility was both a strength and
+    a weakness: it allowed for more customization, but also required more boilerplate
+    code. AngularJS, with its two-way data binding and DI, allowed for more structure.
+    It had more opinions that led to greater developer velocity: something we see
+    with modern frameworks like Next.js, Remix, etc. This is one way AngularJS was
+    far ahead of its time.'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，Backbone.js 给开发者更多的代码控制权，并且比 AngularJS 更少地表达了观点。这种灵活性既是优势也是劣势：它允许更多的定制化，但也需要更多的样板代码。AngularJS
+    利用其双向数据绑定和依赖注入，提供了更多的结构。它有更多的观点，促进了开发速度的增长：这是我们在现代框架如 Next.js、Remix 等中看到的。这是 AngularJS
+    遥遥领先于其时代的一种方式。
+- en: Backbone also didn’t have an answer to directly mutating the view (the DOM)
+    and often left this up to developers. AngularJS took care of DOM mutations with
+    its two-way data binding, which was a big plus.
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Backbone 也没有直接处理视图（DOM）的变化，通常将其留给开发者处理。AngularJS 利用其双向数据绑定来处理 DOM 变化，这是一个重大优势。
+- en: Knockout.js was primarily focused on data binding and lacked some of the other
+    powerful tools that AngularJS provided, such as DI and a modular architecture.
+    AngularJS, being a full-fledged framework, offered a more comprehensive solution
+    for building single-page applications (SPAs). While AngularJS was discontinued,
+    today its newer variant called Angular offers the same, albeit enhanced, slew
+    of comprehensive benefits that make it an ideal choice for large-scale applications.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Knockout.js 主要关注数据绑定，并且缺少 AngularJS 提供的一些其他强大工具，比如 DI 和模块化架构。作为一个全面的框架，AngularJS
+    为构建单页应用程序（SPA）提供了更全面的解决方案。尽管 AngularJS 已经停止开发，但今天其更新的变种 Angular 提供了相同甚至增强的全面优势，使其成为大规模应用的理想选择。
+- en: AngularJS trade-offs
+  id: totrans-229
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: AngularJS 的权衡
+- en: 'AngularJS (1.x) represented a significant leap in web development practices
+    when it was introduced. However, as the landscape of web development continued
+    to evolve rapidly, certain aspects of AngularJS were seen as limitations or weaknesses
+    that contributed to its relative decline. Some of these include:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS（1.x）在引入时代表了Web开发实践的重大飞跃。然而，随着Web开发领域的快速演变，AngularJS 的某些方面被视为限制或弱点，导致其相对衰退。其中一些包括：
+- en: Performance
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: AngularJS had performance issues, particularly in large-scale applications with
+    complex data bindings. The digest cycle in AngularJS, a core feature for change
+    detection, could result in slow updates and laggy user interfaces in large applications.
+    The two-way data binding, while innovative and useful in many situations, also
+    contributed to the performance issues.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS 在大规模应用程序中存在性能问题，特别是在复杂数据绑定的情况下。AngularJS 中的脏检查循环（digest cycle）作为变更检测的核心特性，可能导致大型应用程序中更新缓慢和用户界面延迟。双向数据绑定虽然在许多情况下创新和有用，但也导致了性能问题。
+- en: Complexity
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复杂性
+- en: AngularJS introduced a range of novel concepts, including directives, controllers,
+    services, dependency injection, factories, and more. While these features made
+    AngularJS powerful, they also made it complex and hard to learn, especially for
+    beginners. A common debate, for example, was “should this be a factory or a service?”
+    leaving a number of developer teams puzzled.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS 引入了一系列新概念，包括指令、控制器、服务、依赖注入、工厂等。虽然这些特性使 AngularJS 强大，但也使其复杂且难以学习，特别是对于初学者。例如，“这应该是一个工厂还是一个服务？”是一个常见的争论，让许多开发团队感到困惑。
+- en: Migration issues to Angular 2+
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到 Angular 2+ 的迁移问题
+- en: When Angular 2 was announced, it was not backward compatible with AngularJS
+    1.x. and required code to be written in Dart and/or TypeScript. This meant that
+    developers had to rewrite significant portions of their code to upgrade to Angular
+    2, which was seen as a big hurdle. The introduction of Angular 2+ essentially
+    split the Angular community and caused confusion, paving the way for React.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当 Angular 2 宣布时，它与 AngularJS 1.x 不兼容，并要求使用 Dart 和/或 TypeScript 编写代码。这意味着开发人员必须重写大部分代码以升级到
+    Angular 2，这被视为一大障碍。Angular 2+ 的引入实质上分裂了 Angular 社区，引发混乱，也为 React 开辟了道路。
+- en: Complex syntax in templates
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模板中的复杂语法
+- en: AngularJS’s allowance for complex JavaScript expressions within template attributes,
+    such as `on-click="$ctrl.some.deeply.nested.field = 123"`, was problematic because
+    it led to a blend of presentation and business logic within the markup. This approach
+    created challenges in maintainability, as deciphering and managing the intertwined
+    code became cumbersome.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS 允许在模板属性中使用复杂的 JavaScript 表达式，例如 `on-click="$ctrl.some.deeply.nested.field
+    = 123"`，这种做法会导致呈现和业务逻辑混合在标记中，因而具有挑战性，使得解析和管理这些交织的代码变得繁琐。此方法在可维护性上带来了挑战。
+- en: Furthermore, debugging was more difficult because template layers weren’t inherently
+    designed to handle complex logic, and any errors that arose from these inline
+    expressions could be challenging to locate and resolve. Additionally, such practices
+    violated the principle of separation of concerns, which is a fundamental design
+    philosophy advocating for the distinct handling of different aspects of an application
+    to improve code quality and maintainability.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，调试更加困难，因为模板层并非设计用来处理复杂逻辑，而且从这些内联表达式引起的任何错误可能难以定位和解决。此外，这样的做法违反了关注点分离原则，这是一种基本的设计哲学，提倡在应用程序的不同方面进行明确处理，以提高代码质量和可维护性。
+- en: In theory, a template ought to call a controller method to perform an update,
+    but nothing restricted that.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理论上，模板应该调用控制器方法执行更新，但没有限制这样做。
+- en: Absence of type safety
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 缺乏类型安全
+- en: Templates in AngularJS did not work with static type-checkers like TypeScript,
+    which made it difficult to catch errors early in the development process. This
+    was a significant drawback, especially for large-scale applications where type
+    safety is crucial for maintainability and scalability.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AngularJS 中的模板无法与 TypeScript 等静态类型检查器配合工作，这使得在开发过程的早期阶段难以及时捕获错误。这是一个重大缺陷，特别是对于大规模应用程序，其中类型安全对于可维护性和可扩展性至关重要。
+- en: Confusing `$scope` model
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`$scope` 模型令人困惑'
+- en: The `$scope` object in AngularJS was often found to be a source of confusion
+    due to its role in binding data and its behavior in different contexts because
+    it served as the glue between the view and the controller, but its behavior was
+    not always intuitive or predictable.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在AngularJS中，由于其在绑定数据和在不同上下文中的行为中的角色，`$scope`对象经常被发现是混淆的根源，因为它充当视图和控制器之间的粘合剂，但其行为并不总是直观或可预测的。
+- en: This led to complexities, especially for newcomers, in understanding how data
+    was synchronized between the model and the view. Additionally, `$scope` could
+    inherit properties from parent scopes in nested controllers, making it difficult
+    to track where a particular `$scope` property was originally defined or modified.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这导致了复杂性，特别是对于新手来说，在理解数据在模型和视图之间如何同步方面。此外，`$scope`在嵌套控制器中可以继承来自父作用域的属性，这使得跟踪特定`$scope`属性最初是在哪里定义或修改变得困难。
+- en: This inheritance could cause unexpected side effects in the application, particularly
+    when dealing with nested scopes where parent and child scopes could inadvertently
+    affect each other. The concept of scope hierarchy and the prototypal inheritance
+    on which it was based were often at odds with the more traditional and familiar
+    lexical scoping rules found in JavaScript, adding another layer of learning complexity.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种继承可能会导致应用程序中意外的副作用，特别是在处理父子作用域可以无意中相互影响的嵌套作用域时。作用域层次结构的概念及其基础的原型继承往往与JavaScript中更传统和熟悉的词法作用域规则相矛盾，增加了学习复杂性的另一层面。
+- en: React, for example, colocates state with the component that needs it, and thus
+    avoids this problem entirely.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，React将状态与需要它的组件放置在一起，因此完全避免了这个问题。
+- en: Limited development tools
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有限的开发工具
+- en: AngularJS did not offer extensive developer tools for debugging and performance
+    profiling, especially when compared to the DevTools available in React like Replay.io,
+    which allows extensive capabilities around time-travel debugging for React applications.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与React的DevTools（例如Replay.io）相比，AngularJS并未提供丰富的开发工具用于调试和性能分析，尤其是在支持React应用程序的时间旅行调试方面。
+- en: Enter React
+  id: totrans-250
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 进入React
+- en: 'It was around this time that React rose to prominence. One of the core ideas
+    that React presented was the component-based architecture. Although the implementation
+    is different, the underlying idea is similar: it is optimal to build user interfaces
+    for the web and other platforms by composing reusable components.'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大约在这个时候，React开始崭露头角。React提出的核心思想之一是基于组件的架构。尽管实现方式不同，但其潜在思想相似：通过组合可重用组件来构建Web和其他平台的用户界面是最佳选择。
+- en: While AngularJS used directives to bind views to models, React introduced JSX
+    and a radically simpler component model. Yet, without the ground laid by AngularJS
+    in promoting a component-based architecture through Angular modules, some would
+    argue the transition to React’s model might not have been as smooth.
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然AngularJS使用指令将视图绑定到模型，React引入了JSX和一个根本上更简单的组件模型。然而，如果没有AngularJS通过Angular模块推广组件化架构奠定的基础，一些人可能会认为转向React模型的过程可能不会那么顺利。
+- en: In AngularJS, the two-way data binding model was the industry standard; however,
+    it also had some downsides, such as potential performance issues on large applications.
+    React learned from this and introduced a unidirectional data flow pattern, giving
+    developers more control over their applications and making it easier to understand
+    how data changes over time.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在AngularJS中，双向数据绑定模型是行业标准；然而，它也有一些缺点，例如在大型应用程序上可能存在性能问题。React从中吸取教训，并引入了单向数据流模式，使开发人员更能控制他们的应用程序，并更容易理解数据随时间的变化。
+- en: 'React also introduced the virtual DOM as we’ll read about in [Chapter 3](ch03.html#ch03):
+    a concept that improved performance by minimizing direct DOM manipulation. AngularJS,
+    on the other hand, often directly manipulated the DOM, which could lead to performance
+    issues and other inconsistent state issues we recently discussed with jQuery.'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们将在[第3章](ch03.html#ch03)中了解的那样，React还引入了虚拟DOM的概念，通过最小化直接DOM操作来提高性能。另一方面，AngularJS通常直接操作DOM，这可能导致性能问题以及我们最近通过jQuery讨论的其他不一致状态问题。
+- en: That said, AngularJS represented a significant shift in web development practices,
+    and we’d be remiss if we didn’t mention that AngularJS not only revolutionized
+    the web development landscape when it was introduced, but also paved the way for
+    the evolution of future frameworks and libraries, React being one of them.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 话虽如此，AngularJS 代表了网页开发实践的重大转变。如果不提到 AngularJS，我们就会遗漏掉一个重要的点：当 AngularJS 推出时，它不仅革新了网页开发的格局，还为未来的框架和库的发展铺平了道路，其中包括
+    React。
+- en: 'Let’s explore how React fits into all of this and where React came from at
+    this point in history. At this time, UI updates were still a relatively hard and
+    unsolved problem. They’re far from solved today, but React has made them noticeably
+    less hard, and has inspired other libraries like SolidJS, Qwik, and more to do
+    so. Meta’s Facebook was no exception to the problem of UI complexity and scale.
+    As a result, Meta created a number of internal solutions complementary to what
+    already existed at the time. Among the first of these was BoltJS: a tool Facebook
+    engineers would say “bolted together” a bunch of things that they liked. A combination
+    of tools was assembled to make updates to Facebook’s web user interface more intuitive.'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们探讨一下 React 如何融入这一切，以及在历史的这一时刻 React 是如何诞生的。在当时，UI 的更新仍然是一个相对困难且尚未解决的问题。即使今天也远未完全解决，但
+    React 显著降低了这一难度，并启发了像 SolidJS、Qwik 等其他库去解决这些问题。Meta 的 Facebook 也不例外，面对 UI 复杂性和规模问题。因此，Meta
+    开发了一些内部解决方案，与当时已存在的解决方案互补。其中最早的是 BoltJS：这是一个工具，Facebook 的工程师称之为“将一堆喜欢的东西拼凑在一起”。组合了一系列工具，使得对
+    Facebook 网页用户界面的更新更加直观。
+- en: Around this time, Facebook engineer Jordan Walke had a radical idea that did
+    away with the status quo of the time and entirely replaced minimal portions of
+    web pages with new ones as updates happened. As we’ve seen previously, JavaScript
+    libraries would manage relationships between views (user interfaces) and models
+    (conceptually, sources of data) using a paradigm called two-way data binding.
+    In light of this model’s limitations, as we’ve discussed earlier, Jordan’s idea
+    was to instead use a paradigm called one-way data flow. This was a much simpler
+    paradigm, and it was much easier to keep the views and models in sync. This was
+    the birth of the unidirectional architecture that would go on to be the foundation
+    of React.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大约在这个时候，Facebook 的工程师 Jordan Walke 提出了一个激进的想法，打破了当时的现状，完全用新的部分替换了网页更新时的最小部分。正如我们之前看到的，JavaScript
+    库通过一种称为双向数据绑定的范式管理视图（用户界面）和模型（概念上的数据源）之间的关系。鉴于这种模型的局限性，正如我们之前讨论过的，Jordan 的想法是使用一种称为单向数据流的范式。这是一个简单得多的范式，更容易保持视图和模型的同步。这就是
+    React 诞生的单向架构的基础。
+- en: React’s Value Proposition
+  id: totrans-258
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: React 的价值主张
+- en: OK, history lesson’s over. Hopefully we now have enough context to begin to
+    understand why React is a thing. Given how easy it was to fall into the pit of
+    unsafe, unpredictable, and inefficient JavaScript code at scale, we needed a solution
+    to steer us toward a pit of success where we *accidentally win*. Let’s talk about
+    exactly how React does that.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好了，历史课结束了。希望现在我们有足够的背景来开始理解为什么 React 存在了。考虑到在规模上轻易陷入不安全、不可预测和低效的 JavaScript
+    代码坑中有多容易，我们需要一个解决方案，引导我们走向成功之路，*无意间赢得胜利*。让我们详细讨论一下 React 如何做到这一点。
+- en: Declarative versus imperative code
+  id: totrans-260
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 声明式与命令式代码
+- en: React provides a declarative abstraction on the DOM. We’ll talk more about how
+    it does this in more detail later in the book, but essentially it provides us
+    a way to write code that expresses *what we want to see*, while then taking care
+    of *how it happens*, ensuring our user interface is created and works in a safe,
+    predictable, and efficient manner.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 在 DOM 上提供了声明式抽象。我们将在本书后面更详细地讨论它是如何做到这一点的，但基本上它为我们提供了一种编写表达*我们想看到的内容*的代码的方式，然后负责*它如何发生*，确保我们的用户界面以一种安全、可预测和高效的方式创建并运行。
+- en: 'Let’s consider the list app that we created earlier. In React, we could rewrite
+    it like this:'
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们考虑一下我们之前创建的列表应用程序。在 React 中，我们可以这样重写它：
+- en: '[PRE26]'
+  id: totrans-263
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'Notice how in the `return`, we literally write something that looks like HTML:
+    it looks like what we want to see. I want to see a box with a `NewItemForm`, and
+    a list. Boom. How does it get there? That’s for React to figure out. Do we batch
+    list items to add chunks of them at once? Do we add them sequentially, one by
+    one? React deals with *how* this is done, while we merely describe *what* we want
+    done. In further chapters, we’ll dive into React and explore exactly how it does
+    this at the time of writing.'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意在`return`语句中，我们实际上写了类似HTML的东西：看起来就像我们想要看到的样子。我想看到一个带有`NewItemForm`和列表的框。这些是怎么出现的？这是由React来解决的。我们是批量添加列表项以一次性添加它们的块吗？还是逐个添加？React处理*如何*完成这些操作，而我们只描述*想要*完成什么。在后续章节中，我们将深入了解React，并探索它在写作时的具体实现。
+- en: 'Do we then depend on class names to reference HTML elements? Do we `getElementById`
+    in JavaScript? Nope. React creates unique “React elements” for us under the hood
+    that it uses to detect changes and make incremental updates so we don’t need to
+    read class names and other identifiers from user code whose existence we cannot
+    guarantee: our source of truth becomes exclusively JavaScript with React.'
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们是否依赖类名来引用HTML元素？我们是否在JavaScript中使用`getElementById`？不是的。React在幕后为我们创建了唯一的“React元素”，它用于检测更改并进行增量更新，因此我们无需从用户代码中读取类名和其他可能不存在的标识符：我们的唯一数据源专门是JavaScript与React配合使用。
+- en: We export our `MyList` component to React, and React gets it on the screen for
+    us in a way that is safe, predictable, and performant—no questions asked. The
+    component’s job is to just return a description of what this piece of the UI should
+    look like. It does this by using a *virtual DOM* (vDOM), which is a lightweight
+    description of the intended UI structure. React then compares the virtual DOM
+    *after an update happens* to the virtual DOM *before an update happens*, and turns
+    that into small, performant updates to the real DOM to make it match the virtual
+    DOM. This is how React is able to make updates to the DOM.
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将我们的`MyList`组件导出到React中，React会在屏幕上以安全、可预测且高效的方式展示它——没有任何问题。这个组件的工作只是返回一个描述这个UI片段应该如何展示的说明。它通过使用一个*虚拟DOM*（vDOM）来实现这一点，这是对预期UI结构的轻量级描述。然后React在更新发生*之后*比较虚拟DOM与更新*之前*的虚拟DOM，并将其转换为对真实DOM的小而高效的更新，使其与虚拟DOM匹配。这就是React如何能够更新DOM的方式。
+- en: The virtual DOM
+  id: totrans-267
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 虚拟DOM
+- en: 'The virtual DOM is a programming concept that represents the real DOM but as
+    a JavaScript object. If this is a little too in the weeds for now, don’t worry:
+    [Chapter 3](ch03.html#ch03) is dedicated to this and breaks things down in a little
+    more detail. For now, it’s just important to know that the virtual DOM allows
+    developers to update the UI without directly manipulating the actual DOM. React
+    uses the virtual DOM to keep track of changes to a component and rerenders the
+    component only when necessary. This approach is faster and more efficient than
+    updating the entire DOM tree every time there is a change.'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟DOM是一个编程概念，它将实际DOM表示为JavaScript对象。如果现在这些内容有点深奥，别担心：[第3章](ch03.html#ch03)专门讨论了这个问题，并更详细地解释了事情。现在，重要的是知道虚拟DOM允许开发者在不直接操作实际DOM的情况下更新UI。React使用虚拟DOM跟踪组件的更改，并仅在必要时重新渲染组件。这种方法比每次更改都更新整个DOM树更快、更高效。
+- en: In React, the virtual DOM is a lightweight representation of the actual DOM
+    tree. It is a plain JavaScript object that describes the structure and properties
+    of the UI elements. React creates and updates the virtual DOM to match the actual
+    DOM tree, and any changes made to the virtual DOM are applied to the actual DOM
+    using a process called *reconciliation*.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在React中，虚拟DOM是实际DOM树的轻量级表示。它是一个普通的JavaScript对象，描述了UI元素的结构和属性。React创建并更新虚拟DOM以匹配实际DOM树，对虚拟DOM进行的任何更改都会使用*协调*（reconciliation）过程应用于实际DOM。
+- en: '[Chapter 4](ch04.html#ch04) is dedicated to this, but for our contextual discussion
+    here, let’s look at a small summary with a few examples. To understand how the
+    virtual DOM works, let’s bring back our example of the Like button. We will create
+    a React component that displays a Like button and the number of likes. When the
+    user clicks the button, the number of likes should increase by one.'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[第4章](ch04.html#ch04)专门讨论了这个问题，但是在我们这里的上下文讨论中，让我们通过几个示例来简单总结一下。为了理解虚拟DOM的工作原理，让我们回顾一下我们的点赞按钮示例。我们将创建一个React组件，显示一个点赞按钮和点赞数量。当用户点击按钮时，点赞数量应增加1。'
+- en: 'Here is the code for our component:'
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我们组件的代码：
+- en: '[PRE27]'
+  id: totrans-272
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: In this code, we have used the `useState` hook to create a state variable `likes`,
+    which holds the number of likes. To recap what we might already know about React,
+    a hook is a special function that allows us to use React features, like state
+    and lifecycle methods, within functional components. Hooks enable us to reuse
+    stateful logic without changing the component hierarchy, making it easy to extract
+    and share hooks among components or even with the community as self-contained
+    open source packages.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这段代码中，我们使用 `useState` 钩子创建了一个状态变量 `likes`，它保存了喜欢的数量。回顾一下我们可能已经知道的关于 React，钩子是一种特殊的函数，允许我们在函数组件中使用
+    React 的特性，如状态和生命周期方法。Hooks 使我们能够重用有状态的逻辑，而无需更改组件层次结构，这样可以轻松地提取和共享 Hooks，甚至将其作为独立的开源包分享给社区。
+- en: We have also defined a function `handleLike` that increases the value of likes
+    by one when the button is clicked. Finally, we render the Like button and the
+    number of likes using JSX.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还定义了一个函数 `handleLike`，当点击按钮时会将 likes 的值增加一。最后，我们使用 JSX 渲染 Like 按钮和喜欢的数量。
+- en: Now, let’s take a closer look at how the virtual DOM works in this example.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们更仔细地看一下此示例中虚拟 DOM 的工作方式。
+- en: 'When the `LikeButton` component is first rendered, React creates a virtual
+    DOM tree that mirrors the actual DOM tree. The virtual DOM contains a single `div`
+    element that contains a `button` element and a `p` element:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当首次渲染 `LikeButton` 组件时，React 创建一个反映实际 DOM 树的虚拟 DOM 树。虚拟 DOM 包含一个 `div` 元素，其中包含一个
+    `button` 元素和一个 `p` 元素：
+- en: '[PRE28]'
+  id: totrans-277
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: The `children` property of the `p` element contains the value of the `Likes`
+    state variable, which is initially set to zero.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`p` 元素的 `children` 属性包含 `Likes` 状态变量的值，初始设置为零。'
+- en: 'When the user clicks the Like button, the `handleLike` function is called,
+    which updates the `likes` state variable. React then creates a new virtual DOM
+    tree that reflects the updated state:'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击 Like 按钮时，会调用 `handleLike` 函数，它更新 `likes` 状态变量。然后，React 创建一个反映更新状态的新虚拟
+    DOM 树：
+- en: '[PRE29]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Notice that the virtual DOM tree contains the same elements as before, but the
+    `children` property of the `p` element has been updated to reflect the new value
+    of likes, going from `0` to `1`. What follows is a process called *reconciliation*
+    in React, where the new vDOM is compared with the old one. Let’s briefly discuss
+    this process.
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意虚拟 DOM 树包含与之前相同的元素，但 `p` 元素的 `children` 属性已更新以反映喜欢的新值，从 `0` 变为 `1`。接下来是 React
+    中称为 *协调* 的过程，其中新的虚拟 DOM 与旧的进行比较。让我们简要讨论这个过程。
+- en: After computing a new virtual DOM tree, React performs a process called reconciliation
+    to understand the differences between the new tree and the old one. Reconciliation
+    is the process of comparing the old virtual DOM tree with the new virtual DOM
+    tree and determining which parts of the actual DOM need to be updated. If you’re
+    interested in *how* exactly this is done, [Chapter 4](ch04.html#ch04) goes into
+    a lot of detail about this. For now, let’s consider our Like button.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 计算新的虚拟 DOM 树后，React 执行称为协调的过程，以了解新树与旧树之间的差异。协调是将旧虚拟 DOM 树与新虚拟 DOM 树进行比较，并确定哪些部分的实际
+    DOM 需要更新的过程。如果你对 *具体* 如何进行感兴趣，[第四章](ch04.html#ch04) 对此进行了详细的讨论。现在，让我们考虑我们的 Like
+    按钮。
+- en: 'In our example, React compares the old virtual DOM tree with the new virtual
+    DOM tree and finds that the `p` element has changed: specifically that its props
+    or state or both have changed. This enables React to mark the component as “dirty”
+    or “should be updated.” React then computes a minimal effective set of updates
+    to make on the actual DOM to reconcile the state of the new vDOM with the DOM,
+    and eventually updates the actual DOM to reflect the changes made to the virtual
+    DOM.'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的示例中，React 比较旧虚拟 DOM 树与新虚拟 DOM 树，发现 `p` 元素已更改：具体来说，其 props 或 state 或两者都已更改。这使得
+    React 能够将组件标记为“脏”或“应更新”。然后，React 计算一组最小有效更新，以在实际 DOM 上对新 vDOM 的状态进行协调，并最终更新实际
+    DOM 以反映对虚拟 DOM 所做的更改。
+- en: React updates only the necessary parts of the actual DOM to minimize the number
+    of DOM manipulations. This approach is much faster and more efficient than updating
+    the entire DOM tree every time there is a change.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 仅更新实际 DOM 的必要部分，以最小化 DOM 操作的数量。这种方法比每次更改时更新整个 DOM 树要快得多，更高效。
+- en: The virtual DOM has been a powerful and influential invention for the modern
+    web, with newer libraries like Preact and Inferno adopting it once it was proven
+    in React. We will cover more of the virtual DOM in [Chapter 4](ch04.html#ch04),
+    but for now, let’s move on to the next section.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虚拟DOM已经成为现代Web的一个强大而有影响力的发明，像Preact和Inferno这样的新库在React证明其有效性后也采纳了它。我们将在[第四章](ch04.html#ch04)中更多地介绍虚拟DOM，但现在让我们继续下一节。
+- en: The component model
+  id: totrans-286
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 组件模型
+- en: 'React highly encourages “thinking in components”: that is, breaking your app
+    into smaller pieces and adding them to a larger tree to compose your application.
+    The component model is a key concept in React, and it’s what makes React so powerful.
+    Let’s talk about why:'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React极力鼓励“组件化思维”：即将你的应用程序拆分为较小的组件，并将它们添加到一个更大的树中以组合你的应用程序。组件模型是React的一个关键概念，也是使React如此强大的原因。让我们来讨论为什么：
+- en: It encourages reusing the same thing everywhere so that if it breaks, you fix
+    it in one place and it’s fixed everywhere. This is called DRY (Don’t Repeat Yourself)
+    development and is a key concept in software engineering. For example, if we have
+    a `Button` component, we can use it in many places in our app, and if we need
+    to change the style of the button, we can do it in one place and it’s changed
+    everywhere.
+  id: totrans-288
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它鼓励在所有地方重复使用相同的东西，这样如果它出问题了，你只需在一个地方修复它，所有地方都会修复。这被称为DRY（不要重复自己）开发，是软件工程的关键概念。例如，如果我们有一个`Button`组件，我们可以在应用的许多地方使用它，如果我们需要改变按钮的样式，我们可以在一个地方做这个改变，然后所有地方都会改变。
+- en: React is more easily able to keep track of components and do performance magic
+    like memoization, batching, and other optimizations under the hood if it’s able
+    to identify specific components over and over and track updates to the specific
+    components over time. This is called *keying*. For example, if we have a `Button`
+    component, we can give it a `key` prop and React will be able to keep track of
+    the `Button` component over time and “know” when to update it, or when to skip
+    updating it and continue making minimal changes to the user interface. Most components
+    have implicit keys, but we can also explicitly provide them if we want to.
+  id: totrans-289
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果React能够重复识别特定组件并跟踪特定组件随时间的更新，它更容易追踪组件并执行性能优化，如记忆化、批处理和其他优化。这称为*keying*。例如，如果我们有一个`Button`组件，我们可以给它一个`key`属性，React将能够随时间跟踪`Button`组件并“知道”何时更新它，或者何时跳过更新并继续对用户界面进行最小化的更改。大多数组件具有隐式键，但如果需要，我们也可以显式提供它们。
+- en: It helps us separate concerns and colocate logic closer to the parts of the
+    user interface that the logic affects. For example, if we have a `RegisterButton`
+    component, we can put the logic for what happens when the button is clicked in
+    the same file as the `RegisterButton` component, instead of having to jump around
+    to different files to find the logic for what happens when the button is clicked.
+    The `RegisterButton` component would wrap a more simple `Button` component, and
+    the `RegisterButton` component would be responsible for handling the logic for
+    what happens when the button is clicked. This is called *composition*.
+  id: totrans-290
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 它帮助我们分离关注点并将逻辑放置在逻辑影响到的用户界面部分附近。例如，如果我们有一个`RegisterButton`组件，我们可以将按钮被点击时的逻辑放在与`RegisterButton`组件同一文件中，而不是需要在不同文件之间跳转来查找按钮被点击时的逻辑。`RegisterButton`组件会包装一个更简单的`Button`组件，并负责处理按钮被点击时的逻辑。这被称为*composition*。
+- en: React’s component model is a fundamental concept that underpins the framework’s
+    popularity and success. This approach to development has numerous benefits, including
+    increased modularity, easier debugging, and more efficient code reuse.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React的组件模型是支撑该框架流行和成功的基本概念。这种开发方法具有多个好处，包括增加模块化、更容易调试和更高效的代码重用。
+- en: Immutable state
+  id: totrans-292
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 不可变状态
+- en: React’s design philosophy emphasizes a paradigm wherein the state of our application
+    is described as a set of immutable values. Each state update is treated as a new,
+    distinct snapshot and memory reference. This immutable approach to state management
+    is a core part of React’s value proposition, and it has several advantages for
+    developing robust, efficient, and predictable user interfaces.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React的设计哲学强调一种范式，即我们的应用程序状态被描述为一组不可变的值。每次状态更新都被视为一个新的、独特的快照和内存引用。这种不可变的状态管理方法是React价值主张的核心部分，对于开发强大、高效且可预测的用户界面具有几个优势。
+- en: By enforcing immutability, React ensures that the UI components reflect a specific
+    state at any given point in time. When the state changes, rather than mutating
+    it directly, you return a new object that represents the new state. This makes
+    it easier to track changes, debug, and understand your application’s behavior.
+    Since state transitions are discrete and do not interfere with each other, the
+    chances of subtle bugs caused by a shared mutable state are significantly reduced.
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过强制不可变性，React 确保 UI 组件在任何给定时间点反映特定状态。当状态发生变化时，你不是直接进行变异，而是返回一个表示新状态的新对象。这使得跟踪变化、调试和理解应用程序行为更加容易。由于状态转换是离散的且不相互干扰，因此由共享可变状态引起的微妙
+    bug 的可能性显著降低。
+- en: In coming chapters, we’ll explore how React batches state updates and processes
+    them asynchronously to optimize performance. Because state must be treated immutably,
+    these “transactions” can be safely aggregated and applied without the risk of
+    one update corrupting the state for another. This leads to more predictable state
+    management and can improve app performance, especially during complex state transitions.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在接下来的章节中，我们将探讨 React 如何批量更新状态并异步处理它们以优化性能。由于状态必须以不可变方式处理，这些“事务”可以安全地聚合和应用，而不会因一个更新损坏另一个状态。这带来更可预测的状态管理，并可以改善应用程序性能，特别是在复杂状态转换期间。
+- en: The use of immutable state further reinforces best practices in software development.
+    It encourages developers to think functionally about their data flow, reducing
+    side effects and making the code easier to follow. The clarity of an immutable
+    data flow simplifies the mental model for understanding how an application works.
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用不可变状态进一步强化了软件开发中的最佳实践。它鼓励开发人员在处理数据流时采用函数式思维，减少副作用，使代码更易于理解。不可变数据流的清晰性简化了理解应用程序运行方式的心智模型。
+- en: Immutability also enables powerful developer tools, such as time-travel debugging
+    with tools like Replay.io, where developers can step forward and backward through
+    the state changes of an application to inspect the UI at any point in time. This
+    is only feasible if every state update is kept as a unique and unmodified snapshot.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不可变性还支持强大的开发者工具，例如 Replay.io 等工具的时光旅行调试，开发人员可以前后移动查看应用程序状态变化，检查任意时间点的 UI。只有保持每个状态更新为独特且未修改的快照，才能实现这一点。
+- en: React’s commitment to immutable state updates is a deliberate design choice
+    that brings numerous benefits. It aligns with modern functional programming principles,
+    enabling efficient UI updates, optimizing performance, reducing the likelihood
+    of bugs, and improving the overall developer experience. This approach to state
+    management underpins many of React’s advanced features and will continue to be
+    a cornerstone as React evolves.
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 对不可变状态更新的承诺是一个深思熟虑的设计选择，带来了许多好处。它符合现代函数式编程原则，实现了高效的 UI 更新、优化性能、减少 bug
+    的可能性，并改善了整体开发人员体验。这种状态管理方法支撑了 React 许多先进功能的基础，并将继续作为 React 发展的基石。
+- en: Releasing React
+  id: totrans-299
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 发布 React
+- en: Unidirectional data flow was a radical departure from the way we had been building
+    web apps for years, and it was met with skepticism. The fact that Facebook was
+    a large company with a lot of resources, a lot of users, and a lot of engineers
+    with opinions made its upward climb a steep one. After much scrutiny, React was
+    an internal success. It was adopted by Facebook and then by Instagram.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单向数据流是我们多年来构建 Web 应用程序的一次彻底转变，遭遇了怀疑。Facebook 作为一个资源丰富、用户众多、工程师众多且意见不一的大公司，这种向上攀升的过程曲折艰辛。经过深入审查，React
+    在内部取得了成功。它先是被 Facebook 采纳，然后是被 Instagram 采纳。
+- en: It was then made open source in 2013 and released to the world where it was
+    met with a tremendous amount of backlash. People heavily criticized React for
+    its use of JSX, accusing Facebook of “putting HTML in JavaScript” and breaking
+    separation of concerns. Facebook became known as the company that “rethinks best
+    practices” and breaks the web. Eventually, after slow and steady adoption by companies
+    like Netflix, Airbnb, and *The New York Times*, React became the de facto standard
+    for building user interfaces on the web.
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在 2013 年开源，并释放到世界，但遭遇了大量抨击。人们严厉批评 React 使用 JSX，指责 Facebook “将 HTML 放入 JavaScript”
+    并破坏了关注点分离。Facebook 因“重新思考最佳实践”并打破 Web 而闻名。最终，在像 Netflix、Airbnb 和 *纽约时报* 这样的公司缓慢而稳定的采用后，React
+    成为了构建 Web 用户界面的事实标准。
+- en: 'A number of details are left out of this story because they fall out of the
+    scope of this book, but it’s important to understand the context of React before
+    we dive into the details: specifically the class of technical problems React was
+    created to solve. Should you be more interested in the story of React, there is
+    a full documentary on the history of React that is freely available on YouTube
+    under *React.js: The Documentary* by Honeypot.'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '本故事中略去了一些细节，因为它们超出了本书的范围，但在深入了解细节之前了解 React 的背景是很重要的：特别是 React 被创建来解决的技术问题类别。如果您对
+    React 的故事更感兴趣，YouTube 上有一部关于 React 历史的完整纪录片，名为 *React.js: The Documentary*，由 Honeypot
+    免费提供。'
+- en: Given that Facebook had a front-row seat to these problems at enormous scale,
+    React pioneered a component-based approach to building user interfaces that would
+    solve these problems and more, where each component would be a self-contained
+    unit of code that could be reused and composed with other components to build
+    more complex user interfaces.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于 Facebook 在巨大规模下亲眼目睹了这些问题，React 开创了一种基于组件的构建用户界面的方法，可以解决这些问题以及更多问题，其中每个组件都是一个可以重复使用并与其他组件组合以构建更复杂用户界面的自包含代码单元。
+- en: 'A year after React was released as open source software, Facebook released
+    Flux: a pattern for managing data flow in React applications. Flux was a response
+    to the challenges of managing data flow in large-scale applications, and it was
+    a key part of the React ecosystem. Let’s take a look at Flux and how it fits into
+    the React.'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 发布为开源软件一年后，Facebook 发布了 Flux：一种用于管理 React 应用程序中数据流的模式。Flux 是对管理大规模应用程序中数据流挑战的回应，也是
+    React 生态系统的关键部分。让我们来看看 Flux 以及它如何融入 React 中。
+- en: The Flux Architecture
+  id: totrans-305
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Flux 架构
+- en: Flux is an architectural design pattern for building client-side web applications,
+    popularized by Facebook (now Meta) (see [Figure 1-3](#figure1-3)). It emphasizes
+    a unidirectional data flow, which makes the flow of data within the app more predictable.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux 是一种用于构建客户端 Web 应用程序的架构设计模式，由 Facebook（现在是 Meta）推广（见[图 1-3](#figure1-3)）。它强调单向数据流，使应用程序内部数据流更加可预测。
+- en: '![flux](assets/frea_0103.png)'
+  id: totrans-307
+  prefs: []
+  type: TYPE_IMG
+  zh: '![flux](assets/frea_0103.png)'
+- en: Figure 1-3\. The Flux architecture
+  id: totrans-308
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 1-3\. Flux 架构
+- en: 'Here are the key concepts of the Flux architecture:'
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下是 Flux 架构的关键概念：
+- en: Actions
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 操作
+- en: 'Actions are simple objects containing new data and an identifying type property.
+    They represent the external and internal inputs to the system, like user interactions,
+    server responses, and form inputs. Actions are dispatched through a central dispatcher
+    to various stores:'
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 操作是包含新数据和标识类型属性的简单对象。它们代表系统的外部和内部输入，如用户交互、服务器响应和表单输入。操作通过中央调度器分派到各种存储区：
+- en: '[PRE30]'
+  id: totrans-312
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Dispatcher
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调度器
+- en: 'The dispatcher is the central hub of the Flux architecture. It receives actions
+    and dispatches them to the registered stores in the application. It manages a
+    list of callbacks, and every store registers itself and its callback with the
+    dispatcher. When an action is dispatched, it is sent to all registered callbacks:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调度器是 Flux 架构的中央枢纽。它接收操作并将它们分派到应用程序中注册的存储区。它管理一个回调列表，每个存储区都向调度器注册自身和其回调。当分派操作时，它被发送到所有注册的回调：
+- en: '[PRE31]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Stores
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储
+- en: 'Stores contain the application state and logic. They are somewhat similar to
+    models in the MVC architecture, but they manage the state of many objects. They
+    register with the dispatcher and provide callbacks to handle the actions. When
+    a store’s state is updated, it emits a change event to alert the views that something
+    has changed:'
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 存储区包含应用程序状态和逻辑。它们与 MVC 架构中的模型有些相似，但它们管理许多对象的状态。它们向调度器注册并提供处理操作的回调。当存储区的状态更新时，它会发出更改事件以通知视图发生了变化：
+- en: '[PRE32]'
+  id: totrans-318
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Views
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图
+- en: Views are React components. They listen to change events from the stores and
+    update themselves when the data they depend on changes. They can also create new
+    actions to update the system state, forming a unidirectional cycle of data flow.
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图是 React 组件。它们监听来自存储的更改事件，并在它们依赖的数据发生变化时更新自身。它们还可以创建新的操作以更新系统状态，形成数据流的单向循环。
+- en: The Flux architecture promotes a unidirectional data flow through a system,
+    which makes it easier to track changes over time. This predictability can later
+    be used as the basis for compilers to further optimize code, as is the case with
+    React Forget (more on this later).
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux 架构通过系统中的单向数据流促进了更容易跟踪随时间变化的变化。这种可预测性后来可以作为编译器进一步优化代码的基础，就像 React Forget（稍后详细介绍）的情况一样。
+- en: Benefits of the Flux Architecture
+  id: totrans-322
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Flux架构的优势
+- en: 'The Flux architecture brings about a variety of benefits that help manage complexity
+    and improve the maintainability of web applications. Here are some of the notable
+    benefits:'
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux架构带来了许多有助于管理复杂性和提高Web应用程序可维护性的好处。以下是一些显著的优势：
+- en: Single source of truth
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单一真实数据源
+- en: Flux emphasizes having a single source of truth for the application’s state,
+    which is stored in the stores. This centralized state management makes the application’s
+    behavior more predictable and easier to understand. It eliminates the complications
+    that come with having multiple, interdependent sources of truth, which can lead
+    to bugs and inconsistent state across the application.
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux强调应用程序状态的单一真实数据源，存储在stores中。这种集中式状态管理使应用程序的行为更加可预测且更易于理解。它消除了多个相互依赖的真实数据源可能带来的复杂性，从而减少了应用程序各处的错误和不一致状态。
+- en: Testability
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可测试性
+- en: Flux’s well-defined structures and predictable data flow make the application
+    highly testable. The separation of concerns among different parts of the system
+    (like actions, dispatcher, stores, and views) allows for unit testing each part
+    in isolation. Moreover, it’s easier to write tests when the data flow is unidirectional
+    and when the state is stored in specific, predictable locations.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux明确定义的结构和可预测的数据流使应用程序极易测试。系统中不同部分（如actions、dispatcher、stores和views）的关注点分离允许单元测试每个部分独立进行。此外，在数据流是单向且状态存储在特定、可预测位置时，编写测试也更加容易。
+- en: Separation of concerns (SoC)
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关注点分离（SoC）
+- en: Flux clearly separates the concerns of different parts of the system, as described
+    earlier. This separation makes the system more modular, easier to maintain, and
+    easier to reason about. Each part has a clearly defined role, and the unidirectional
+    data flow makes it clear how these parts interact with each other.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux清晰地分离了系统不同部分的关注点，正如之前所描述的。这种分离使得系统更加模块化，更易于维护和推理。每个部分都有明确定义的角色，而单向数据流则清晰地展示了这些部分如何相互作用。
+- en: The Flux architecture provides a solid foundation for building robust, scalable,
+    and maintainable web applications. Its emphasis on a unidirectional data flow,
+    single source of truth, and Separation of Concerns leads to applications that
+    are easier to develop, test, and debug.
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Flux架构为构建稳健、可扩展和可维护的Web应用提供了坚实的基础。其强调单向数据流、单一真实数据源和关注点分离，导致开发的应用更易于开发、测试和调试。
+- en: 'Wrap-Up: So…Why Is React a Thing?'
+  id: totrans-331
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结：那么，为什么React如此受欢迎呢？
+- en: React is a thing because it allows developers to build user interfaces with
+    greater predictability and reliability, enabling us to declaratively express *what
+    we’d like on the screen* while React takes care of the *how* by making incremental
+    updates to the DOM in an efficient manner. It also encourages us to think in components,
+    which helps us separate concerns and reuse code more easily. It is battle-tested
+    at Meta and designed to be used at scale. It’s also open source and free to use.
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React之所以备受青睐，是因为它使开发人员能够以更大的可预测性和可靠性构建用户界面，我们可以声明性地表达*屏幕上我们想要的东西*，而React则通过高效的增量DOM更新来处理*如何*。它还鼓励我们以组件思维来分离关注点并更轻松地重用代码。在Meta经受过实战考验，并设计用于大规模使用。它还是开源且免费使用。
+- en: React also has a vast and active ecosystem, with a wide range of tools, libraries,
+    and resources available to developers. This ecosystem includes tools for testing,
+    debugging, and optimizing React applications, as well as libraries for common
+    tasks such as data management, routing, and state management. Additionally, the
+    React community is highly engaged and supportive, with many online resources,
+    forums, and communities available to help developers learn and grow.
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React还拥有庞大且活跃的生态系统，开发人员可以获取各种工具、库和资源。这个生态系统包括用于测试、调试和优化React应用程序的工具，以及用于常见任务（如数据管理、路由和状态管理）的库。此外，React社区积极参与，提供许多在线资源、论坛和社群，帮助开发人员学习和成长。
+- en: React is platform-agnostic, meaning that it can be used to build web applications
+    for a wide range of platforms, including desktop, mobile, and virtual reality.
+    This flexibility makes React an attractive option for developers who need to build
+    applications for multiple platforms, as it allows them to use a single codebase
+    to build applications that run across multiple devices.
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 是平台无关的，这意味着它可以用于构建广泛的平台的 Web 应用程序，包括桌面、移动和虚拟现实。这种灵活性使 React 成为开发人员的首选，他们需要为多个平台构建应用程序，因为它允许他们使用单一的代码库来构建可以在多个设备上运行的应用程序。
+- en: To conclude, React’s value proposition is centered around its component-based
+    architecture, declarative programming model, virtual DOM, JSX, extensive ecosystem,
+    platform agnostic nature, and backing by Meta. Together, these features make React
+    an attractive option for developers who need to build fast, scalable, and maintainable
+    web applications. Whether you’re building a simple website or a complex enterprise
+    application, React can help you achieve your goals more efficiently and effectively
+    than many other technologies. Let’s review.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下，React 的价值主张集中在其基于组件的架构、声明式编程模型、虚拟 DOM、JSX、广泛的生态系统、平台无关性以及 Meta 的支持。这些特性使
+    React 成为需要构建快速、可伸缩和可维护 Web 应用程序的开发人员的理想选择。无论您是构建简单的网站还是复杂的企业应用程序，React 都可以帮助您比许多其他技术更有效地实现目标。让我们来复习一下。
+- en: Chapter Review
+  id: totrans-336
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 章节复习
+- en: In this chapter, we covered a brief history of React, its initial value proposition,
+    and how it solves the problems of unsafe, unpredictable, and inefficient user
+    interface updates at scale. We also talked about the component model and why it
+    has been revolutionary for interfaces on the web. Let’s recap what we’ve learned.
+    Ideally, after this chapter you are more informed about the roots of React and
+    where it comes from as well as its main strengths and value proposition.
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们简要介绍了 React 的历史背景，它最初的价值主张，以及如何解决规模化时不安全、不可预测和低效的用户界面更新问题。我们还谈到了组件模型以及它为
+    Web 上的界面带来的革命性。让我们回顾一下我们所学到的。理想情况下，通过这一章节，您对 React 的起源、其主要优势和价值主张有了更多了解。
+- en: Review Questions
+  id: totrans-338
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 复习问题
+- en: 'Let’s make sure you’ve fully grasped the topics we covered. Take a moment to
+    answer the following questions:'
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们确保您完全掌握了我们讨论的主题。请花一些时间回答以下问题：
+- en: What was the motivation to create React?
+  id: totrans-340
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 创建 React 的动机是什么？
+- en: How does React improve on prior patterns like MVC and MVVM?
+  id: totrans-341
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: React 如何改进之前的 MVC 和 MVVM 等模式？
+- en: What’s so special about the Flux architecture?
+  id: totrans-342
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: Flux 架构有什么特别之处？
+- en: What are the benefits of declarative programming abstractions?
+  id: totrans-343
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 什么是声明性编程抽象的好处？
+- en: What’s the role of the virtual DOM in making efficient UI updates?
+  id: totrans-344
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 虚拟 DOM 在进行高效的 UI 更新中扮演了什么角色？
+- en: If you have trouble answering these questions, this chapter may be worth another
+    read. If not, let’s explore the next chapter.
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您在回答这些问题时遇到困难，这一章节可能值得再读一遍。如果没有问题，让我们来探索下一章。
+- en: Up Next
+  id: totrans-346
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 接下来
+- en: 'In [Chapter 2](ch02.html#ch02) we will dive a little deeper into this declarative
+    abstraction that allows us to express what we want to see on the screen: the syntax
+    and inner workings of JSX—the language that looks like HTML in JavaScript that
+    got React into a lot of trouble in its early days, but ultimately revealed itself
+    to be the ideal way to build user interfaces on the web, influencing a number
+    of future libraries for building user interfaces.'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 [第二章](ch02.html#ch02) 中，我们将深入探讨这种声明性抽象，它允许我们表达我们希望在屏幕上看到的内容：JSX 的语法和内部工作原理——这种在早期使
+    React 陷入困境的 JavaScript 中的 HTML 语言，但最终证明是在 Web 上构建用户界面的理想方式，影响了许多未来用于构建用户界面的库。

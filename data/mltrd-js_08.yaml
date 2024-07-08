@@ -1,0 +1,912 @@
+- en: Chapter 7\. WebAssembly
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章\. WebAssembly
+- en: While the title of this book is *Multithreaded JavaScript*, modern JavaScript
+    runtimes also support WebAssembly. For the unaware, WebAssembly (often abbreviated
+    as WASM) is a binary-encoded instruction format that runs on a stack-based virtual
+    machine. It’s designed with security in mind and runs in a sandbox where the only
+    things it has access to are memory and functions provided by the host environment.
+    The main motivation behind having such a thing in browsers and other JavaScript
+    runtimes is to run the parts of your program that are performance-sensitive in
+    an environment where execution can happen much faster than JavaScript. Another
+    goal is to provide a compile target for typically compiled languages like C, C++,
+    and Rust. This opens the door for developers of those languages to develop for
+    the web.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这本书的标题是 *Multithreaded JavaScript*，现代 JavaScript 运行时也支持 WebAssembly。对于不了解的人来说，WebAssembly（通常缩写为
+    WASM）是一种二进制编码的指令格式，运行在基于堆栈的虚拟机上。它设计时考虑了安全性，并在仅能访问内存和主机环境提供的函数的沙箱中运行。在浏览器和其他 JavaScript
+    运行时中运行的程序部分，它比 JavaScript 可以更快地执行。另一个目标是为通常编译的语言（如 C、C++ 和 Rust）提供一个编译目标。这为这些语言的开发者开发
+    Web 提供了机会。
+- en: Generally, the memory used by WebAssembly modules is represented by `ArrayBuffers`,
+    but it can also be represented by `SharedArrayBuffers`. In addition, there are
+    WebAssembly instructions for atomic operations, similar to the `Atomics` object
+    we have in JavaScript. With `SharedArrayBuffers`, atomic operations, and web workers
+    (or `worker_threads` in Node.js), we have enough to do the full suite of multithreaded
+    programming tasks using WebAssembly.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常，WebAssembly 模块使用的内存由 `ArrayBuffers` 表示，但也可以由 `SharedArrayBuffers` 表示。此外，还有用于原子操作的
+    WebAssembly 指令，类似于我们在 JavaScript 中使用的 `Atomics` 对象。通过 `SharedArrayBuffers`、原子操作和
+    Web Workers（或在 Node.js 中的 `worker_threads`），我们可以完成使用 WebAssembly 进行多线程编程的全套任务。
+- en: Before we jump into multithreaded WebAssembly, let’s build a “Hello, World!”
+    example and execute it, to find the strengths and limitations of WebAssembly.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们深入讨论多线程 WebAssembly 之前，让我们构建一个“Hello, World!” 的例子并执行它，以找出 WebAssembly 的优势和限制。
+- en: Your First WebAssembly
+  id: totrans-4
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 你的第一个 WebAssembly
+- en: While WebAssembly is a binary format, a plain text format exists to represent
+    it in human readable form. This is comparable to how machine code can by represented
+    in a human-readable assembly language. The language for this WebAssembly text
+    format is simply called WebAssembly text format, but the file extension typically
+    used is *.wat*, so it’s common enough to refer to this language as WAT. It uses
+    *S-expressions* as its primary syntactic separator, which is helpful for both
+    parsing and readability. S-expressions, known primarily from the Lisp family of
+    languages, are nested lists delimited by parentheses, with whitespace between
+    each item in the list.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 WebAssembly 是一个二进制格式，但存在一个纯文本格式来以人类可读的形式表示它。这类似于如何将机器码表示为人类可读的汇编语言。这种 WebAssembly
+    文本格式的语言简称为 WAT，但通常使用的文件扩展名是 *.wat*。它使用 *S 表达式* 作为其主要的语法分隔符，这对于解析和可读性都很有帮助。S 表达式主要来自
+    Lisp 系列语言，是由括号括起的嵌套列表，列表中的每个项之间有空白。
+- en: To get a feel for this format, let’s implement a simple addition function in
+    WAT. Create a file called *ch7-wasm-add/add.wat* and add the contents of [Example 7-1](#ex_ch7_add_wat).
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要感受这种格式，让我们在 WAT 中实现一个简单的加法函数。创建一个名为 *ch7-wasm-add/add.wat* 的文件，并添加 [示例 7-1](#ex_ch7_add_wat)
+    的内容。
+- en: Example 7-1\. *ch7-wasm-add/add.wat*
+  id: totrans-7
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-1\. *ch7-wasm-add/add.wat*
+- en: '[PRE0]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: '[![1](Images/1.png)](#co_webassembly_CO1-1)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_webassembly_CO1-1)'
+- en: The first line declares a module. Every WAT file begins with this.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一行声明了一个模块。每个 WAT 文件都以这个开始。
+- en: '[![2](Images/2.png)](#co_webassembly_CO1-2)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_webassembly_CO1-2)'
+- en: We declare a function called `$add`, taking in two 32-bit integers and returning
+    another 32-bit integer.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明了一个名为 `$add` 的函数，接受两个 32 位整数并返回另一个 32 位整数。
+- en: '[![3](Images/3.png)](#co_webassembly_CO1-3)'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_webassembly_CO1-3)'
+- en: This is the start of the function body, in which we have three statements. The
+    first two grab the function parameters and put them on the stack one after another.
+    Recall that WebAssembly is stack-based. That means many operations will operate
+    on the first (if unary) or first two (if binary) items on the stack. The third
+    statement is a binary “add” operation on i32 values, so it grabs the top two values
+    from the stack and adds them together, putting the result at the top of the stack.
+    The return value for a function is the value at the top of the stack once it completes.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是函数体的开始部分，在其中我们有三条语句。前两条语句获取函数参数并将它们依次放入堆栈中。请记住，WebAssembly是基于堆栈的。这意味着许多操作将在堆栈的第一个（如果是一元操作）或前两个（如果是二元操作）项上进行。第三条语句是对i32值进行二元“add”操作，因此它从堆栈中获取顶部两个值并将它们相加，将结果放在堆栈顶部。函数的返回值是堆栈在完成时的顶部值。
+- en: '[![4](Images/4.png)](#co_webassembly_CO1-4)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_webassembly_CO1-4)'
+- en: In order to use a function outside the module in the host environment, it needs
+    to be exported. Here we export the `$add` function, giving it the external name
+    `add`.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了在主机环境中使用模块外的函数，它需要被导出。在这里，我们导出了`$add`函数，并为其指定了外部名称`add`。
+- en: We can convert this WAT file to WebAssembly binary by using the `wat2wasm` tool
+    from the WebAssembly Binary Toolkit (WABT). This can be done with the following
+    one-liner in the *ch7-wasm-add* directory.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用WebAssembly二进制工具包（WABT）中的`wat2wasm`工具将此WAT文件转换为WebAssembly二进制文件。这可以通过*ch7-wasm-add*目录中的以下一行命令完成。
+- en: '[PRE1]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Now we have our first WebAssembly file! These files aren’t useful outside a
+    host environment, so let’s write a bit of JavaScript to load the WebAssembly and
+    test the `add` function. Add the contents of [Example 7-2](#ex_ch7_add_wat_js)
+    to *ch7-wasm-add/add.js*.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们有了我们的第一个WebAssembly文件！这些文件在主机环境外并不实用，所以让我们编写一点JavaScript来加载WebAssembly并测试`add`函数。将[示例 7-2](#ex_ch7_add_wat_js)的内容添加到*ch7-wasm-add/add.js*中。
+- en: Example 7-2\. *ch7-wasm-add/add.js*
+  id: totrans-20
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-2\. *ch7-wasm-add/add.js*
+- en: '[PRE2]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Provided you’ve created the *.wasm* file using the preceding `wat2wasm` command,
+    you should be able to run this in the *ch7-wasm-add* directory.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您已经使用前面的`wat2wasm`命令创建了*.wasm*文件，那么您应该可以在*ch7-wasm-add*目录中运行它。
+- en: '[PRE3]'
+  id: totrans-23
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: You can verify from the output that we are, in fact, adding via our WebAssembly
+    module.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以从输出中验证，我们确实通过我们的WebAssembly模块进行了加法操作。
+- en: Simple mathematical operations on the stack don’t make any use of linear memory
+    or of concepts that have no meaning in WebAssembly, such as strings. Consider
+    strings in C. Effectively, they’re nothing more than a pointer to the start of
+    an array of bytes, terminated by a null byte. We can’t pass whole arrays by value
+    to WebAssembly functions or return them, but we can pass them by reference. This
+    means that to pass a string as an argument, we need to first allocate the bytes
+    in the linear memory and write to them, then pass the index of the first byte
+    to the WebAssembly function. This can get more complex since we then need ways
+    of managing the available space in the linear memory. We basically need `malloc()`
+    and `free()` implementations operating on the linear memory.^([1](ch07.xhtml#idm45995910670680))
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 堆栈上的简单数学运算不会使用线性内存或WebAssembly中没有意义的概念，比如字符串。考虑C语言中的字符串。实际上，它们只不过是指向以空字节结尾的字节数组的指针。我们不能通过值传递整个数组到WebAssembly函数或返回它们，但我们可以通过引用传递它们。这意味着要将字符串作为参数传递，我们需要首先在线性内存中分配字节并写入它们，然后将第一个字节的索引传递给WebAssembly函数。由于我们需要管理线性内存中的可用空间，这可能会变得更复杂。基本上，我们需要在线性内存上运行的`malloc()`和`free()`实现。^([1](ch07.xhtml#idm45995910670680))
+- en: Hand-writing WebAssembly in WAT, while clearly possible, isn’t usually the easiest
+    path to being productive and getting performance gains with it. It was designed
+    to be a compile target for higher-level languages, and that’s where it really
+    shines. [“Compiling C Programs to WebAssembly with Emscripten”](#ch_webassembly_sec_compile)
+    explores that in more detail.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在WAT中手写WebAssembly虽然显然可行，但通常不是提高效率和性能的最简单途径。它被设计为更高级语言的编译目标，这也是它真正闪耀的地方。[“使用Emscripten将C程序编译为WebAssembly”](#ch_webassembly_sec_compile)更详细地探讨了这一点。
+- en: Atomic Operations in WebAssembly
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: WebAssembly中的原子操作
+- en: Although a full treatment of every [WebAssembly instruction](https://oreil.ly/PfxJq)
+    would be out of place in this book, it’s worth pointing out the instructions specific
+    to atomic operations on shared memory since they’re key to multithreaded WebAssembly
+    code, whether compiled from another language or hand-written in WAT.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然在这本书中详细介绍每个[WebAssembly 指令](https://oreil.ly/PfxJq)并不合适，但值得指出的是与共享内存上的原子操作相关的指令，因为它们对于多线程的
+    WebAssembly 代码是关键的，无论是从其他语言编译还是手写 WAT。
+- en: WebAssembly instructions often start with the type. In the case of atomic operations,
+    the type is always `i32` or `i64`, corresponding to 32-bit and 64-bit integers,
+    respectively. All atomic operations have `.atomic.` next in the instruction name.
+    After that, you’ll find the specific instruction name.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: WebAssembly 指令通常以类型开头。在原子操作的情况下，类型总是`i32`或`i64`，分别对应32位和64位整数。所有原子操作在指令名称中紧跟`.atomic.`。之后，你会找到具体的指令名称。
+- en: 'Let’s go over some of the atomic operation instructions. We won’t go over exact
+    syntax, but this should give you an idea of the kinds of operations available
+    at the instruction level:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看一些原子操作指令。我们不会详细介绍语法，但这应该让你对指令级别的操作类型有所了解：
+- en: '`[i32|i64].atomic.[load|load8_u|load16_u|load32_u]`'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`[i32|i64].atomic.[load|load8_u|load16_u|load32_u]`'
+- en: The `load` family of instructions is equivalent to `Atomics.load()` in JavaScript.
+    Using one of the suffixed instructions allows you to load smaller numbers of bits,
+    extending the result with zeros.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`load` 指令系列相当于 JavaScript 中的 `Atomics.load()`。使用其中一个带后缀的指令允许您加载更小的位数，并使用零扩展结果。'
+- en: '`[i32|i64].atomic.[store|store8|store16|store32]`'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`[i32|i64].atomic.[store|store8|store16|store32]`'
+- en: The `store` family of instructions is equivalent to `Atomics.store()` in JavaScript.
+    Using one of the suffixed instructions wraps the input value to that number of
+    bits and stores those at the index.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`store` 指令系列相当于 JavaScript 中的 `Atomics.store()`。使用其中一个带后缀的指令将输入值包装到该位数，并将其存储在索引位置。'
+- en: '`[i32|i64].atomic.[rmw|rmw8|rmw16|rmw32].[add|sub|and|or|xor|xchg|cmpxchg][|_u]`'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`[i32|i64].atomic.[rmw|rmw8|rmw16|rmw32].[add|sub|and|or|xor|xchg|cmpxchg][|_u]`'
+- en: The `rmw` family of instructions all perform read-modify-write operations, equivalent
+    to `add()`, `sub()`, `and()`, `or()`, `xor()`, `exchange()`, and `compareExchange()`
+    from the `Atomics` object in JavaScript, respectively. The operations are suffixed
+    with a `_u` when they zero-extend, and `rmw` can have a suffix corresponding to
+    the number of bits to be read.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`rmw` 指令系列都执行读-修改-写操作，分别相当于 JavaScript 中 `Atomics` 对象的 `add()`、`sub()`、`and()`、`or()`、`xor()`、`exchange()`
+    和 `compareExchange()`。当它们进行零扩展时，操作后缀为 `_u`，并且 `rmw` 可以有与待读取位数相对应的后缀。'
+- en: 'The next two operations have a slightly different naming convention:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的两个操作有略微不同的命名约定：
+- en: '`memory.atomic.[wait32|wait64]`'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`memory.atomic.[wait32|wait64]`'
+- en: These are equivalent to `Atomics.wait()` in JavaScript, suffixed according to
+    the number of bits they operate on.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些相当于 JavaScript 中的 `Atomics.wait()`，根据它们操作的位数后缀不同。
+- en: '`memory.atomic.notify`'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`memory.atomic.notify`'
+- en: This is equivalent to `Atomics.notify()` in JavaScript.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这相当于 JavaScript 中的 `Atomics.notify()`。
+- en: 'These instructions are enough to perform the same atomic operations in WebAssembly
+    as we can in JavaScript, but there is an additional operation not available in
+    JavaScript:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些指令足以在 WebAssembly 中执行与 JavaScript 中相同的原子操作，但 JavaScript 中没有的附加操作是：
+- en: '`atomic.fence`'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`atomic.fence`'
+- en: This instruction takes no arguments and doesn’t return anything. It’s intended
+    to be used by higher-level languages that have ways of guaranteeing ordering of
+    nonatomic accesses to shared memory.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此指令不接受任何参数，也不返回任何内容。它旨在供具有保证非原子访问顺序方式的高级语言使用。
+- en: All of these operations are used with the given WebAssembly module’s *linear
+    memory*, which is the sandbox in which it gets to read and write values. When
+    WebAssembly modules are initialized from JavaScript, they can be initialized with
+    a linear memory provided as an option. This can be backed by a `SharedArrayBuffer`
+    to enable usage across threads.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些操作都与给定的 WebAssembly 模块的*线性内存*一起使用，这是一个允许读取和写入值的沙盒。当从 JavaScript 初始化 WebAssembly
+    模块时，可以选择使用线性内存进行初始化。这可以由`SharedArrayBuffer`支持，以便跨线程使用。
+- en: 'Although it’s certainly possible to use these instructions in WebAssembly,
+    they suffer from the same drawback that the rest of WebAssembly does: it’s incredibly
+    tedious and painstaking to write. Luckily, we can compile higher-level languages
+    down to WebAssembly.'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然在 WebAssembly 中使用这些指令是完全可能的，但它们遭受与 WebAssembly 其余部分相同的缺点：编写起来非常乏味和费力。幸运的是，我们可以将高级语言编译成
+    WebAssembly。
+- en: Compiling C Programs to WebAssembly with Emscripten
+  id: totrans-47
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 Emscripten 将 C 程序编译为 WebAssembly
+- en: Since long before WebAssembly, [Emscripten](https://emscripten.org) has been
+    the go-to way to compile C and C++ programs for use in JavaScript environments.
+    Today, it supports multithreaded C and C++ code using web workers in browsers
+    and `worker_threads` in Node.js.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自 WebAssembly 诞生以来，[Emscripten](https://emscripten.org) 一直是将 C 和 C++ 程序编译为 JavaScript
+    环境可用的首选方式。如今，它支持在浏览器中使用 web workers 和在 Node.js 中使用 `worker_threads` 来实现多线程的 C
+    和 C++ 代码。
+- en: In fact, a large corpus of existing multithreaded code in the wild can be compiled
+    with Emscripten without issue. In both Node.js and browsers, Emscripten emulates
+    the system calls used by native code compiled to WebAssembly so that programs
+    written in compiled languages can run without many changes.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，在野外存在大量现有的多线程代码可以无缝地使用 Emscripten 编译，没有问题。在 Node.js 和浏览器中，Emscripten 模拟了编译为
+    WebAssembly 的本地代码使用的系统调用，以便以编译语言编写的程序可以在不进行太多更改的情况下运行。
+- en: Indeed, the C code we wrote way back in [Chapter 1](ch01.xhtml#ch_intro) can
+    be compiled without any editing! Let’s give that a try now. We’ll use a Docker
+    image to simplify using Emscripten. For other compiler toolchains, we’d want to
+    make sure that the toolchain aligns with the system, but since WebAssembly and
+    JavaScript are both platform-agnostic, we can just use the Docker image wherever
+    Docker is supported.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 的确，我们在 [第 1 章](ch01.xhtml#ch_intro) 中编写的 C 代码可以毫无修改地编译！现在让我们试试。我们将使用 Docker
+    镜像来简化使用 Emscripten。对于其他编译器工具链，我们需要确保工具链与系统对齐，但由于 WebAssembly 和 JavaScript 都是跨平台的，我们可以在支持
+    Docker 的任何地方使用 Docker 镜像。
+- en: 'First, make sure [Docker is installed](https://docker.com). Then, in your *ch1-c-threads*
+    directory, run the following command:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，请确保已安装 [Docker](https://docker.com)。然后，在您的 *ch1-c-threads* 目录中，运行以下命令：
+- en: '[PRE4]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: There are a few things to discuss with this command. We’re running the `emscripten/emsdk`
+    image, with the current directory mounted, running as the current user. Everything
+    after and including `emcc` is the command we’re running inside the container.
+    For the most part, this looks a lot like what we’d do when using `cc` to compile
+    a C program. The main difference is that the output file is a JavaScript file
+    rather than an executable binary. Don’t worry! A *.wasm* file is also generated.
+    The JS file is used as a bridge to any necessary system calls and to set up the
+    threads because those can’t be instantiated in WebAssembly alone.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于这个命令有几点需要讨论。我们正在运行 `emscripten/emsdk` 镜像，当前目录已挂载，并以当前用户身份运行。`emcc` 以及后续的内容是我们在容器内运行的命令。在大多数情况下，这看起来很像使用
+    `cc` 编译 C 程序时会做的事情。主要区别在于输出文件是 JavaScript 文件而不是可执行二进制文件。不用担心！还会生成一个 *.wasm* 文件。JS
+    文件被用作与必要系统调用的桥梁，并设置线程，因为这些无法仅通过 WebAssembly 实例化。
+- en: The other extra argument is `-s PTHREAD_POOL_SIZE=4`. Since `happycoin-threads.c`
+    uses three threads, we allocate them ahead of time here. There are a few ways
+    to handle thread creation in Emscripten, largely due to not blocking on main browser
+    threads. It’s easiest to preallocate here since we know how many threads we’ll
+    need.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个额外的参数是 `-s PTHREAD_POOL_SIZE=4`。因为 `happycoin-threads.c` 使用了三个线程，我们在此提前分配它们。在
+    Emscripten 中处理线程创建有几种方法，主要是由于不会阻塞主浏览器线程。在这里预分配是最简单的，因为我们知道需要多少个线程。
+- en: Now we can run our WebAssembly version of multithreaded Happycoin. We’ll run
+    the JavaScript file with Node.js. At time of writing, this requires Node.js v16
+    or higher, since that’s what the output of Emscripten supports.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以运行多线程 Happycoin 的 WebAssembly 版本。我们将使用 Node.js 运行 JavaScript 文件。在撰写本文时，这要求
+    Node.js 版本为 v16 或更高，因为这是 Emscripten 输出支持的版本。
+- en: '[PRE5]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The output should look a bit like the following:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出结果应该类似于以下内容：
+- en: '[PRE6]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The output looks the same as our other Happycoin examples from previous chapters,
+    but the wrapper provided by Emscripten also informs us when the threads have exited.
+    You’ll also need to Ctrl+C to exit the program. For extra fun, see if you can
+    figure out what needs changing in order to make the process exit when done, and
+    avoid those `Pthread` messages.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出看起来与我们之前章节中的其他 Happycoin 示例相同，但 Emscripten 提供的包装还会告知我们线程何时退出。你还需要按 Ctrl+C
+    退出程序。为了额外的乐趣，看看你能否找出需要更改的内容，以使进程在完成时退出，并避免那些 `Pthread` 消息。
+- en: One thing you may notice when comparing against the native or JavaScript versions
+    of Happycoin is timing. It’s clearly faster than the multithreaded JavaScript
+    version, but also a bit slower than the native multithreaded C version. As always,
+    it’s important to take measurements of your application to ensure that you’re
+    getting the right benefits with the right trade-offs.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与 Happycoin 的原生或 JavaScript 版本进行比较时，你可能会注意到的一件事是时间。它显然比多线程 JavaScript 版本快，但比本机多线程
+    C 版本稍慢。总是很重要的是，通过测量你的应用程序，确保你获得了正确的利益与权衡。
+- en: While the Happycoin example doesn’t make use of any atomic operations, Emscripten
+    supports the full suite of POSIX thread functionality and GNU Compiler Collection
+    (GCC) built-in atomic operation functions. This means a great multitude of C and
+    C++ programs can compile to WebAssembly using Emscripten.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 Happycoin 示例不使用任何原子操作，但 Emscripten 支持完整的 POSIX 线程功能和 GNU 编译器集合（GCC）内置的原子操作函数。这意味着许多
+    C 和 C++ 程序可以使用 Emscripten 编译为 WebAssembly。
+- en: Other WebAssembly Compilers
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 其他 WebAssembly 编译器
+- en: Emscripten isn’t the only way to compile code to WebAssembly. Indeed, WebAssembly
+    was designed primarily as a compile target, rather than as a general-purpose language
+    in its own right. There are myriad tools for compiling well-known languages to
+    WebAssembly, and there are even some languages built with WebAssembly as the main
+    target in mind, rather than machine code. Some are listed here, but it’s by no
+    means [exhaustive](https://oreil.ly/wKfBe). You’ll notice a lot of “at time of
+    writing” here, because this space is relatively new and the best ways of creating
+    multithreaded WebAssembly code are still being developed! At least, at time of
+    writing.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Emscripten 并不是将代码编译为 WebAssembly 的唯一方式。事实上，WebAssembly 主要设计为编译目标，而不是作为自身的通用语言。有许多工具可以将众所周知的语言编译为
+    WebAssembly，甚至有些语言是以 WebAssembly 为主要目标构建的，而不是机器码。这里列出了一些，但这并不是 [详尽无遗](https://oreil.ly/wKfBe)。在这里你会注意到许多“在撰写时”，因为这个领域相对较新，创建多线程
+    WebAssembly 代码的最佳方法仍在开发中！至少，在撰写时是这样的。
+- en: Clang/Clang++
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Clang/Clang++
+- en: The LLVM C-family compilers can target WebAssembly with the `-target wasm32-unknown-unknown`
+    or `-target wasm64-unknown-unknown` options, respectively. This is actually what
+    Emscripten is now based on, in which POSIX threads and atomic operations work
+    as expected. At time of writing, this is some of the best support for multithreaded
+    WebAssembly. While `clang` and `clang++` support WebAssembly output, the recommended
+    approach is to use Emscripten, to get the full suite of platform support in browsers
+    and Node.js.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: LLVM 的 C 家族编译器可以通过 `-target wasm32-unknown-unknown` 或 `-target wasm64-unknown-unknown`
+    选项目标 WebAssembly。实际上，Emscripten 现在就是基于此的，其中 POSIX 线程和原子操作按预期工作。在撰写时，这是对多线程 WebAssembly
+    的一些最佳支持。虽然 `clang` 和 `clang++` 支持 WebAssembly 输出，但推荐的方法是使用 Emscripten，在浏览器和 Node.js
+    中获得完整的平台支持套件。
+- en: Rust
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Rust
+- en: The Rust programming language compiler `rustc` supports WebAssembly output.
+    The Rust website is a [great starting point](https://oreil.ly/ibOs3) on how to
+    use `rustc` in this way. To make use of threads, you can use the [`wasm-bindgen-rayon`
+    crate](https://oreil.ly/Pyuv4), which provides a parallelism API implemented using
+    web workers. At time of writing, Rust’s standard library thread support won’t
+    work.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Rust 编程语言的编译器 `rustc` 支持生成 WebAssembly 输出。Rust 网站是使用 `rustc` 的 [很好的起点](https://oreil.ly/ibOs3)。要使用线程，可以使用
+    [`wasm-bindgen-rayon` crate](https://oreil.ly/Pyuv4)，它提供了使用 web workers 实现的并行
+    API。在撰写时，Rust 标准库的线程支持无法工作。
+- en: AssemblyScript
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AssemblyScript
+- en: The AssemblyScript compiler takes a subset of TypeScript as input, then generates
+    WebAssembly output. While it does not support spawning threads, it does support
+    atomic operations and using `SharedArrayBuffers`, so as long as you handle the
+    threads themselves on the JavaScript side via web workers or `worker_threads`,
+    you can make full use of multithreaded programming in AssemblyScript. We’ll cover
+    it in more depth in the next section.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AssemblyScript 编译器以 TypeScript 的子集作为输入，然后生成 WebAssembly 输出。虽然它不支持生成线程，但它支持原子操作和使用
+    `SharedArrayBuffers`，因此只要你通过 web workers 或 `worker_threads` 在 JavaScript 侧处理线程本身，就可以在
+    AssemblyScript 中充分利用多线程编程。我们将在下一节详细介绍它。
+- en: There are, of course, many more options, with new ones arriving all the time.
+    It’s worth having a look around the web to see if your compiled language of choice
+    can target WebAssembly, and whether or not it supports atomic operations in WebAssembly.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，还有很多其他选项，新的选项也在不断出现。值得在网上看看，你选择的编译语言是否可以针对 WebAssembly，以及它是否支持在 WebAssembly
+    中的原子操作。
+- en: AssemblyScript
+  id: totrans-71
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: AssemblyScript
+- en: '[AssemblyScript](https://assemblyscript.org) is a subset of [TypeScript](https://typescriptlang.org)
+    that compiles to WebAssembly. Rather than compiling an existing langauge and providing
+    implementations of existing system APIs, AssemblyScript was designed as a way
+    to produce WebAssembly code with a much more familiar syntax than WAT. A major
+    selling point of AssemblyScript is that many projects use TypeScript already,
+    so adding some AssemblyScript code to take advantage of WebAssembly doesn’t require
+    as much of a context-switch or even learning an entirely different programming
+    language.'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[AssemblyScript](https://assemblyscript.org) 是 [TypeScript](https://typescriptlang.org)
+    的一个子集，编译成 WebAssembly。与编译现有语言并提供现有系统 API 实现的方法不同，AssemblyScript 设计为一种以比 WAT 更熟悉的语法生成
+    WebAssembly 代码的方式。AssemblyScript 的一个主要卖点是许多项目已经使用 TypeScript，因此添加一些 AssemblyScript
+    代码以利用 WebAssembly 不需要进行太多的上下文切换，甚至学习完全不同的编程语言。'
+- en: 'An AssemblyScript module looks a lot like a TypeScript module. If you’re unfamiliar
+    with TypeScript, it can be thought of as ordinary JavaScript, but with some additional
+    syntax to indicate type information. Here is a basic TypeScript module that performs
+    addition:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '一个 AssemblyScript 模块看起来很像一个 TypeScript 模块。如果你不熟悉 TypeScript，可以将其视为普通的 JavaScript，但是在每个函数参数后面加上`:
+    number`来指示类型信息。以下是执行加法的基本 TypeScript 模块：'
+- en: '[PRE7]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'You’ll notice this looks almost exactly the same as a plain ECMAScript module,
+    with the exception of type information in the form of `: number` after each of
+    the function arguments and identifying the return value’s type. The TypeScript
+    compiler can use these types to check that any code calling this function is passing
+    in the correct types and assuming the correct type on the return value.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '你会注意到，这几乎与普通的 ECMAScript 模块完全相同，唯一的区别是在每个函数参数后面以`: number`形式表示类型信息，并标识返回值的类型。TypeScript
+    编译器可以使用这些类型来检查调用此函数的任何代码是否传入了正确的类型，并且假设返回值的正确类型。'
+- en: AssemblyScript looks much the same, except instead of using JavaScript’s `number`
+    type, there are built-in types for each of the WebAssembly types. If we wanted
+    to write the same addition module in TypeScript, and assuming 32-bit integers
+    everywhere for types, it would look something like [Example 7-3](#ex_ch7_as_add).
+    Go ahead and add that to a file called *ch7-wasm-add/add.ts*.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AssemblyScript 看起来基本相同，但不是使用 JavaScript 的 `number` 类型，而是为 WebAssembly 中的每种类型提供了内置类型。如果我们想在
+    TypeScript 中编写相同的加法模块，并假设在整个类型中都使用 32 位整数，它看起来会像是 [示例 7-3](#ex_ch7_as_add)。继续在名为
+    *ch7-wasm-add/add.ts* 的文件中添加它。
+- en: Example 7-3\. *ch7-wasm-add/add.ts*
+  id: totrans-77
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-3\. *ch7-wasm-add/add.ts*
+- en: '[PRE8]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Since AssemblyScript files are just TypeScript, they use the *.ts* extension
+    just the same. To compile a given AssemblyScript file to WebAssembly, we can use
+    the `asc` command from the `assemblyscript` module. Try running the following
+    command in the *ch7-wasm-add* directory:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 AssemblyScript 文件只是 TypeScript 文件，它们使用与原来相同的 *.ts* 扩展名。要将给定的 AssemblyScript
+    文件编译为 WebAssembly，我们可以使用 `assemblyscript` 模块中的 `asc` 命令。尝试在 *ch7-wasm-add* 目录中运行以下命令：
+- en: '[PRE9]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: You can try running the WebAssembly code using the same *add.js* file from [Example 7-2](#ex_ch7_add_wat_js).
+    The output should be the same since the code is the same.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以尝试使用与 [示例 7-2](#ex_ch7_add_wat_js) 中相同的 *add.js* 文件运行 WebAssembly 代码。输出应该与代码相同，因为代码是一样的。
+- en: If you omit the `--binaryFile add.wasm` you’ll get the module as translated
+    into WAT, as shown in [Example 7-4](#ex_ch7_as_add_wat). You’ll see it’s roughly
+    the same as [Example 7-1](#ex_ch7_add_wat).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果省略 `--binaryFile add.wasm`，则会得到转换为 WAT 的模块，如 [示例 7-4](#ex_ch7_as_add_wat)
+    所示。你会看到它与 [示例 7-1](#ex_ch7_add_wat) 几乎相同。
+- en: Example 7-4\. The WAT rendition of the AssemblyScript `add` function
+  id: totrans-83
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-4\. AssemblyScript 中 `add` 函数的 WAT 表示
+- en: '[PRE10]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: AssemblyScript doesn’t provide the ability to spawn threads, but threads can
+    be spawned in the JavaScript environment, and `SharedArrayBuffers` can be used
+    for the WebAssembly memory. Most importantly, it supports atomic operations via
+    a global `atomics` object, not particularly different from regular JavaScript’s
+    `Atomics`. The main difference is that rather than operating on a `TypedArray`,
+    these functions operate on the linear memory of the WebAssembly module, with a
+    pointer and an optional offset. See the [AssemblyScript documentation](https://oreil.ly/LhTkW)
+    for details.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: AssemblyScript 不提供生成线程的能力，但可以在 JavaScript 环境中生成线程，并且 `SharedArrayBuffers` 可用于
+    WebAssembly 内存。最重要的是，它通过全局的 `atomics` 对象支持原子操作，这与常规 JavaScript 的 `Atomics` 并没有特别不同。主要区别在于，这些函数不是在
+    `TypedArray` 上操作，而是在 WebAssembly 模块的线性内存中进行操作，带有指针和可选偏移量。详情请参阅 [AssemblyScript
+    文档](https://oreil.ly/LhTkW)。
+- en: To see this in action, let’s create one more implementation of our Happycoin
+    example that we’ve been iterating on since [Chapter 1](ch01.xhtml#ch_intro).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看其运行效果，让我们创建一个新的 Happycoin 示例实现，这是我们自第 [第1章](ch01.xhtml#ch_intro) 以来不断迭代的一个例子。
+- en: Happycoin in AssemblyScript
+  id: totrans-87
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: AssemblyScript 幸福币
+- en: Much like previous versions of our Happycoin example, this approach multiplexes
+    the crunching of numbers over several threads and sends the results back. It’s
+    a glimpse of how multithreaded AssemblyScript can work. In a real-world application,
+    you’d want to take advantage of shared memory and atomic operations, but to keep
+    things simple, we’ll stick with just fanning the work out to the threads.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与我们之前的 Happycoin 示例版本类似，这种方法将数字的处理多路复用到多个线程，并将结果返回。这是多线程 AssemblyScript 工作方式的一个示例。在实际应用程序中，您可能希望利用共享内存和原子操作，但为了保持简单，我们将仅仅把工作分配到线程中。
+- en: 'Let’s begin by creating a directory called *ch7-happycoin-as* and switch to
+    that directory. We’ll initialize a new project and add some necessary dependencies
+    as follows:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先创建一个名为 *ch7-happycoin-as* 的目录，并切换到该目录。我们将初始化一个新项目，并按以下步骤添加一些必要的依赖项：
+- en: '[PRE11]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The `assemblyscript` package includes the AssemblyScript compiler, and the `assemblyscript/loader`
+    package gives us handy tools for interacting with the built module.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`assemblyscript` 包包含 AssemblyScript 编译器，而 `assemblyscript/loader` 包为我们提供了方便的工具，用于与构建的模块进行交互。'
+- en: 'In the `scripts` object in the newly created *package.json*, we’ll add `"build"`
+    and `"start"` properties to simplify the compilation and running of the program:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在新创建的 *package.json* 的 `scripts` 对象中，我们将添加 `"build"` 和 `"start"` 属性，以简化程序的编译和运行：
+- en: '[PRE12]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: The additional `--exportRuntime` parameter gives us some high-level tools for
+    interacting with values from AssemblyScript. We’ll get into that a bit later.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 额外的 `--exportRuntime` 参数为我们提供了一些与 AssemblyScript 值交互的高级工具。稍后我们会详细介绍这一点。
+- en: When invoking Node.js in the `"start"` script, we pass the experimental WASI
+    flag. This enables the [WebAssembly System Interface (WASI)](https://wasi.dev)
+    interface, giving WebAssembly access to system-level functionality that would
+    otherwise be inaccessible. We’ll use this from AssemblyScript to generate random
+    numbers. Because it’s experimental at time of writing, we’ll add the `--no-warnings`
+    flag^([2](ch07.xhtml#idm45995910339912)) to suppress the warning we get for using
+    WASI. The experimental status also means the flag may change in the future, so
+    always be sure to consult the Node.js documentation for the version of Node.js
+    you’re running.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调用 Node.js 的 `"start"` 脚本时，我们传递了实验性的 WASI 标志。这启用了 [WebAssembly 系统接口 (WASI)](https://wasi.dev)
+    接口，使 WebAssembly 能够访问通常无法访问的系统级功能。我们将从 AssemblyScript 中使用它来生成随机数。由于写作时它仍处于实验阶段，我们将添加
+    `--no-warnings` 标志^([2](ch07.xhtml#idm45995910339912)) 来抑制因使用 WASI 而产生的警告。实验性状态还意味着该标志可能会在未来更改，因此请务必查阅运行的
+    Node.js 版本的 Node.js 文档。
+- en: Now, let’s write some AssemblyScript! [Example 7-5](#ex_ch7_as_happycoin) contains
+    an AssemblyScript version of the Happycoin algorithm. Go ahead and add it to a
+    file called *happycoin.ts*.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们来编写一些 AssemblyScript 吧！[示例 7-5](#ex_ch7_as_happycoin) 包含了 Happycoin 算法的
+    AssemblyScript 版本。请继续将其添加到名为 *happycoin.ts* 的文件中。
+- en: Example 7-5\. *ch7-happycoin-as/happycoin.ts*
+  id: totrans-97
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-5\. *ch7-happycoin-as/happycoin.ts*
+- en: '[PRE13]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '[![1](Images/1.png)](#co_webassembly_CO2-1)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_webassembly_CO2-1)'
+- en: The `wasi` module is imported here to ensure that the appropriate WASI-enabled
+    globals are loaded.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里导入了`wasi`模块，以确保加载适当的支持WASI的全局变量。
+- en: '[![2](Images/2.png)](#co_webassembly_CO2-2)'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_webassembly_CO2-2)'
+- en: We initialized a `Uint64Array` for our random numbers, but `crypto.getRandomValues()`
+    only works with `Uint8Array`, so we’ll create one of those here as a view on the
+    same buffer. Also, the `TypedArray` constructors in AssemblyScript aren’t overloaded,
+    so instead there’s a static `wrap()` method available to construct new `TypedArray`
+    instances from `ArrayBuffer` instances.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为随机数初始化了一个`Uint64Array`，但`crypto.getRandomValues()`只能使用`Uint8Array`，因此我们将在同一缓冲区上创建一个视图。此外，AssemblyScript中的`TypedArray`构造函数没有重载，因此可以使用静态的`wrap()`方法从`ArrayBuffer`实例构造新的`TypedArray`实例。
+- en: '[![3](Images/3.png)](#co_webassembly_CO2-3)'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_webassembly_CO2-3)'
+- en: This method is the one we enabled WASI for.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法是我们为WASI启用的方法。
+- en: 'If you’re familiar with TypeScript, you might be thinking this file looks very
+    close to just being a TypeScript port of [“Happycoin: Revisited”](ch03.xhtml#sec_happycoin_revisited).
+    You’d be correct! This is one of the major advantages of AssemblyScript. We’re
+    not writing in a brand-new language, and yet we’re writing code that maps very
+    closely to WebAssembly. Note that the return value of the exported function is
+    of type `Array<u64>`. Exported functions in WebAssembly can’t return arrays of
+    any kind, but they can return an index into the module’s memory (a pointer, really),
+    which is exactly what’s happening here. We could deal with this manually, but
+    as we’ll see, the AssemblyScript loader makes it much easier.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果你熟悉TypeScript，你可能会认为这个文件看起来非常接近于[“Happycoin: Revisited”](ch03.xhtml#sec_happycoin_revisited)的TypeScript移植版本。你是对的！这是AssemblyScript的主要优势之一。我们不是在一个全新的语言中编写代码，但我们编写的代码非常接近于WebAssembly。请注意，导出函数的返回值类型为`Array<u64>`。WebAssembly中的导出函数不能返回任何类型的数组，但可以返回模块内存的索引（实际上是一个指针），这正是这里发生的事情。我们可以手动处理这个问题，但正如我们将看到的，AssemblyScript加载器使这一切变得更加容易。'
+- en: Of course, since AssemblyScript doesn’t provide a way of spawning threads on
+    its own, we’ll need to do that from JavaScript. For this example, we’ll use ECMAScript
+    modules to take advantage of top-level `await`, so go ahead and put the contents
+    of [Example 7-6](#ex_ch7_mjs_happycoin) into a file called *happycoin.mjs*.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，由于AssemblyScript本身不提供线程生成的方法，我们需要从JavaScript中进行操作。在这个示例中，我们将利用顶层`await`的ECMAScript模块，将[示例 7-6](#ex_ch7_mjs_happycoin)的内容放入名为*happycoin.mjs*的文件中。
+- en: Example 7-6\. *ch7-happycoin-as/happycoin.mjs*
+  id: totrans-107
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-6\. *ch7-happycoin-as/happycoin.mjs*
+- en: '[PRE14]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '[![1](Images/1.png)](#manual_co_webassembly_CO3-1)'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#manual_co_webassembly_CO3-1)'
+- en: This can’t be done without the `--experimental-wasi-unstable-preview1` flag.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这需要使用`--experimental-wasi-unstable-preview1`标志才能完成。
+- en: '[![2](Images/2.png)](#manual_co_webassembly_CO3-2)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#manual_co_webassembly_CO3-2)'
+- en: If you’re new to ESM, this might look strange. We don’t get the `__filename`
+    variable available to us like we do in CommonJS modules. Instead the `import.meta.url`
+    property gives us the full path as a file URL string. We need to pass that to
+    the `URL` constructor for it to be usable as an input to the `Worker` constructor.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你对ESM不熟悉，这可能看起来有些奇怪。我们无法像在CommonJS模块中那样使用`__filename`变量。相反，`import.meta.url`属性以文件URL字符串的形式给出了完整路径。我们需要将其传递给`URL`构造函数，以便在`Worker`构造函数中使用。
+- en: 'Adapted from [“Happycoin: Revisited”](ch03.xhtml#sec_happycoin_revisited),
+    we’re again checking whether we’re in the main thread or not, and spawning four
+    worker threads from the main thread. In the main thread, we’re expecting only
+    one message on the default `MessagePort`, containing an array of found Happycoins.
+    We simply log those and a count of all of them once all the worker threads have
+    sent the message.'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '改编自[“Happycoin: Revisited”](ch03.xhtml#sec_happycoin_revisited)，我们再次检查是否在主线程中，并从主线程生成四个工作线程。在主线程中，我们只期望在默认`MessagePort`上收到一个消息，其中包含一个找到的Happycoins数组。我们简单地记录这些消息及其总数，一旦所有工作线程都发送了消息。'
+- en: On the `else` side, in the worker threads, we initialize a WASI instance to
+    pass to the WebAssembly module, and then instantiate the module using `@assemblyscript/loader`,
+    giving us what we need to handle the array return value we get from the `getHappycoins`
+    function. We call the `getHappycoins()` method exported by the module, which gives
+    us a pointer to an array in the WebAssembly linear memory. The `__getArray` function,
+    provided by the loader, converts that pointer into a JavaScript array, which we
+    can then use as normal. We pass that to the main thread for output.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`else`侧，在工作线程中，我们初始化了一个WASI实例以传递给WebAssembly模块，然后使用`@assemblyscript/loader`实例化模块，从而得到处理从`getHappycoins`函数返回的数组返回值所需的内容。我们调用模块导出的`getHappycoins()`方法，这为我们提供了指向WebAssembly线性内存中数组的指针。加载器提供的`__getArray`函数将该指针转换为JavaScript数组，然后我们可以像往常一样使用它。我们将其传递给主线程进行输出。
+- en: 'To run this example, run the following two commands. The first will compile
+    the AssemblyScript to WebAssembly, and the second will run it via the JavaScript
+    we just put together:'
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要运行此示例，请执行以下两个命令。第一个将将AssemblyScript编译为WebAssembly，第二个将通过刚刚组装的JavaScript运行它：
+- en: '[PRE15]'
+  id: totrans-116
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'The output will look roughly the same as with previous Happycoin examples.
+    Here is the output from one local run:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 输出结果与先前的Happycoin示例大致相同。以下是来自一次本地运行的输出：
+- en: '[PRE16]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: As with all of these solutions, it’s important to evaluate the trade-offs made
+    with proper benchmarks. As an exercise, try timing this example against the other
+    Happycoin implementations in this book. Is it faster or slower? Can you figure
+    out why? What improvements can be made?
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 和所有这些解决方案一样，评估通过适当的基准测试所做的权衡是很重要的。作为练习，请尝试计时本书中其他Happycoin实现与此示例之间的差异。它更快还是更慢？你能找出原因吗？可以做出哪些改进？
+- en: ^([1](ch07.xhtml#idm45995910670680-marker)) In C and other languages without
+    automatic memory management, memory must be allocated for use with allocation
+    functions like `malloc()` and then freed for later allocation with functions like
+    `free()`. Memory management techniques like garbage collection make it easier
+    to write programs in higher-level languages like JavaScript, but they aren’t a
+    built-in feature of WebAssembly.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch07.xhtml#idm45995910670680-marker)) 在C和其他没有自动内存管理的语言中，必须为使用类似`malloc()`的分配函数分配内存，然后使用类似`free()`的函数释放以供稍后分配使用。像垃圾收集这样的内存管理技术使得在高级语言（如JavaScript）中编写程序变得更加容易，但它们并非WebAssembly的内置特性。
+- en: ^([2](ch07.xhtml#idm45995910339912-marker)) In general, this isn’t a flag you
+    want to have enabled for a production application. Hopefully by the time you read
+    this, WASI support will no longer be experimental. If that’s the case, adjust
+    these arguments accordingly.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch07.xhtml#idm45995910339912-marker)) 通常情况下，这不是您想在生产应用程序中启用的标志。希望在您阅读本文时，WASI支持不再处于实验阶段。如果是这种情况，请相应调整这些参数。

@@ -1,0 +1,1346 @@
+- en: Chapter 9\. State Management with Pinia
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第9章\. 使用Pinia进行状态管理
+- en: The previous chapter guided us through building our application’s routings using
+    Vue Router, including nested routes, route guards, and dynamic route navigation.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 前一章指导我们使用Vue Router构建应用程序的路由，包括嵌套路由、路由守卫和动态路由导航。
+- en: In this chapter, we will learn state management and how to manage the data flow
+    within our Vue application using Pinia, the officially recommended state management
+    library for Vue. We will also explore how to build our application’s reusable
+    and efficient data state management system.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将学习使用Pinia管理状态以及如何在Vue应用程序中管理数据流。Pinia是Vue官方推荐的状态管理库，我们还将探讨如何构建应用程序的可重用和高效的数据状态管理系统。
+- en: Understanding State Management in Vue
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解Vue中的状态管理
+- en: Data makes an application come to life and connects components. And components
+    interact with users and with others using data states. State management is crucial
+    for building an application that works with actual data, regardless of size and
+    complexity. For example, we can display only a gallery of product cards with a
+    list of pizzas and their details. Once a user adds a product to the cart within
+    this gallery component, we need to update the cart’s data and display the updated
+    cart’s data in the cart component at the same time as updating the chosen product’s
+    remaining stock.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 数据使应用程序栩栩如生，并连接各个组件。组件通过数据状态与用户及其他组件进行交互。无论大小和复杂程度如何，状态管理对于构建能够使用实际数据的应用程序至关重要。例如，我们可以仅显示产品卡片画廊，包括比萨的列表及其详细信息。一旦用户在此画廊组件中将产品添加到购物车中，我们需要更新购物车的数据，并同时更新所选产品的剩余库存。
+- en: Take our Pizza House application, for example. In the main view (`App.vue`),
+    we have a header component (`HeaderView`) and a gallery of pizza cards (`PizzasView`).
+    The header contains a cart icon that displays the number of items in the cart,
+    while the gallery includes a list of pizza cards, each with a button allowing
+    the user to add the selected item to the cart. [Figure 9-1](#figure_ch08_diagram)
+    illustrates the hierarchical structure of the components from the main view.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以我们的Pizza House应用为例。在主视图（`App.vue`）中，我们有一个标题组件（`HeaderView`）和一个比萨卡片画廊（`PizzasView`）。标题包含一个购物车图标，显示购物车中物品的数量，而画廊包括一系列比萨卡片，每张卡片都有一个按钮，允许用户将所选项添加到购物车中。[图 9-1](#figure_ch08_diagram)展示了主视图中组件的层次结构。
+- en: '![Screenshot showing the tree structure of the App component, where the header
+    component and the gallery component are the children of the App and sibling to
+    each other](assets/lvue_0901.png)'
+  id: totrans-6
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示应用程序组件树结构的屏幕截图，其中标题组件和画廊组件是App的子组件，彼此是同级](assets/lvue_0901.png)'
+- en: Figure 9-1\. Hierarchy structure of the components from the main view of Pizza
+    House
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-1\. Pizza House主视图组件的层次结构
+- en: When a user adds a pizza to the cart, the cart icon will display the updated
+    number of items. To enable data communication between the header component and
+    the gallery component, we can have the `App` manage the `cart` data and pass its
+    data to the header as props while communicating with the gallery using an event
+    `updateCart`, as seen in [Figure 9-2](#figure_ch08_dataflow).
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户将比萨添加到购物车时，购物车图标将显示更新后的物品数量。为了实现标题组件与画廊组件之间的数据通信，我们可以让`App`管理`cart`数据，并将其作为props传递给标题，同时使用事件`updateCart`与画廊通信，如图 9-2中所示。
+- en: '![Screenshot showing the data flow between the components, where the App component
+    manages the cart data and passes it to the header component as props, and communicates
+    with the gallery component using an event updateCart](assets/lvue_0902.png)'
+  id: totrans-9
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示组件之间数据流的屏幕截图，其中App组件管理购物车数据并将其作为props传递给标题组件，同时使用事件updateCart与画廊组件通信](assets/lvue_0902.png)'
+- en: Figure 9-2\. Data flow between the gallery and header with the App as the middleman
+  id: totrans-10
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-2\. 画廊与标题之间的数据流，App作为中间人
+- en: This approach works well for small applications. However, suppose we want to
+    split `PizzasView` into subcomponents, such as `PizzasGallery`, and have `PizzasGallery`
+    render the `PizzaCard` component for each pizza. For each new parent-child layer,
+    we will need to propagate the `updateCart` event to ensure the propagation of
+    the data flow between the gallery and the header, as in [Figure 9-3](#figure_ch08_dataflow2).
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法对于小型应用程序非常有效。然而，假设我们希望将`PizzasView`拆分为子组件，如`PizzasGallery`，并且让`PizzasGallery`为每个比萨渲染`PizzaCard`组件。对于每个新的父子层，我们需要传播`updateCart`事件，以确保在画廊和标题之间的数据流传播，就像[图 9-3](#figure_ch08_dataflow2)中所示。
+- en: It will become more complicated when we have more components and layers, leaving
+    a lot of unnecessary props and events. As a result, this approach could be less
+    scalable and maintainable when our application grows.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当应用程序增长时，我们会有更多组件和层次结构，这种方法可能会导致大量不必要的 props 和事件，从而降低可扩展性和可维护性。
+- en: To reduce this overhead and manage the state flows within the application, we
+    need a global state management system, a centralized place to store and manage
+    the data states of the application. This system is responsible for managing the
+    data states and distributing the data to the necessary components.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了减少这种开销并管理应用程序内的状态流动，我们需要一个全局状态管理系统，一个集中存储和管理应用程序数据状态的地方。该系统负责管理数据状态并将数据分发到必要的组件中。
+- en: One of the most popular approaches to provide developers with a smooth experience
+    is using a state management library, such as Pinia.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了为开发者提供顺畅的体验，其中一个最受欢迎的方法是使用状态管理库，例如 Pinia。
+- en: '![Screenshot showing the data flow between the components, where the App component
+    manages the cart data and passes it to the header component as props, and communicates
+    with the gallery component using an event updateCart](assets/lvue_0903.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示组件之间数据流动的屏幕截图，其中 App 组件管理购物车数据并将其作为 props 传递给 header 组件，并使用事件更新 cart 与
+    gallery 组件进行通信](assets/lvue_0903.png)'
+- en: Figure 9-3\. Data flow between the gallery with children and header, with the
+    App as the middleman
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-3\. 在 gallery 和 header 之间的数据流动，App 充当中间人
+- en: Understanding Pinia
+  id: totrans-17
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解 Pinia
+- en: Inspired by Vuex^([1](ch09.html#id1395)) and Vue Composition API, Pinia is Vue’s
+    current official state management library. Nevertheless, you can always use other
+    state management JavaScript libraries that support Vue, such as Vuex, MobX and
+    XState.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 受 Vuex^([1](ch09.html#id1395)) 和 Vue 组合 API 的启发，Pinia 是 Vue 当前的官方状态管理库。尽管如此，你仍然可以使用其他支持
+    Vue 的状态管理 JavaScript 库，例如 Vuex、MobX 和 XState。
+- en: Pinia follows the store pattern of Vuex but with a more flexible and scalable
+    approach.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pinia 遵循 Vuex 的存储模式，但采用更灵活和可扩展的方法。
+- en: Note
+  id: totrans-20
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The official Pinia documentation is available at the [Pinia website](https://oreil.ly/JoOwm),
+    with information on installation, APIs, and primary use cases for reference.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 官方 Pinia 文档可在 [Pinia 网站](https://oreil.ly/JoOwm) 上找到，提供安装、API 和主要用例的相关信息。
+- en: Instead of having a single system for all data sets used across the application,
+    with Pinia, we can split each data set into its state module (or store). We then
+    can access relevant data in a store from any component using a custom composable,
+    following the Composition API pattern.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不同于在应用程序中使用所有数据集的单一系统，使用 Pinia，我们可以将每个数据集拆分为其状态模块（或存储）。然后，我们可以使用自定义的可组合方式，遵循组合
+    API 模式，从任何组件中访问存储中的相关数据。
+- en: When creating a Vue project from scratch using Vite, we can choose to install
+    Pinia as the state management during the scaffolding process (see [“Create a New
+    Vue Application”](ch01.html#chapter_01_newVueApp)). Vite will create our project
+    with Pinia installed and configured with an example `counter` store, exposed as
+    `useCounterStore`, located in `src/stores/counter.ts`.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用 Vite 从头开始创建 Vue 项目时，我们可以选择在脚手架过程中安装 Pinia 作为状态管理（参见[“创建新的 Vue 应用程序”](ch01.html#chapter_01_newVueApp)）。Vite
+    将会安装并配置 Pinia，并提供一个示例 `counter` 存储，通过 `src/stores/counter.ts` 暴露为 `useCounterStore`。
+- en: 'However, to fully understand how Pinia works, we will skip the scaffolding
+    option and add Pinia manually using the following command:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，要完全理解 Pinia 的工作原理，我们将跳过脚手架选项，并使用以下命令手动添加 Pinia：
+- en: '[PRE0]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Note
+  id: totrans-26
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: In this book, we use Pinia 2.1.3, the latest version at the time of writing.
+    You can replace the version number after `@` with the newest version from the
+    [Pinia NPM page](https://oreil.ly/zCUCg).
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，我们使用的是 Pinia 2.1.3，在撰写时是最新版本。你可以根据需要从 [Pinia NPM 页面](https://oreil.ly/zCUCg)
+    替换版本号。
+- en: 'Once Pinia is installed, navigate to `src/main.ts` and import `createPinia`
+    from the `pinia` package, use it to create a new Pinia instance, and plug it into
+    the application:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装 Pinia 后，导航到 `src/main.ts`，从 `pinia` 包中导入 `createPinia`，使用它创建一个新的 Pinia 实例，并将其插入应用程序中：
+- en: '[PRE1]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO1-1)'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO1-1)'
+- en: Import `createPinia` from the `pinia` package
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 `pinia` 包中导入 `createPinia`
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO1-2)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO1-2)'
+- en: Create a new Pinia instance
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个新的 Pinia 实例
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO1-3)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO1-3)'
+- en: Plug the Pinia instance into the application for use
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 Pinia 实例插入应用程序以供使用
+- en: 'With Pinia installed and plugged in, we will create the first store for our
+    application: a `pizzas` store to manage the available pizzas for the application.'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装和插入 Pinia 后，我们将为我们的应用程序创建第一个存储：一个管理应用程序可用披萨的 `pizzas` 存储。
+- en: Creating a Pizzas Store for Pizza House
+  id: totrans-37
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为 Pizza House 创建一个 Pizzas 存储
+- en: 'As Pinia follows the store pattern of Vuex, a store in Pinia contains the following
+    fundamental properties:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 Pinia 遵循 Vuex 的存储模式，Pinia 存储包含以下基本属性：
+- en: State
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: State
+- en: The reactive data (state) of the store, created by using `ref()` or `reactive()`
+    methods from Composition API.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `ref()` 或 `reactive()` 方法从 Composition API 创建的存储的响应式数据（状态）。
+- en: Getters
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Getters
+- en: The computed and read-only properties of the store, created by using the `computed()`
+    method.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `computed()` 方法创建的存储的计算属性和只读属性。
+- en: Actions
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Actions
+- en: The methods to update the store’s state or perform custom logic on the store’s
+    data (state).
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新存储状态或在存储数据（状态）上执行自定义逻辑的方法。
+- en: 'Pinia provides a `defineStore` function to create a new store, which accepts
+    two arguments: the store’s name and properties, and the methods available for
+    use in other components. The store’s properties and methods can be an object with
+    the key fields `state`, `getters`, `actions` following Options API ([Example 9-1](#example_ch8_01)),
+    or a function that uses Composable API and return an object with the fields to
+    expose ([Example 9-2](#example_ch8_02)).'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pinia 提供了一个 `defineStore` 函数来创建一个新的存储，接受两个参数：存储的名称和属性，以及其他组件中可用的方法。存储的属性和方法可以是一个对象，包含键字段
+    `state`、`getters`、`actions`，遵循 Options API（[Example 9-1](#example_ch8_01)），或者是一个使用
+    Composable API 的函数，返回一个公开的字段对象（[Example 9-2](#example_ch8_02)）。
+- en: Example 9-1\. Defining a store using an object configuration
+  id: totrans-46
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-1\. 使用对象配置定义一个存储
+- en: '[PRE2]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Example 9-2\. Defining a store using a function
+  id: totrans-48
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-2\. 使用函数定义一个存储
+- en: '[PRE3]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Note
+  id: totrans-50
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This chapter will focus on using Pinia stores with Vue 3.x Composition API,
+    usually known as *setup stores*.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章将重点介绍在 Vue 3.x Composition API 中使用 Pinia 存储，通常称为 *setup stores*。
+- en: Let’s go back to our `pizzas` store. We add a new file, `src/stores/pizzas.ts`,
+    with the code shown in [Example 9-3](#pizzas_store).
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回到我们的 `pizzas` 存储。我们添加一个新文件，`src/stores/pizzas.ts`，其中包含 [Example 9-3](#pizzas_store)
+    中显示的代码。
+- en: Example 9-3\. Pizzas store
+  id: totrans-53
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-3\. Pizzas 存储
+- en: '[PRE4]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Then in `PizzasView` (based on the previous chapter’s [Example 8-2](ch08.html#pizza_view_component)
+    component), we will use the `pizzas` and `fetchPizzas` properties from the `pizzas`
+    store to fetch and display the list of pizzas from our API as in [Example 9-4](#pizza_view_component_store).
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后在 `PizzasView`（基于上一章的 [Example 8-2](ch08.html#pizza_view_component) 组件）中，我们将使用
+    `pizzas` 存储的 `pizzas` 和 `fetchPizzas` 属性来从我们的 API 获取并显示披萨列表，如 [Example 9-4](#pizza_view_component_store)。
+- en: Example 9-4\. `PizzasView` component using the pizzas store
+  id: totrans-56
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-4\. `PizzasView` 组件使用 pizzas 存储
+- en: '[PRE5]'
+  id: totrans-57
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO2-1)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO2-1)'
+- en: Render the list of pizzas using `pizzasStore.pizzas`.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `pizzasStore.pizzas` 渲染披萨列表。
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO2-2)'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO2-2)'
+- en: Import the `usePizzasStore` function from the `pizzas` store and use it to get
+    the `pizzasStore` instance.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从 `pizzas` 存储导入 `usePizzasStore` 函数，并使用它获取 `pizzasStore` 实例。
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO2-3)'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO2-3)'
+- en: Fetch the pizzas from the API when the component is mounted asynchronously.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 异步在组件挂载时从 API 获取披萨。
+- en: With the previous code, our `PizzasView` component is now using the `pizzas`
+    store to fetch and display the list of pizzas from our API ([Figure 9-4](#figure_ch8_pizzasview)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用前面的代码，我们的 `PizzasView` 组件现在使用 `pizzas` 存储从我们的 API 获取并显示披萨列表（[Figure 9-4](#figure_ch8_pizzasview)）。
+- en: '![Screenshot showing a list of pizzas](assets/lvue_0904.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示披萨列表的屏幕截图](assets/lvue_0904.png)'
+- en: Figure 9-4\. `PizzasView` component using the pizzas store
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 9-4\. `PizzasView` 组件使用 pizzas 存储
+- en: Great. Nevertheless, notice that we no longer have the search functionality,
+    which uses the `useSearch()` composable from the previous chapter’s [Example 8-3](ch08.html#useSearch_hook).
+    If we pass `pizzasStore.pizzas` directly to the `useSearch()` composable as `items`,
+    it will lose the reactivity, and `searchResults` won’t get recalculated after
+    `pizzasStore.fetchPizzas()` resolves. To fix this issue, we use `storeToRefs()`
+    from `pinia` to extract `pizzas` from the `pizzasStore` and keep its reactivity
+    when passing to `useSearch()` ([Example 9-5](#useSearch_working)).
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很好。然而，请注意，我们不再具有使用前一章节的`useSearch()`组合功能的搜索功能，它使用`pizzasStore.pizzas`作为`items`直接传递给`useSearch()`组合，将失去反应性，`searchResults`不会在`pizzasStore.fetchPizzas()`解析后重新计算。为了解决这个问题，我们使用`pinia`中的`storeToRefs()`从`pizzasStore`中提取`pizzas`并保持其反应性，然后传递给`useSearch()`（[示例 9-5](#useSearch_working)）。
+- en: Example 9-5\. `useSearch()` composable working with pizzas store
+  id: totrans-68
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-5\. `useSearch()`组合工作与披萨存储
+- en: '[PRE6]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Now our template uses the `searchResults` instead of `pizzasStore.pizzas` and
+    we can bring the search `input` field back ([Example 9-6](#pizzasview_search)).
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的模板使用`searchResults`而不是`pizzasStore.pizzas`，我们可以重新引入搜索`input`字段（[示例 9-6](#pizzasview_search)）。
+- en: Example 9-6\. `PizzasView` component with a search using the pizzas store
+  id: totrans-71
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-6\. `PizzasView`组件使用披萨存储进行搜索
+- en: '[PRE7]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Next, we will create a cart store to manage the current user’s cart data, including
+    the list of items added.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将创建一个购物车存储来管理当前用户的购物车数据，包括添加的项目列表。
+- en: Creating a Cart Store for Pizza House
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为披萨店创建一个购物车存储
+- en: 'To create our `cart` store, we define our `cart` store with the following properties:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建我们的`cart`存储，我们使用以下属性定义我们的`cart`存储：
+- en: A list of `items` added to the cart; each item contains the `id` and `quantity`
+    of the pizza
+  id: totrans-76
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个已添加到购物车的`items`列表；每个项目包含披萨的`id`和`quantity`
+- en: The `total` items of the cart
+  id: totrans-77
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 购物车的`total`项目数
+- en: An `add` method to add an item from the cart
+  id: totrans-78
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个`add`方法用于从购物车中添加项目
+- en: To create our `cart` store, we add a new file, `src/stores/cart.ts`, with the
+    code shown in [Example 9-7](#cart_store).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建我们的`cart`存储，我们添加一个新文件，`src/stores/cart.ts`，其代码如[示例 9-7](#cart_store)所示。
+- en: Example 9-7\. Cart store
+  id: totrans-80
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-7\. 购物车存储
+- en: '[PRE8]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO3-1)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO3-1)'
+- en: Define the type of the cart item
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义购物车项目的类型
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO3-2)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO3-2)'
+- en: Initialize the `items` state with an empty array
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用一个空数组来初始化`items`状态
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO3-3)'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO3-3)'
+- en: Create a `total` getter to calculate the total items in the cart
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`total` getter来计算购物车中的总项目数
+- en: '[![4](assets/4.png)](#co_state_management_with_pinia_CO3-4)'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_state_management_with_pinia_CO3-4)'
+- en: Create an `add` action to add an item to the cart. If the item is already in
+    the cart, the quantity will update instead of adding a new item.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建一个`add`动作来向购物车添加项目。如果项目已经在购物车中，则更新数量而不是添加新项目。
+- en: With the `cart` store created, we can now use it in our application.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们创建了`cart`存储，可以在我们的应用程序中使用它。
+- en: Using the Cart Store in a Component
+  id: totrans-91
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在组件中使用购物车存储
+- en: Let’s create a new component, `src/components/Cart.vue`, to display the cart’s
+    total items. Within the `<script setup()>` section, we import the `useCartStore()`
+    method and call it to get the `cart` instance. Then in the template, we display
+    the total items in the cart by using the `cart.total` getter, as seen in [Example 9-8](#cart_component).
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们创建一个新组件，`src/components/Cart.vue`，用于显示购物车的总项目数。在`<script setup()>`部分内，我们导入`useCartStore()`方法并调用它以获取`cart`实例。然后在模板中，通过使用`cart.total`
+    getter来显示购物车中的总项目数，正如[示例 9-8](#cart_component)所示。
+- en: Example 9-8\. Cart component
+  id: totrans-93
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-8\. 购物车组件
+- en: '[PRE9]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'We then see the cart displayed with the initial value of `0` ([Figure 9-5](#figure_08_app_cart))
+    when we use the `<Cart />` component in our `App.vue` as in the following code:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，当我们在`App.vue`中使用`<Cart />`组件时，我们看到购物车显示初始值为`0`（[图 9-5](#figure_08_app_cart)）。
+- en: '[PRE10]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '![Cart component displayed in the application](assets/lvue_0905.png)'
+  id: totrans-97
+  prefs: []
+  type: TYPE_IMG
+  zh: '![应用程序中显示的购物车组件](assets/lvue_0905.png)'
+- en: Figure 9-5\. Cart component displayed in the header of the application
+  id: totrans-98
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-5\. 在应用程序标题中显示的购物车组件
+- en: Next, let’s enable adding items to the cart from our pizzas gallery for each
+    pizza rendered by `PizzaCard`.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们允许从我们的披萨画廊向购物车添加项目，以每个由`PizzaCard`渲染的披萨。
+- en: Adding Items to the Cart from the Pizzas Gallery
+  id: totrans-100
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从披萨画廊添加项目到购物车
+- en: In `PizzaCard`, we will add a button with the `click` event handler calling
+    the `cart.add()` action to add the pizza to the cart. The `PizzaCard` component
+    will look like [Example 9-9](#ch8_pizza_card_component).
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`PizzaCard`中，我们将添加一个按钮，并使用`click`事件处理程序调用`cart.add()`操作以将披萨添加到购物车中。`PizzaCard`组件将如[示例 9-9](#ch8_pizza_card_component)所示。
+- en: Example 9-9\. `PizzaCard` component
+  id: totrans-102
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-9\. `PizzaCard`组件
+- en: '[PRE11]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO4-1)'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO4-1)'
+- en: Add a button to add the pizza to the cart
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加一个按钮将披萨添加到购物车中。
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO4-2)'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO4-2)'
+- en: Get the `cart` instance from the `useCartStore()` method
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`useCartStore()`方法从`cart`实例获取。
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO4-3)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO4-3)'
+- en: Call the `cart.add()` action to add the pizza to the cart within the `addToCart()`
+    method
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`addToCart()`方法内调用`cart.add()`操作以将披萨添加到购物车。
+- en: With the previous code, in the browser, we can add a pizza to the cart by clicking
+    on the “Add to cart” button and see the cart’s total items updated ([Figure 9-6](#figure_08_cart_total)).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过上述代码，在浏览器中，我们可以通过点击“添加到购物车”按钮向购物车中添加披萨，并查看购物车的总商品数量更新（[图 9-6](#figure_08_cart_total)）。
+- en: '![Pizza card with adding option and updated cart total](assets/lvue_0906.png)'
+  id: totrans-111
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有添加选项和更新购物车总金额的披萨卡片](assets/lvue_0906.png)'
+- en: Figure 9-6\. Pizza card with adding option and updated cart total
+  id: totrans-112
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-6\. 带有添加选项和更新购物车总金额的披萨卡片
+- en: We can also use the `cart.items` to detect whether the current pizza is already
+    in the cart, and display its status on the pizza card, as in [Example 9-10](#ch8_pizza_card_component_2).
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以使用`cart.items`来检测当前披萨是否已经在购物车中，并在披萨卡片上显示其状态，如[示例 9-10](#ch8_pizza_card_component_2)所示。
+- en: Example 9-10\. `PizzaCard` component with status
+  id: totrans-114
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-10\. 带有状态的`PizzaCard`组件
+- en: '[PRE12]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: The “In cart” status is displayed on the pizza card if the pizza is already
+    in the cart ([Figure 9-7](#figure_08_cart_status)).
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果披萨已经在购物车中，则在披萨卡片上显示“在购物车中”的状态（[图 9-7](#figure_08_cart_status)）。
+- en: '![Pizza card with status](assets/lvue_0907.png)'
+  id: totrans-117
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有状态的披萨卡片](assets/lvue_0907.png)'
+- en: Figure 9-7\. Pizza card with status
+  id: totrans-118
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-7\. 带有状态的披萨卡片
+- en: We have successfully created a cart store and used it in our Pizza House. The
+    `Cart` and the `PizzaCard` component now synchronize and communicate through the
+    `cart` store.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已成功创建了一个购物车存储并在Pizza House中使用它。`Cart`和`PizzaCard`组件现在通过`cart`存储同步和通信。
+- en: At this point, the `Cart` component currently displays only the total items
+    in the cart, which, most of the time, is not enough for users to understand what
+    they have added. In the next section, we will improve this experience by displaying
+    the cart items when users click on the cart.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，`Cart`组件当前仅显示购物车中的总商品数量，这通常不足以让用户了解他们已添加的内容。在接下来的部分中，我们将通过在用户点击购物车时显示购物车商品来改善这一体验。
+- en: Displaying Cart Items with Actions
+  id: totrans-121
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 显示带有操作的购物车商品
+- en: In `Cart.vue`, we will add a section displaying the list of cart items and a
+    `showCart` `Details` variable to control the list’s visibility. We will toggle
+    the visibility of the list when users click on the cart text, as shown in [Example 9-11](#ch8_cart_component_2).
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`Cart.vue`中，我们将添加一个显示购物车商品列表和`showCartDetails`变量以控制列表可见性的部分。当用户点击购物车文本时，我们将切换列表的可见性，如[示例 9-11](#ch8_cart_component_2)所示。
+- en: Example 9-11\. Cart component with cart items
+  id: totrans-123
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-11\. 带有购物车商品的购物车组件
+- en: '[PRE13]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO5-1)'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO5-1)'
+- en: Toggle the visibility of the cart items list when users click on the cart text
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当用户点击购物车文本时，切换显示购物车商品列表的可见性。
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO5-2)'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO5-2)'
+- en: Display the cart items list when `showCartDetails` is `true`
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当`showCartDetails`为`true`时显示购物车商品列表。
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO5-5)'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO5-5)'
+- en: Loop through the cart items and display the item id and quantity
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 循环遍历购物车商品并显示商品ID和数量。
+- en: '[![4](assets/4.png)](#co_state_management_with_pinia_CO5-6)'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_state_management_with_pinia_CO5-6)'
+- en: Initialize a `showCartDetails` variable using the `ref()` method
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`ref()`方法初始化`showCartDetails`变量。
+- en: 'We also add some CSS styles to the `Cart` component to position the list to
+    look like a dropdown:'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还向`Cart`组件添加了一些CSS样式，以使列表的位置看起来像下拉菜单：
+- en: '[PRE14]'
+  id: totrans-134
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO6-1)'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO6-1)'
+- en: Set the position of the `.cart` container to `relative` to make the `absolute`
+    list container float within the container.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将`.cart`容器的位置设置为`relative`以使`absolute`列表容器在容器内浮动。
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO6-2)'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO6-2)'
+- en: Set the position of the list container to `absolute` to make it float concerning
+    the `relative` positioned `.cart` container.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将列表容器的位置设置为 `absolute`，使其相对于 `.cart` 容器的 `relative` 位置浮动。
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO6-3)'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO6-3)'
+- en: Set the `inset-inline-end` property to `0` to make the list container float
+    to the right of the `.cart` container.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 `inset-inline-end` 属性设置为 `0`，使列表容器浮动到 `.cart` 容器的右侧。
+- en: '[![4](assets/4.png)](#co_state_management_with_pinia_CO6-4)'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_state_management_with_pinia_CO6-4)'
+- en: Add box shadow and border to the list container to make it look like a dropdown.
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 添加阴影和边框给列表容器，使其看起来像下拉框。
+- en: When we click on the cart text, the cart items list will be displayed ([Figure 9-8](#figure_08_cart_items)).
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们点击购物车文本时，将显示购物车商品列表（[图 9-8](#figure_08_cart_items)）。
+- en: '![Cart items list displayed when clicking on the cart text](assets/lvue_0908.png)'
+  id: totrans-144
+  prefs: []
+  type: TYPE_IMG
+  zh: '![点击购物车文本时显示的购物车商品列表](assets/lvue_0908.png)'
+- en: Figure 9-8\. Cart items list displayed when clicking on the cart text
+  id: totrans-145
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-8\. 点击购物车文本时显示的购物车商品列表
+- en: But wait, there is a problem. The list displays only the items `id` and `quantity`,
+    which needs to be more descriptive for users to understand what item they have
+    added as well as the total cost. We also need to display the item’s name and price.
+    To do so, we can modify the `cart.items` to keep the item’s title and price, but
+    this would make the `cart` store’s structure complex and would require additional
+    logic fixes.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但等等，出现了问题。列表只显示了项目的 `id` 和 `quantity`，这对用户理解添加的项目以及总费用不够描述。我们还需要显示项目的名称和价格。为此，我们可以修改
+    `cart.items` 以保留项目的标题和价格，但这会使 `cart` 存储的结构复杂化，并且需要额外的逻辑修复。
+- en: Instead, we can create a computed `detailedItems` list with the help of the
+    pizzas store.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以创建一个计算的 `detailedItems` 列表，借助披萨存储的帮助。
+- en: Within the `cart.ts` store, we will add a `detailedItems` computed property,
+    which will be the joined array from `items` and from the `pizzasStore.pizzas`
+    of the pizzas store, as in [Example 9-12](#ch8_cart_store_2).
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `cart.ts` 存储中，我们将添加一个 `detailedItems` 计算属性，它将是从 `items` 和披萨存储中的 `pizzasStore.pizzas`
+    连接的数组，如 [示例 9-12](#ch8_cart_store_2) 所示。
+- en: Example 9-12\. Cart store with `detailedItems` computed property
+  id: totrans-149
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-12\. 带有 `detailedItems` 计算属性的购物车存储
+- en: '[PRE15]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO7-1)'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO7-1)'
+- en: Get the initial list of pizzas from the store using `usePizzaStore`
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用 `usePizzaStore` 从存储获取披萨的初始列表
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO7-2)'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO7-2)'
+- en: Filter the relevant pizzas presented in the cart
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 过滤显示在购物车中的相关披萨
+- en: '[![3](assets/3.png)](#co_state_management_with_pinia_CO7-3)'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_state_management_with_pinia_CO7-3)'
+- en: Format the cart items’ information to return
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 格式化购物车商品信息以返回
+- en: '[![4](assets/4.png)](#co_state_management_with_pinia_CO7-4)'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_state_management_with_pinia_CO7-4)'
+- en: Return the filtered and formatted array `detailedItems`
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回经过筛选和格式化的 `detailedItems` 数组
+- en: In `Cart.vue`, we will replace the `cart.items` with `cart.detailedItems` in
+    the `v-for` loop, as shown in [Example 9-13](#ch8_cart_component_3).
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `Cart.vue` 中，我们将在 `v-for` 循环中使用 `cart.detailedItems` 替换 `cart.items`，如 [示例 9-13](#ch8_cart_component_3)
+    所示。
+- en: Example 9-13\. Using `detailedItems` to display more information
+  id: totrans-160
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-13\. 使用 `detailedItems` 显示更多信息
+- en: '[PRE16]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO8-1)'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO8-1)'
+- en: Iterate the `cart.detailedItems` array to display cart’s items
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 迭代 `cart.detailedItems` 数组以显示购物车商品
+- en: Now, when we click on the cart text, the cart items list will display the item’s
+    name, price, quantity, and total cost per item ([Figure 9-9](#figure_08_cart_items_2)).
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当我们点击购物车文本时，购物车商品列表将显示项目的名称、价格、数量和每件商品的总费用（[图 9-9](#figure_08_cart_items_2)）。
+- en: '![Cart items list displayed with more information](assets/lvue_0909.png)'
+  id: totrans-165
+  prefs: []
+  type: TYPE_IMG
+  zh: '![显示更多信息的购物车商品列表](assets/lvue_0909.png)'
+- en: Figure 9-9\. Cart items list displayed with more information
+  id: totrans-166
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-9\. 显示更多信息的购物车商品列表
+- en: We have successfully displayed the cart items’ details. Next we can add the
+    ability to be able to remove items from the cart.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已成功显示了购物车商品的详细信息。接下来我们可以添加删除购物车商品的功能。
+- en: Removing Items from the Cart Store
+  id: totrans-168
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 从购物车存储中移除商品
+- en: For each item in the cart’s list, we will add a *Remove* button to be able to
+    remove it from the cart. We will also add a *Remove all* button to remove all
+    items from the cart. The `template` section of `Cart.vue` will look like [Example 9-14](#ch8_cart_component_4).
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于购物车列表中的每个项目，我们将添加一个 *Remove* 按钮以便从购物车中删除它。我们还将添加一个 *Remove all* 按钮以从购物车中移除所有项目。`Cart.vue`
+    的 `template` 部分看起来像 [示例 9-14](#ch8_cart_component_4)。
+- en: Example 9-14\. Cart component with Remove and Remove all buttons
+  id: totrans-170
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-14\. 带有 Remove 和 Remove all 按钮的 Cart 组件
+- en: '[PRE17]'
+  id: totrans-171
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO9-1)'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO9-1)'
+- en: The Remove button binds to the `cart.remove` method, which takes the item’s
+    `id` as an argument
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Remove* 按钮绑定到 `cart.remove` 方法，该方法以项目的 `id` 作为参数'
+- en: '[![2](assets/2.png)](#co_state_management_with_pinia_CO9-2)'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_state_management_with_pinia_CO9-2)'
+- en: The Remove all button binds to the `cart.clear` method
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Remove all* 按钮绑定到 `cart.clear` 方法'
+- en: In `cart.ts`, we will add the `remove` and `clear` methods, as shown in [Example 9-15](#ch8_cart_store_3).
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `cart.ts` 文件中，我们将添加 `remove` 和 `clear` 方法，如示例 [示例 9-15](#ch8_cart_store_3)
+    所示。
+- en: Example 9-15\. Cart store with `remove` and `clear` methods
+  id: totrans-177
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-15\. 带有 `remove` 和 `clear` 方法的 Cart store
+- en: '[PRE18]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: And that’s it! Vue removes the item from the cart when we click the *Remove*
+    button. And it will empty the cart when we click the *Remove all* button; see
+    [Figure 9-10](#figure_08_cart_remove).
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！当我们点击 *Remove* 按钮时，Vue 会从购物车中移除该项目。当我们点击 *Remove all* 按钮时，它将清空购物车；参见 [图 9-10](#figure_08_cart_remove)。
+- en: '![Cart items with remove and remove all buttons](assets/lvue_0910.png)'
+  id: totrans-180
+  prefs: []
+  type: TYPE_IMG
+  zh: '![带有 Remove 和 Remove all 按钮的购物车项目](assets/lvue_0910.png)'
+- en: Figure 9-10\. Cart items with Remove and Remove all buttons
+  id: totrans-181
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-10\. 带有 Remove 和 Remove all 按钮的购物车项目
+- en: Note
+  id: totrans-182
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you are building the `cart` store using Options API, you can use `cart.$reset()`
+    to reset the store’s state to its initial state. Otherwise, you must manually
+    reset the store’s state, as we did in the `clear` method.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您正在使用 Options API 构建 `cart` store，您可以使用 `cart.$reset()` 将 store 的状态重置为初始状态。否则，您必须手动重置
+    store 的状态，就像在 `clear` 方法中所做的那样。
+- en: We can also use the Vue Devtool tab ([“Vue Developer Tools”](ch01.html#vue_devtools_ch1))
+    in the browser’s Developer Tools to inspect the `cart` store’s state and getters.
+    The `cart` and `pizzas` store will be listed under the `Pinia` tab ([Figure 9-11](#figure_08_cart_devtools)).
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以使用浏览器开发工具中的 Vue Devtool 选项卡（[“Vue Developer Tools”](ch01.html#vue_devtools_ch1)）检查
+    `cart` store 的状态和 getters。`cart` 和 `pizzas` store 将在 `Pinia` 选项卡下列出（见 [图 9-11](#figure_08_cart_devtools)）。
+- en: '![Cart and pizzas stores in Vue Devtools](assets/lvue_0911.png)'
+  id: totrans-185
+  prefs: []
+  type: TYPE_IMG
+  zh: '![购物车和披萨 store 在 Vue Devtools 中](assets/lvue_0911.png)'
+- en: Figure 9-11\. Cart and pizzas stores in Vue Devtools
+  id: totrans-186
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-11\. Vue Devtools 中的购物车和披萨 store
+- en: We have explored how to build stores using Pinia and Composition API. We have
+    also explored different approaches, such as combining stores and using the store’s
+    state in external composables. What about testing Pinia stores? Let’s explore
+    that in the next section.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经探讨了如何使用 Pinia 和 Composition API 构建 store。我们还探讨了不同的方法，如合并 store 和在外部可组合中使用
+    store 的状态。那么测试 Pinia stores 呢？让我们在下一节中探索这个问题。
+- en: Unit Testing Pinia Stores
+  id: totrans-188
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 单元测试 Pinia Stores
+- en: Unit testing a store is similar to regular unit testing a function. For Pinia,
+    before running the actual tests, we need to create a Pinia instance using `createPinia`
+    and activate it with the `setActivePinia()` method from the `pinia` package. [Example 9-16](#ch8_cart_store_test_1)
+    shows how we write the test of adding an item to a cart for our `cart` store.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单元测试一个 store 类似于普通单元测试一个函数。对于 Pinia，在运行实际测试之前，我们需要使用 `pinia` 包中的 `createPinia`
+    方法创建一个 Pinia 实例，并使用 `setActivePinia()` 方法激活它。[示例 9-16](#ch8_cart_store_test_1)
+    展示了如何编写测试，将一个项目添加到我们的 `cart` store 中。
+- en: Example 9-16\. Cart store test suite for adding items
+  id: totrans-190
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-16\. 用于添加项目的 Cart store 测试套件
+- en: '[PRE19]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '[![1](assets/1.png)](#co_state_management_with_pinia_CO10-1)'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_state_management_with_pinia_CO10-1)'
+- en: We create and activate a new Pinia instance before each test run.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每次测试运行之前，我们会创建并激活一个新的 Pinia 实例。
+- en: This code follows the common testing syntax supported by Jest and `Vitest` testing
+    frameworks. We will explore more details on writing and running unit tests in
+    [“Vitest as a Unit Testing Tool”](ch11.html#vitest_chap10). For now, we will explore
+    how to subscribe to store changes and add side effects to store actions.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码遵循 Jest 和 `Vitest` 测试框架支持的常见测试语法。我们将进一步探讨如何编写和运行单元测试的细节，在 [“Vitest 作为单元测试工具”](ch11.html#vitest_chap10)
+    中详细介绍。目前，我们将探讨如何订阅 store 的更改并为 store 操作添加副作用。
+- en: Subscribing Side Effects on Store Changes
+  id: totrans-195
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 订阅 store 更改的副作用
+- en: One significant advantage of Pinia is the ability to extend the store’s functionalities
+    and implement side effects using plugins. With this ability, we can easily subscribe
+    to changes in all the stores or in a specific store to perform additional actions
+    like synchronizing data with the server when needed.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pinia 的一个重要优势是可以通过插件扩展存储的功能并实现副作用。借助此功能，我们可以轻松订阅所有存储或特定存储的变化，以执行诸如在需要时与服务器同步数据等其他操作。
+- en: 'Take the following `cartPlugin`, for instance:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以`cartPlugin`为例：
+- en: '[PRE20]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The `cartPlugin` is a function that receives an object containing a reference
+    to the `app` instance, the `pinia` instance, the `store` instance, and an options
+    object. Vue will trigger this function once for every store in our application.
+    To make sure we are subscribing only to the `cart` store, we can check the store’s
+    id (see [Example 9-17](#ch8_cart_plugin_1)).
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`cartPlugin`是一个函数，接收一个包含对`app`实例、`pinia`实例、`store`实例和一个选项对象的引用的对象。Vue 将为我们应用程序中的每个存储触发此函数一次。为了确保我们仅订阅`cart`存储，我们可以检查存储的
+    id（见[示例 9-17](#ch8_cart_plugin_1)）。'
+- en: Example 9-17\. Cart plugin
+  id: totrans-200
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-17\. 购物车插件
+- en: '[PRE21]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Then we can subscribe to the cart store changes using the `store.$subscribe`
+    method, as in [Example 9-18](#ch8_cart_plugin_2).
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以使用`store.$subscribe`方法订阅购物车存储的变化，如[示例 9-18](#ch8_cart_plugin_2)。
+- en: Example 9-18\. Cart plugin subscribing to store changes
+  id: totrans-203
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-18\. 购物车插件订阅存储变化
+- en: '[PRE22]'
+  id: totrans-204
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: When we add an item to the cart, the `cartPlugin` will log the message to the
+    console ([Figure 9-12](#figure_08_cart_plugin)).
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们向购物车添加物品时，`cartPlugin`会在控制台记录消息（[图 9-12](#figure_08_cart_plugin)）。
+- en: '![Cart plugin logging store changes](assets/lvue_0912.png)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_IMG
+  zh: '![购物车插件记录存储变化](assets/lvue_0912.png)'
+- en: Figure 9-12\. Log the store changes using plugin
+  id: totrans-207
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-12\. 使用插件记录存储变化
+- en: The `options` object received by the `$subscribe` method contains the `events`
+    object, which contains the current event’s type (`add`), the previous value (`oldValue`),
+    the current values passed to the event (`newValue`), the `storeId`, and the type
+    of the event (`direct`).
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`$subscribe`方法接收的`options`对象包含`events`对象，其中包含当前事件类型（`add`）、前一个值（`oldValue`）、传递给事件的当前值（`newValue`）、`storeId`以及事件类型（`direct`）。'
+- en: Similarly, we can add a side effect to the `cart` store’s `add` action using
+    `store.$on` `Action` ([Example 9-19](#ch8_cart_plugin_3)).
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，我们可以使用`store.$onAction`为`cart`存储的`add`操作添加副作用（见[示例 9-19](#ch8_cart_plugin_3)）。
+- en: Example 9-19\. Cart plugin subscribing to store’s adding action
+  id: totrans-210
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 9-19\. 购物车插件订阅存储的添加操作
+- en: '[PRE23]'
+  id: totrans-211
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: When we add an item to the cart, the `cartPlugin` will log the new item added
+    to the cart ([Figure 9-13](#figure_08_cart_plugin_action)).
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们向购物车添加物品时，`cartPlugin`会记录添加到购物车的新物品（[图 9-13](#figure_08_cart_plugin_action)）。
+- en: '![Cart plugin logging store''s adding action](assets/lvue_0913.png)'
+  id: totrans-213
+  prefs: []
+  type: TYPE_IMG
+  zh: '![购物车插件记录存储的添加操作](assets/lvue_0913.png)'
+- en: Figure 9-13\. Cart plugin logging store’s adding action
+  id: totrans-214
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 9-13\. 购物车插件记录存储的添加操作
+- en: With `$subscribe` and `$onAction`, we can add side effects such as logging and
+    communicating with external API services such as updating the user’s cart in the
+    server, etc. Additionally, if we have an `$onAction` and `$subscribe` in the same
+    plugin, Vue will trigger the `$onAction` first, followed by the relevant `$subscribe`.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`$subscribe`和`$onAction`，我们可以添加诸如记录日志和与外部 API 服务通信（例如在服务器上更新用户购物车等）的副作用。此外，如果在同一个插件中同时使用`$onAction`和`$subscribe`，Vue
+    将首先触发`$onAction`，然后是相关的`$subscribe`。
+- en: Using Side Effects
+  id: totrans-216
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用副作用
+- en: It’s crucial to note that Vue triggers every side effect we add to the store.
+    For example, for [Example 9-19](#ch8_cart_plugin_3), Vue will activate the side
+    effect function for every action executed in the store. Hence, we must be very
+    cautious when adding side effects to the store to avoid performance issues.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，Vue 会触发我们添加到存储的每个副作用。例如，对于[示例 9-19](#ch8_cart_plugin_3)，Vue 将为存储中执行的每个操作激活副作用函数。因此，在向存储添加副作用时，我们必须非常谨慎，以避免性能问题。
+- en: Summary
+  id: totrans-218
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: In this chapter, we learned how to use Pinia to build stores and use them in
+    our application with the help of Composition API. We also learned how to destructure
+    and pass the store’s state to external composables with reactivity and how to
+    subscribe to store changes and add side effects to store actions. You are now
+    ready to create a complete data flow from building a centralized data store, using
+    it in different components, and connecting between components through the store.
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们学习了如何使用 Pinia 构建存储，并在应用程序中利用组合 API 使用它们。我们还学习了如何解构和传递存储的状态给外部的可组合函数，利用响应性订阅存储的变化，并为存储操作添加副作用。现在，您已经准备好创建完整的数据流，从构建集中式数据存储，到在不同组件中使用它，并通过存储在组件之间建立连接。
+- en: 'The next chapter will explore a different aspect of Vue’s capabilities in enhancing
+    the user experience: adding animations and transitions to our application and
+    components.'
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一章将探讨 Vue 的另一个方面，即如何通过添加动画和过渡来增强用户体验。
+- en: ^([1](ch09.html#id1395-marker)) Vuex was previously the official state management
+    for Vue applications.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch09.html#id1395-marker)) Vuex 曾是 Vue 应用程序的官方状态管理工具。

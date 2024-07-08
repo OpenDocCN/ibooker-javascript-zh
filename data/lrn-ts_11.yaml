@@ -1,0 +1,944 @@
+- en: Chapter 9\. Type Modifiers
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第九章。类型修饰符
+- en: Types of types from types.
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 类型的类型来自于类型。
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: “It’s turtles all the way down,”
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “世界之大无奇不有。”
+- en: ''
+  id: totrans-4
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Anders likes to say.
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: Anders 喜欢说。
+- en: By now you’ve read all about how the TypeScript type system works with existing
+    JavaScript constructs such as arrays, classes, and objects. For this chapter and
+    [Chapter 10, “Generics”](ch10.xhtml#generics_chapter), I’m going to take a step
+    further into the type system itself and show features that focus on writing more
+    precise types, as well as types based on other types.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到现在为止，你已经详细了解了 TypeScript 类型系统如何与现有的 JavaScript 构造（例如数组、类和对象）配合工作。对于本章和[第十章，“泛型”](ch10.xhtml#generics_chapter)，我将进一步深入到类型系统本身，并展示侧重于编写更精确类型以及基于其他类型的特性。
+- en: Top Types
+  id: totrans-7
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 顶部类型
+- en: I mentioned the concept of a *bottom type* back in [Chapter 4, “Objects”](ch04.xhtml#objects)
+    to describe a type that can have no possible values and can’t be reached. It stands
+    to reason that the opposite might also exist in type theory. It does!
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在[第四章，“对象”](ch04.xhtml#objects)中，我提到了*底部类型*的概念，用来描述一种不能有可能值且不能被访问的类型。有道理认为类型理论中可能也存在相反的情况。确实存在！
+- en: A *top type*, or universal type, is a type that can represent any possible value
+    in a system. Values of all other types can be provided to a location whose type
+    is a top type. In other words, all types are assignable to a top type.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*顶部类型*，或通用类型，是一种可以表示系统中任何可能值的类型。所有其他类型的值都可以提供给类型为顶部类型的位置。换句话说，所有类型都可以分配给顶部类型。'
+- en: any, Again
+  id: totrans-10
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 再次提到 `any`
+- en: 'The `any` type can act as a top type, in that any type can be provided to a
+    location of type `any`. `any` is generally used when a location is allowed to
+    accept data of any type, such as the parameters to `console.log`:'
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`any` 类型可以充当顶部类型，因为任何类型都可以提供给类型为 `any` 的位置。通常情况下，当位置允许接受任何类型的数据时，如 `console.log`
+    的参数：'
+- en: '[PRE0]'
+  id: totrans-12
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: The problem with `any` is that it explicitly tells TypeScript not to perform
+    type checking on that value’s assignability or members. That lack of safety is
+    useful if you’d like to quickly bypass TypeScript’s type checker, but the disabling
+    of type checking reduces TypeScript’s usefulness for that value.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`any` 的问题在于它明确告诉 TypeScript 不要对该值的可分配性或成员进行类型检查。如果你想快速绕过 TypeScript 的类型检查器，这种缺乏安全性很有用，但类型检查的禁用会降低
+    TypeScript 对该值的实用性。'
+- en: 'For example, the `name.toUpperCase()` call below definitely will crash, but
+    because `name` is declared as `any`, TypeScript does not report a type complaint:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，下面的 `name.toUpperCase()` 调用肯定会崩溃，但因为 `name` 声明为 `any`，TypeScript 不会报类型错误：
+- en: '[PRE1]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: If you want to indicate that a value can be anything, the `unknown` type is
+    much safer.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想表示一个值可以是任何东西，`unknown` 类型会更安全。
+- en: unknown
+  id: totrans-17
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: unknown
+- en: 'The `unknown` type in TypeScript is its true top type. `unknown` is similar
+    to `any` in that all objects may be passed to locations of type `unknown`. The
+    key difference with `unknown` is that TypeScript is much more restrictive about
+    values of type `unknown`:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 中的 `unknown` 类型是其真正的顶部类型。`unknown` 类似于 `any`，因为所有对象都可以传递给类型为 `unknown`
+    的位置。与 `any` 的关键区别在于，TypeScript 对 `unknown` 类型的值更加严格：
+- en: TypeScript does not allow directly accessing properties of `unknown` typed values.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript 不允许直接访问 `unknown` 类型值的属性。
+- en: '`unknown` is not assignable to types that are not a top type (`any` or `unknown`).'
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`unknown` 不能分配给非顶部类型（如 `any` 或 `unknown`）的类型。'
+- en: 'Attempting to access a property of an `unknown` typed value, as in the following
+    snippet, will cause TypeScript to report a type error:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尝试访问 `unknown` 类型值的属性，例如以下片段，将导致 TypeScript 报告类型错误：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: The only way TypeScript will allow code to access members on a name of type
+    `unknown` is if the value’s type is narrowed, such as using `instanceof` or `typeof`,
+    or with a type assertion.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 只有在值的类型被缩小（例如使用 `instanceof` 或 `typeof`，或使用类型断言）时，才允许对 `unknown`
+    类型的名称访问成员。
+- en: 'This code snippet uses `typeof` to narrow `name` from `unknown` to `string`:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码片段使用 `typeof` 将 `name` 从 `unknown` 缩小为 `string`：
+- en: '[PRE3]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Those two restrictions make `unknown` a much safer type to use than `any`. You
+    should generally prefer using `unknown` instead of `any` when possible.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个限制使得 `unknown` 比 `any` 更安全。通常情况下，应尽可能使用 `unknown` 而不是 `any`。
+- en: Type Predicates
+  id: totrans-27
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型谓词
+- en: I’ve previously shown you how JavaScript constructs such as `instanceof` and
+    `typeof` can be used to narrow types. That’s all fine and good for directly using
+    that limited set of checks, but it gets lost if you wrap the logic with a function.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我之前向你展示过 JavaScript 构造（例如 `instanceof` 和 `typeof`）如何用于缩小类型。直接使用有限的这组检查是完全没问题的，但如果将逻辑封装在函数中，就会丢失这些检查。
+- en: 'For example, this `isNumberOrString` function takes in a value and returns
+    a boolean indicating whether the value is a `number` or `string`. We as humans
+    can infer that the `value` inside the `if` statement must therefore be one of
+    those two types since `isNumberOrString(value)` returned true, but TypeScript
+    does not. All it knows is that `isNumberOrString` returns a boolean—not that it’s
+    meant to narrow the type of an argument:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，这个`isNumberOrString`函数接受一个值并返回一个布尔值，指示该值是`number`还是`string`。我们作为人类可以推断`if`语句中的`value`必须是这两种类型之一，因为`isNumberOrString(value)`返回true，但TypeScript不知道。它只知道`isNumberOrString`返回一个布尔值，而不知道它意味着缩小参数的类型：
+- en: '[PRE4]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'TypeScript has a special syntax for functions that return a boolean meant to
+    indicate whether an argument is a particular type. This is referred to as a *type
+    predicate*, also sometimes called a “user-defined type guard”: you the developer
+    are creating your own type guard akin to `instanceof` or `typeof`. Type predicates
+    are commonly used to indicate whether an argument passed in as a parameter is
+    a more specific type than the parameter’s.'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript有一种专门的语法用于返回一个布尔值，表示参数是否是特定类型。这被称为*类型谓词*，有时也称为“用户定义的类型保护”：您作为开发人员正在创建自己的类型保护，类似于`instanceof`或`typeof`。类型谓词通常用于指示传递为参数的参数是否比参数的更具体类型。
+- en: 'Type predicate’s return types can be declared as the name of a parameter, the
+    `is` keyword, and some type:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型谓词的返回类型可以声明为参数的名称、`is`关键字和某种类型：
+- en: '[PRE5]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'We can change the previous example’s helper function to have an explicit return
+    type that explicitly states `value is number | string`. TypeScript will then be
+    able to infer that blocks of code only reachable if `value is number | string`
+    is `true` must have a `value` of type `number | string`. Additionally, blocks
+    of code only reachable if `value is number | string` is `false` must have a `value`
+    of type `null | undefined`:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以将前面示例中的辅助函数更改为具有显式返回类型，明确说明`value is number | string`。TypeScript将能够推断出仅在`value
+    is number | string`为`true`时可达的代码块必须具有`number | string`类型的`value`。此外，仅在`value is
+    number | string`为`false`时可达的代码块必须具有`null | undefined`类型的`value`：
+- en: '[PRE6]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: You can think of a type predicate as returning not just a boolean, but also
+    an indication that the argument was that more specific type.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将类型谓词视为返回不仅是布尔值，而且还指示参数是更具体类型的指示。
+- en: Type predicates are often used to check whether an object already known to be
+    an instance of one interface is an instance of a more specific interface.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型谓词通常用于检查已知为一个接口实例的对象是否是更具体接口的实例。
+- en: 'Here, the `StandupComedian` interface contains additional information on top
+    of `Comedian`. The `isStandupComedian` type guard can be used to check whether
+    a general `Comedian` is specifically a `StandupComedian`:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`StandupComedian`接口包含了`Comedian`之上的附加信息。`isStandupComedian`类型守卫可用于检查一般的`Comedian`是否特别是`StandupComedian`：
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Be warned: because type predicates also narrow types in the false case, you
+    might get surprising results if a type predicate checks more than just the type
+    of its input.'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 警告：因为类型谓词在false情况下也会缩小类型，如果类型谓词检查的不仅仅是其输入的类型，可能会得到令人惊讶的结果。
+- en: 'This `isLongString` type predicate returns `false` if its `input` parameter
+    is `undefined` or a `string` with a length less than `7`. As a result, the `else`
+    statement (its false case) is narrowed to thinking `text` must be type `undefined`:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个`isLongString`类型谓词在其`input`参数为`undefined`或长度小于`7`的`string`时返回`false`。因此，`else`语句（其false情况）被缩小为认为`text`必须是`undefined`类型：
+- en: '[PRE8]'
+  id: totrans-42
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Type predicates that do more than verify the type of a property or value are
+    easy to misuse. I generally recommend avoiding them when possible. Simpler type
+    predicates are sufficient for most cases.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 做更多事情而不仅仅是验证属性或值类型的类型谓词很容易被误用。我通常建议尽可能避免使用它们。对于大多数情况，简单的类型谓词就足够了。
+- en: Type Operators
+  id: totrans-44
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型运算符
+- en: Not all types can be represented using only a keyword or a name of an existing
+    type. It can sometimes be necessary to create a new type that combines both, performing
+    some transformation on the properties of an existing type.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并非所有类型都可以仅使用关键字或现有类型的名称来表示。有时可能需要创建一个结合两者的新类型，对现有类型的属性进行一些转换。
+- en: keyof
+  id: totrans-46
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 键名
+- en: JavaScript objects can have members retrieved using dynamic values, which are
+    commonly (but not necessarily) `string` typed. Representing these keys in the
+    type system can be tricky. Using a catchall primitive such as `string` would allow
+    invalid keys for the container value.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 对象可以使用动态值检索成员，这些成员通常（但不一定）是 `string` 类型。在类型系统中表示这些键可能会很棘手。使用类似 `string`
+    的通用类型将允许容器值的无效键。
+- en: 'That’s why TypeScript when using stricter configuration settings—covered in
+    [Chapter 13, “Configuration Options”](ch13.xhtml#configuration_options)—would
+    report an error on the `ratings[key]` as seen in the next example. Type `string`
+    allows values not allowed as properties on the `Ratings` interface, and `Ratings`
+    doesn’t declare an index signature to allow any `string` keys:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是为什么在使用更严格的配置设置时，TypeScript 会在下一个示例中报告 `ratings[key]` 的错误。`string` 类型允许不在
+    `Ratings` 接口上声明的属性，而 `Ratings` 没有声明索引签名来允许任何 `string` 键：
+- en: '[PRE9]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Another option would be to use a type union of literals for the allowed keys.
+    That would be more accurate in properly restricting to only the keys that exist
+    on the container value:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个选项是使用文字的类型联合来允许的键。这将更准确地限制为仅容器值上存在的键：
+- en: '[PRE10]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: However, what if the interface has dozens or more members? You would have to
+    type out each of those members’ keys into the union type and keep them up-to-date.
+    What a pain.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是，如果接口有几十个或更多成员怎么办？你必须将每个成员的键手动输入到联合类型中，并保持更新。真是太麻烦了。
+- en: TypeScript instead provides a `keyof` operator that takes in an existing type
+    and gives back a union of all the keys allowed on that type. Place it in front
+    of the name of a type wherever you might use a type, such as a type annotation.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 提供了 `keyof` 操作符，它接受一个现有类型，并返回该类型上允许的所有键的联合。将其放置在类型名称的前面，可以在任何可能使用类型的地方，例如类型注释。
+- en: 'Here, `keyof Ratings` is equivalent to `''audience'' | ''critic''` but is much
+    quicker to write out and won’t need to be manually updated if the `Ratings` interface
+    ever changes:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`keyof Ratings` 等同于 `'audience' | 'critic'`，但写出来更快，如果 `Ratings` 接口发生变化，也不需要手动更新：
+- en: '[PRE11]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: '`keyof` is a great feature for creating union types based on the keys of existing
+    types. It also combines well with other type operators in TypeScript, allowing
+    for some very nifty patterns you’ll see later in this chapter and [Chapter 15,
+    “Type Operations”](ch15.xhtml#type_operations).'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`keyof` 是一个很棒的功能，用于基于现有类型的键创建联合类型。它还与 TypeScript 中的其他类型操作符结合得很好，允许使用一些非常巧妙的模式，您将在本章和[第
+    15 章，“类型操作”](ch15.xhtml#type_operations)中看到。'
+- en: typeof
+  id: totrans-57
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: typeof
+- en: Another type operator provided by TypeScript is `typeof`. It gives back the
+    type of a provided value. This can be useful if the value’s type would be annoyingly
+    complex to write manually.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 提供的另一个类型操作符是 `typeof`。它返回提供值的类型。如果值的类型手动编写会很复杂，则这将非常有用。
+- en: 'Here, the `adaptation` variable is declared as being the same type as `original`:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`adaptation` 变量声明为与 `original` 相同的类型：
+- en: '[PRE12]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Although the `typeof` *type* operator visually looks like the *runtime* `typeof`
+    operator used to return a string description of a value’s type, the two are different.
+    They only coincidentally use the same word. Remember: the JavaScript operator
+    is a runtime operator that returns the string name of a type. The TypeScript version,
+    because it’s a type operator, can only be used in types and won’t appear in compiled
+    code.'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 `typeof` *类型* 操作符在视觉上看起来像是 *运行时* 的 `typeof` 操作符，用于返回值类型的字符串描述，但它们是不同的。它们只是偶然使用相同的词。请记住：JavaScript
+    运算符是运行时运算符，返回值的类型字符串名称。因为 TypeScript 版本是类型运算符，只能用于类型，并不会出现在编译后的代码中。
+- en: keyof typeof
+  id: totrans-62
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: keyof typeof
+- en: '`typeof` retrieves the type of a value, and `keyof` retrieves the allowed keys
+    on a type. TypeScript allows the two keywords to be chained together to succinctly
+    retrieve the allowed keys on a value’s type. Putting them together, the `typeof`
+    type operator becomes wonderfully useful for working with `keyof` type operations.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`typeof` 可以检索值的类型，而 `keyof` 则检索类型上允许的键。TypeScript 允许这两个关键字链接在一起，以简洁地检索值类型的允许键。将它们结合起来，`typeof`
+    类型操作符在处理 `keyof` 类型操作时非常有用。'
+- en: 'In this example, the `logRating` function is meant to take in one of the keys
+    of the `ratings` value. Instead of creating an interface, the code uses `keyof
+    typeof` to indicate `key` must be one of the keys on the type of the `ratings`
+    value:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，`logRating` 函数旨在接受 `ratings` 值类型的键之一。代码使用 `keyof typeof` 表示 `key` 必须是
+    `ratings` 值类型的键之一，而不是创建一个接口：
+- en: '[PRE13]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: By combining `keyof` and `typeof`, we get to save ourselves the pain of writing
+    out—and having to update—types representing the allowed keys on objects that don’t
+    have an explicit interface type.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过结合 `keyof` 和 `typeof`，我们可以避免编写并更新对象上允许的键的类型。
+- en: Type Assertions
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型断言
+- en: 'TypeScript works best when your code is “strongly typed”: all the values in
+    your code have precisely known types. Features such as top types and type guards
+    provide ways to wrangle complex code into being understood by TypeScript’s type
+    checker. However, sometimes it’s not reasonably possible to be 100% accurate in
+    telling the type system how your code is meant to work.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您的代码“强类型”时，TypeScript 的运作效果最佳：代码中的所有值都具有精确已知的类型。诸如顶级类型和类型守卫之类的功能提供了方法，将复杂的代码理顺，以便
+    TypeScript 的类型检查器能够理解。然而，有时不可能百分之百准确地告知类型系统代码的预期行为。
+- en: For example, `JSON.parse` intentionally returns the top type `any`. There’s
+    no way to safely inform the type system that a particular string value given to
+    `JSON.parse` should return any particular value type. (As we will see in [Chapter 10,
+    “Generics”](ch10.xhtml#generics_chapter), adding a generic type to `parse` that
+    is only used once for a return type would violate a best practice known as The
+    Golden Rule of Generics.)
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，`JSON.parse` 故意返回顶级类型 `any`。无法安全地通知类型系统给定给 `JSON.parse` 的特定字符串值应返回任何特定值类型。（正如我们将在[第
+    10 章，“泛型”](ch10.xhtml#generics_chapter)中看到的，为 `parse` 添加一个只用于返回类型的泛型类型将违反一个被称为泛型黄金法则的最佳实践。）
+- en: 'TypeScript provides a syntax for overriding the type system’s understanding
+    of a value’s type: a “type assertion,” also known as a “type cast.” On a value
+    that is meant to be a different type, you can place the `as` keyword followed
+    by a type. TypeScript will defer to your assertion and treat the value as that
+    type.'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 提供了一种语法来覆盖值类型系统理解的方式：“类型断言”，也称为“类型转换”。对于希望是不同类型的值，您可以使用 `as` 关键字后跟一个类型。TypeScript
+    将遵循您的断言，并将该值视为该类型。
+- en: 'In this snippet, it is possible that the returned result from `JSON.parse`
+    is meant to be a type such as `string[]`, `[string, string]`, or `["grace", "frankie"]`.
+    The snippet uses type assertions for three of the lines of code to switch the
+    type from `any` to one of those:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此片段中，`JSON.parse` 返回的结果可能是诸如 `string[]`、`[string, string]` 或 `["grace", "frankie"]`
+    之类的类型。片段使用类型断言将代码中的三行类型从 `any` 转换为这些类型之一：
+- en: '[PRE14]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Type assertions exist only in the TypeScript type system. They’re removed along
+    with all other pieces of type system syntax when compiled to JavaScript. The previous
+    code would look like this when compiled to JavaScript:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言仅存在于 TypeScript 类型系统中。它们与编译为 JavaScript 时移除的所有其他类型系统语法一起被移除。编译为 JavaScript
+    后，前述代码将如下所示：
+- en: '[PRE15]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Note
+  id: totrans-75
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If you’re working with older libraries or code, you may see a different casting
+    syntax that looks like `<type>item` instead of `item as type`. Because this syntax
+    is incompatible with JSX syntax and therefore does not work in *.tsx* files, it
+    is discouraged.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您使用旧版本库或代码，则可能会看到不同的类型转换语法，看起来像 `<type>item` 而不是 `item as type`。因为此语法与 JSX
+    语法不兼容，因此在 *.tsx* 文件中无法使用，不建议使用。
+- en: TypeScript best practice is generally to avoid using type assertions when possible.
+    It’s best for your code to be fully typed and to not need to interfere with TypeScript’s
+    understanding of its types using assertions. But occasionally there will be cases
+    where type assertions are useful, even necessary.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的最佳实践通常是尽量避免使用类型断言。最好使您的代码完全类型化，不需要使用断言干预 TypeScript 对其类型的理解。但偶尔会有必要使用类型断言的情况。
+- en: Asserting Caught Error Types
+  id: totrans-78
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 断言捕获的错误类型
+- en: Error handling is another place where type assertions may come in handy. It
+    is generally impossible to know what type a caught error in a `catch` block will
+    be because the code in the `try` block may unexpectedly throw any object different
+    from what you expect. Furthermore, although JavaScript best practice is to always
+    throw an instance of the `Error` class, some projects instead throw string literals
+    or other surprising values.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 错误处理是另一个可能需要类型断言的地方。通常不可能知道 `catch` 块中捕获的错误类型是什么，因为 `try` 块中的代码可能会意外地抛出与预期不同的任何对象。此外，尽管
+    JavaScript 的最佳实践是始终抛出 `Error` 类的实例，但某些项目可能会抛出字符串文字或其他令人惊讶的值。
+- en: 'If you are absolutely confident that an area of code will only throw an instance
+    of the `Error` class, you can use a type assertion to treat a caught assertion
+    as an `Error`. This snippet accesses the `message` property of a caught `error`
+    that it assumes is an instance of the `Error` class:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您绝对确定代码区域只会抛出`Error`类的实例，可以使用类型断言将捕获的断言视为`Error`。此代码片段访问了假定为`Error`类实例的捕获`error`的`message`属性：
+- en: '[PRE16]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'It is generally safer to use a form of type narrowing such as an `instanceof`
+    check to ensure the thrown error is the expected error type. This snippet checks
+    whether the thrown error is an instance of the `Error` class to know whether to
+    log that message or the error itself:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常更安全的做法是使用类型缩小的形式，比如使用`instanceof`检查来确保抛出的错误是预期的错误类型。此代码片段检查抛出的错误是否是`Error`类的实例，以决定是记录该消息还是记录错误本身：
+- en: '[PRE17]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Non-Null Assertions
+  id: totrans-84
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 非空断言
+- en: Another common use case for type assertions is to remove `null` and/or `defined`
+    from a variable that only theoretically, not practically, might include them.
+    That situation is so common that TypeScript includes a shorthand for it. Instead
+    of writing out `as` and the full type of whatever a value is excluding `null`
+    and `undefined`, you can use a `!` to signify the same thing. In other words,
+    the `!` non-null assertion asserts that the type is not `null` or `undefined`.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言的另一个常见用例是从只在理论上而非实际上可能包含`null`和/或`undefined`的变量中去除它们。这种情况非常普遍，TypeScript
+    包含了一个简写形式。不必编写`as`和排除`null`和`undefined`的完整类型，您可以使用`!`来表示相同的意思。换句话说，`!`非空断言断言类型不是`null`或`undefined`。
+- en: 'The following two type assertions are identical in that they both result in
+    `Date` and not `Date | undefined`:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的两个类型断言在结果上是相同的，它们都产生`Date`而不是`Date | undefined`：
+- en: '[PRE18]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Non-null assertions are particularly useful with APIs such as `Map.get` that
+    return a value or `undefined` if it doesn’t exist.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 非空断言在诸如`Map.get`这样的API中特别有用，如果不存在，则返回值或`undefined`。
+- en: 'Here, `seasonCounts` is a general `Map<string, number>`. We know that it contains
+    an `"I Love Lucy"` key so the `knownValue` variable can use a `!` to remove `|
+    undefined` from its type:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`seasonCounts`是一个通用的`Map<string, number>`。我们知道它包含一个`"I Love Lucy"`键，所以`knownValue`变量可以使用`!`来从其类型中删除`|
+    undefined`：
+- en: '[PRE19]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: Type Assertion Caveats
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型断言注意事项
+- en: Type assertions, like the `any` type, are a necessary escape hatch for TypeScript’s
+    type system. Therefore, also like the `any` type, they should be avoided whenever
+    reasonably possible. It is often better to have more accurate types representing
+    your code than it is to make it easier to assert on a value’s type. Those assertions
+    are often wrong—either already so at the time of writing, or they become wrong
+    later on as the codebase changes.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言，就像`any`类型一样，是 TypeScript 类型系统的一个必要的逃生口。因此，也像`any`类型一样，在合理的情况下应尽量避免使用。通常更好的做法是使用更准确的类型来表示您的代码，而不是为了断言值的类型而使其变得更容易。这些断言通常是错误的——要么在编写时已经错误，要么随着代码库的变化后来变得错误。
+- en: 'For example, suppose the `seasonCounts` example were to change over time to
+    have different values in the map. Its non-null assertion might still make the
+    code pass TypeScript type checking, but there might be a runtime error:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设`seasonCounts`示例随时间改变而在映射中具有不同的值。其非空断言可能仍然使代码通过TypeScript类型检查，但可能会导致运行时错误：
+- en: '[PRE20]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: Type assertions should generally be used sparingly, and only when you’re absolutely
+    certain it is safe to do so.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一般来说，应该节制地使用类型断言，只有在确保安全的情况下才使用。
+- en: Assertions versus declarations
+  id: totrans-96
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 断言与声明
+- en: There is a difference between using a type annotation to declare a variable’s
+    type versus using a type assertion to change the type of a variable with an initial
+    value. TypeScript’s type checker performs assignability checking on a variable’s
+    initial value against the variable’s type annotation when both exist. A type assertion,
+    however, explicitly tells TypeScript to skip some of its type checking.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在声明变量类型与使用类型断言来改变具有初始值的变量类型之间存在差异。当变量的初始值和变量的类型注释同时存在时，TypeScript 的类型检查器会执行可赋值性检查。然而，类型断言明确告诉
+    TypeScript 跳过一些类型检查。
+- en: 'The following code creates two objects of type `Entertainer` with the same
+    flaw: a missing `acts` member. TypeScript is able to catch the error in the `declared`
+    variable because of its `: Entertainer` type annotation. It is not able to catch
+    the error on the `asserted` variable because of the type assertion:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '下面的代码创建了两个具有相同缺陷的`Entertainer`类型的对象：缺少`acts`成员。 TypeScript 能够在`declared`变量中捕获错误，因为它具有`:
+    Entertainer`类型注释。 由于类型断言，它无法在`asserted`变量上捕获错误：'
+- en: '[PRE21]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: It is therefore strongly preferable to either use a type annotation or allow
+    TypeScript to infer a variable’s type from its initial value.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，强烈建议要么使用类型注释，要么允许 TypeScript 从其初始值推断变量的类型。
+- en: Assertion assignability
+  id: totrans-101
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 断言可赋值性
+- en: Type assertions are meant to be only a small escape hatch, for situations where
+    some value’s type is slightly incorrect. TypeScript will only allow type assertions
+    between two types if one of the types is assignable to the other. If the type
+    assertion is between two completely unrelated types, then TypeScript will notice
+    and report a type error.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类型断言仅用于一小部分情况，即某些值的类型略有错误。如果类型断言涉及两种完全不相关的类型，则 TypeScript 将会注意并报告类型错误。
+- en: 'For example, switching from one primitive to another is not allowed, as primitives
+    have nothing to do with each other:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，不允许从一个基本类型切换到另一个基本类型，因为基本类型彼此无关：
+- en: '[PRE22]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'If you absolutely must switch a value from one type to a totally unrelated
+    type, you can use a double type assertion. First cast the value to a top type—`any`
+    or `unknown`—and then cast that result to the unrelated type:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您绝对必须将一个值从一种类型切换到完全不相关的另一种类型，则可以使用双重类型断言。 首先将值强制转换为顶级类型 —— `any`或`unknown`
+    —— 然后将该结果转换为不相关类型：
+- en: '[PRE23]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '`as unknown as...` double type assertions are dangerous and almost always a
+    sign of something incorrect in the types of the surrounding code. Using them as
+    an escape hatch from the type system means the type system may not be able to
+    save you when changes to surrounding code would cause an issue with previously
+    working code. I teach double type assertions only as a precautionary tale to help
+    explain the type system, not to encourage their use.'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`as unknown as...`双重类型断言是危险的，并且几乎总是代码类型错误的标志。在代码周围使用它们作为逃逸舱从类型系统中，意味着当周围代码发生变化导致先前工作的代码出现问题时，类型系统可能无法帮助您。我只是将双重类型断言作为一个警示故事来帮助解释类型系统，并不鼓励它们的使用。'
+- en: Const Assertions
+  id: totrans-108
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Const 断言
+- en: Back in [Chapter 4, “Objects”](ch04.xhtml#objects), I introduced an `as const`
+    syntax for changing a mutable array type to a read-only tuple type and promised
+    to use it more later in the book. That time is now!
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到[第4章，“对象”](ch04.xhtml#objects)，我介绍了一个`as const`语法，用于将可变数组类型更改为只读元组类型，并承诺在书中的其他地方更多地使用它。
+    现在是时候了！
+- en: 'Const assertions can generally be used to indicate that any value—array, primitive,
+    value, you name it—should be treated as the constant, immutable version of itself.
+    Specifically, `as const` applies the following three rules to whatever type it
+    receives:'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Const 断言通常可用于指示任何值 —— 数组、基本类型、值，你怎么称呼它 —— 应被视为不可变版本的常量。 具体来说，`as const`将以下三条规则应用于接收到的任何类型：
+- en: Arrays are treated as `readonly` tuples, not mutable arrays.
+  id: totrans-111
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数组被视为`readonly`元组，而不是可变数组。
+- en: Literals are treated as literals, not their general primitive equivalents.
+  id: totrans-112
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 字面量被视为字面量，而不是它们的一般基本类型的等价物。
+- en: Properties on objects are considered `readonly`.
+  id: totrans-113
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对象上的属性被视为`readonly`。
+- en: 'You’ve already seen arrays become tuples, as with this array being asserted
+    as a tuple:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您已经看到数组变为元组，如将此数组断言为元组：
+- en: '[PRE24]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Let’s dig into the other two changes `as const` produces.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们深入了解`as const`产生的另外两个变化。
+- en: Literals to Primitives
+  id: totrans-117
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 字面量到基本类型
+- en: It can be useful for the type system to understand a literal value to be that
+    specific literal, rather than widening it to its general primitive.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让类型系统理解字面值为特定的字面量值，而不是扩展为其一般的基本类型，可能会很有用。
+- en: 'For example, similar to functions that return tuples, it might be useful for
+    a function to be known to produce a specific literal instead of a general primitive.
+    These functions also return values that can be made more specific—here, `getNameConst`’s
+    return type is the more specific `"Maria Bamford"` instead of the general `string`:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，类似于返回元组的函数，一个函数可能会返回一个特定的字面值，而不是一般的基本类型。 这些函数还返回可以更为具体的值 —— 在这里，`getNameConst`的返回类型是更具体的`"Maria
+    Bamford"`，而不是一般的`string`：
+- en: '[PRE25]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'It may also be useful to have specific fields on a value be more specific literals.
+    Many popular libraries ask that a discriminant field on a value be a specific
+    literal so the types of their code can more specifically make inferences on the
+    value. Here, the `narrowJoke` variable has a `style` of type `"one-liner"` instead
+    of `string`, so it can be provided in a location that needs type `Joke`:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在值上具体字段可能也是有用的。许多流行的库要求值上的判别字段是特定的文字，以便它们的代码类型可以更具体地推断值。在这里，`narrowJoke`变量具有类型`"one-liner"`的`style`，而不是`string`类型，因此它可以在需要`Joke`类型的位置提供：
+- en: '[PRE26]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Read-Only Objects
+  id: totrans-123
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 只读对象
+- en: Object literals such as those used as the initial value of a variable generally
+    widen the types of properties the same way the initial values of `let` variables
+    widen. String values such as `'apple'` become primitives such as `string`, arrays
+    are typed as arrays instead of tuples, and so on. This can be inconvenient when
+    some or all of those values are meant to later be used in a place that requires
+    their specific literal type.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象文字，例如用作变量初始值的值通常会扩展属性的类型，就像`let`变量的初始值扩展一样。例如，字符串值如`'apple'`会变成基本类型`string`，数组被类型化为数组而不是元组，等等。当这些值中的一些或全部后来被用于需要其特定文字类型的地方时，这可能会不方便。
+- en: Asserting a value literal with `as const`, however, switches the inferred type
+    to be as specific as possible. All member properties become `readonly`, literals
+    are considered their own literal type instead of their general primitive type,
+    arrays become read-only tuples, and so on. In other words, applying a const assertion
+    to a value literal makes that value literal immutable and recursively applies
+    the same const assertion logic to all its members.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`as const`断言一个值的文字，然而，将推断类型转换为尽可能具体。所有成员属性变为`readonly`，文字被视为其自身的文字类型而不是它们的一般基本类型，数组变为只读元组，依此类推。换句话说，对值的文字应用const断言使得该值不可变，并递归地将相同的const断言逻辑应用于其所有成员。
+- en: 'As an example, the `preferencesMutable` value that follows is declared without
+    an `as const`, so its names are the primitive type `string` and it’s allowed to
+    be modified. `favoritesConst`, however, is declared with an `as const`, so its
+    member values are literals and not allowed to be modified:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，后续的`preferencesMutable`值是在没有`as const`声明的情况下声明的，因此其名称是原始类型`string`，并且允许修改。然而，`favoritesConst`使用`as
+    const`声明，因此其成员值是文字类型而不允许修改：
+- en: '[PRE27]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Summary
+  id: totrans-128
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 概要
+- en: 'In this chapter, you used type modifiers to take existing objects and/or types
+    and turn them into new types:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您使用类型修饰符将现有对象和/或类型转换为新类型：
+- en: 'Top types: the highly permissive `any` and the highly restrictive `unknown`'
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 顶级类型：高度宽容的`any`和高度限制的`unknown`
+- en: 'Type operators: using `keyof` to grab the keys of a type and/or `typeof` to
+    grab the type of a value'
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 类型操作符：使用`keyof`来获取类型的键和/或`typeof`来获取值的类型
+- en: Using—and when not to use—type assertions to sneakily change the type of a value
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用和不使用类型断言来偷偷地改变值的类型
+- en: Narrowing types using `as const` assertions
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`as const`断言来缩小类型
+- en: Tip
+  id: totrans-134
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Tip
+- en: Now that you’ve finished reading this chapter, practice what you’ve learned
+    on [*https://learningtypescript.com/type-modifiers*](https://learningtypescript.com/type-modifiers).
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经完成了本章的阅读，请在[*https://learningtypescript.com/type-modifiers*](https://learningtypescript.com/type-modifiers)上练习所学内容。
+- en: Why was the literal type being stubborn?
+  id: totrans-136
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 为什么文字类型如此固执呢？
+- en: ''
+  id: totrans-137
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: It had a narrow mind.
+  id: totrans-138
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 它思想狭隘。

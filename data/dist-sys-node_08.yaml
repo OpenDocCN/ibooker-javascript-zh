@@ -1,0 +1,2294 @@
+- en: Chapter 7\. Container Orchestration
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 7 章\. 容器编排
+- en: 'Throughout this book, you ran many different Docker containers on your development
+    machine. Each time that you ran them, you did so using the same mechanism: manually
+    running `docker` commands in your terminal. Of course, this is fine for doing
+    local development, and perhaps it can be used to run a single service instance
+    in production, but when it comes to running an entire fleet of services, this
+    approach is going to get rough.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，您在开发机器上运行了许多不同的 Docker 容器。每次运行它们时，您都是通过相同的机制进行的：在终端中手动运行 `docker` 命令。当然，这对于本地开发来说没问题，也许可以用来在生产中运行单个服务实例，但当涉及到运行整个服务群时，这种方法将变得困难。
+- en: 'This is where a *container orchestration* tool comes into play. Loosely put,
+    a container orchestration tool manages the lifetimes of many ephemeral containers.
+    Such a tool has many unique responsibilities and must take into consideration
+    situations like the following:'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 *容器编排* 工具发挥作用的地方。粗略地说，容器编排工具管理许多短暂容器的生命周期。这样的工具有许多独特的职责，并且必须考虑以下情况：
+- en: Containers need to scale up and down as load increases and decreases.
+  id: totrans-3
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 随着负载的增减，容器需要进行伸缩。
+- en: New containers are occasionally added as additional services are created.
+  id: totrans-4
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 随着新服务的创建，偶尔会添加新的容器。
+- en: New versions of containers need to be deployed to replace old versions.
+  id: totrans-5
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 需要部署新版本的容器以替换旧版本。
+- en: A single machine may not handle all the containers required by an organization.
+  id: totrans-6
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 单一的机器可能无法处理组织需要的所有容器。
+- en: Like-containers should be spread across multiple machines for redundancy.
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 相似的容器应该在多台机器上进行分布，以提高冗余性。
+- en: Containers should be able to communicate with one another.
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 容器应该能够彼此通信。
+- en: Incoming requests for like-containers should be load balanced.
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 相似容器的传入请求应该进行负载均衡。
+- en: If a container is deemed unhealthy, it should be replaced by a healthy one.
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果一个容器被视为不健康，应该将其替换为健康的容器。
+- en: Container orchestration works great with stateless services, like a typical
+    Node.js service where instances can be destroyed or re-created without having
+    many side effects. Stateful services, like databases, require a little more care
+    to run in a container orchestration tool since there are concerns like persisting
+    storage across deploys or resharding data as instances come and go. Many organizations
+    choose to only run application code within a container orchestrator and to rely
+    on a dedicated machine to run their databases.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容器编排工作在无状态服务中非常有效，比如典型的 Node.js 服务，其中实例可以在没有太多副作用的情况下被销毁或重新创建。而像数据库这样的有状态服务，在容器编排工具中运行则需要更多的关注，因为涉及到诸如跨部署持久化存储或重新分片数据等问题。许多组织选择仅在容器编排器中运行应用代码，并依赖于专用机器来运行它们的数据库。
+- en: In this chapter, you’ll only deploy stateless application code to a container
+    orchestration tool. There are a few different tools available, but it seems one
+    of them has surpassed the others in popularity.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您只会将无状态应用代码部署到容器编排工具中。虽然有几种不同的工具可供选择，但似乎其中一种已经超过了其他工具，成为了最受欢迎的。
+- en: Introduction to Kubernetes
+  id: totrans-13
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Kubernetes 简介
+- en: '*Kubernetes* is an open source container orchestration tool created by Google.
+    Each major cloud PaaS has a way of exposing or otherwise emulating Kubernetes
+    for its customers. Even the Docker company appears to have embraced Kubernetes
+    by packaging it into their Docker Desktop products.'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Kubernetes* 是由 Google 创建的开源容器编排工具。每个主要的云平台即服务都有一种方式来暴露或模拟 Kubernetes 给它们的客户使用。甚至
+    Docker 公司也似乎已经将 Kubernetes 集成到了他们的 Docker Desktop 产品中。'
+- en: Kubernetes Overview
+  id: totrans-15
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Kubernetes 概述
+- en: Kubernetes is a very powerful tool, one that requires many moving parts in order
+    to function. [Figure 7-1](#fig_kubernetes_overview) is a high-level overview of
+    some of the concepts that make up Kubernetes.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubernetes 是一个非常强大的工具，为了正常运行，它需要许多组成部分。[图 7-1](#fig_kubernetes_overview) 是 Kubernetes
+    架构的高层概述。
+- en: '![The Kubernetes Master controls individual Kubernetes Nodes. Nodes have the
+    Docker Daemon and Kubelet Daemons installed. Each Node can have multiple Pods
+    on it. Pods run one or multiple Containers and may contain Volumes.](assets/dsnj_0701.png)'
+  id: totrans-17
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Kubernetes 主控制节点上的 Kubernetes 节点。节点上安装有 Docker 守护程序和 Kubelet 守护程序。每个节点可以有多个
+    Pod。Pod 运行一个或多个容器，可能包含卷。](assets/dsnj_0701.png)'
+- en: Figure 7-1\. Overview of a Kubernetes cluster
+  id: totrans-18
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. Kubernetes 集群概述
+- en: 'Each of the components in this diagram has a hierarchical relationship and
+    can be spread across multiple machines. Here’s an explanation of the different
+    components and how they relate to one another:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此图表中的每个组件都有层次关系，并且可以分布在多台机器上。以下是各组件的解释及其相互关系：
+- en: Container
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容器
+- en: As you might have guessed, a container in Kubernetes is equivalent to the containers
+    you’ve been working with so far. They are an isolated environment that encapsulates
+    and runs an application. Kubernetes works with a few different container formats
+    such as Docker and rkt.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您可能已经猜到的那样，Kubernetes 中的容器相当于您迄今为止使用的容器。它们是一个隔离的环境，用于封装和运行一个应用程序。Kubernetes
+    使用几种不同的容器格式，如 Docker 和 rkt。
+- en: Volume
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 卷
+- en: A volume in Kubernetes is pretty much equivalent to a Docker volume. It provides
+    a way to mount a filesystem in a semipermanent way outside of a container. Volumes
+    won’t be covered in this chapter since a typical stateless Node.js service shouldn’t
+    require a persistent volume. That said, they are certainly useful in a variety
+    of situations.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubernetes 中的卷与 Docker 卷几乎是等价的。它提供了一种在容器之外以半永久方式挂载文件系统的方法。本章不会涵盖卷，因为典型的无状态 Node.js
+    服务不应需要持久性卷。尽管如此，在各种情况下，它们确实非常有用。
+- en: Pod
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pod
+- en: A pod represents an application instance. Typically a pod will only contain
+    a single container, though it is possible to have multiple containers in one pod.
+    A pod can also contain any volumes required by the pod’s containers. Each pod
+    has its own IP address, and if multiple containers exist in the same pod, they’ll
+    each share an address. A pod is the smallest unit that the Kubernetes API allows
+    you to interact with.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Pod 代表一个应用程序实例。通常一个 pod 只包含一个容器，尽管一个 pod 中可能有多个容器。一个 pod 还可以包含 pod 容器所需的任何卷。每个
+    pod 都有自己的 IP 地址，如果同一 pod 中存在多个容器，则它们将共享一个地址。Pod 是 Kubernetes API 允许您与之交互的最小单位。
+- en: Node
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 节点
+- en: A node is a worker machine—be it physical or virtual—that is part of the overall
+    Kubernetes cluster. Each node needs to have a container daemon (such as Docker),
+    the Kubernetes daemon (called *Kubelet*), and a network proxy (*Kube Proxy*) running
+    on the machine. Different nodes may have different memory and CPU available, just
+    as different pods might have different memory and CPU requirements.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 节点是整体 Kubernetes 集群中的工作机器，可以是物理的或虚拟的。每个节点都需要在机器上运行一个容器守护程序（如 Docker）、一个 Kubernetes
+    守护程序（称为 *Kubelet*）和一个网络代理（*Kube Proxy*）。不同的节点可能具有不同的内存和 CPU 可用性，就像不同的 pod 可能具有不同的内存和
+    CPU 要求一样。
+- en: Master
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主节点
+- en: The master represents a set of services that are run on a master node. The master
+    exposes an API, which is what outside clients communicate with, such as the `kubectl`
+    command you’ll use throughout this chapter. The master delegates commands to the
+    Kubelet processes running on individual nodes.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 主节点代表在主节点上运行的一组服务。主节点公开一个 API，外部客户端如您在本章中将使用的 `kubectl` 命令与之通信。主节点将命令委派给运行在各个节点上的
+    Kubelet 进程。
+- en: Cluster
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集群
+- en: A cluster represents the overall collection of the master and its various associated
+    nodes. It’s technically possible to use a single cluster for different environments
+    like staging and production by designating which pods belong to which environment.
+    That said, it’s usually safer to maintain multiple clusters to prevent accidental
+    cross-communication, especially if you ever plan on testing a cluster outside
+    of production.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集群代表主节点及其各个关联节点的整体集合。通过指定哪些 pod 属于哪个环境，技术上可以使用单个集群来支持不同的环境，如演示和生产环境。然而，通常更安全的做法是维护多个集群，以防止意外的跨环境通信，特别是在计划在生产环境之外测试集群时。
+- en: Kubernetes Concepts
+  id: totrans-32
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Kubernetes 概念
+- en: When you interact with Kubernetes, you do so by declaring the desired state
+    of the cluster. For example, you can tell it that you want 10 instances of the
+    *recipe-api* service at version *0.0.3* to be running. You do not instruct the
+    cluster how to achieve that state. For example, you don’t tell it to increase
+    the current instance count of six by adding four entries. It’s ultimately up to
+    Kubernetes to decide how to reach the desired state. It’s also up to Kubernetes
+    to decide how long until that state is reached.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您与 Kubernetes 交互时，您是通过声明集群的期望状态来进行的。例如，您可以告诉它您希望运行版本为 *0.0.3* 的 *recipe-api*
+    服务的 10 个实例。您不需要告诉集群如何实现该状态。例如，您不需要告诉它通过添加四个条目来增加当前的六个实例数。最终是由 Kubernetes 决定如何达到所需的状态。同样，由
+    Kubernetes 决定达到该状态需要多长时间。
+- en: 'There are many additional concepts—beyond that of architecture—that you must
+    understand before you can fluently run your applications on Kubernetes. The Kubernetes
+    API exposes various resources in the cluster as objects. For example, when you
+    deploy (verb) an application, you’re creating a deployment (noun). Here is a high-level
+    list of the most important resources that you’ll work with throughout the rest
+    of the chapter:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在能够流畅地在 Kubernetes 上运行应用程序之前，您必须了解架构之外的许多其他概念。Kubernetes API 将群集中的各种资源公开为对象。例如，当您部署（动词）一个应用程序时，您正在创建一个部署（名词）。以下是在本章的其余部分中将要使用的最重要资源的高级列表：
+- en: Scheduling
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调度
+- en: Scheduling is the process by which Kubernetes determines the best node to assign
+    newly created pods to. The default scheduler used in Kubernetes is called `kube-scheduler`.
+    Upon encountering a newly created pod, the scheduler examines available nodes.
+    It considers the free CPU and memory of the node, as well as the CPU and memory
+    requirements of the pod (if specified). A compatible node is then chosen to host
+    the pod. If no nodes have capacity for the pod, then it can remain in a *scheduled*
+    state where it waits for a node to become available.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调度是 Kubernetes 确定为新创建的 pod 分配最佳节点的过程。Kubernetes 默认使用的调度器称为 `kube-scheduler`。在遇到新创建的
+    pod 时，调度器会检查可用节点。它考虑节点的空闲 CPU 和内存，以及 pod 的 CPU 和内存需求（如果指定）。然后选择一个兼容的节点来托管该 pod。如果没有节点有能力托管该
+    pod，则它可以保持 *scheduled* 状态，等待节点变为可用。
+- en: Namespaces
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间
+- en: A namespace is a Kubernetes mechanism for logically dividing a cluster into
+    smaller, semi-isolated collections. By default, there are `default`, `kube-system`,
+    and `kube-public` namespaces created. Later, when you run a dashboard, an additional
+    `kubernetes-dashboard` namespace is created. These can be used for environment
+    namespaces like `staging` and `production`. In this chapter you’ll deploy applications
+    to the `default` namespace.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间是 Kubernetes 用于逻辑上将集群划分为更小、半隔离集合的机制。默认情况下，创建了 `default`、`kube-system` 和
+    `kube-public` 命名空间。稍后，当您运行仪表板时，将创建一个额外的 `kubernetes-dashboard` 命名空间。这些可以用于像 `staging`
+    和 `production` 这样的环境命名空间。在本章中，您将应用部署到 `default` 命名空间。
+- en: Labels
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标签
+- en: Labels are key/value pairs that are assigned to various resources, such as pods
+    or nodes. They don’t need to be unique, and multiple labels can be assigned to
+    an object. For example, a Node.js application could have the labels `platform:node`
+    and `platform-version:v14`. A node might use labels like `machine:physical` or
+    `kernel:3.16`. The `app` label is how you’ll differentiate an instance of *web-api*
+    from *recipe-api*.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标签是分配给各种资源（如 pod 或节点）的键/值对。它们不需要唯一，并且可以为一个对象分配多个标签。例如，Node.js 应用程序可以具有 `platform:node`
+    和 `platform-version:v14` 等标签。节点可能使用像 `machine:physical` 或 `kernel:3.16` 这样的标签。`app`
+    标签是您区分 *web-api* 实例和 *recipe-api* 实例的方式。
+- en: Selectors
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择器
+- en: Selectors declare the requirements of a pod. For example, a particular pod might
+    have the requirement that it run on a physical machine instead of a virtual machine
+    since it needs to perform some extremely time-sensitive work. In this case, the
+    selector might be `machine:physical`.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择器声明了 pod 的需求。例如，某个 pod 可能需要在物理机上运行而不是虚拟机，因为它需要执行一些极其时间敏感的工作。在这种情况下，选择器可能是
+    `machine:physical`。
+- en: Stateful sets
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有状态副本集
+- en: Kubernetes does work with stateful services, and stateful sets are intended
+    to make this process convenient. They provide features often required by stateful
+    services, such as consistent host names and persistent storage. The Node.js apps
+    you’ll deploy in this chapter won’t use stateful sets.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubernetes 可以处理有状态服务，并且有状态副本集旨在使此过程更方便。它们提供了有状态服务经常需要的特性，如一致的主机名和持久存储。在本章中，您将部署的
+    Node.js 应用程序不会使用有状态副本集。
+- en: Replica sets
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 副本集
+- en: A replica set maintains a list of pods, creating new ones or deleting existing
+    ones until the desired number of replicas has been met. It uses a selector to
+    figure out which pods to manage.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 副本集维护一个 pod 列表，创建新的 pod 或删除现有的 pod，直到达到所需的副本数。它使用选择器来确定要管理哪些 pod。
+- en: Deployments
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部署
+- en: A deployment manages a replica set. It can deploy new versions of an application,
+    scale the number of instances, or even roll back to a previous version of an application.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部署管理副本集。它可以部署应用程序的新版本，扩展实例数量，甚至回滚到应用程序的先前版本。
+- en: Controllers
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制器
+- en: Controllers tell Kubernetes how to change from one state to another. Replica
+    sets, deployments, stateful sets, and cron jobs are each examples of a controller.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 控制器告诉Kubernetes如何从一种状态转换到另一种状态。副本集、部署、有状态副本集和定时任务都是控制器的示例。
+- en: Service
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务
+- en: A service is a resource that exposes a set of pods to the network. It’s a lot
+    like a reverse proxy, but instead of targeting a hostname and port, a service
+    uses a selector to target pods. A Kubernetes service isn’t the same concept as
+    the “service” used throughout this book to refer to a running process on a network.
+    In this chapter, those will be referred to as applications.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务是将一组pod暴露给网络的资源。它很像一个反向代理，但不是针对主机名和端口，而是使用选择器来定位pod。Kubernetes的服务与本书中用于指代网络上运行进程的“服务”概念不同。在本章中，这些将被称为应用程序。
+- en: Ingress
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 入口
+- en: An ingress resource manages external network access to a service within a Kubernetes
+    cluster.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: An ingress resource manages external network access to a service within a Kubernetes
+    cluster.
+- en: Probe
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 探针
+- en: A probe is a lot like the HAProxy health check that you worked with before.
+    It can be used to tell if a pod is healthy and if it’s ready to receive traffic
+    after being started.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 探针类似于您之前使用过的HAProxy健康检查。它可用于判断pod是否健康以及在启动后是否准备好接收流量。
+- en: As you can see, Kubernetes is an extremely powerful and malleable tool for deploying
+    application containers. Kubernetes supports many primitives out of the box. There
+    are often many ways to do the same thing in Kubernetes. For example, different
+    environments can be simulated using either namespaces or labels. An application
+    can be deployed using one or more replica sets. Many complex and opinionated patterns
+    can be adopted for deploying to Kubernetes, yet only a subset of these features
+    are required to get a distributed application running in production.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您所见，Kubernetes是一个极其强大且可塑性强的部署应用程序容器的工具。Kubernetes支持许多原语。在Kubernetes中，通常有多种方法可以实现同一目标。例如，可以使用命名空间或标签来模拟不同的环境。一个应用程序可以使用一个或多个副本集来部署。在部署到Kubernetes时可以采用许多复杂且持有意见的模式，但仅需要这些特性的子集即可在生产环境中运行分布式应用程序。
+- en: This list contains the most important concepts for an application developer
+    to worry about. That said, it doesn’t even include everything required to get
+    Kubernetes running in a high-throughput production environment! For example, Kubernetes
+    also depends on the Etcd service. Instead of configuring several complex services
+    to get Kubernetes running locally, you’ll instead depend on the much simpler *Minikube*.
+    Minikube sacrifices some features, like the ability to run multiple nodes, but
+    simplifies other things, like not having to configure Etcd and combining the master
+    node with a worker node.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此列表包含应用程序开发人员需要关注的最重要概念。尽管如此，它甚至不包括在高吞吐量生产环境中运行Kubernetes所需的一切！例如，Kubernetes还依赖于Etcd服务。与配置多个复杂服务以在本地运行Kubernetes相反，您将依赖于更简单的*Minikube*。Minikube牺牲了一些功能，如运行多个节点的能力，但简化了其他事务，如不必配置Etcd并将主节点与工作节点合并。
+- en: Starting Kubernetes
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 启动Kubernetes
+- en: 'To continue on with this chapter, you’ll need to have Minikube and Kubectl
+    installed on your development machine. Check out [Appendix C](app03.html#appendix_install_kubernetes)
+    for details on how to install them. Run the following commands in your terminal
+    once you’re done to confirm they’re installed:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要继续本章，您需要在开发机上安装Minikube和Kubectl。有关安装详情，请参阅附录C。完成安装后，请在终端中运行以下命令以确认它们已安装：
+- en: '[PRE0]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Now that you have a version of Kubernetes running on your development machine,
+    you’re ready to start interacting with it.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您在开发机上运行了一个版本的Kubernetes，可以开始与其进行交互了。
+- en: Getting Started
+  id: totrans-63
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 入门
+- en: 'Now that you have Minikube installed, you’re ready to run it. Execute the following
+    command:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经安装了Minikube，可以开始运行它了。执行以下命令：
+- en: '[PRE1]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: This command might take a minute to finish. In the background, it’s downloading
+    necessary containers and starting the Minikube service. It actually runs a Docker
+    container dedicated to Minikube within your already-running Docker daemon.^([1](ch07.html#idm46291182288360))
+    You can see this happening by running the `**docker ps**` command, though you
+    might not get any results back if running Minikube on macOS.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令可能需要一分钟才能完成。在后台，它正在下载必要的容器并启动Minikube服务。它实际上在已运行的Docker守护程序中运行一个专用于Minikube的Docker容器。^([1](ch07.html#idm46291182288360))
+    您可以通过运行`**docker ps**`命令来查看这个过程，尽管在macOS上运行Minikube时可能不会得到任何结果。
+- en: In my case, I get the output shown in [Table 7-1](#table_minikube_docker_ps).
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我得到了 [Table 7-1](#table_minikube_docker_ps) 中显示的输出。
+- en: Table 7-1\. Minikube running inside Docker
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7-1\. Minikube 在 Docker 中运行
+- en: '| Container ID | `245e83886d65` |'
+  id: totrans-69
+  prefs: []
+  type: TYPE_TB
+  zh: '| 容器 ID | `245e83886d65` |'
+- en: '| Image | `gcr.io/k8s-minikube/kicbase:v0.0.8` |'
+  id: totrans-70
+  prefs: []
+  type: TYPE_TB
+  zh: '| 镜像 | `gcr.io/k8s-minikube/kicbase:v0.0.8` |'
+- en: '| Command | `"/usr/local/bin/entr…"` |'
+  id: totrans-71
+  prefs: []
+  type: TYPE_TB
+  zh: '| 命令 | `"/usr/local/bin/entr…"` |'
+- en: '| Ports | `127.0.0.1:32776->22/tcp, 127.0.0.1:32775->2376/tcp, 127.0.0.1:32774->8443/tcp`
+    |'
+  id: totrans-72
+  prefs: []
+  type: TYPE_TB
+  zh: '| 端口 | `127.0.0.1:32776->22/tcp, 127.0.0.1:32775->2376/tcp, 127.0.0.1:32774->8443/tcp`
+    |'
+- en: '| Names | `minikube` |'
+  id: totrans-73
+  prefs: []
+  type: TYPE_TB
+  zh: '| 名称 | `minikube` |'
+- en: 'Next, it’s time to take a look at some of the architecture used by Kubernetes.
+    Run the following command to get a list of the nodes that currently make up your
+    Kubernetes cluster:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，是时候看一看 Kubernetes 使用的一些架构了。运行以下命令获取当前组成你的 Kubernetes 集群的节点列表：
+- en: '[PRE2]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'In my case, I get the message “no resources found in default namespace,” and
+    you should get the same thing. This is because no pods are currently running in
+    the *default* namespace of the cluster. Kubectl uses the *default* namespace by
+    default. That said, there are several pods already running in the cluster. These
+    are pods required by Minikube itself. To see them, run the following slightly
+    modified command:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我得到了“在默认命名空间中找不到资源”的消息，你也应该得到相同的结果。这是因为集群的 *default* 命名空间中目前没有正在运行的 Pod。kubectl
+    默认使用 *default* 命名空间。尽管如此，Minikube 本身已经有几个正在运行的 Pod。要查看它们，请运行以下稍作修改的命令：
+- en: '[PRE3]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'In my case, I get nine entries, including the following:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我得到了九个条目，包括以下内容：
+- en: '[PRE4]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: You should get similar results, though the names and age and restart count will
+    most likely be different.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该获得类似的结果，尽管名称、年龄和重启计数可能会有所不同。
+- en: 'Next, recall that another important feature of Kubernetes is the nodes, which
+    represent the machines that ultimately run pods. Also recall that Minikube is
+    a convenient way to run Kubernetes locally on a single node. Run the following
+    command to get a list of nodes in your Kubernetes cluster:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，请记住 Kubernetes 的另一个重要特性是节点，这些节点代表最终运行 Pod 的机器。还要记住，Minikube 是在单节点上本地运行 Kubernetes
+    的便捷方式。运行以下命令获取你的 Kubernetes 集群中节点的列表：
+- en: '[PRE5]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'In my case, I get the following results:'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我得到了以下结果：
+- en: '[PRE6]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Here, a single node named *minikube* is present. Again, your results should
+    be very similar.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个名为 *minikube* 的单节点。再次强调，你的结果应该非常相似。
+- en: Minikube comes with its own Docker daemon. This can make it a little confusing
+    when working with containers on your local machine. For example, when you previously
+    ran `docker ps`, you saw that a single new Docker container was started for your
+    Minikube installation. You’ve also got a bunch of images in your local Docker
+    daemon left over from the other chapters. However, there are other docker containers
+    running inside of the Docker daemon that comes with Minikube, and it has its own
+    isolated collection of images.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Minikube 自带自己的 Docker 守护程序。这在与本地机器上的容器工作时可能会有些混淆。例如，当你之前运行 `docker ps` 时，你看到为你的
+    Minikube 安装启动了一个新的 Docker 容器。你的本地 Docker 守护程序中还有一堆来自其他章节的镜像。但是，在与 Minikube 自带的
+    Docker 守护程序中运行的 Docker 容器中，有一些自己隔离的镜像集合。
+- en: Minikube does come with a convenient tool to configure your `docker` CLI to
+    switch to using the Minikube docker service. This tool works by exporting some
+    environment variables that the `docker` CLI makes use of.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Minikube 提供了一个方便的工具，用于配置你的 `docker` CLI 切换到使用 Minikube 的 Docker 服务。这个工具通过导出一些环境变量来实现。`docker`
+    CLI 利用这些环境变量。
+- en: 'If you’re curious to see what these environment variables actually look like,
+    run the command `**minikube -p minikube docker-env**`. In my case, I get the following
+    output:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想看看这些环境变量的实际内容是什么样的，运行命令 `**minikube -p minikube docker-env**`。在我的情况下，我得到了以下输出：
+- en: '[PRE7]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'You should get slightly different values but with the same environment variable
+    names. Now, to actually apply these changes to your current shell session, run
+    the following command to execute the export statements:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该得到略有不同但使用相同环境变量名称的值。现在，要实际应用这些更改到你当前的 Shell 会话中，请运行以下命令执行导出语句：
+- en: '[PRE8]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Your `docker` CLI is now configured to use Minikube! Just keep in mind that
+    any time you switch to a new terminal shell, you’ll revert back to using your
+    system Docker daemon.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你的 `docker` CLI 已经配置为使用 Minikube 了！只需记住，每当你切换到新的终端 Shell 时，你将会回到使用系统的 Docker
+    守护程序。
+- en: To prove that your `docker` CLI is now communicating with a different daemon,
+    run the commands `**docker ps**` and `**docker images**`. In the output, you should
+    see a whole bunch of *k8s* containers and images listed. Also, note that you shouldn’t
+    see any of the previous containers or images you’ve worked with in this book (if
+    you temporarily switch to a new terminal window and run those two commands again,
+    you’ll see your previous containers and images).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要证明您的`docker` CLI现在正在与不同的守护程序通信，请运行命令`**docker ps**`和`**docker images**`。在输出中，您应该看到列出的许多*k8s*容器和镜像。还要注意，您不应看到本书中您之前使用的任何旧容器或镜像（如果您暂时切换到新的终端窗口并再次运行这两个命令，您将看到您之前的容器和镜像）。
+- en: Finally, even though you and I both love to work in the terminal, sometimes
+    it takes a GUI to allow one to fully appreciate the complexity of a particular
+    system. Minikube does come with such a graphical dashboard. It allows you to interact
+    with the Kubernetes API using a browser. It also makes browsing the different
+    types of resources a breeze and allows you to administer the cluster.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，尽管您和我都喜欢在终端中工作，有时候需要 GUI 来充分欣赏特定系统的复杂性。Minikube确实配备了这样一个图形仪表板。它允许您使用浏览器与Kubernetes
+    API交互。它还使浏览不同类型资源成为一件轻而易举的事，并允许您管理集群。
+- en: 'Run the following command in a spare terminal window to launch the dashboard:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在一个空闲的终端窗口中运行以下命令来启动仪表板：
+- en: '[PRE9]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: This command might take a minute to run. In the background it creates a new
+    Kubernetes namespace called *kubernetes-dashboard* and launches a few pods in
+    it. Once the command is complete, it will both attempt to open a web browser to
+    the dashboard and print out a URL to the dashboard. Copy the URL and visit it
+    manually if your browser doesn’t automatically open. [Figure 7-2](#fig_kubernetes_dashboard_overview)
+    is a screenshot of the overview dashboard screen.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个命令可能需要一分钟才能运行。在后台，它创建一个名为*kubernetes-dashboard*的新Kubernetes命名空间，并在其中启动一些Pod。一旦命令完成，它将尝试打开仪表板的Web浏览器，并打印出仪表板的URL。如果您的浏览器没有自动打开，请手动复制URL并访问。[图7-2](#fig_kubernetes_dashboard_overview)是概述仪表板屏幕的屏幕截图。
+- en: '![The Kubernetes Dashboard Overview, listing Services and Secrets](assets/dsnj_0702.png)'
+  id: totrans-98
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Kubernetes 仪表板概述，列出服务和机密信息](assets/dsnj_0702.png)'
+- en: Figure 7-2\. Kubernetes dashboard overview
+  id: totrans-99
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图7-2\. Kubernetes 仪表板概述
+- en: 'Now is a good time to click around the interface and get familiar with the
+    different screens. The sidebar is split into these different sections:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是一个熟悉不同屏幕的界面并适应它的好时机。侧边栏分为以下不同部分：
+- en: Cluster
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集群
+- en: The cluster section lists attributes that affect the entire cluster globally,
+    regardless of the selected namespace. This includes the list of nodes available
+    in the cluster. Click the Nodes entry in the sidebar to see a list of nodes. In
+    this case, you should just see the *minikube* node listed like when you ran the
+    `kubectl get nodes` command.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 集群部分列出影响整个集群的全局属性，无论选择的命名空间如何。这包括集群中可用节点的列表。点击侧边栏中的Nodes条目以查看节点列表。在这种情况下，您应该只看到*minikube*节点列出，就像您运行`kubectl
+    get nodes`命令时一样。
+- en: Namespace
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间
+- en: The namespace drop-down menu allows you to select which namespace the dashboard
+    is viewing. Currently it is set to *default*. This is the namespace you’ll work
+    with the most in this chapter. For now, select the *kube-system* entry. This will
+    let you see some actual entries in the dashboard.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下拉菜单命名空间允许您选择仪表板所查看的命名空间。当前设置为*default*。这是本章中您将最多使用的命名空间。现在，请选择*kube-system*条目。这将允许您在仪表板中看到一些实际条目。
+- en: Overview
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 概述
+- en: The overview is the screen that you first saw when you opened the dashboard.
+    Click it again now that you’re in the *kube-system* namespace. This screen contains
+    a list of interesting entries in the namespace, as well as graphs about the health
+    of those entries. On this screen, you should see four green circles (which are
+    health pie charts) displaying stats on Daemon Sets, Deployments, Pods, and Replica
+    Sets. Scroll down further on this screen and you will see individual entries making
+    up each category. The overview screen only shows categories that contain resources,
+    which is why when you first visited this screen in the *default* namespace it
+    was so empty.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 概述是您在打开仪表板时首次看到的屏幕。现在，点击它，因为您位于*kube-system*命名空间中。此屏幕包含命名空间中有趣条目的列表，以及关于这些条目健康状况的图表。在此屏幕上，您应该看到四个绿色圆圈（即健康饼图），显示有关守护程序集、部署、Pod和副本集的统计数据。在此屏幕上继续向下滚动，您将看到组成每个类别的单个条目。概述屏幕仅显示包含资源的类别，这就是为什么当您首次在*default*命名空间中访问此屏幕时，它会如此空的原因。
+- en: Workloads
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工作负载
+- en: Workloads contains entries for the guts of a Kubernetes cluster. Click the Pods
+    entry in the list. Here you can see a list of the different pods required to run
+    Minikube. In the new list of pods, click the “etcd-minikube” pod. This takes you
+    to a new screen with more information about this specific pod, such as the labels
+    it uses, the IP address, and how many times Kubernetes has restarted it. At the
+    end of the screen, it even gives you details about the container, such as the
+    command it executed when starting the container.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 工作负载包含了Kubernetes集群的核心内容。点击列表中的Pods条目。在这里，您可以看到运行Minikube所需的不同Pods列表。在新的Pods列表中，点击“etcd-minikube”
+    pod。这将带您到一个新屏幕，显示有关这个特定Pod的更多信息，如它使用的标签、IP地址以及Kubernetes重新启动它的次数。在屏幕末尾，它甚至提供有关容器的详细信息，例如启动容器时执行的命令。
+- en: Discovery and load balancing
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发现和负载均衡
+- en: This section contains two entries, Ingresses, and Services. Recall that ingresses
+    allow external requests to be passed to a service and that a service is essentially
+    a reverse proxy for a set of pods. Click the Services entry to view the services
+    required by Minikube. In this case, you should see a single entry called “kube-dns.”
+    Click that entry to view more information about the service, such as the pods
+    associated with it. In this case, there are two separate “coredns-*” pods running.
+    Those two pods are managed by a “coredns-*” replica set.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节包含两个条目，Ingresses和Services。回想一下，Ingresses允许将外部请求传递给服务，而服务本质上是一组Pod的反向代理。点击Services条目查看Minikube所需的服务。在这种情况下，您应该会看到一个名为“kube-dns”的单独条目。点击该条目以查看有关该服务的更多信息，例如与之相关的Pods。在这种情况下，有两个单独的“coredns-*”
+    Pod正在运行。这两个Pod由一个“coredns-*”副本集管理。
+- en: Config and storage
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 配置和存储
+- en: This section contains entries for performing configuration management, storage,
+    and even secrets management. These entries won’t be covered in this chapter, though
+    they’re definitely useful for many organizations.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节包含用于执行配置管理、存储甚至密钥管理的条目。尽管本章不涵盖这些条目，但对许多组织来说，它们肯定是非常有用的。
+- en: Once you’re done poking around the dashboard, change the Namespace drop-down
+    menu back to *default*. In the next section, you will deploy an application of
+    your own, and it will be available in the *default* namespace. You’ll mostly interact
+    with Kubernetes via the terminal for the rest of the chapter, but feel free to
+    open the dashboard if you ever need a visualization of the state of your cluster.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您完成了对仪表板的探索，请将Namespace下拉菜单更改回*默认*。在接下来的部分中，您将部署自己的应用程序，并且它将在*默认*命名空间中可用。本章的其余部分主要通过终端与Kubernetes进行交互，但如果您需要可视化您的集群状态，请随时打开仪表板。
+- en: Deploying an Application
+  id: totrans-114
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 部署应用程序
+- en: You’re now ready to deploy an application to Kubernetes, and the `kubectl` CLI
+    is the only tool that you’ll need to make it happen.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您现在已经准备好将应用程序部署到Kubernetes中了，而`kubectl`命令行界面是您唯一需要的工具。
+- en: This utility can be used in two common ways. The first way is by passing various
+    subcommands to it. For example, the `kubectl get pods` command you’ve been using
+    has a subcommand of `get`, and the object type passed to that subcommand is `pods`.
+    The other way of using this utility is by using the `apply` subcommand and passing
+    in a flag for a configuration file. You’ll get to configuration files shortly,
+    but for now, it’s time to use subcommands.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个实用程序可以通过两种常见的方式来使用。第一种方式是通过向其传递各种子命令来使用它。例如，您一直在使用的`kubectl get pods`命令有一个名为`get`的子命令，以及传递给该子命令的对象类型是`pods`。使用此实用程序的另一种方式是使用`apply`子命令，并传递一个配置文件的标志。您很快就会接触到配置文件，但现在是时候使用子命令了。
+- en: Kubectl Subcommands
+  id: totrans-117
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Kubectl子命令
+- en: For this first deployment, you’ll use a few different `kubectl` subcommands
+    to interact with the Kubernetes API. These commands allow you to interact with
+    Kubernetes without needing to write files to disk. This approach is perhaps akin
+    to running `docker run` commands in your terminal. For this first deployment,
+    you’ll run a generic hello world application to whet your appetite. This application
+    is part of the Kubernetes documentation, but don’t worry, becuase you’ll be deploying
+    real Node.js applications soon enough.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这第一个部署，您将使用几个不同的`kubectl`子命令与Kubernetes API进行交互。这些命令允许您与Kubernetes进行交互，而无需将文件写入磁盘。这种方法可能类似于在终端中运行`docker
+    run`命令。对于这第一个部署，您将运行一个通用的Hello World应用程序来激发您的兴趣。这个应用程序是Kubernetes文档的一部分，但不要担心，因为很快您将会部署真正的Node.js应用程序。
+- en: Recall that the deployment controller is commonly used for deploying applications
+    to Kubernetes. This type of resource is likely the one that you’ll interact with
+    the most as you work with a Kubernetes cluster on a day-to-day basis.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请回忆，部署控制器通常用于将应用程序部署到Kubernetes上。这种类型的资源很可能是您在日常使用Kubernetes集群时最常互动的资源。
+- en: 'To create your very first deployment, run the following commands. Try to run
+    them quickly so that you can view the status of the Kubernetes cluster while the
+    deployment is in progress:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建您的第一个部署，请运行以下命令。尽量快速运行它们，以便您可以在部署正在进行中时查看Kubernetes集群的状态：
+- en: '[PRE10]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: The first command is what creates your deployment. The actual creation of the
+    deployment resource is pretty quick, and the command should exit almost immediately.
+    However, it still needs to do a bunch of background work before it’s truly complete.
+    For example, the *echoserver* image needs to be downloaded and a container needs
+    to be instantiated.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个命令是创建您的部署。部署资源的实际创建非常快，命令几乎会立即退出。然而，在真正完成之前，它仍然需要进行一堆后台工作。例如，需要下载*echoserver*镜像并实例化一个容器。
+- en: 'If you were able to run the subsequent commands quickly enough, you should
+    see the status of the Kubernetes cluster while it’s trying to get things into
+    the desired state. On my machine, I see the following command output:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您能够足够快地运行后续命令，您应该会看到Kubernetes集群在尝试将事物置于所需状态时的状态。在我的机器上，我看到以下命令输出：
+- en: '[PRE11]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: As you can see, the creation of the resources is immediate. In this case, a
+    pod resource named *hello-minikube-6f5579b8bf-rxhfl* was immediately created.
+    However, the actual pod isn’t up and ready yet. The READY column lists the value
+    for that pod as 0/1\. This means that zero of the desired one pods have been created.
+    Note that in this case the deployment “owns” the replica set, and the replica
+    set “owns” the pod. While you technically only requested that a deployment be
+    created when you ran the command, it implicitly creates dependent resources of
+    other types.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，资源的创建是立即完成的。在这种情况下，立即创建了一个名为*hello-minikube-6f5579b8bf-rxhfl*的pod资源。然而，实际的pod尚未启动和准备就绪。READY列列出了该pod的值为0/1。这意味着所需的一个pod都尚未创建。请注意，在这种情况下，部署“拥有”复制集，而复制集“拥有”pod。尽管在运行命令时您技术上只请求创建一个部署，但它隐含地创建了其他类型的依赖资源。
+- en: 'Once a minute or two passes, the cluster will most likely have finished creating
+    the other resources. So, run those three `kubectl get` commands again. When I
+    run those commands a second time, I get these results—though this time I’ve added
+    the `-L app` flag to show the pod’s *app* label:'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一分钟或两分钟后，集群很可能已经完成了其他资源的创建。因此，请再次运行这三个`kubectl get`命令。当我第二次运行这些命令时，我得到了这些结果——尽管这次我已经添加了`-L
+    app`标志以显示pod的*app*标签：
+- en: '[PRE12]'
+  id: totrans-127
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: In this case, enough time has passed that the cluster was able to reach the
+    desired state. The images were downloaded, and containers have been instantiated.
+    Your *hello-minikube* application is now up and running! That said, you can’t
+    easily interact with it. To do that, you first need to create a service.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，已经过了足够的时间，集群能够达到所需的状态。镜像已下载，并已实例化容器。您的*hello-minikube*应用程序现在已经启动运行！尽管如此，您不能轻松地与其交互。要做到这一点，您首先需要创建一个服务。
+- en: 'Recall that a service is like a reverse proxy for containers matching a certain
+    selector. Run the following commands to create a new service and then to list
+    the services:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请回忆，服务就像是与特定选择器匹配的容器的反向代理。运行以下命令来创建一个新服务，然后列出服务：
+- en: '[PRE13]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Here is the list of services available on my machine:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是我机器上可用的服务列表：
+- en: '[PRE14]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: In this case, the `kubernetes` entry is used by the Kubernetes cluster itself.
+    The `hello-minikube` entry is the one that belongs to your *hello-minikube* application.
+    The type of this service is set to *NodePort*, which essentially forwards the
+    specified port on the node machine to the port used by the container within the
+    pod.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`kubernetes`条目被Kubernetes集群本身使用。`hello-minikube`条目是属于您的*hello-minikube*应用程序的条目。此服务的类型设置为*NodePort*，它实质上是将节点机器上指定端口转发到pod内部容器使用的端口。
+- en: The SELECTOR column for this service lists the selectors that are used to target
+    pods. In this case, the selector was implicitly created and it targets pods with
+    an *app* label set to *hello-minikube*. As you saw previously, a label of *app*
+    was implicitly set to *hello-minikube* on the pods when you created the deployment.
+    These are operations provided by Kubectl to make interacting with the API easier.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此服务的SELECTOR列列出用于定位Pod的选择器。在本例中，选择器是隐式创建的，它将目标设置为带有*app*标签设置为*hello-minikube*的Pod。正如您之前看到的，当您创建部署时，Pod的*app*标签被隐式设置为*hello-minikube*。这些是由Kubectl提供的操作，以使与API的交互更轻松。
+- en: 'The service that you created is ready almost immediately. With it created,
+    you’re now ready to send it an HTTP request. But what URL should you request?
+    In this case, you’ll need a bit of help from the `minikube` CLI to get the URL
+    of the *hello-minikube* service. Run the following commands—the first one will
+    display the service’s URL, and the second will make an HTTP request:'
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您创建的服务几乎立即准备就绪。创建完成后，您现在可以向其发送HTTP请求了。但是，应请求哪个URL？在这种情况下，您需要从`minikube` CLI获取*hello-minikube*服务的URL。运行以下命令——第一个将显示服务的URL，第二个将发出HTTP请求：
+- en: '[PRE15]'
+  id: totrans-136
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: In my case, I see that the URL to the service is `http://172.17.0.3:31710`.
+    The *hello-minikube* HTTP service provides a bunch of information when you make
+    the request. Assuming you didn’t receive an error, the request was a success!
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我看到服务的URL是`http://172.17.0.3:31710`。*hello-minikube* HTTP服务在您发出请求时提供了大量信息。假设您没有收到错误，请求成功！
+- en: Note that in this case there is no concept of ownership between the service
+    and the other resources. The service is only loosely related to the pods since
+    only their selector and labels happen to match. The service could technically
+    match other pods as well, if any existed.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，在此情况下，服务与其他资源之间没有所有权概念。服务与Pod仅松散相关，因为它们的选择器和标签恰好匹配。如果存在其他Pod，服务技术上也可以匹配它们。
+- en: At this point it’s worth visiting the Kubernetes dashboard once again and viewing
+    the resources that you’ve created. Check out the Deployments, Pods, and Replica
+    Sets screens in the Workloads section, as well as the Services screen in the Discovery
+    and Load Balancing sections of the dashboard.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，值得再次访问Kubernetes仪表板，查看您创建的资源。在Workloads部分的Deployments、Pods和Replica Sets屏幕以及Discovery和Load
+    Balancing部分的Services屏幕查看。
+- en: 'Now that you’re done with the *hello-minikube* service, it’s time to tear it
+    down. Run the following commands to delete the service and deployment resources
+    that you previously created:'
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经完成了*hello-minikube*服务，是时候将其拆除了。运行以下命令来删除您之前创建的服务和部署资源：
+- en: '[PRE16]'
+  id: totrans-141
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'When you delete the deployment, it will automatically delete the resources
+    that it owns (in this case, the pods and the replica set). Once that’s done, run
+    these commands to get a list of resources one final time:'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您删除部署时，它将自动删除其所拥有的资源（在本例中为Pod和Replica Set）。完成后，请运行以下命令最后一次获取资源列表：
+- en: '[PRE17]'
+  id: totrans-143
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Depending on how quickly you run the commands, you may see that the pod still
+    exists. But if you do see it, the status of the pod should be listed as Terminating.
+    Run the command a few more times and you should then see that the pod has disappeared
+    entirely. Most of the interactions you have with Kubernetes will require time
+    before the cluster can change from the existing state to your desired state.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据您运行命令的速度，您可能会看到Pod仍然存在。但如果确实看到了，Pod的状态应该显示为Terminating。多运行几次该命令，然后您应该会看到Pod已完全消失。在集群从现有状态变为所需状态之前，大多数与Kubernetes的交互都需要时间。
+- en: Now that you’re familiar with running Kubectl commands to interact with your
+    Kubernetes cluster, you’re ready to use more powerful configuration files.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经熟悉了运行Kubectl命令与您的Kubernetes集群进行交互，可以使用更强大的配置文件了。
+- en: Kubectl Configuration Files
+  id: totrans-146
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Kubectl配置文件
+- en: The second approach for interacting with the Kubernetes API makes use of configuration
+    files. This allows you to declaratively describe subsets of your Kubernetes cluster
+    using YAML files, an approach reminiscent of running `docker-compose` commands.
+    These interactions make use of the `kubectl apply -f <FILENAME>` subcommand.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与Kubernetes API交互的第二种方法使用配置文件。这允许您使用YAML文件声明性地描述Kubernetes集群的子集，这种方法类似于运行`docker-compose`命令。这些交互使用`kubectl
+    apply -f <FILENAME>`子命令。
+- en: When you ran the other Kubectl commands, you were mostly working with a single
+    resource at a time, like when you created the service, or sometimes multiple resources,
+    like when the pod and replica set were created when you made a deployment. When
+    working with configuration files, several potentially unrelated resources can
+    be created at the same time.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您运行其他 Kubectl 命令时，您大多数时间都在单独地处理一个资源，比如创建服务，或者有时处理多个资源，比如在创建 Pod 和复制集时进行部署时。在处理配置文件时，可能同时创建几个可能不相关的资源。
+- en: 'In this section, you’ll deploy and run the *recipe-api* application that you
+    previously built, this time with a few added niceties:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，您将部署并运行之前构建的 *recipe-api* 应用程序，这次添加了一些额外的细节：
+- en: You’ll run five redundant *replicas* of the application at once.
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您将一次运行五个冗余的 *replicas* 应用程序。
+- en: A Kubernetes service will point to the instances.
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个 Kubernetes 服务将指向这些实例。
+- en: Kubernetes will automatically restart unhealthy application replicas.
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Kubernetes 将自动重新启动不健康的应用程序副本。
+- en: 'But first, you’ll need to build a Docker image and push it to the Kubernetes
+    Docker service. Visit your *recipe-api* directory and build a new version of the
+    image by running the following commands:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但首先，您需要构建一个 Docker 镜像并将其推送到 Kubernetes Docker 服务。访问您的 *recipe-api* 目录，并通过运行以下命令构建镜像的新版本：
+- en: '[PRE18]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: A Docker image tagged as *recipe-api:v1* is now available in your Kubernetes
+    Docker daemon.
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个标记为 *recipe-api:v1* 的 Docker 镜像现在已经在您的 Kubernetes Docker 守护程序中可用。
+- en: Now you’re ready to create a configuration file for your application. First,
+    create a file named *recipe-api/recipe-api-deployment.yml*. This file describes
+    the deployment of the service, including the number of replicas to maintain, the
+    port number, and a URL to use as a health check.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已准备好为您的应用程序创建配置文件。首先，创建一个名为 *recipe-api/recipe-api-deployment.yml* 的文件。此文件描述了服务的部署，包括要维护的副本数量、端口号和用作健康检查的
+    URL。
+- en: Now that you’ve created the deployment configuration file, begin by adding the
+    content in [Example 7-1](#ex_kubernetes_deploy_1) to it.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已创建了部署配置文件，可以开始通过添加 [Example 7-1](#ex_kubernetes_deploy_1) 中的内容来填充它。
+- en: Example 7-1\. *recipe-api/recipe-api-deployment.yml*, part one
+  id: totrans-158
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-1\. *recipe-api/recipe-api-deployment.yml*，第一部分
+- en: '[PRE19]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO1-1)'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO1-1)'
+- en: This section of the YAML file defines a deployment.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此 YAML 文件部分定义了一个部署。
+- en: '[![2](assets/2.png)](#co_container_orchestration_CO1-2)'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_container_orchestration_CO1-2)'
+- en: The name of this deployment is *recipe-api*.
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此部署的名称是 *recipe-api*。
+- en: '[![3](assets/3.png)](#co_container_orchestration_CO1-3)'
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_container_orchestration_CO1-3)'
+- en: The deployment has a label of `app=recipe-api`.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部署具有 `app=recipe-api` 标签。
+- en: The file begins by defining the deployment itself. The values should be pretty
+    straightforward. So far, the file suggests that it’s being used to create a *recipe-api*
+    deployment.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件从定义部署本身开始。值应该非常直观。到目前为止，文件表明它正在用于创建 *recipe-api* 部署。
+- en: Next, add the content in [Example 7-2](#ex_kubernetes_deploy_2) to the file.
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将 [Example 7-2](#ex_kubernetes_deploy_2) 中的内容添加到文件中。
+- en: Example 7-2\. *recipe-api/recipe-api-deployment.yml*, part two
+  id: totrans-168
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-2\. *recipe-api/recipe-api-deployment.yml*，第二部分
+- en: '[PRE20]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO2-1)'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO2-1)'
+- en: Five application replicas will run at once.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同时将运行五个应用程序副本。
+- en: This section describes how the replica set will work. In particular, Kubernetes
+    will need to run five replicas of the pods. The `matchLabels` selector is set
+    to *recipe-api*, which means it will match pods with that label.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本节描述了复制集的工作原理。特别是，Kubernetes 将需要运行五个 Pod 的副本。`matchLabels` 选择器设置为 *recipe-api*，这意味着它将匹配带有该标签的
+    Pod。
+- en: Now add the final content from [Example 7-3](#ex_kubernetes_deploy_3) to the
+    file. Note that the first line, `spec`, should have an indentation of four spaces;
+    it’s a sibling property to the `metadata` field.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在将最终内容从 [Example 7-3](#ex_kubernetes_deploy_3) 添加到文件中。请注意，第一行 `spec` 应该缩进四个空格；它是
+    `metadata` 字段的同级属性。
+- en: Example 7-3\. *recipe-api/recipe-api-deployment.yml*, part three
+  id: totrans-174
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-3\. *recipe-api/recipe-api-deployment.yml*，第三部分
+- en: '[PRE21]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO3-1)'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO3-1)'
+- en: The pod’s only container uses the *recipe-api:v1* image.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该 Pod 的唯一容器使用 *recipe-api:v1* 镜像。
+- en: '[![2](assets/2.png)](#co_container_orchestration_CO3-2)'
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_container_orchestration_CO3-2)'
+- en: The container listens on port 1337.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 容器监听 1337 端口。
+- en: '[![3](assets/3.png)](#co_container_orchestration_CO3-3)'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_container_orchestration_CO3-3)'
+- en: The `livenessProbe` section configures a health check.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`livenessProbe` 部分配置了健康检查。'
+- en: This section of the file defines the container used by the pod and is a bit
+    more complex than the previous sections. The name of the container is set to `recipe-api`
+    and it is configured to use the *recipe-api:v1* image, which is the image you
+    most recently built and tagged.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件部分定义了Pod使用的容器，并且比之前的部分更为复杂。容器的名称设置为`recipe-api`，并配置为使用*recipe-api:v1*镜像，这是你最近构建和打标记的镜像。
+- en: The `livenessProbe` section defines the health check used to determine if the
+    container is healthy or not. In this case, it’s configured to wait three seconds
+    after starting the container, and then it makes an HTTP `GET` request every 10
+    seconds to the `/recipes/42` endpoint. Note that this URL was chosen merely because
+    it’s already present in the *producer-http-basic.js* application; consult with
+    [“Load Balancing and Health Checks”](ch03.html#ch_scaling_sec_rp_subsec_health)
+    for building a better health check endpoint.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`livenessProbe`部分定义了用于确定容器是否健康的健康检查。在这种情况下，它配置为在启动容器后等待三秒钟，然后每10秒钟向`/recipes/42`端点发出HTTP
+    `GET`请求。请注意，选择这个URL仅因为它已经在*producer-http-basic.js*应用程序中存在；请参阅[“负载均衡和健康检查”](ch03.html#ch_scaling_sec_rp_subsec_health)以构建更好的健康检查端点。'
+- en: 'Now that your file is finished, it’s time to tell the Kubernetes cluster to
+    apply the changes represented within. Run the following command:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你的文件已经完成，是时候告诉Kubernetes集群应用所代表的变更了。运行以下命令：
+- en: '[PRE22]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Kubectl reads the file and, assuming it doesn’t find any typos, instructs Kubernetes
+    to apply the changes. The same rules apply when running any other Kubectl commands
+    to change the state of the cluster: changes aren’t immediate. Run this next command
+    a few times until the output changes and your pods are marked with a status of
+    Running:'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubectl读取文件，并假设没有发现任何拼写错误，则指示Kubernetes应用这些变更。运行此命令几次，直到输出更改并且你的Pod被标记为Running状态为止：
+- en: '[PRE23]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'I get the following output on my machine:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我在我的机器上获得以下输出：
+- en: '[PRE24]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'The Running status signals that the pod is both running and currently passing
+    its liveness health probes. To view more information about a pod’s health check,
+    run the following command, replacing `<POD_NAME>` with the name of your pod (*recipe-api-6fb656695f-clvtd*
+    in my case):'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Running状态表示Pod正在运行，并且当前通过其存活性健康检查。要查看有关Pod健康检查的更多信息，请运行以下命令，将`<POD_NAME>`替换为你的Pod名称（在我的情况下是*recipe-api-6fb656695f-clvtd*）：
+- en: '[PRE25]'
+  id: totrans-191
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'I get the following liveness information in return:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我获得以下存活性信息返回：
+- en: '[PRE26]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: Next, create another file named *recipe-api/recipe-api-network.yml*, this time
+    to define the Kubernetes service that will point to the pods that you’ve created.
+    The service could have been defined within the same file by placing it in a separate
+    YAML section, but the file was already long enough. Within this file, add the
+    content from [Example 7-4](#ex_kubernetes_network).
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建另一个名为*recipe-api/recipe-api-network.yml*的文件，这次用来定义指向你已创建的Pod的Kubernetes服务。服务本来可以在同一文件中定义，通过将其放置在单独的YAML部分中，但文件已经足够长了。在这个文件中，从[示例 7-4](#ex_kubernetes_network)中添加内容。
+- en: Example 7-4\. *recipe-api/recipe-api-network.yml*
+  id: totrans-195
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-4\. *recipe-api/recipe-api-network.yml*
+- en: '[PRE27]'
+  id: totrans-196
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO4-1)'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO4-1)'
+- en: The service is named *recipe-api-service*.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务名为*recipe-api-service*。
+- en: This file describes a single service named *recipe-api-service*. It is a *NodePort*
+    service, just like the one you previously defined. It targets pods matching the
+    `app=recipe-api` selector and will forward requests to port 1337.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件描述了一个名为*recipe-api-service*的单个服务。它是一个*NodePort*服务，就像你之前定义的那样。它将请求转发到端口1337，并且目标是匹配`app=recipe-api`选择器的Pod。
+- en: 'Apply the changes represented in this configuration file the same way you did
+    for the previous one, by running this command with a new filename:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 应用此配置文件中表示的更改的方式与之前相同，通过使用一个新的文件名运行此命令：
+- en: '[PRE28]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Once that’s done, run the **`kubectl get services -o wide`** command again.
+    You should see an entry just like you saw when previously defining a service using
+    the `kubectl expose` command, except this time the name of the service is a little
+    longer.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成后，再次运行**`kubectl get services -o wide`**命令。你应该看到一个条目，与之前使用`kubectl expose`命令定义服务时看到的类似，只是这次服务名称稍长。
+- en: Congratulations! You’ve now defined your Node.js *recipe-api* application using
+    Kubernetes configuration files and have successfully deployed it to your local
+    Kubernetes cluster. With that out of the way, you are now ready to deploy your
+    *web-api* application.
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 恭喜！您现在已经使用 Kubernetes 配置文件定义了您的 Node.js *recipe-api* 应用程序，并成功将其部署到本地 Kubernetes
+    集群。有了这个，您现在可以准备部署您的 *web-api* 应用程序了。
+- en: Service Discovery
+  id: totrans-204
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 服务发现
+- en: The *web-api* application is a little more complex than *recipe-api*. This application
+    will still run redundant copies and require a service, but it will also need to
+    communicate with the *recipe-api* service, and it will need to accept ingress
+    connections from the outside world. To keep the configuration file short, it won’t
+    contain the health check portion.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*web-api* 应用程序比 *recipe-api* 稍微复杂一些。这个应用程序仍然会运行冗余副本并需要一个服务，但它还需要与 *recipe-api*
+    服务通信，并且需要接受来自外部世界的入口连接。为了使配置文件保持简短，它将不包含健康检查部分。'
+- en: 'Enabling ingress connections for your cluster requires that you manually enable
+    the feature. Run the following commands to do so:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了启用集群的入口连接，您需要手动启用该功能。运行以下命令来执行：
+- en: '[PRE29]'
+  id: totrans-207
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: The first command instructs Minikube to enable the ingress add-on, which is
+    a way of extending the capabilities of Minikube. In this case, it creates a new
+    container that uses the Nginx web server to perform ingress routing. The second
+    command just shows you where the container lives. In this case, Kubernetes launches
+    the Nginx container within the *kube-system* namespace. You don’t technically
+    need to know where it runs, you’re just looking under the hood.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个命令指示 Minikube 启用入口插件，这是扩展 Minikube 功能的一种方式。在这种情况下，它创建一个使用 Nginx Web 服务器执行入口路由的新容器。第二个命令只是向您展示容器的位置。在这种情况下，Kubernetes
+    在 *kube-system* 命名空间内启动 Nginx 容器。您在技术上不需要知道它运行在哪里，您只是在查看其内部情况。
+- en: Many other [ingress controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)
+    are available, such as the beloved HAProxy covered in [“Reverse Proxies with HAProxy”](ch03.html#ch_scaling_sec_rp),
+    though the default Nginx option is maintained directly by the Kubernetes project.
+    Different ingress controllers support different features, but ultimately the controller
+    configures some sort of reverse proxy to map incoming requests to a service.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有许多其他[入口控制器](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)，例如备受喜爱的
+    HAProxy（在[“使用 HAProxy 进行反向代理”](ch03.html#ch_scaling_sec_rp)中介绍），尽管默认的 Nginx 选项由
+    Kubernetes 项目直接维护。不同的入口控制器支持不同的功能，但最终控制器会配置某种形式的反向代理，将传入的请求映射到服务。
+- en: By enabling ingress, you’re able to make requests to the *web-api* service by
+    making a curl request to a single hostname instead of having to use the `minikube`
+    CLI to locate the service’s host and port. This makes it easier to route requests
+    from external clients to the appropriate node and container.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过启用入口，您可以通过向单个主机名发出 curl 请求来向 *web-api* 服务发出请求，而不必使用 `minikube` CLI 来定位服务的主机和端口。这使得更容易将外部客户端的请求路由到适当的节点和容器。
+- en: The relationship between these different Kubernetes resources can get a little
+    complex. [Figure 7-3](#fig_kubernetes_discovery_overview) contains a visual overview
+    of them. External requests are passed through *web-api-ingress*, which then passes
+    the request to the *web-api-service*. This service passes the request to one of
+    the *web-api* pods. The pod then sends a request to the *recipe-api* service,
+    which then passes the request to a *recipe-api* pod. The mechanism by which the
+    *web-api* application finds and communicates with the *recipe-api* application
+    is called *service discovery* and is largely taken care of by Kubernetes.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些不同的 Kubernetes 资源之间的关系可能有点复杂。[图 7-3](#fig_kubernetes_discovery_overview) 包含它们的视觉概览。外部请求通过
+    *web-api-ingress* 传递，然后传递给 *web-api-service*。该服务将请求传递给 *web-api* 中的一个 pod。然后 pod
+    发送请求给 *recipe-api* 服务，该服务然后将请求传递给 *recipe-api* 中的一个 pod。*web-api* 应用程序找到并与 *recipe-api*
+    应用程序通信的机制称为*服务发现*，主要由 Kubernetes 管理。
+- en: '![External requests pass through ingress and are given to web-api-service before
+    being routed to a web-api pod. Then web-api sends requests through recipe-api-service
+    which then routes the request to a recipe-api pod.](assets/dsnj_0703.png)'
+  id: totrans-212
+  prefs: []
+  type: TYPE_IMG
+  zh: '![外部请求通过入口传递给 web-api-service，然后路由到 web-api pod。然后 web-api 通过 recipe-api-service
+    发送请求，该服务然后将请求路由到 recipe-api pod。](assets/dsnj_0703.png)'
+- en: Figure 7-3\. Service discovery overview
+  id: totrans-213
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-3\. 服务发现概述
+- en: 'The first thing you need to do to get your *web-api* service ready for Kubernetes
+    is to create a Dockerfile. Previously, when you worked with the project, you had
+    created one for the Zipkin variant of the application. This time, you need one
+    for the basic HTTP server. For this Dockerfile, you can copy the existing *recipe-api*
+    file and make some changes. Copy the file and enter the *web-api* directory by
+    running these commands:'
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要让你的*web-api*服务适配Kubernetes，首先需要创建一个Dockerfile。之前，当你处理这个项目时，已经为应用的Zipkin变体创建了一个。这次，你需要为基本的HTTP服务器创建一个。对于这个Dockerfile，你可以复制现有的*recipe-api*文件，并做一些修改。通过运行以下命令复制文件并进入*web-api*目录：
+- en: '[PRE30]'
+  id: totrans-215
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'Next, modify the final line of the *web-api/Dockerfile*. Currently it’s still
+    referencing the old *producer-http-basic.js* file and should instead reference
+    the *consumer-http-basic.js* file:'
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，修改*web-api/Dockerfile*的最后一行。当前它仍在引用旧的*producer-http-basic.js*文件，而应该改为引用*consumer-http-basic.js*文件：
+- en: '[PRE31]'
+  id: totrans-217
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: With the Dockerfile out of the way, it’s now time to create the Kubernetes configuration
+    files. First up is the one that defines the deployment. Create a new file named
+    *web-api/web-api-deloyment.yml*. It starts off fairly similar to the one you created
+    for *recipe-api*, except that the app name has been changed to *web-api*. Add
+    the content in [Example 7-5](#ex_kubernetes_web_deploy_1) to this file to get
+    it started.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Dockerfile搞定后，现在是创建Kubernetes配置文件的时候了。首先要定义部署的文件。创建一个名为*web-api/web-api-deloyment.yml*的新文件。它与你为*recipe-api*创建的文件相似，只是应用程序名称已更改为*web-api*。将[示例 7-5](#ex_kubernetes_web_deploy_1)中的内容添加到文件中，以便开始工作。
+- en: Example 7-5\. *web-api/web-api-deployment.yml*, part one
+  id: totrans-219
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-5\. *web-api/web-api-deployment.yml*，第一部分
+- en: '[PRE32]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO5-1)'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO5-1)'
+- en: This time the service will have three replicas.
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次服务将有三个副本。
+- en: So far, so good. Now it’s time to define the pod’s container. Add the content
+    in [Example 7-6](#ex_kubernetes_web_deploy_2) to finish the file. Note that the
+    first line, `spec`, has four spaces of indentation and is a sibling to the previous
+    `metadata` field.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止一切顺利。现在是时候定义Pod的容器了。添加[示例 7-6](#ex_kubernetes_web_deploy_2)中的内容以完成文件。请注意，第一行`spec`有四个空格的缩进，是前一个`metadata`字段的同级。
+- en: Example 7-6\. *web-api/web-api-deployment.yml*, part two
+  id: totrans-224
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-6\. *web-api/web-api-deployment.yml*，第二部分
+- en: '[PRE33]'
+  id: totrans-225
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO6-1)'
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO6-1)'
+- en: Environment variable configuration
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 环境变量配置
+- en: This part of the deployment configuration file has diverged a bit from the previous
+    file. Most notably you’ve added an `env` section to the container configuration.
+    This directly translates into the environment variable feature that you previously
+    used when running Docker containers directly. In this case, the `TARGET` environment
+    variable has been set to *recipe-api-service*.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部署配置文件的这一部分与先前的文件有所不同。最显著的是，你已经向容器配置添加了一个`env`部分。这直接对应你以前在直接运行Docker容器时使用的环境变量功能。在这种情况下，`TARGET`环境变量设置为*recipe-api-service*。
+- en: This might seem a bit interesting at first. The `TARGET` variable represents
+    the host portion of a URL. And, since the value is set to *recipe-api-service*
+    without a port, this means that the URL being requested by the application will
+    look like `http://recipe-api-service:80/` since HTTP uses a default port of 80.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 起初这可能看起来有些有趣。`TARGET`变量表示URL的主机部分。由于值设置为*recipe-api-service*而没有端口，这意味着应用程序请求的URL看起来像`http://recipe-api-service:80/`，因为HTTP使用默认端口80。
+- en: An application running in Kubernetes can communicate with a service using a
+    host named after the service it wishes to communicate with. This is pretty similar
+    to how Docker works as well since both use a DNS service, except that Docker only
+    pulls this off for containers running on the same machine. Kubernetes is able
+    to achieve this regardless of which node in the cluster the applications are running
+    on. This works because the Kube Proxy daemon running on each node forwards requests
+    to other nodes. This is more impressive in a larger multinode Kubernetes cluster
+    than in your current single-node Minikube cluster.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Kubernetes中运行的应用程序可以使用主机名与服务进行通信。这与Docker的工作方式非常类似，因为它们都使用DNS服务，只是Docker仅对在同一台机器上运行的容器有效。而Kubernetes则能够在集群的任何节点上实现此功能。这是因为每个节点上运行的Kube
+    Proxy守护程序将请求转发到其他节点。在当前的单节点Minikube集群中，这种特性比较有限，但在更大的多节点Kubernetes集群中，效果更为显著。
+- en: Now that your deployment configuration file is complete, you’re ready to modify
+    your network configuration file. This file will begin similarly to the previous
+    one you created. For now, add the content from [Example 7-7](#ex_kubernetes_web_network_1)
+    to the file.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您的部署配置文件已完成，可以修改您的网络配置文件。此文件将与您之前创建的文件类似。现在，将来自[示例 7-7](#ex_kubernetes_web_network_1)的内容添加到文件中。
+- en: Example 7-7\. *web-api/web-api-network.yml*, part one
+  id: totrans-232
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-7\. *web-api/web-api-network.yml*，第一部分
+- en: '[PRE34]'
+  id: totrans-233
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: This first section defines a service named *web-api-service*, which will forward
+    incoming requests to port 1337 to the matching port 1337 within the *web-api*
+    pods.
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此第一部分定义了一个名为*web-api-service*的服务，它将把传入的请求转发到端口1337，以匹配*web-api* pods中的端口1337。
+- en: '[Example 7-8](#ex_kubernetes_web_network_2) contains the second half of the
+    network file and is a bit more complex. In this case, it begins with three hyphens
+    (`---`). This is a YAML convention for specifying that multiple documents exist
+    within the same file. Essentially this allows you to concatenate related resource
+    creation tasks within the same file. Add this content to your file.'
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 7-8](#ex_kubernetes_web_network_2)包含了网络文件的第二部分，稍微复杂一些。在这种情况下，它以三个连字符（`---`）开头。这是一种YAML约定，用于指定同一文件中存在多个文档。基本上，这允许您在同一文件中连接相关的资源创建任务。将此内容添加到您的文件中。'
+- en: Example 7-8\. *web-api/web-api-network.yml*, part two
+  id: totrans-236
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 7-8\. *web-api/web-api-network.yml*，第二部分
+- en: '[PRE35]'
+  id: totrans-237
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: '[![1](assets/1.png)](#co_container_orchestration_CO7-1)'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_container_orchestration_CO7-1)'
+- en: Nginx-specific configuration, such as URL rewriting, is supplied.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供了特定于Nginx的配置，如URL重写。
+- en: '[![2](assets/2.png)](#co_container_orchestration_CO7-2)'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_container_orchestration_CO7-2)'
+- en: Additional virtual host routing rules are supplied.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 提供了额外的虚拟主机路由规则。
+- en: This configuration file is intentionally more complex than it has to be in order
+    to convey how the reverse proxy provided by the ingress controller can be configured
+    in a very granular fashion.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个配置文件故意比必要的复杂，以展示如何通过入口控制器提供的反向代理进行非常精细的配置。
+- en: First, notice the `metadata.annotations` configuration. In this case, it has
+    an Nginx-specific line for configuring how incoming URLs can be rewritten before
+    being passed to the service. In this example, the path from the incoming URL is
+    passed through unchanged and, in fact, the entire `annotations` section can be
+    removed and the configuration file would work just the same. However, within a
+    more complex organization, you might need the ability to modify incoming requests.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，注意`metadata.annotations`配置。在本例中，它有一个特定于Nginx的行，用于配置传入URL在传递到服务之前如何被重写。在这个例子中，从传入的URL路径不变地传递，并且事实上，整个`annotations`部分可以被移除而配置文件仍然可以工作。然而，在更复杂的组织中，您可能需要能够修改传入请求的能力。
+- en: The second set of configuration allows for routing based on virtual hosts. This
+    configuration is universal and all ingress controllers should be able to use it.
+    In this case, only requests destined for the domain `example.org` will match the
+    rule. The configuration gets even more complex, matching paths beginning with
+    `/` (this is also essentially a no-op). Finally, matching requests are passed
+    to *web-api-service*. Note that the rule section can be simplified greatly to
+    send any request, regardless of hostname and path, to the same service. By configuring
+    this section of the ingress controller, you can apply the API facade pattern to
+    expose multiple backend services using a single interface.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二组配置允许基于虚拟主机进行路由。这种配置是通用的，所有的入口控制器都应该能够使用它。在本例中，只有目标域为`example.org`的请求才会匹配该规则。配置变得更加复杂，匹配以`/`开头的路径（这实际上也是一个无操作）。最终，匹配的请求被传递给*web-api-service*。请注意，规则部分可以被大大简化，以便将任何主机名和路径的请求发送到同一个服务。通过配置入口控制器的这一部分，您可以应用API外观模式，使用单一接口公开多个后端服务。
+- en: Now that your files have been configured, you’re ready to build the image for
+    your *web-api* service and to deploy it to your Kubernetes cluster.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您的文件已配置完成，可以构建您*web-api*服务的镜像，并将其部署到您的Kubernetes集群中。
+- en: 'Run the following commands to do just that:'
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令来执行这些操作：
+- en: '[PRE36]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: Again, the pod creation step may take a minute to finish. Run the **`kubectl
+    get pods`** command until your newly created *web-api* instances are running.
+    Once that’s done, you’re ready to make a request using the ingress controller.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 同样，Pod创建步骤可能需要一分钟完成。运行**`kubectl get pods`**命令，直到您新创建的*web-api*实例正在运行。完成后，您可以使用入口控制器发出请求。
+- en: 'To make a request via ingress (instead of directly requesting the service),
+    you’ll first need to get the IP address that the ingress is listening on. Run
+    the following command to get this address:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要通过入口发出请求（而不是直接请求服务），你首先需要获取入口正在侦听的IP地址。运行以下命令以获取此地址：
+- en: '[PRE37]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: 'I get the following output when I run the command:'
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我运行命令时，我会得到以下输出：
+- en: '[PRE38]'
+  id: totrans-252
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: In my case, the IP address that I need to send requests to is 172.17.0.3\. If
+    you don’t see an IP address listed, you may need to wait a moment and run the
+    command again. Also, note that the port is set to 80, which is the default port
+    of an HTTP ingress.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我需要发送请求的IP地址是172.17.0.3。如果你没有看到列出的IP地址，可能需要等一会儿，然后再次运行命令。此外，请注意端口设置为80，这是HTTP入口的默认端口。
+- en: 'Now you’re ready to make a request via ingress. Execute the following command,
+    replacing `<INGRESS_IP>` with the IP address you obtained from the previous command:'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经准备好通过入口发出请求了。执行以下命令，将`<INGRESS_IP>`替换为你从上一个命令中获取的IP地址：
+- en: '[PRE39]'
+  id: totrans-255
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: If all goes to plan, you’ll receive the JSON payload that you’ve seen throughout
+    this book. The `consumer_pid` and `producer_pid` values aren’t that interesting
+    since each of the Docker containers runs your application with a process ID of
+    1\. Rest assured that the two different Kubernetes services that the requests
+    are being passed through are routing requests to the individual pods using round
+    robin.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一切顺利，你将收到这本书中遍布的JSON负载。`consumer_pid`和`producer_pid`的值并不那么有趣，因为每个Docker容器都以进程ID为1运行你的应用程序。请放心，请求通过的两个不同的Kubernetes服务正在使用轮询算法将请求路由到各个Pod。
+- en: The IP address of the ingress controller will remain stable throughout the lifetime
+    of the Kubernetes cluster. Even though pods will come and go, each of them getting
+    new IP addresses, the IP address of the ingress remains the same.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 入口控制器的IP地址将在Kubernetes集群的生命周期内保持稳定。尽管Pod将会启动和关闭，并获取新的IP地址，但入口的IP地址保持不变。
+- en: If you wanted, you could run a reverse proxy on your machine, accepting incoming
+    requests from port 80, and proxying the requests to the IP address of the ingress
+    controller. This is how Kubernetes can be used in production to expose applications
+    running within the cluster.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你愿意，你可以在你的机器上运行一个反向代理，接受从端口80进来的请求，并将请求代理到入口控制器的IP地址。这就是在生产中使用Kubernetes来暴露在集群中运行的应用程序的方式。
+- en: Of course, not just any resource within the cluster is exposed via ingress.
+    Instead, you must define exactly which services are exposed. This is useful for
+    segregating shallow upstream services, like the *web-api*, from internal downstream
+    services, like *recipe-api*.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，并不是集群中的任何资源都通过入口暴露出来。相反，你必须明确定义哪些服务是公开的。这对于将浅层上游服务（如*web-api*）与内部下游服务（如*recipe-api*）分离非常有用。
+- en: Modifying Deployments
+  id: totrans-260
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 修改部署
+- en: Deployments are the resources that you’re most likely to interact with on a
+    regular basis as an application developer. As you saw in the previous sections,
+    modifying a deployment can trigger changes to an underlying replica set and pods.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 部署是你作为应用程序开发人员最有可能定期交互的资源。正如你在前面的章节中看到的，修改一个部署可能会触发对底层副本集和Pod的更改。
+- en: The deployments that you’ve worked with so far all have names. Run the **`kubectl
+    get deployments`** command and you will see two entries returned, one named *recipe-api*
+    and the other named *web-api*. Those names were provided directly by the commands
+    you ran. However, the names of dependent resources have been a little more dynamic.
+    For example, on my machine, my *recipe-api* deployment has a replica set named
+    *recipe-api-6fb656695f*, which in turn has a pod named *recipe-api-6fb656695f-clvtd*.
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，你处理过的所有部署都有名称。运行**`kubectl get deployments`**命令，你将看到返回的两个条目，一个名为*recipe-api*，另一个名为*web-api*。这些名称是直接由你运行的命令提供的。但是，依赖资源的名称稍微更动态一些。例如，在我的机器上，我的*recipe-api*部署有一个名为*recipe-api-6fb656695f*的副本集，而这个副本集又有一个名为*recipe-api-6fb656695f-clvtd*的Pod。
+- en: Since the deployment has a stable name, you’re able to modify it by reusing
+    that same name. This section covers a few of the common ways that you’re likely
+    to modify deployments as an application developer. Much like when you deployed
+    an application using either configuration files or standard `kubectl` commands,
+    you’re also able to modify deployments using both approaches.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于部署有一个稳定的名称，你可以通过重新使用相同的名称来修改它。本节涵盖了作为应用程序开发人员可能会修改部署的几种常见方式。就像你使用配置文件或标准的`kubectl`命令部署应用程序时一样，你也可以使用这两种方法修改部署。
+- en: Scaling Application Instances
+  id: totrans-264
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 扩展应用实例
+- en: The most basic way to modify a deployment is to scale the number of instances.
+    In Kubernetes parlance, each redundant instance of an application is referred
+    to as a replica. So, when you scale a deployment, you’re changing the number of
+    pod replicas within that deployment.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 修改部署的最基本方式是扩展实例数量。在 Kubernetes 的术语中，应用程序的每个冗余实例称为副本。因此，当你扩展部署时，实际上是在更改该部署中 Pod
+    副本的数量。
+- en: 'You’re currently running five replicas of the *recipe-api* application. Run
+    the following commands to get a list of your pods, to scale the number of replicas
+    to 10, and to get the new list of pods:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您当前正在运行五个*recipe-api*应用程序的副本。运行以下命令获取你的 Pod 列表，将副本数扩展到10，并获取新的 Pod 列表：
+- en: '[PRE40]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: In this case, you should see that Kubernetes creates the five new pods, and
+    depending on how quickly you ran the final command, some of them will have a status
+    of *ContainerCreating*. Wait some time and run the final command again, and their
+    statuses should have changed to *Running*.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，你应该看到 Kubernetes 正在创建五个新的 Pod，根据你运行最后一个命令的速度快慢，其中一些 Pod 的状态将显示为*ContainerCreating*。等待一段时间，再次运行最后一个命令，它们的状态应该会变为*Running*。
+- en: You could modify that command to set the number of replicas back down to five,
+    but there’s another way to modify a deployment. The *recipe-api/recipe-api-deployment.yml*
+    file that was used to first create the deployment can also be used to modify it.
+    Specifically, when you run the `kubectl apply` command, it’s not just limited
+    to creating resources. Really, it instructs the Kubernetes cluster to make whatever
+    changes are necessary to then resemble the resource definitions in the specified
+    configuration file.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以修改该命令，将副本数设置回五个，但修改部署的另一种方式是可行的。首次创建部署时使用的*recipe-api/recipe-api-deployment.yml*文件也可以用来修改它。具体来说，当你运行`kubectl
+    apply`命令时，它不仅仅限于创建资源。它实际上是指示 Kubernetes 集群进行必要的更改，以使其与指定配置文件中的资源定义相似。
+- en: 'In this case, the state of the cluster is currently different than that of
+    the configuration file. Specifically, the file wants a replica count of 5, but
+    the cluster has a replica count of 10\. To scale the number of replicas back down
+    to five, run the same `kubectl apply` command again:'
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，集群的状态目前与配置文件不同。具体来说，文件中希望有5个副本，但集群中却有10个副本。为了将副本数缩减回5个，请再次运行相同的`kubectl
+    apply`命令：
+- en: '[PRE41]'
+  id: totrans-271
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'The output for the apply command can take on three forms:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: apply 命令的输出可以有三种形式：
+- en: '[PRE42]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: The first line is what you had encountered previously when running `kubectl
+    apply`. This line states that a new resource has been created. This time, however,
+    you should have received the second line of output. This line means that the resource
+    represented in the configuration file was found—using the resource’s name—and
+    that the resource was modified. The final line is what you’ll see if the cluster
+    currently resembles the state desired by the file and no action is necessary.
+    Go ahead and run that `kubectl apply` command one more time. This time you should
+    get the unchanged line in response.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行`kubectl apply`时，你将会遇到如下第一行。此行表明已创建了一个新资源。然而，这次你应该会得到第二行输出。这行表示在配置文件中找到了表示资源的名称，并对资源进行了修改。如果集群当前已经与文件所需状态相似且无需操作，则会看到最后一行。请继续运行`kubectl
+    apply`命令一次。这次你应该会得到未更改的行作为响应。
+- en: Note that as the number of pod replicas grows and shrinks, the service is still
+    able to route requests to each of the available pods. Once a pod is terminated,
+    it should no longer receive any requests. Once a pod has been added, it will wait
+    for the health check to pass (which have been enabled for the *recipe-api*) before
+    it begins receiving requests.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，随着 Pod 副本数量的增减，服务仍然可以将请求路由到每个可用的 Pod。一旦 Pod 被终止，它就不应该再接收任何请求。一旦 Pod 被添加，它将等待健康检查通过（已为*recipe-api*启用），然后开始接收请求。
+- en: Kubernetes has an advanced feature called the [Horizontal Pod Autoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
+    This is used to dynamically scale the number of replicas based on various criteria
+    such as CPU usage or even based on custom metrics like the ones you previously
+    generated in [“Metrics with Graphite, StatsD, and Grafana”](ch04.html#ch_monitoring_sec_metrics).
+    This is an advanced feature supported by Kubernetes that you may consider using
+    for production applications, but it won’t be covered here.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubernetes具有一个名为[水平 Pod 自动缩放器](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)的高级功能。这用于根据各种标准（如
+    CPU 使用率）动态调整副本的数量，甚至根据您之前在[“使用 Graphite、StatsD 和 Grafana 进行度量”](ch04.html#ch_monitoring_sec_metrics)中生成的自定义指标进行调整。这是
+    Kubernetes 支持的一个高级功能，您可以考虑在生产应用中使用，但这里不会涉及。
+- en: Deploying New Application Versions
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 部署新应用程序版本
+- en: You’ll also probably find yourself in a situation where you need to deploy newer
+    versions of an application. Since Kubernetes deals with applications encapsulated
+    in a container, this means building new versions of an application’s Docker image,
+    pushing the image to a Docker server, and then instructing Kubernetes to deploy
+    the new version of an application container based on the image.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可能也会发现自己处于需要部署应用程序的新版本的情况。由于 Kubernetes 处理封装在容器中的应用程序，这意味着构建应用程序的新版本的 Docker
+    镜像，将镜像推送到 Docker 服务器，然后指示 Kubernetes 根据镜像部署应用程序的新版本的容器。
+- en: When you deploy a new version of an application, you don’t want to kill off
+    the old deployment resource and create a new one. Instead, you want to piggy back
+    on it and replace the pods that belong to that deployment.
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您部署应用程序的新版本时，您不希望终止旧的部署资源并创建新的资源。相反，您希望依附在其上并替换属于该部署的 pods。
+- en: 'Before you can deploy a new version of the application, you first need to create
+    it. For the sake of illustration, you can do this by simply adding a new endpoint
+    to the existing application code. Run the following commands to add a new endpoint
+    and to build a *web-api:v2* version of your application:'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在部署新版本的应用程序之前，您首先需要创建它。为了说明问题，您可以通过简单地向现有应用程序代码添加一个新的端点来实现这一点。运行以下命令来添加一个新的端点并构建*web-api:v2*版本的应用程序：
+- en: '[PRE43]'
+  id: totrans-281
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'Next, edit the *web-api/web-api-deployment.yml* file. Once inside, modify the
+    `spec.template.spec.container.image` property and change it from `image: web-api:v1`
+    to `image: web-api:v2`. Once you’ve made that change, run the following command
+    to deploy the changes and to watch the pods deploy:'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '接下来，编辑*web-api/web-api-deployment.yml*文件。进入后，修改`spec.template.spec.container.image`属性，并将其从`image:
+    web-api:v1`更改为`image: web-api:v2`。完成更改后，运行以下命令部署更改并观察 pods 部署：'
+- en: '[PRE44]'
+  id: totrans-283
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: The `-w` flag tells Kubectl to watch the changes being made to the Kubernetes
+    cluster, and it will keep drawing output as changes are made to the *web-api*
+    pods in your cluster. Once the process is finally complete you can kill the watch
+    operation with Ctrl + C.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`-w`标志告诉 Kubectl 监视对 Kubernetes 集群所做的更改，并且它将在对集群中的*web-api* pods 进行更改时继续输出。一旦进程最终完成，您可以使用
+    Ctrl + C 杀死监视操作。'
+- en: '[Figure 7-4](#fig_kubernetes_deployment_default) displays a timeline of what
+    you should see in your terminal. To start off, you have three instances of *v1*
+    running. When you ran the command to apply the deployment, new *v2* pods were
+    created. Eventually, the desired number of *v2* pods were created and deemed healthy.
+    Kubernetes then switches the service over from *v1* to *v2*. Once that’s done,
+    Kubernetes handles the termination of the *v1* pods. Finally, all the old pods
+    are gone and only the new pods are running.'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 7-4](#fig_kubernetes_deployment_default) 显示了您在终端中应该看到的时间轴。首先，您有三个运行中的*v1*实例。当您运行命令应用部署时，新的*v2*
+    pods被创建。最终，所需数量的*v2* pods被创建并被视为健康的。然后，Kubernetes将服务从*v1*切换到*v2*。完成后，Kubernetes处理*v1*
+    pods的终止。最终，所有旧的 pods 都消失了，只剩下新的 pods 在运行。'
+- en: '![When web-api:v2 is deployed, new pods are listed with a status of ContainerCreating,
+    then Running. Once web-api:v2 is running, web-api:v2 gets a status of Terminating,
+    then the pods are removed.](assets/dsnj_0704.png)'
+  id: totrans-286
+  prefs: []
+  type: TYPE_IMG
+  zh: '![当部署 web-api:v2 时，新的 pods 列出状态为 ContainerCreating，然后 Running。一旦 web-api:v2
+    运行，web-api:v2 的状态为 Terminating，然后 pods 被移除。](assets/dsnj_0704.png)'
+- en: Figure 7-4\. How deployments affect pod state
+  id: totrans-287
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-4\. 部署如何影响 pod 状态
+- en: At this point, you can send a request to one of your pods by using the existing
+    *web-api-service* service.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，您可以通过使用现有的*web-api-service*服务向您的一个 pods 发送请求。
+- en: 'You can do so by running the following command to request your newly added
+    */hello* route:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过运行以下命令来请求您新添加的*/hello*路由：
+- en: '[PRE45]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: You should see the message “Hello” displayed in your terminal.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您应该在终端中看到显示“Hello”的消息。
+- en: 'One thing to note is that when you deployed a new version of the application,
+    the old replica set has been left behind! It has been updated to have a scale
+    of zero. You can see this happen when you run the following command to list your
+    replica sets:'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 需要注意的是，当您部署了应用程序的新版本时，旧的复制集会被留下来！它已经更新为零的规模。当您运行以下命令列出您的复制集时，您可以看到这种情况发生：
+- en: '[PRE46]'
+  id: totrans-293
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'In my case, I get the following replica sets in return:'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，我得到了以下的复制集：
+- en: '[PRE47]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Here the new replica set *web-api-999f78685* has three instances and the old
+    set *web-api-6cdc56746b* has zero. You can also see this happen when you read
+    the list of pods in your cluster. By default the pods are named with the following
+    pattern when they’re created as part of a deployment: `<DEPLOYMENT>-<REPLICA_SET>-<RANDOM>`.'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里新的复制集*web-api-999f78685*有三个实例，而旧的集合*web-api-6cdc56746b*则为零。当您读取集群中的pod列表时，您也可以看到这种情况发生。默认情况下，当它们作为部署的一部分创建时，pod的命名模式如下：<DEPLOYMENT>-<REPLICA_SET>-<RANDOM>。
+- en: The replica set names are actually fairly consistent. If you were to, for example,
+    modify the *web-api-deployment.yml* file to revert it back to having an image
+    of *web-api:v1*, the previous replica set would get used again and the new replica
+    set would get scaled down to zero.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 复制集的名称实际上是相当一致的。例如，如果您修改*web-api-deployment.yml*文件，将其恢复为具有*web-api:v1*镜像的版本，则将再次使用先前的复制集，并将新的复制集缩减为零。
+- en: Rolling Back Application Deployments
+  id: totrans-298
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 回滚应用程序部署
+- en: If you’re anything like me, you will occasionally merge some bad code, forget
+    to catch an exception, or will otherwise release a faulty version of an application
+    to production. When this happens, such a broken version needs to be reverted to
+    a previous known-good version of the application. This act of reverting a bad
+    version to a good version is known as a *rollback*.
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你和我一样，偶尔会合并一些糟糕的代码，忘记捕获异常，或者以其他方式发布一个有问题的应用程序版本到生产环境中。当发生这种情况时，这样一个破损的版本需要回滚到应用程序的已知良好的先前版本。将坏版本回滚到好版本的行为被称为*回滚*。
+- en: Docker already maintains a list of previous images, which is nice, but an image
+    doesn’t contain everything required to represent a container. For example, the
+    *web-api* service requires some metadata such as environment variables and a port
+    to listen on—things that are defined in the deployment YAML file. If you had lost
+    this YAML file and only had the Docker image, would you be confident that you
+    could rebuild and deploy a properly configured container? What if you were also
+    dealing with the stress of a production incident?
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Docker 已经维护了先前镜像的列表，这很好，但是镜像并不包含表示容器所需的一切。例如，*web-api*服务需要一些元数据，例如环境变量和监听端口——这些在部署的YAML文件中定义。如果您丢失了这个YAML文件，只剩下Docker镜像，您能否确信您可以重建和部署一个正确配置的容器？如果您还在处理生产事故的压力会怎么样？
+- en: Luckily for you and me, Kubernetes retains information about previous deployments.
+    This allows you to roll back to a previous deployment by executing a few commands.
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，对于你和我来说，Kubernetes 保留了关于以前部署的信息。这使您可以通过执行几个命令回滚到先前的部署状态。
+- en: 'But first, it’s time to release a broken application. This version of the application
+    adds a new endpoint */kill* that causes the process to immediately exit. Run the
+    following commands to amend the *web-api* service with the new route and to build
+    a new version of the container:'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但首先，现在是时候发布一个有问题的应用程序。这个应用程序版本添加了一个新的端点*/kill*，导致进程立即退出。运行以下命令修改*web-api*服务以添加新路由，并构建新版本的容器：
+- en: '[PRE48]'
+  id: totrans-303
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Once your image has been built, you’re ready to perform another deployment.
+    Edit the *web-api-deployment.yml* file again, this time changing the image line
+    from *web-api:v2* to *web-api:v3*. Once that’s done, run the following command
+    to perform another deployment:'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您的镜像构建完成，您就可以执行另一个部署。再次编辑*web-api-deployment.yml*文件，这次将图像行从*web-api:v2*更改为*web-api:v3*。完成后，运行以下命令执行另一个部署：
+- en: '[PRE49]'
+  id: totrans-305
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'Note that this time the `--record=true` flag has been added. You’ll see what
+    this flag is used for in a moment. Once the new version of the application deploys,
+    you’re ready to test the new endpoint. Make the following request:'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，这次添加了`--record=true`标志。您将很快看到这个标志的用途。一旦应用程序的新版本部署完成，您就可以测试新的端点了。发出以下请求：
+- en: '[PRE50]'
+  id: totrans-307
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'Once you run that command, you should get an error back that curl received
+    an empty reply from the server. Next, run the command `**kubectl get pods -l app=web-api**`
+    to get a list of your pods again. When I run this command, I get the following
+    results:'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦运行该命令，你应该会收到一个错误，curl从服务器接收到一个空的回复。接下来，运行命令`**kubectl get pods -l app=web-api**`再次获取你的pod列表。当我运行这个命令时，我得到以下结果：
+- en: '[PRE51]'
+  id: totrans-309
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: Notice how the second entry has a restart count of one, while the others have
+    a restart count of zero. This is because the container had crashed and Kubernetes
+    automatically restarted it for me. Depending on how quickly you ran the command,
+    you might either see the restart count set to one or the count set to zero but
+    with a status of Error—an indication that Kubernetes hasn’t yet restarted the
+    container.
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意第二个条目的重启计数为一，而其他条目的重启计数为零。这是因为容器崩溃了，Kubernetes自动为我重新启动了它。根据你运行命令的速度，你可能会看到重启计数设置为一，或者计数为零但状态为Error——这表明Kubernetes尚未重新启动容器。
+- en: The investigative methods were a little contrived, but at this point you’ve
+    confirmed that *v3* of the application is broken and that it should be rolled
+    back. In a production setting, you would hopefully be proactively alerted, like
+    what you had set up in [“Alerting with Cabot”](ch04.html#ch_monitoring_sec_alert).
+  id: totrans-311
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调查方法有些牵强，但在这一点上，你已确认应用程序的*v3*版本存在问题，应该回滚。在生产环境中，希望您能像在[“使用Cabot进行警报”](ch04.html#ch_monitoring_sec_alert)中设置的那样，主动接收警报。
+- en: 'Kubectl provides a subcommand for viewing a deployment’s history. Run the following
+    command to get the history of your *web-api* deployment:'
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Kubectl提供了一个子命令用于查看部署历史记录。运行以下命令获取*web-api*部署的历史记录：
+- en: '[PRE52]'
+  id: totrans-313
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'When I run the command, I get the following results:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我运行命令时，我得到以下结果：
+- en: '[PRE53]'
+  id: totrans-315
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: You should get three different values in your revision column from what I have.
+    In this case, I can see that there are three revisions, each with an incrementing
+    counter to identify it, and that the third revision displays the command I had
+    executed in the Change Cause column. The `--record=true` flag tells Kubectl to
+    keep track of the command used to trigger the deployment. This can be more useful
+    if the filename contains the application version, for example.
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你应该从我这里得到与修订列中的三个不同值。在这种情况下，我可以看到有三个修订版，每个修订版都有一个递增的计数器来标识它，第三个修订版显示了我执行的命令。`--record=true`标志告诉Kubectl跟踪触发部署的命令。如果文件名包含应用程序版本，则此功能可能更有用，例如。
+- en: In my case, revision number 9 is the last one that I made, which must correlate
+    to *v3* of the application. The one before it, revision 8, therefore must correlate
+    to *v2* of the application. So, in order to deploy a working version of the application,
+    I need to roll back from release 9 to release 8.
+  id: totrans-317
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我的情况下，修订号9是我所做的最后一个，这必须对应于应用程序的*v3*版本。因此，在部署工作版本的应用程序时，我需要从第9版回滚到第8版。
+- en: 'Run the following command to roll back your application deployment, replacing
+    `<RELEASE_NUMBER>` with the second release number in your list (in my case, 8):'
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行以下命令回滚应用程序部署，将`<RELEASE_NUMBER>`替换为列表中第二个版本号（在我的情况下是8）：
+- en: '[PRE54]'
+  id: totrans-319
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'Once you run that command, you should get the output message of `deployment.apps/web-api
+    rolled back`. Once that happens, run the `**kubectl rollout history deployment.v1.apps/web-api**`
+    command again to see your list of deployments. In my case, I get the following
+    list:'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 运行该命令后，你应该会得到输出消息`deployment.apps/web-api`已回滚。一旦发生这种情况，请再次运行`**kubectl rollout
+    history deployment.v1.apps/web-api**`命令以查看你的部署列表。在我的情况下，我得到了以下列表：
+- en: '[PRE55]'
+  id: totrans-321
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: In this example, revision 8 has been removed from the list and has been moved
+    to the end as revision 10\. Think of this as a timeline where older revisions
+    are at the top and newer revisions are at the bottom and where revision counts
+    always increment and duplicate revisions aren’t listed.
+  id: totrans-322
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，修订版8已从列表中移除，并作为修订版10移动到末尾。把它看作一个时间线，在时间线中，旧的修订版位于顶部，新的修订版位于底部，修订版计数始终增加，不列出重复的修订版。
+- en: To prove that the pods have been reverted to *v2* of the application, make that
+    same curl request to */kill* one more time. This time, instead of taking out a
+    server, you should get a 404 error.
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了证明pod已经回滚到应用程序的*v2*版本，请再次对*/kill*发出相同的curl请求。这次，而不是摧毁服务器，你应该会收到404错误。
+- en: And there you have it; you’ve successfully reverted a bad application deployment!
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样，你成功地回滚了一个不良的应用程序部署！
+- en: 'Now that you’re done with Kubernetes, you can either leave it running on your
+    machine or clean up all the services that are currently running in the background.
+    Personally, I find that my battery life is cut in half with it running. Run the
+    following commands to delete all of the Kubernetes objects that you’ve created:'
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经完成了 Kubernetes 的操作，可以选择让其在你的机器上保持运行，或者清理掉当前在后台运行的所有服务。个人认为，如果让其保持运行，会大大降低我的电池寿命。运行以下命令来删除你创建的所有
+    Kubernetes 对象：
+- en: '[PRE56]'
+  id: totrans-326
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: You should also switch to the terminal where you had run `minikube dashboard`
+    and kill it with Ctrl + C.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你还应该切换到运行`minikube dashboard`命令的终端，并用 Ctrl + C 终止它。
+- en: You might also want to disable Kubernetes if you’re using Docker Desktop. Open
+    the GUI preferences panel, visit the Kubernetes section and uncheck the Enable
+    Kubernetes option, and then apply the changes.
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你使用 Docker Desktop，可能也想要禁用 Kubernetes。打开 GUI 首选项面板，进入 Kubernetes 部分，取消选中“启用
+    Kubernetes”选项，然后应用更改。
+- en: ^([1](ch07.html#idm46291182288360-marker)) The MacOS variant also installs the
+    HyperKit hypervisor, which is necessary to later use the Ingress feature.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch07.html#idm46291182288360-marker)) MacOS 变体还安装了 HyperKit hypervisor，这是后续使用
+    Ingress 功能所必需的。

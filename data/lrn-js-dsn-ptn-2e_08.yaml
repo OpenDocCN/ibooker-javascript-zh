@@ -1,0 +1,1188 @@
+- en: Chapter 8\. JavaScript MV* Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第8章 JavaScript MV* 模式
+- en: 'Object design and application architecture are the two principal aspects of
+    application design. We have covered patterns that relate to the first in the previous
+    chapter. In this chapter, we’re going to review three fundamental architectural
+    patterns: MVC (Model-View-Controller), MVP (Model-View-Presenter), and MVVM (Model-View-ViewModel).
+    In the past, these patterns were heavily used for structuring desktop and server-side
+    applications. Now they have been adapted for JavaScript too.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象设计和应用架构是应用设计的两个主要方面。我们在上一章中已经涵盖了与第一个相关的模式。在本章中，我们将回顾三种基本的架构模式：MVC（Model-View-Controller）、MVP（Model-View-Presenter）和MVVM（Model-View-ViewModel）。过去，这些模式被广泛用于构建桌面和服务器端应用程序。现在它们也已经适应了JavaScript。
+- en: As most JavaScript developers currently using these patterns opt to utilize
+    various libraries or frameworks for implementing an MVC/MV*-like structure, we
+    will compare how these solutions differ in their interpretation of MVC compared
+    to classical takes on these patterns.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于大多数当前使用这些模式的 JavaScript 开发人员选择使用各种库或框架来实现类似 MVC/MV* 的结构，我们将比较这些解决方案在解释 MVC
+    时与这些模式的经典视角有何不同。
+- en: Note
+  id: totrans-3
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: You can easily distinguish the Model and View layers in most modern browser-based
+    UI design frameworks based on MVC/MVVM. However, the third component varies in
+    both name and function. The * in MV* thus represents whatever form the third component
+    takes in the different frameworks.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在基于 MVC/MVVM 的大多数现代基于浏览器的 UI 设计框架中，您可以轻松区分模型和视图层。然而，第三个组件在名称和功能上各不相同。在 MV* 中的
+    * 表示不同框架中第三个组件的形式。
+- en: MVC
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVC
+- en: 'MVC is an architectural design pattern that encourages improved application
+    organization through a separation of concerns. It enforces the isolation of business
+    data (Models) from UIs (Views), with a third component (Controllers) traditionally
+    managing logic and user input. [Trygve Reenskaug](https://oreil.ly/N9Dt5) originally
+    designed the pattern while working on [Smalltalk-80](https://oreil.ly/6gft1) (1979),
+    where it was initially called Model-View-Controller-Editor. MVC was later described
+    in depth in 1995’s *Design Patterns: Elements of Reusable Object-Oriented Software*
+    (aka the “GoF” book), which played a role in popularizing its use.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'MVC 是一种架构设计模式，通过关注点分离来促进应用程序组织的改进。它强制将业务数据（模型）与 UI（视图）隔离开来，第三个组件（控制器）传统上负责管理逻辑和用户输入。[Trygve
+    Reenskaug](https://oreil.ly/N9Dt5) 最初在 [Smalltalk-80](https://oreil.ly/6gft1)（1979年）期间设计了这种模式，最初称为
+    Model-View-Controller-Editor。MVC 后来在1995年的 *Design Patterns: Elements of Reusable
+    Object-Oriented Software*（即“GoF”书籍）中深入描述，这本书在推广其使用方面发挥了作用。'
+- en: Smalltalk-80 MVC
+  id: totrans-7
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Smalltalk-80 MVC
+- en: It’s essential to understand what the original MVC pattern was aiming to solve,
+    as it has mutated quite heavily since its origin. Back in the 1970s, GUIs were
+    few and far between. A concept known as [Separated Presentation](https://oreil.ly/yTX-F)
+    became famous as a means to make a clear division between domain objects that
+    modeled ideas in the real world (e.g., a photo, a person) and the presentation
+    objects that were rendered to the users’ screen.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理解原始 MVC 模式旨在解决什么问题是至关重要的，因为自其起源以来，它已经发生了相当大的变化。回到20世纪70年代，GUI 只有寥寥无几。一种被称为
+    [Separated Presentation](https://oreil.ly/yTX-F) 的概念因其将模拟现实世界中的思想（例如照片、人物）的领域对象与呈现对象清晰分开而变得著名。
+- en: 'The Smalltalk-80 implementation of MVC took this concept further and aimed
+    to separate the application logic from the UI. The idea was that decoupling these
+    parts of the application would also allow the reuse of Models for other interfaces
+    in the application. There are some interesting points worth noting about Smalltalk-80’s
+    MVC architecture:'
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Smalltalk-80 中的 MVC 进一步发展了这一概念，并旨在将应用程序逻辑与 UI 分离。其理念是，解耦应用程序的这些部分也将允许在应用程序中为其他界面重用模型。关于
+    Smalltalk-80 的 MVC 架构有一些值得注意的有趣点：
+- en: A Model represented domain-specific data and was ignorant of the UI (Views and
+    Controllers). When a Model changed, it would inform its observers.
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 模型代表特定于领域的数据，并对 UI（视图和控制器）不知情。当模型发生变化时，它会通知其观察者。
+- en: A View represented the current state of a Model. The Observer pattern was used
+    to let the View know whenever the Model was updated or modified.
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 视图表示了模型的当前状态。观察者模式被用来通知视图模型何时被更新或修改。
+- en: The View took care of the presentation, but there wasn’t just a single View
+    and Controller—a View-Controller pair was required for each section or element
+    displayed on the screen.
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: View负责呈现，但不仅仅有一个单一的View和Controller——每个部分或元素在屏幕上显示都需要一个View-Controller对。
+- en: The Controller’s role in this pair was handling user interaction (such as key
+    presses and actions such as clicks) and making decisions for the View.
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: Controller在这对中的角色是处理用户交互（例如按键和点击等动作）并为View做出决策。
+- en: Developers are sometimes surprised when they learn that the Observer pattern
+    (nowadays commonly implemented as the Publish/Subscribe variation) was included
+    as a part of MVC’s architecture decades ago. In Smalltalk-80’s MVC, the View observes
+    the Model. As mentioned in the bullet point, anytime the Model changes, the Views
+    react. A simple example of this is an application backed by stock market data.
+    For the application to be helpful, any change to the data in our Models should
+    result in the View being refreshed instantly.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 开发者有时会感到惊讶，当他们了解到观察者模式（现在通常作为发布/订阅的变体实现）几十年前就已经作为MVC架构的一部分包含在内。在Smalltalk-80的MVC中，View观察Model。如列表中所述，每当Model发生变化时，Views会作出反应。一个简单的例子是一个依赖股市数据的应用程序。为了使应用程序有用，我们的Models中的任何数据变化都应立即刷新View。
+- en: '[Martin Fowler](https://oreil.ly/yTX-F) has done an excellent job of writing
+    about the origins of MVC over the years. If you’re interested in some further
+    historical information about Smalltalk-80’s, I recommend reading his work.'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[Martin Fowler](https://oreil.ly/yTX-F)多年来在MVC起源方面做了出色的工作。如果您对Smalltalk-80的一些更深入的历史信息感兴趣，我建议阅读他的作品。'
+- en: MVC for JavaScript Developers
+  id: totrans-16
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: JavaScript开发者的MVC
+- en: 'We’ve reviewed the 1970s, but let us return to the present. In modern times,
+    the MVC pattern has been used with a diverse range of programming languages and
+    application types, including those of most relevance to us: JavaScript. JavaScript
+    now has several frameworks boasting support for MVC (or variations of it, which
+    we refer to as the MV* family), allowing developers to add structure to their
+    applications easily.'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经回顾了20世纪70年代，但让我们回到现在。在现代，MVC模式已经在多种编程语言和应用程序类型中使用，包括我们最关心的JavaScript。现在，JavaScript有几个框架支持MVC（或其变体，我们称之为MV*系列），使开发者能够轻松地为他们的应用程序添加结构。
+- en: The first among these frameworks include Backbone, Ember.js, and AngularJS.
+    More recently, React, Angular, and Vue.js ecosystems have been used to implement
+    variations of the MV* family of patterns. Given the importance of avoiding “spaghetti”
+    code, a term that describes code that is very difficult to read or maintain due
+    to its lack of structure, the modern JavaScript developer must understand what
+    this pattern provides. This allows us to effectively appreciate what these frameworks
+    enable us to do differently ([Figure 8-1](#MVC_pattern)).
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最早的框架包括Backbone、Ember.js和AngularJS。最近，React、Angular和Vue.js生态系统已被用来实现MV*模式的各种变体。考虑到避免“意大利面条”代码的重要性，这个术语描述的是由于缺乏结构而非常难以阅读或维护的代码，现代JavaScript开发者必须理解这种模式提供了什么。这使我们能够有效地欣赏这些框架使我们能够以不同的方式做什么（[图 8-1](#MVC_pattern)）。
+- en: '![ljd2 0801](Images/ljd2_0801.png)'
+  id: totrans-19
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ljd2 0801](Images/ljd2_0801.png)'
+- en: Figure 8-1\. MVC pattern
+  id: totrans-20
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-1\. MVC模式
+- en: MVC comprises three core components, described in the following sections.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVC包括三个核心组件，如下节所述。
+- en: Models
+  id: totrans-22
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Models
+- en: Models manage the data for an application. They are concerned with neither the
+    UI nor presentation layers but represent unique data forms that an application
+    may require. When a Model changes (e.g., when it is updated), it will typically
+    notify its observers (e.g., Views, a concept we will cover shortly) that a change
+    has occurred so that it may react accordingly.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Models管理应用程序的数据。它们不关心UI或呈现层，但代表了应用程序可能需要的独特数据形式。当一个Model变化时（例如，当它被更新时），它通常会通知它的观察者（例如Views，我们马上会介绍的概念）发生了变化，以便它可以相应地做出反应。
+- en: To understand Models further, let us imagine we have a photo gallery application.
+    In a photo gallery, the concept of a photo would merit its own Model, as it represents
+    a unique kind of domain-specific data. Such a Model may contain related attributes
+    such as a caption, image source, and additional metadata. You would store a specific
+    photo in an instance of a Model, and a Model may also be reusable.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要进一步理解Models，让我们想象我们有一个照片库应用程序。在照片库中，照片的概念会有自己的Model，因为它代表了一种独特的领域特定数据。这样的Model可能包含相关属性，如标题、图像来源和附加元数据。您可以将特定的照片存储在一个Model的实例中，而且一个Model也可以是可重用的。
+- en: The built-in capabilities of Models vary across frameworks. However, it is pretty
+    standard for them to support the validation of attributes, where attributes represent
+    the properties of the Model, such as a Model identifier. When using Models in
+    real-world applications, we generally also desire Model persistence. Persistence
+    allows us to edit and update Models with the knowledge that their most recent
+    state will be saved in either memory, local storage, or synchronized with a database.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型的内置功能因框架而异。但是，支持属性验证是它们的标准功能之一，其中属性表示模型的属性，例如模型标识符。在实际应用中使用模型时，我们通常也希望模型具有持久性。持久性使我们能够编辑和更新模型，并确保它们的最新状态保存在内存、本地存储或与数据库同步。
+- en: In addition, a Model may have multiple Views observing it. If, say, our photo
+    Model contained metadata, such as its location (longitude and latitude), friends
+    who were present in the photo (a list of identifiers), and a list of tags, a developer
+    may decide to provide a single View to display each of these three facets.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，一个模型可能有多个观察它的视图。比如说，我们的照片模型包含了元数据，比如它的位置（经度和纬度）、出现在照片中的朋友（一个标识符列表），以及标签列表，开发者可以决定提供一个单一的视图来展示这三个方面。
+- en: It is not uncommon for MVC/MV* frameworks to provide a means to group Models
+    as a collection. Managing Models in groups allows us to write application logic
+    based on notifications from the group whenever any of the Models in the group
+    is changed. This avoids the need to observe individual Model instances manually.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在MVC/MV*框架中，提供将模型分组的方法以形成集合并不少见。将模型分组管理，使得我们能够基于来自组中任何模型的通知编写应用逻辑。这样做避免了手动观察单个模型实例的需要。
+- en: Older texts on MVC may also refer to a notion of Models managing application
+    *state*. In JavaScript applications, the *state* has a different connotation,
+    typically referring to the current “state”—i.e., view or subview (with specific
+    data) on a user’s screen at a fixed point. The state is regularly discussed when
+    looking at single-page applications (SPAs), where the concept of state needs to
+    be simulated.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 早期关于MVC的文本还可能提到模型管理应用程序*状态*的概念。在JavaScript应用程序中，“状态”具有不同的涵义，通常指当前“状态”——即用户屏幕上的视图或子视图（具有特定数据）。当讨论单页应用程序（SPA）时，状态经常被讨论，需要模拟状态的概念。
+- en: So to summarize, Models are primarily concerned with business data.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 综上所述，模型主要关注业务数据。
+- en: Views
+  id: totrans-30
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 视图
+- en: Views are a visual representation of Models that present a filtered view of
+    their current state. While Smalltalk Views are about painting and maintaining
+    a bitmap, JavaScript Views build and organize a collection of DOM elements.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图是模型的视觉表现形式，展示其当前状态的过滤视图。虽然Smalltalk视图是关于绘制和维护位图的，JavaScript视图则构建和组织一组DOM元素。
+- en: A View typically observes a Model and is notified when the Model changes, allowing
+    the View to update itself accordingly. Design pattern literature commonly refers
+    to Views as “dumb,” given that their knowledge of Models and Controllers in an
+    application is limited.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图通常观察一个模型，并在模型变化时得到通知，允许视图相应地更新自己。设计模式文献通常将视图称为“哑”的，因为它们对应用程序中的模型和控制器的了解是有限的。
+- en: Users can interact with Views, including the ability to read and edit (i.e.,
+    get or set the attribute values in) Models. Because the View is the presentation
+    layer, we generally present the ability to edit and update in a user-friendly
+    fashion. For example, in the photo gallery application we discussed earlier, we
+    could facilitate Model editing through an “edit” View where a user who selected
+    a specific photo could edit its metadata.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户可以与视图交互，包括读取和编辑（即获取或设置模型的属性值）。由于视图是表示层，我们通常以用户友好的方式呈现编辑和更新的能力。例如，在我们之前讨论的照片库应用程序中，我们可以通过“编辑”视图来促进模型的编辑，用户可以选择特定照片并编辑其元数据。
+- en: The actual task of updating the Model falls to the Controllers (which we will
+    cover shortly).
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更新模型的实际任务落到控制器（我们稍后会介绍）的手中。
+- en: Let’s explore Views a little further using a conventional JavaScript sample
+    implementation. Now we can see a function that creates a single photo View, consuming
+    both a Model and a Controller instance.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过一个传统的JavaScript示例实现进一步探索视图。现在我们可以看到一个函数，它创建一个单一的照片视图，同时消耗一个模型和一个控制器实例。
+- en: We define a `render()` utility within our View, which is responsible for rendering
+    the contents of the `photoModel` using a JavaScript templating engine (Lodash
+    templating) and updating the contents of our View, referenced by `photoEl`.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在视图中定义了一个`render()`实用程序，负责使用JavaScript模板引擎（Lodash模板）渲染`photoModel`的内容，并更新由`photoEl`引用的视图内容。
+- en: The `photoModel` then adds our `render()` callback as one of its subscribers
+    so that we can trigger the View to update when the Model changes using the Observer
+    pattern.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，`photoModel`将我们的`render()`回调添加为其订阅者之一，以便我们使用观察者模式在模型更改时触发视图更新。
+- en: One may wonder where user interaction comes into play here. When users click
+    on any element within the View, it’s not the View’s responsibility to know what
+    to do next. It relies on a Controller to make this decision for it. Our sample
+    implementation achieves this by adding an event listener to `photoEl`, which will
+    delegate handling the click behavior back to the Controller, passing the Model
+    information along with it in case it’s needed.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 读者可能会想知道用户交互在这里如何发挥作用。当用户点击视图中的任何元素时，不是视图的责任来决定下一步该做什么。它依赖于控制器来代替它做出这个决定。我们的示例实现通过向`photoEl`添加事件监听器来实现这一点，它将委托处理点击行为返回给控制器，并在需要的情况下传递模型信息。
+- en: 'The architecture’s benefit is that each component plays its role in making
+    the application function as needed:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该架构的好处在于每个组件都发挥其在使应用程序按需运行中所需的作用：
+- en: '[PRE0]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Templating
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 模板化
+- en: It would be worthwhile to briefly touch upon JavaScript templating while discussing
+    JavaScript frameworks that support MVC/MV*. As mentioned in the previous section,
+    templating is related to Views.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当讨论支持MVC/MV*的JavaScript框架时，简要介绍JavaScript模板化是值得的。正如前一节中提到的，模板化与视图相关联。
+- en: It has long been considered (and proven) a performance bad practice to manually
+    create large blocks of HTML markup in memory through string concatenation. Developers
+    have fallen prey to inefficient iterations through their data, wrapping it in
+    nested `div`s and using outdated techniques such as `document.write` to inject
+    the generated “template” into the DOM. This typically means including scripted
+    markup inline with our standard markup. The markup can quickly become difficult
+    to read, and, more importantly, a nontrivial application with such code can be
+    a maintenance disaster.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 长期以来，手动通过字符串连接在内存中创建大块HTML标记一直被认为（并已经证明）是一种性能不良的做法。开发人员已经陷入了通过它们的数据进行低效迭代的困境，将其包装在嵌套的`div`中，并使用诸如`document.write`之类的过时技术将生成的“模板”注入DOM中。这通常意味着在我们的标准标记中内联脚本标记。标记可以很快变得难以阅读，并且更重要的是，具有这种代码的非平凡应用可能会导致维护灾难。
+- en: Modern JavaScript templating solutions have moved toward using tagged template
+    literals, which are a powerful feature of ES6 (ECMAScript 2015). Tagged template
+    literals allow you to create reusable templates using JavaScript’s template literal
+    syntax, along with a custom processing function that can be used to manipulate
+    and populate the template with data. This approach eliminates the need for additional
+    templating libraries and provides a clean, maintainable way to create dynamic
+    HTML content.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现代JavaScript模板化解决方案已经转向使用标记模板字面量，这是ES6（ECMAScript 2015）的一个强大特性。标记模板字面量允许您使用JavaScript的模板字面量语法创建可重用模板，以及一个自定义处理函数，用于操纵和填充数据模板。这种方法消除了额外的模板化库的需要，并提供了一种清晰、可维护的创建动态HTML内容的方式。
+- en: Variables within tagged template literals can be easily interpolated using the
+    `${variable}` syntax, which is more concise and easier to read than traditional
+    variable delimiters like `{{name}}`. This makes it simpler to maintain clean Models
+    and templates while allowing the framework to handle most of the work for populating
+    templates from Models. This has many benefits, particularly when opting to store
+    templates externally. This can give way to templates being dynamically loaded
+    on an as-needed basis when building larger applications.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用标记模板字面量内部的变量可以通过`${variable}`语法轻松插入，这比传统的变量分隔符如`{{name}}`更简洁易读。这使得更简单地维护干净的模型和模板成为可能，同时允许框架处理从模型填充模板的大部分工作。这带来了许多好处，特别是在选择外部存储模板时。这可以在构建更大的应用程序时根据需要动态加载模板。
+- en: Examples [8-1](#handlebar_js) and [8-2](#underscore_js) are two examples of
+    JavaScript templates. One has been implemented using tagged template literals,
+    and another using Lodash’s templates.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 示例 [8-1](#handlebar_js) 和 [8-2](#underscore_js) 是两个JavaScript模板的示例。一个是使用标记模板字面量实现的，另一个是使用Lodash模板。
+- en: Example 8-1\. Tagged template literals code
+  id: totrans-47
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例8-1\. 标记模板字面量代码
+- en: '[PRE1]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Example 8-2\. Lodash.js templates
+  id: totrans-49
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例8-2\. Lodash.js模板
+- en: '[PRE2]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Note that templates are not themselves Views. A View is an object that observes
+    a Model and keeps the visual representation up to date. A template *might* be
+    a declarative way to specify part or even all of a View object so that the framework
+    may generate it from the template specification.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，模板本身并不是Views。View是观察Model并保持视觉表示最新的对象。模板可能是一种声明性方式，用来指定View对象的部分甚至全部，以便框架可以从模板规范生成它。
+- en: It is also worth noting that in classical web development, navigating between
+    independent Views required the use of a page refresh. In single-page JavaScript
+    applications, however, once data is fetched from a server, it can be dynamically
+    rendered in a new View within the same page without any such refresh being necessary.
+    The navigation role thus falls to a router, which assists in managing application
+    state (e.g., allowing users to bookmark a particular View they have navigated
+    to). However, as routers are neither a part of MVC nor present in every MVC-like
+    framework, I will not be going into them in greater detail in this section.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还值得注意的是，在传统的Web开发中，导航到独立Views之间需要使用页面刷新。然而，在单页JavaScript应用程序中，一旦从服务器获取数据，就可以在同一页面内动态地渲染新的View，而无需任何刷新。因此，导航角色落到了路由器上，它帮助管理应用程序状态（例如，允许用户书签所导航到的特定View）。然而，由于路由器既不是MVC的一部分，也不在每个类似MVC的框架中出现，因此在本节中将不会对其进行更详细的讨论。
+- en: To summarize, Views represent our application data visually, and templates may
+    be used to generate Views. Modern templating techniques, like tagged template
+    literals, provide a clean, efficient, and maintainable way to create dynamic HTML
+    content in JavaScript applications.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下，Views在视觉上代表我们的应用程序数据，而模板可以用来生成Views。现代模板技术，如标记模板字面量，提供了一种干净、高效和可维护的方式来在JavaScript应用程序中创建动态HTML内容。
+- en: Controllers
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Controllers
+- en: Controllers are intermediaries between Models and Views, which are classically
+    responsible for updating the Model when the user manipulates the View. They manage
+    the logic and coordination between Models and Views in an application.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Controllers是Models和Views之间的中介，经典上负责在用户操作View时更新Model。它们管理应用程序中Models和Views之间的逻辑和协调。
+- en: What Does MVC Give Us?
+  id: totrans-56
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVC给我们带来了什么？
+- en: 'This separation of concerns in MVC facilitates simpler modularization of an
+    application’s functionality and enables:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种MVC中的关注点分离有助于简化应用程序功能的模块化，并实现以下功能：
+- en: Easier overall maintenance. When the application needs to be updated, it is
+    obvious whether the changes are data-centric, meaning changes to Models and possibly
+    Controllers, or merely visual, meaning changes to Views.
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 更容易的整体维护。当应用程序需要更新时，很明显是否是数据中心的变更，即对Models和可能是Controllers的变更，或者仅仅是视觉上的变更，即对Views的变更。
+- en: Decoupling Models and Views means that writing unit tests for business logic
+    is significantly more straightforward.
+  id: totrans-59
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 解耦Models和Views意味着编写业务逻辑的单元测试变得更加简单。
+- en: Duplication of low-level Model and Controller code (i.e., what we may have been
+    using instead) is eliminated across the application.
+  id: totrans-60
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 消除了在应用程序中低级Model和Controller代码的重复（即，我们可能一直在使用的代码）。
+- en: Depending on the size of the application and the separation of roles, this modularity
+    allows developers responsible for core logic and developers working on the UIs
+    to work simultaneously.
+  id: totrans-61
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 根据应用程序的大小和角色的分离，这种模块化允许负责核心逻辑的开发者和负责UI的开发者同时工作。
+- en: Smalltalk-80 MVC in JavaScript
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在JavaScript中实现Smalltalk-80 MVC
+- en: 'Most modern-day JavaScript frameworks attempt to evolve the MVC paradigm to
+    fit the differing needs of web application development. However, there has been
+    one framework that tried to adhere to the pure form of the pattern found in Smalltalk-80\.
+    [Maria.js](https://oreil.ly/rNJLu) by Peter Michaux offers an implementation that
+    is faithful to MVC’s origins: Models are Models, Views are Views, and Controllers
+    are nothing but Controllers. While some developers might feel an MV* framework
+    should address more concerns, this is a valuable reference to be aware of in case
+    you would like a JavaScript implementation of the original MVC.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数现代JavaScript框架试图发展MVC范例以适应Web应用程序开发的不同需求。然而，有一个框架试图遵循Smalltalk-80中模式的纯粹形式。[Maria.js](https://oreil.ly/rNJLu)由Peter
+    Michaux提供了一个忠实于MVC起源的实现：Models是Models，Views是Views，而Controllers仅仅是Controllers。尽管一些开发者可能认为MV*框架应该处理更多关注点，但这是一个有价值的参考，以便在需要JavaScript实现原始MVC的情况下了解。
+- en: Summary of MVC
+  id: totrans-64
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVC 摘要
+- en: Having reviewed the classical MVC pattern, we should now understand how it allows
+    us to cleanly separate concerns in an application. We should also appreciate how
+    JavaScript MVC frameworks may differ in their interpretation of the MVC pattern.
+    Although quite open to variation, they still share some fundamental concepts the
+    original pattern offers.
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在审查了经典的 MVC 模式之后，我们现在应该理解它如何帮助我们在应用程序中清晰地分离关注点。我们还应该欣赏 JavaScript MVC 框架在对 MVC
+    模式的解释上可能存在的差异。虽然可以根据需求进行相当开放的变化，但它们仍然分享一些原始模式提供的基本概念。
+- en: 'When reviewing a new JavaScript MVC/MV* framework, remember: it can be helpful
+    to step back and examine how it has opted to approach the architecture (specifically,
+    how it supports implementing Models, Views, Controllers, or other alternatives),
+    as this can better help us grok the best way to use the framework.'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在审查新的 JavaScript MVC/MV* 框架时，请记住：迈出一步，审视它是如何选择处理架构的（具体来说，它如何支持实现模型、视图、控制器或其他替代方案），因为这可以更好地帮助我们理解如何最佳使用该框架。
+- en: MVP
+  id: totrans-67
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVP
+- en: Model-View-Presenter (MVP) is a derivative of the MVC design pattern that focuses
+    on improving presentation logic. It originated at a company named [Taligent](https://oreil.ly/sKiE8)
+    in the early 1990s while they were working on a Model for a C++ CommonPoint environment.
+    While both MVC and MVP target the separation of concerns across multiple components,
+    there are some fundamental differences between them.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型-视图-展示者（MVP）是 MVC 设计模式的一个衍生，专注于改进展示逻辑。它起源于上世纪 90 年代初的 [Taligent](https://oreil.ly/sKiE8)
+    公司，当时他们正在为 C++ CommonPoint 环境设计一个模型。虽然 MVC 和 MVP 都旨在跨多个组件分离关注点，但它们之间存在一些根本的差异。
+- en: Here, we will focus on the version of MVP most suitable for web-based architectures.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们将专注于最适合基于 Web 的架构的 MVP 版本。
+- en: Models, Views, and Presenters
+  id: totrans-70
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 模型、视图和展示者
+- en: The P in MVP stands for Presenter. It’s a component that contains the UI business
+    logic for the View. Unlike MVC, invocations from the View are delegated to the
+    Presenters, which are decoupled from the View and instead talk to it through an
+    interface. This has many advantages, such as being able to mock Views in unit
+    tests (MVP pattern) ([Figure 8-2](#MVP_pattern)).
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVP 中的 P 代表展示者。这是一个包含视图 UI 业务逻辑的组件。与 MVC 不同，来自视图的调用被委托给展示者，后者与视图解耦，而是通过接口与其进行通信。这有许多优势，例如能够在单元测试中模拟视图（MVP
+    模式）（[图 8-2](#MVP_pattern)）。
+- en: '![ljd2 0802](Images/ljd2_0802.png)'
+  id: totrans-72
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ljd2 0802](Images/ljd2_0802.png)'
+- en: Figure 8-2\. MVP pattern
+  id: totrans-73
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-2\. MVP 模式
+- en: The most common implementation of MVP is one that uses a passive View (a View
+    which is, for all intents and purposes, “dumb”), containing little to no logic.
+    MVC and MVP are different because the roles played by C and P are diverse. In
+    MVP, the P observes Models and updates Views when Models change. The P effectively
+    binds Models to Views, a Controller’s responsibility in MVC.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVP 最常见的实现方式是使用被动视图（一种在所有意图和目的上都是“哑”的视图），几乎没有逻辑。MVC 和 MVP 之间的区别在于 C 和 P 扮演的角色不同。在
+    MVP 中，P 观察模型并在模型更改时更新视图。P 将模型有效地绑定到视图中，这是 MVC 中控制器的责任。
+- en: Solicited by a View, Presenters perform any work related to user requests and
+    pass data back to them. In this respect, they retrieve data, manipulate it, and
+    determine how the data should be displayed in the View. In some implementations,
+    the Presenter also interacts with a service layer to persist data (Models). Models
+    may trigger events, but it’s the Presenter’s role to subscribe to them so that
+    it can update the View. In this passive architecture, we have no concept of direct
+    data binding. Views expose setters that Presenters can use to set data.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当视图请求时，展示者执行与用户请求相关的任何工作，并将数据返回给它们。在这方面，它们检索数据、操纵数据，并确定数据应如何在视图中显示。在某些实现中，展示者还与服务层交互以持久化数据（模型）。模型可能会触发事件，但是展示者的角色是订阅这些事件，以便它可以更新视图。在这种被动的架构中，我们没有直接数据绑定的概念。视图公开了展示者可以使用的设置器来设置数据。
+- en: The benefit of this change from MVC is that it increases our application’s testability
+    and provides a cleaner separation between the View and the Model. This isn’t,
+    however, without its costs, as the lack of data-binding support in the pattern
+    can often mean having to take care of this task separately.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与 MVC 相比，这种改变的好处在于增加了应用程序的可测试性，并在视图和模型之间提供了更清晰的分离。然而，这并不是没有代价的，因为模式中缺乏数据绑定支持通常意味着需要单独处理这项任务。
+- en: Although a common implementation of a [passive View](https://oreil.ly/SQUNj)
+    is for the View to implement an interface, there are variations on it, including
+    the use of events that can decouple the View from the Presenter a little more.
+    As we don’t have the interface construct in JavaScript, we use more of a protocol
+    than an explicit interface here. It’s technically still an API, and it’s probably
+    fair for us to refer to it as an interface from that perspective.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管 [被动视图](https://oreil.ly/SQUNj) 的常见实现是视图实现一个接口，但也有其它变体，包括使用可以将视图与 Presenter
+    解耦合的事件。由于 JavaScript 中没有接口构造，我们在这里更多地使用协议而不是显式接口。从技术上讲仍然是 API，从这个角度来看将其称为接口可能是公平的。
+- en: There is also a [Supervising Controller](https://oreil.ly/RZM34) variation of
+    MVP, closer to the MVC and [MVVM](https://oreil.ly/f5apN) patterns, as it provides
+    data binding from the Model directly from the View.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一个 [监控控制器](https://oreil.ly/RZM34) 的 MVP 变体，更接近 MVC 和 [MVVM](https://oreil.ly/f5apN)
+    模式，因为它直接从模型向视图提供数据绑定。
+- en: MVP or MVC?
+  id: totrans-79
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: MVP 还是 MVC？
+- en: Now that we’ve discussed both MVP and MVC, how do you select the most appropriate
+    pattern for your application?
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经讨论了 MVP 和 MVC，那么如何为您的应用程序选择最合适的模式呢？
+- en: MVP is generally used in enterprise-level applications where it’s necessary
+    to reuse as much presentation logic as possible. Applications with very complex
+    Views and a great deal of user interaction may find that MVC doesn’t quite fit
+    the bill here, as solving this problem may mean heavily relying on multiple Controllers.
+    In MVP, all of this complex logic can be encapsulated in a Presenter, significantly
+    simplifying maintenance.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVP 通常用于需要尽可能重用展示逻辑的企业级应用程序中。具有非常复杂视图和大量用户交互的应用程序可能会发现 MVC 在这里不太合适，因为解决这个问题可能意味着严重依赖多个控制器。在
+    MVP 中，所有这些复杂逻辑都可以封装在一个 Presenter 中，显著简化维护工作。
+- en: As MVP Views are defined through an interface, and the interface is technically
+    the only point of contact between the system and the View (other than a Presenter),
+    this pattern also allows developers to write presentation logic without needing
+    to wait for designers to produce layouts and graphics for the application.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVP 视图是通过接口定义的，而接口在技术上是系统和视图之间的唯一联系点（除了一个 Presenter），这种模式还允许开发人员编写展示逻辑，而不需要等待设计师为应用程序制作布局和图形。
+- en: MVP may be easier to unit test than MVC, depending on the implementation. The
+    reason often cited for this is that you can use the Presenter as a complete mock
+    of the UI so it can be unit-tested independent of other components. In my experience,
+    this depends on the languages we are implementing MVP in (there’s quite a difference
+    between opting for MVP for a JavaScript project over one for, say, ASP.NET).
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 依赖实现而言，MVP 可能比 MVC 更容易进行单元测试。通常引用的原因是可以使用 Presenter 作为 UI 的完整模拟，因此可以独立于其他组件进行单元测试。根据我个人的经验，这取决于我们在哪些语言中实现
+    MVP（在选择 JavaScript 项目与 ASP.NET 项目的 MVP 之间存在很大差异）。
+- en: The underlying concerns we may have with MVC will likely hold for MVP, given
+    that the differences between them are mainly semantic. As long as we cleanly separate
+    concerns into Models, Views, and Controllers (or Presenters), we should achieve
+    most of the same benefits regardless of the variation we choose.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们对 MVC 可能存在的基本关注点可能也适用于 MVP，因为它们之间的区别主要是语义上的。只要我们将关注点清晰地分离为模型、视图和控制器（或者 Presenter），我们无论选择哪种变体，应该都能实现大部分相同的好处。
+- en: Few, if any, JavaScript architectural frameworks claim to implement the MVC
+    or MVP patterns in their classical form. Many JavaScript developers don’t view
+    MVC and MVP as mutually exclusive (we are more likely to see MVP strictly implemented
+    in web frameworks such as ASP.NET or Google Web Toolkit). This is because we can
+    have additional Presenter/View logic in our application and still consider it
+    a flavor of MVC.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 少数（如果有的话）JavaScript 架构框架声称以其经典形式实现 MVC 或 MVP 模式。许多 JavaScript 开发人员不认为 MVC 和
+    MVP 是互斥的（我们更有可能在诸如 ASP.NET 或 Google Web Toolkit 等 Web 框架中严格实现 MVP）。这是因为我们可以在应用程序中具有额外的
+    Presenter/View 逻辑，仍然将其视为 MVC 的一种变体。
+- en: MVVM
+  id: totrans-86
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVVM
+- en: MVVM (Model-View-ViewModel) is an architectural pattern based on MVC and MVP,
+    which attempts to more clearly separate the development of UIs from that of the
+    business logic and behavior in an application. To this end, many implementations
+    of this pattern make use of declarative data bindings to allow a separation of
+    work on Views from other layers.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVVM（模型-视图-视图模型）是一种基于MVC和MVP的架构模式，旨在更清晰地将UI开发与应用程序中的业务逻辑和行为分离。为此，该模式的许多实现利用声明性数据绑定，允许在视图与其他层之间进行分离。
+- en: This facilitates UI and development work occurring almost simultaneously within
+    the same codebase. UI developers write bindings to the ViewModel within their
+    document markup (HTML), whereas developers working on the logic for the application
+    maintain the Model and ViewModel ([Figure 8-3](#MVVM_pattern)).
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这使得 UI 和开发几乎同时进行在同一代码库中成为可能。UI 开发人员在其文档标记（HTML）中编写与 ViewModel 的绑定，而应用程序逻辑的开发人员则维护模型和
+    ViewModel（[图 8-3](#MVVM_pattern)）。
+- en: '![ljd2 0803](Images/ljd2_0803.png)'
+  id: totrans-89
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ljd2 0803](Images/ljd2_0803.png)'
+- en: Figure 8-3\. MVVM pattern
+  id: totrans-90
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 8-3\. MVVM 模式
+- en: History
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 历史（History）
+- en: MVVM (by name) was initially defined by Microsoft for use with [Windows Presentation
+    Foundation (WPF)](https://oreil.ly/1_I11) and [Silverlight](https://oreil.ly/ve1Oh),
+    having been officially announced in 2005 by John Grossman in a blog post about
+    Avalon (the codename for WPF). It also found some popularity in the Adobe Flex
+    community as an alternative to using MVC.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVVM（以名称命名）最初由微软定义，用于[Windows Presentation Foundation（WPF）](https://oreil.ly/1_I11)和[Silverlight](https://oreil.ly/ve1Oh)，由John
+    Grossman在关于Avalon（WPF的代号）的博客文章中于2005年正式宣布。它还在Adobe Flex社区中作为使用MVC的替代方案找到了一些流行度。
+- en: 'Before Microsoft adopted the MVVM name, there was a movement in the community
+    to go from MVP to MVPM: Model-View PresentationModel. Martin Fowler wrote an [article
+    on PresentationModels back in 2004](https://oreil.ly/78R8q) for those interested
+    in reading more about it. The idea of a PresentationModel had been around much
+    longer than this article. However, it was considered a significant break for the
+    concept and helped popularize it.'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在微软采纳MVVM名称之前，社区中有一股潮流从MVP过渡到MVPM：即模型-视图-展示模型。Martin Fowler在2004年写了一篇[关于展示模型的文章](https://oreil.ly/78R8q)，供有兴趣的人阅读更多。展示模型的概念早在这篇文章之前就已经存在很长时间了。然而，这篇文章被认为是该概念的一个重要突破，并有助于其普及。
+- en: There was quite a lot of uproar in the “alt.net” circles after Microsoft announced
+    MVVM as an alternative to MVPM. Many claimed the company’s dominance in the GUI
+    world allowed them to take over the community, renaming existing concepts as they
+    pleased for marketing purposes. A progressive crowd recognized that while MVVM
+    and MVPM were effectively the same ideas, they came in slightly different packages.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在微软宣布MVVM作为MVP的替代方案后，“alt.net”圈子中有相当大的哗然。许多人声称公司在GUI世界的主导地位使他们能够接管社区，根据市场营销需求重新命名现有概念。渐进派认识到，虽然MVVM和MVPM本质上是相同的想法，但它们呈现的形式略有不同。
+- en: MVVM was originally implemented in JavaScript in the form of structural frameworks
+    such as KnockoutJS, Kendo MVVM, and Knockback.js, with an overall positive response
+    from the community.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVVM最初是在JavaScript中实现的，形式为结构性框架，如KnockoutJS、Kendo MVVM和Knockback.js，并得到了社区的整体积极响应。
+- en: 'Let’s now review the three components that compose MVVM:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来回顾组成MVVM的三个组件：
+- en: Model
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型（Model）
+- en: Representing the domain-specific information
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表示领域特定信息
+- en: View
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图（View）
+- en: The UI
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户界面（UI）
+- en: ViewModel
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ViewModel
+- en: An interface between the Model and the View
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型（Model）和视图（View）之间的接口
+- en: Model
+  id: totrans-103
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 模型（Model）
+- en: As with other members of the MV* family, the Model in MVVM represents domain-specific
+    data or information with which our application will work. A typical example of
+    domain-specific data might be a user account (e.g., name, avatar, email) or a
+    music track (e.g., title, year, album).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与MV*家族的其他成员一样，MVVM 中的模型代表应用程序将使用的特定于域的数据或信息。一个典型的域特定数据例子可能是用户账户（例如名称、头像、电子邮件）或音乐曲目（例如标题、年份、专辑）。
+- en: 'Models hold information but typically don’t handle behavior. They don’t format
+    information or influence how data appears in the browser, as this isn’t their
+    responsibility. Instead, the View governs data formatting, while the behavior
+    is considered business logic that you should encapsulate in another layer that
+    interacts with the Model: the ViewModel.'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模型保存信息，但通常不处理行为。它们不格式化信息或影响数据在浏览器中的呈现，因为这不是它们的责任。相反，视图管理数据格式化，而行为被视为应该封装在另一层中与模型交互的业务逻辑：视图模型（ViewModel）。
+- en: The only exception to this rule tends to be validation, and it’s acceptable
+    for Models to validate data used to define or update existing Models (e.g., does
+    an email address being input meet the requirements of a particular regular expression?).
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个规则的唯一例外似乎是验证，对于模型来验证用于定义或更新现有模型的数据是可以接受的（例如，输入的电子邮件地址是否符合特定的正则表达式要求？）。
+- en: View
+  id: totrans-107
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 视图
+- en: As with MVC, the View is the only part of the application that users interact
+    with. The View is an interactive UI that represents the state of a ViewModel.
+    In this sense, the View is considered active rather than passive, which is also
+    true for MVC and MVP Views. In MVC, MVP, and MVVM, a View can also be passive,
+    but what does this mean?
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与MVC一样，视图是用户与应用程序唯一交互的部分。视图是一个交互式UI，代表了ViewModel的状态。在这个意义上，视图被认为是活动的而不是被动的，这对于MVC和MVP视图也是正确的。在MVC、MVP和MVVM中，视图也可以是被动的，但这意味着什么呢？
+- en: A passive View only outputs a display and does not accept any user input. Such
+    a View may also have no real knowledge of the Models in our application and could
+    be manipulated by a Presenter. MVVM’s active View contains the data bindings,
+    events, and behaviors, which requires an understanding of the ViewModel. Although
+    these behaviors can be mapped to properties, the View is still responsible for
+    handling events from the ViewModel.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 被动视图仅输出显示，不接受任何用户输入。这样的视图也可能对我们应用程序中的模型没有真正的了解，并且可以由Presenter操作。MVVM的活动视图包含数据绑定、事件和行为，这需要对ViewModel有一定的理解。虽然这些行为可以映射到属性，但视图仍然负责处理来自ViewModel的事件。
+- en: It’s important to remember that the View isn’t responsible for handling state;
+    it keeps this in sync with the ViewModel.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重要的是要记住，视图不负责处理状态；它保持与ViewModel的同步。
+- en: ViewModel
+  id: totrans-111
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: ViewModel
+- en: The ViewModel can be considered a specialized Controller that acts as a data
+    converter. It changes Model information into View information, passing commands
+    from the View to the Model.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ViewModel可以被视为一个专门的控制器，充当数据转换器。它将模型信息转换为视图信息，从视图传递命令到模型。
+- en: For example, let us imagine that we have a Model containing a `date` attribute
+    in UNIX format (e.g., 1333832407). Rather than our Models being aware of a user’s
+    View of the date (e.g., 04/07/2012 @ 5:00 pm), where it would be necessary to
+    convert the address to its display format, our Model holds the raw format of the
+    data. Our View contains the formatted date, and our ViewModel acts as a middleman
+    between the two.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，让我们假设我们有一个模型，其中包含以UNIX格式存储的`date`属性（例如，1333832407）。与其说我们的模型意识到用户对日期的视图（例如，2012年04月07日
+    @ 下午5:00），需要将地址转换为显示格式，不如说我们的模型保存数据的原始格式。我们的视图包含格式化后的日期，而我们的ViewModel充当了两者之间的中间人。
+- en: In this sense, the ViewModel can be seen as more of a Model than a View, but
+    it does handle most of the View’s display logic. The ViewModel may also expose
+    methods for helping to maintain the View’s state, update the Model based on the
+    actions on a View, and trigger events on the View.
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个意义上，ViewModel可以被看作是一个模型而不是一个视图，但它确实处理了大部分视图的显示逻辑。ViewModel还可以公开方法来帮助维护视图的状态，根据视图上的操作更新模型，并在视图上触发事件。
+- en: In summary, the ViewModel sits behind our UI layer. It exposes data needed by
+    a View (from a Model) and can be the source the View goes to for both data and
+    actions.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结，ViewModel位于我们的UI层后面。它公开了视图（来自模型）所需的数据，并且可以是视图获取数据和执行操作的源头。
+- en: 'Recap: The View and the ViewModel'
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 总结：视图和ViewModel
+- en: Views and ViewModels communicate using data bindings and events. As we saw in
+    our initial ViewModel example, the ViewModel doesn’t just expose Model attributes
+    but also provides access to other methods and features, such as validation.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 视图和ViewModel使用数据绑定和事件进行通信。正如我们在初始ViewModel示例中看到的那样，ViewModel不仅仅是暴露模型属性，还提供对其他方法和功能（如验证）的访问。
+- en: Our Views handle their own UI events, mapping them to the ViewModel as necessary.
+    Models and attributes on the ViewModel are synchronized and updated via two-way
+    data binding.
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的视图处理其自身的UI事件，并根据需要将其映射到ViewModel上。模型和ViewModel上的属性通过双向数据绑定进行同步和更新。
+- en: Triggers (data triggers) also allow us to react further to changes in the state
+    of our Model attributes.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 触发器（数据触发器）还允许我们对模型属性状态的更改做出进一步的反应。
+- en: ViewModel Versus Model
+  id: totrans-120
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: ViewModel与模型比较
+- en: While the ViewModel may be entirely responsible for the Model in MVVM, there
+    are some subtleties with this relationship worth noting. The ViewModel can expose
+    a Model or Model attributes for data binding and contain interfaces for fetching
+    and manipulating properties exposed in the View.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然在MVVM中ViewModel可能完全负责模型，但这种关系有一些微妙之处值得注意。ViewModel可以公开模型或模型属性以进行数据绑定，并包含用于获取和操作视图中公开的属性的接口。
+- en: Pros and Cons
+  id: totrans-122
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 优缺点
+- en: We now hopefully have a better appreciation for what MVVM is and how it works.
+    Let’s review the advantages and disadvantages of employing this pattern.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们希望更好地理解MVVM是什么以及它如何工作。让我们回顾一下采用这种模式的优点和缺点。
+- en: Advantages
+  id: totrans-124
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 优点
+- en: MVVM facilitates easier parallel development of a UI and the building blocks
+    that power it.
+  id: totrans-125
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: MVVM促进了UI及其支持其的构建块的更容易并行开发。
+- en: MVVM abstracts the View and thus reduces the quantity of business logic (or
+    glue) required in the code behind it.
+  id: totrans-126
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: MVVM抽象了视图，因此减少了代码背后所需的业务逻辑（或粘合剂）的数量。
+- en: The ViewModel can be easier to unit test than in the case of event-driven code.
+  id: totrans-127
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 与事件驱动代码相比，ViewModel可能更容易进行单元测试。
+- en: The ViewModel (being more Model than View) can be tested without UI automation
+    and interaction concerns.
+  id: totrans-128
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: ViewModel（更像是模型而不是视图）可以在没有UI自动化和交互问题的情况下进行测试。
+- en: Disadvantages
+  id: totrans-129
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 缺点
+- en: For simpler UIs, MVVM can be overkill.
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对于较简单的UI，MVVM可能过于复杂。
+- en: While data bindings can be declarative and nice to work with, they can be harder
+    to debug than imperative code, where we simply set breakpoints.
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数据绑定可以是声明性的，易于使用，但在调试时可能比命令式代码更难，因为我们只是设置断点。
+- en: Data bindings in nontrivial applications can create a lot of bookkeeping. We
+    also don’t want to end up in a situation where bindings are heavier than the objects
+    being bound.
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在非平凡应用程序中，数据绑定可能会产生大量的簿记工作。我们也不希望陷入绑定比绑定的对象更重的情况。
+- en: In larger applications, it can be more challenging to design the ViewModel up-front
+    to get the necessary generalization.
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在更大的应用程序中，预先设计ViewModel以获取必要的泛化可能更具挑战性。
+- en: MVC Versus MVP Versus MVVM
+  id: totrans-134
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: MVC与MVP与MVVM的比较
+- en: Both MVP and MVVM are derivatives of MVC. The key difference between MVC and
+    its derivatives is the dependency each layer has on other layers and how tightly
+    bound they are to each other.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MVP和MVVM都是MVC的衍生物。MVC及其衍生物之间的关键区别在于每个层次对其他层次的依赖以及它们彼此之间的紧密绑定程度。
+- en: In MVC, the View sits on top of our architecture with the Controller beside
+    it. Models sit below the Controller, so our Views know about our Controllers,
+    and Controllers know about Models. Here, our Views have direct access to Models.
+    Exposing the complete Model to the View, however, may have security and performance
+    costs, depending on the complexity of our application. MVVM attempts to avoid
+    these issues.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在MVC中，视图位于架构的顶部，控制器在其旁边。模型位于控制器下方，因此我们的视图知道我们的控制器，控制器知道模型。在这里，我们的视图直接访问模型。但是，向视图公开完整的模型可能会根据应用程序的复杂性而带来安全性和性能成本。MVVM试图避免这些问题。
+- en: In MVP, the role of the Controller is replaced with a Presenter. Presenters
+    sit at the same level as Views, listening to events from both the View and Model
+    and mediating the actions between them. Unlike MVVM, there isn’t a mechanism for
+    binding Views to ViewModels, so we instead rely on each View implementing an interface
+    allowing the Presenter to interact with the View.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在MVP中，控制器的角色被Presenter取代。Presenter与视图处于同一级别，监听来自视图和模型的事件，并在它们之间进行中介操作。与MVVM不同，没有将视图绑定到视图模型的机制，因此我们依赖于每个视图实现一个接口，允许Presenter与视图交互。
+- en: MVVM consequently allows us to create View-specific subsets of a Model, which
+    can contain state and logic information, avoiding exposing the entire Model to
+    a View. Unlike MVP’s Presenter, a ViewModel is not required to reference a View.
+    The View can bind to properties on the ViewModel, in turn exposing data contained
+    in Models to the View. As we’ve mentioned, the abstraction of the View means there
+    is less logic required in the code behind it.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，MVVM允许我们创建视图特定的模型子集，其中可以包含状态和逻辑信息，避免将整个模型暴露给视图。与MVP的Presenter不同，ViewModel不需要引用视图。视图可以绑定到ViewModel中的属性，从而将模型中包含的数据暴露给视图。正如我们所提到的，视图的抽象意味着在其背后所需的逻辑更少。
+- en: 'However, one of the downsides to this is that a level of interpretation is
+    needed between the ViewModel and the View, which can have performance costs. The
+    complexity of this interpretation can also vary: it can be as simple as copying
+    data or as complex as manipulating it to a form we would like the View to see.
+    MVC doesn’t have this problem, as the whole Model is readily available, and such
+    manipulation can be avoided.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，这种方法的一个缺点是在 ViewModel 和 View 之间需要进行解释，这可能会带来性能成本。这种解释的复杂性也有所不同：它可以简单到复制数据，也可以复杂到将数据转换为视图所需的形式。MVC
+    没有这个问题，因为整个模型都是可用的，可以避免这种操作。
+- en: Modern MV* Patterns
+  id: totrans-140
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 现代 MV* 模式
+- en: Frameworks such as Backbone and KnockoutJS used initially to implement MVC and
+    MVVM are no longer popular or updated. They have made way for other libraries
+    and frameworks such as React, Vue.js, Angular, Solid, and many others. Understanding
+    architecture from a Backbone or KnockoutJS perspective may still be relevant because
+    it gives us a sense of where we came from and what changed with modern frameworks.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初期用于实现 MVC 和 MVVM 的 Backbone 和 KnockoutJS 等框架不再流行或更新。它们已为 React、Vue.js、Angular、Solid
+    等其他库和框架让路。从 Backbone 或 KnockoutJS 的角度理解架构仍然可能是相关的，因为它让我们了解我们来自何处，以及现代框架带来了哪些变化。
+- en: 'MV* patterns can always be implemented using the latest vanilla JavaScript
+    as illustrated by this example of a list: [ToDo list MVC application](https://oreil.ly/QVYPY).
+    However, developers generally prefer libraries and frameworks for building larger,
+    scalable applications.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MV* 模式始终可以使用最新的原生 JavaScript 实现，正如这个例子中展示的列表：[ToDo list MVC application](https://oreil.ly/QVYPY)。然而，开发者通常更倾向于使用库和框架来构建更大型、可扩展的应用程序。
+- en: Technically modern libraries and frameworks such as React or Vue.js form the
+    View or the presentation layer of applications. In most cases, the frameworks
+    are flexible about how you implement your Model and manage the state in your applications.
+    Vue officially claims to be the [ViewModel](https://oreil.ly/UqbVh) layer in MVVM.
+    Here are some additional thoughts on MV* in React.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 技术上讲，现代库和框架如 React 或 Vue.js 构成了应用程序的视图或表示层。在大多数情况下，这些框架对于如何实现模型和管理应用程序状态非常灵活。Vue
+    正式宣称自己是 MVVM 模式中的 [ViewModel](https://oreil.ly/UqbVh) 层。以下是关于 React 中 MV* 的一些额外思考。
+- en: MV* and React.js
+  id: totrans-144
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: MV* 和 React.js
+- en: To be very clear, React is not an MVC framework. It is a JavaScript library
+    for building UIs and is often used for creating SPAs.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很明显，React 不是一个 MVC 框架。它是一个用于构建 UI 的 JavaScript 库，并且通常用于创建单页面应用程序（SPA）。
+- en: React isn’t considered MVC because it doesn’t map well with how it has been
+    conceived and used on the backend. React is a rendering library that ideally takes
+    care of the View layer. It doesn’t have a central Controller as an orchestrator/router,
+    similar to MVC.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 之所以不被认为是 MVC，是因为它与在后端的概念和使用方式不太匹配。React 是一个渲染库，理想情况下负责视图层。它没有像 MVC 那样的中心控制器作为指挥官/路由器。
+- en: React follows a declarative approach to programming—you describe your application’s
+    desired state, and React renders the appropriate Views based on that state. You
+    don’t use React in an MVC design pattern simply because, with React, the server
+    does not provide a “View” to the browser but “data.” React parses the data on
+    the browser to generate the actual Views. In this sense, you could say that React
+    is a “V” (View) in the MVC pattern, but it is not an MVC framework in the traditional
+    sense.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React 遵循声明式编程方法——你描述应用程序的期望状态，React 根据该状态渲染适当的视图。React 不使用 MVC 设计模式，因为在 React
+    中，服务器不会向浏览器提供“视图”，而是“数据”。React 在浏览器上解析数据以生成实际的视图。从这个意义上说，你可以说 React 是 MVC 模式中的“V”（视图），但它并不是传统意义上的
+    MVC 框架。
+- en: 'Another way of looking at it is that React slices the MVC vertically (by concern)
+    instead of horizontally (by technology). You could say Components in React started
+    as small vertically sliced encapsulated MVCs: containing state (Model), rendering
+    (View), and control-flow logic (a localized mini-Controller).'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种看待它的方式是，React 在垂直（按关注点）而不是水平（按技术）方向上切分了 MVC。你可以说 React 中的组件最初是小型垂直切片的封装 MVC：包含状态（模型）、渲染（视图）和控制流逻辑（局部化的迷你控制器）。
+- en: These days, with a lot of component logic extracted into Hooks, you can see
+    Components as Views and Hooks as Controllers. You can also consider “Model ⇒ Suspense
+    resource, View ⇒ Component, Controller ⇒ Hook” if it helps, but don’t take it
+    too seriously.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些天，随着许多组件逻辑被提取到 Hooks 中，你可以将组件视为视图，将 Hooks 视为控制器。如果有帮助的话，你也可以考虑“模型 ⇒ 悬挂资源，视图
+    ⇒ 组件，控制器 ⇒ Hook”，但不要太认真对待。
+- en: Next.js is a framework built on top of React that makes it easy to construct
+    server-rendered React applications. It includes features such as automatic code
+    splitting, optimized performance, and easy deployment to production. Like React,
+    Next.js is not an MVC framework, but when you use server-side rendering (SSR)
+    or static site generators (SSGs), it can be like MVC. When Next.js acts as a backend,
+    interacting with a database and providing the View to prerender it, then yes,
+    it’s MVC that is hydrated afterward with the reactive functionalities.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 是建立在 React 之上的一个框架，使得构建服务器渲染的 React 应用程序变得容易。它包括诸如自动代码拆分、优化性能和便捷部署到生产环境等功能。与
+    React 一样，Next.js 并不是一个 MVC 框架，但当你使用服务器端渲染（SSR）或静态站点生成器（SSG）时，它可以像 MVC 一样工作。当 Next.js
+    作为后端运行，与数据库交互并提供视图进行预渲染时，它确实像 MVC 模式，之后再通过响应式功能进行激活。
+- en: Summary
+  id: totrans-151
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: We have now analyzed the concepts of Model, View, Controller, Presenter, and
+    ViewModel and where they fit in different architectural patterns. Today, we may
+    not see these patterns applied as-is on the frontend where JavaScript is most
+    relevant. However, they may help us figure out the overall architecture of the
+    web application. They may also be applied to individual frontend components where
+    the application sliced vertically may have multiple components, each with a ViewModel
+    or Model to power the View.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经分析了模型（Model）、视图（View）、控制器（Controller）、展示者（Presenter）和视图模型（ViewModel）的概念及其在不同架构模式中的适用性。今天，在
+    JavaScript 最相关的前端上，我们可能看不到这些模式直接应用。然而，它们可能帮助我们理清网页应用程序的整体架构。它们也可以应用于垂直切片的个别前端组件，每个组件都有一个视图模型或模型来支持视图。
+- en: By this point, we have now covered a good mix of patterns at the micro (class)
+    as well as macro (architecture) levels. The next chapter will help us design the
+    application flow for a modern JavaScript application. We will look at asynchronous
+    programming patterns that can help us better manage long-running tasks on browsers.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经涵盖了微观（类）和宏观（架构）级别的一系列模式。下一章将帮助我们为现代 JavaScript 应用程序设计应用程序流程。我们将探讨可以帮助我们更好地管理浏览器上长时间运行任务的异步编程模式。

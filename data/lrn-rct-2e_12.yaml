@@ -1,0 +1,962 @@
+- en: Chapter 12\. React and the Server
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第12章。React和服务器
+- en: So far, we’ve built small applications with React that run entirely in the browser.
+    They’ve collected data in the browser and saved the data using browser storage.
+    This makes sense because React is a view layer; it’s intended to render UI. However,
+    most applications require at least the existence of some sort of a backend, and
+    we will need to understand how to structure applications with a server in mind.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经用React构建了完全在浏览器中运行的小型应用程序。它们在浏览器中收集数据并使用浏览器存储保存数据。这是有道理的，因为React是一个视图层；它的目的是渲染UI。然而，大多数应用程序至少需要某种形式的后端存在，我们需要了解如何以服务器为重心来构建应用程序。
+- en: Even if you have a client application that’s relying entirely on cloud services
+    for the backend, you still need to get and send data to these services. There
+    are specific places where these transactions should be made and libraries that
+    can help you deal with the latency associated with HTTP requests.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使您的客户端应用程序完全依赖云服务作为后端，您仍然需要获取并发送数据到这些服务。应该在特定的地方进行这些交易，并且有助于处理与HTTP请求相关的延迟的库。
+- en: Additionally, React can be rendered *isomorphically*, which means that it can
+    be in platforms other than the browser. This means we can render our UI on the
+    server before it ever gets to the browser. Taking advantage of server rendering,
+    we can improve the performance, portability, and security of our applications.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，React可以*同构地*渲染，这意味着它可以在浏览器之外的平台上运行。这意味着我们可以在将UI发送到浏览器之前在服务器上呈现我们的UI。利用服务器渲染，我们可以提高应用程序的性能、可移植性和安全性。
+- en: We start this chapter with a look at the differences between isomorphism and
+    universalism and how both concepts relate to React. Next, we’ll look at how to
+    make an isomorphic application using universal JavaScript. Finally, we’ll improve
+    the color organizer by adding a server and rendering the UI on the server first.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们从比较同构和普遍主义的差异开始这一章，并探讨这两个概念如何与React相关联。接下来，我们将看看如何使用通用JavaScript制作同构应用程序。最后，我们将通过添加服务器并首先在服务器上呈现UI来改进颜色组织者。
+- en: Isomorphic Versus Universal
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 同构与通用的区别
+- en: The terms *isomorphic* and *universal* are often used to describe applications
+    that work on both the client and the server. Although these terms are used interchangeably
+    to describe the same application, there’s a subtle difference between them that’s
+    worth investigating. *Isomorphic* applications are applications that can be rendered
+    on multiple platforms. *Universal* code means that the exact same code can run
+    in multiple environments.^([1](ch12.html#idm45901614496952))
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*同构*和*通用*这两个术语经常用来描述在客户端和服务器上都可以工作的应用程序。尽管这些术语可以互换使用来描述同一应用程序，但它们之间有一个微妙的差别值得探讨。*同构*应用程序是可以在多个平台上渲染的应用程序。*通用*代码意味着完全相同的代码可以在多个环境中运行。^([1](ch12.html#idm45901614496952))'
+- en: 'Node.js will allow us to reuse the same code we’ve written in the browser in
+    other applications such as servers, CLIs, and even native applications. Let’s
+    take a look at some universal JavaScript:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Node.js将允许我们在其他应用程序（如服务器、CLI甚至原生应用程序）中重用我们在浏览器中编写的相同代码。让我们来看看一些通用的JavaScript：
+- en: '[PRE0]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: The `printNames` function is universal. The exact same code can be invoked in
+    the browser or on a server. This means that if we constructed a server with Node.js,
+    we could potentially reuse code between the two environments. Universal JavaScript
+    is JavaScript that can run on the server or in the browser without error (see
+    [Figure 12-1](#fig1201)).
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`printNames` 函数是通用的。完全相同的代码可以在浏览器或服务器上调用。这意味着如果我们使用Node.js构建服务器，我们可以在这两个环境之间重新使用代码。通用JavaScript是指可以在服务器或浏览器上运行而不出错的JavaScript（见[图 12-1](#fig1201)）。'
+- en: '![lrc2 1201](assets/lrc2_1201.png)'
+  id: totrans-10
+  prefs: []
+  type: TYPE_IMG
+  zh: '![lrc2 1201](assets/lrc2_1201.png)'
+- en: Figure 12-1\. Client and server domains
+  id: totrans-11
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图12-1。客户端和服务器域
+- en: Client and Server Domains
+  id: totrans-12
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 客户端和服务器域
+- en: 'The server and the client are completely different domains, so all of our JavaScript
+    code won’t automatically work between them. Let’s take a look at creating an AJAX
+    request with the browser:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务器和客户端是完全不同的领域，因此我们所有的JavaScript代码不会自动在它们之间工作。让我们看看如何在浏览器中创建AJAX请求：
+- en: '[PRE1]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Here, we’re making a fetch request to the GitHub API, converting the response
+    to JSON, then calling a function on the JSON results to parse it.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们正在向GitHub API发出fetch请求，将响应转换为JSON，然后在JSON结果上调用一个函数来解析它。
+- en: 'However, if we try to run the exact same code with Node.js, we get an error:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，如果我们尝试在Node.js中运行完全相同的代码，我们会得到一个错误：
+- en: '[PRE2]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'This error occurs because Node.js does not have a built-in `fetch` function
+    like the browser does. With Node.js, we can use `isomorphic-fetch` from npm, or
+    use the built-in `https` module. Since we’ve already used the `fetch` syntax,
+    let’s incorporate `isomorphic-fetch`:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个错误是因为Node.js没有像浏览器那样内置的`fetch`函数。在Node.js中，我们可以使用npm中的`isomorphic-fetch`，或者使用内置的`https`模块。由于我们已经使用了`fetch`语法，让我们集成`isomorphic-fetch`：
+- en: '[PRE3]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Then we’ll just import `isomorphic-fetch` with no changes to the code:'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们只需导入`isomorphic-fetch`，代码无需更改：
+- en: '[PRE4]'
+  id: totrans-21
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Loading data from an API with Node.js requires the use of core modules. It requires
+    different code. In these samples, the `userDetails` function is universal, so
+    the same function works in both environments.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用Node.js从API加载数据需要使用核心模块。这需要不同的代码。在这些示例中，`userDetails`函数是通用的，因此相同的函数可以在两种环境中使用。
+- en: This JavaScript file is now isomorphic. It contains universal JavaScript. All
+    of the code is not universal, but the file itself will work in both environments.
+    It can run it with Node.js or include it in a `<script>` tag in the browser.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此JavaScript文件现在是同构的。它包含通用的JavaScript。所有代码都不是通用的，但文件本身将在两种环境中工作。可以在Node.js中运行它，或者将其包含在浏览器的`<script>`标签中。
+- en: Let’s take a look at the `Star` component. Is this component universal?
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看`Star`组件。这个组件是通用的吗？
+- en: '[PRE5]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Sure it is; remember, the JSX compiles to JavaScript. The `Star` component
+    is simply a function:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然可以；记住，JSX编译为JavaScript。`Star`组件只是一个简单的函数：
+- en: '[PRE6]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'We can render this component directly in the browser, or render it in a different
+    environment and capture the HTML output as a string. `ReactDOM` has a `renderToString`
+    method that we can use to render UI to an HTML string:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以直接在浏览器中渲染此组件，或者在不同的环境中渲染并捕获HTML输出为字符串。`ReactDOM`有一个`renderToString`方法，我们可以用它来将UI渲染为HTML字符串：
+- en: '[PRE7]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: We can build isomorphic applications that render components on different platforms,
+    and we can architect these applications in a way that reuses JavaScript code universally
+    across multiple environments. Additionally, we can build isomorphic applications
+    using other languages such as Go or Python—we’re not restricted to Node.js.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以构建同构应用程序，在不同平台上渲染组件，并且可以以一种方式设计这些应用程序，以便在多个环境中重用JavaScript代码。此外，我们还可以使用其他语言（如Go或Python）来构建同构应用程序——我们不限于Node.js。
+- en: Server Rendering React
+  id: totrans-31
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 服务器端渲染React
+- en: Using the `ReactDOM.renderToString` method allows us to render UI on the server.
+    Servers are powerful; they have access to all kinds of resources that browsers
+    do not. Servers can be secure and access secure data. You can use all of these
+    added benefits to your advantage by rendering initial content on the server.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`ReactDOM.renderToString`方法允许我们在服务器上渲染UI。服务器功能强大，可以访问各种浏览器无法访问的资源。服务器可以安全地访问并获取安全数据。通过在服务器上首次渲染初始内容，可以利用所有这些额外的优势。
+- en: 'The app we’ll server render is our Recipes app that we built in [Chapter 5](ch05.html#react-with-jsx).
+    You can run Create React App and place this code over the contents of the *index.js*
+    file:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将要服务端渲染的应用程序是我们在[第5章](ch05.html#react-with-jsx)中构建的Recipes应用程序。你可以运行Create
+    React App并将此代码放置在*index.js*文件的内容之上：
+- en: '[PRE8]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'The components will live in a new file called *Menu.js*:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些组件将存放在一个名为*Menu.js*的新文件中：
+- en: '[PRE9]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Throughout the book, we’ve rendered components on the client. Client-side rendering
+    is typically the first approach we’ll use when building an app. We serve up the
+    Create React App *build* folder, and the browser runs the HTML and makes calls
+    to the *script.js* file to load any JavaScript.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在整本书中，我们在客户端渲染了组件。客户端渲染通常是构建应用程序时我们会首先使用的方法。我们提供Create React App的*build*文件夹，浏览器运行HTML并调用*script.js*文件以加载任何JavaScript。
+- en: Doing this can be time consuming. The user might have to wait to see anything
+    load for a few seconds depending on their network speed. Using Create React App
+    with an Express server, we can create a hybrid experience of client- and server-side
+    rendering.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样做可能会耗费时间。用户可能需要等待几秒钟才能看到任何加载，这取决于他们的网络速度。使用带有Express服务器的Create React App，我们可以创建客户端和服务器端渲染的混合体验。
+- en: We’re rendering a `Menu` component that renders several recipes. The first change
+    we’ll make to this app is to use `ReactDOM.hydrate` instead of `ReactDOM.render`.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在渲染一个`Menu`组件，用于显示几个菜谱。这个应用程序的第一个变更是使用`ReactDOM.hydrate`而不是`ReactDOM.render`。
+- en: 'These two functions are the same except `hydrate` is used to add content to
+    a container that was rendered by `ReactDOMServer`. The order of operations will
+    look like this:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两个函数相同，除了使用`hydrate`将内容添加到由`ReactDOMServer`渲染的容器中。操作顺序如下所示：
+- en: Render a static version of the app, allowing users to see that something has
+    happened and the page has “loaded.”
+  id: totrans-41
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 渲染应用程序的静态版本，允许用户看到发生了某些事情并且页面已经“加载”。
+- en: Make the request for the dynamic JavaScript.
+  id: totrans-42
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 发出对动态 JavaScript 的请求。
+- en: Replace the static content with the dynamic content.
+  id: totrans-43
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用动态内容替换静态内容。
+- en: User clicks on something and it works.
+  id: totrans-44
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 用户点击某物并且它起作用。
+- en: We’re rehydrating the app after a server-side render. By rehydrate, we mean
+    statically loading the content as static HTML and then loading the JavaScript.
+    This allows users to experience perceived performance. They’ll see that something
+    is happening on the page, and that makes them want to stay on the page.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们正在对服务器端渲染后的应用程序进行重新水合作。通过重新水合作，我们指的是将内容静态加载为静态 HTML，然后加载 JavaScript。这允许用户体验到感知性能。他们将看到页面上正在发生的事情，这使他们希望留在页面上。
+- en: 'Next, we need to set up our project’s server, and we’ll use Express, a lightweight
+    Node server. Install it first:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们需要设置项目的服务器，我们将使用 Express，一个轻量级的 Node 服务器。首先安装它：
+- en: '[PRE10]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Then we’ll create a server folder called *server* and create an *index.js*
+    file inside of that. This file will build a server that will serve up the *build*
+    folder but also preload some static HTML content:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们将创建一个名为 *server* 的服务器文件夹，并在其中创建一个名为 *index.js* 的文件。此文件将构建一个服务器，将提供 *build*
+    文件夹，但还将预加载一些静态 HTML 内容：
+- en: '[PRE11]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'This imports and statically serves the *build* folder. Next, we want to use
+    `renderToString` from `ReactDOM` to render the app as a static HTML string:'
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会导入并静态提供 *build* 文件夹。接下来，我们想要使用 `ReactDOM` 中的 `renderToString` 将应用程序呈现为静态 HTML
+    字符串：
+- en: '[PRE12]'
+  id: totrans-51
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'We’ll pass the `Menu` component to this function because that’s what we want
+    to render statically. We then want to read the static *index.html* file from the
+    built client app, inject the app’s content in the `div`, and send that as the
+    response to the request:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将把 `Menu` 组件传递给此函数，因为这是我们想要静态渲染的内容。然后，我们想要从构建的客户端应用程序中读取静态 *index.html* 文件，将应用程序的内容注入到
+    `div` 中，并将其作为响应发送给请求：
+- en: '[PRE13]'
+  id: totrans-53
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Once we’ve completed this, we’ll need to do some configuration with webpack
+    and Babel. Remember, Create React App can take care of compiling and building
+    out of the box, but we need to set up and enforce different rules with the server
+    project.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完成后，我们需要对 webpack 和 Babel 进行一些配置。请记住，Create React App 可以处理编译和构建，但我们需要在服务器项目中设置和强制执行不同的规则。
+- en: 'Start by installing a few dependencies (OK, a lot of dependencies):'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先安装一些依赖项（好的，很多依赖项）：
+- en: '[PRE14]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'With Babel installed, let’s create a `.babelrc` with some presets:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装了 Babel 后，让我们创建一个包含一些预设的 `.babelrc`：
+- en: '[PRE15]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: You’ll add `react-app` because the project uses Create React App, and it has
+    already been installed.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将添加 `react-app` 因为项目使用了 Create React App，并且已经安装好了。
+- en: 'Next, add a webpack configuration file for the server called *webpack.server.js*:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，添加一个名为 *webpack.server.js* 的服务器 webpack 配置文件：
+- en: '[PRE16]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: The babel-loader will transform JavaScript files as expected, and `nodeExternals`
+    will scan the *node_modules* folder for all `node_modules` names. Then, it will
+    build an external function that tells webpack not to bundle those modules or any
+    submodules.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: babel-loader 会按预期转换 JavaScript 文件，并且 `nodeExternals` 会扫描 *node_modules* 文件夹中所有
+    `node_modules` 名称。然后，它将构建一个外部函数，告诉 webpack 不要捆绑这些模块或任何子模块。
+- en: 'Also, you might run into a webpack error due to a version conflict between
+    the version you’ve installed with Create React App and the version we just installed.
+    To fix the conflict, just add a *.env* file to the root of the project and add:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，您可能会遇到 webpack 错误，因为安装的版本与 Create React App 安装的版本之间存在冲突。要解决冲突，只需在项目的根目录添加一个
+    *.env* 文件，并添加以下内容：
+- en: '[PRE17]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Finally, we can add a few extra npm scripts to run our dev commands:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以添加几个额外的 npm 脚本来运行我们的开发命令：
+- en: '[PRE18]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '`dev:build-server`: Passes `development` as an environment variable and runs
+    `webpack` with the new server config.'
+  id: totrans-67
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`dev:build-server`: 将 `development` 作为环境变量传递，并使用新的服务器配置运行 `webpack`。'
+- en: '`dev:start`: Runs the server file with `nodemon`, which will listen for any
+    changes.'
+  id: totrans-68
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`dev:start`: 使用 `nodemon` 运行服务器文件，它将监听任何更改。'
+- en: '`dev`: Runs both processes in parallel.'
+  id: totrans-69
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`dev`: 并行运行两个进程。'
+- en: Now when we run `npm run dev`, both of the processes will run. You should be
+    able to see the app running on `localhost:4000`. When the app runs, the content
+    will load in sequence, first as prerendered HTML and then with the JavaScript
+    bundle.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当我们运行 `npm run dev` 时，这两个进程都会运行。您应该能够在 `localhost:4000` 上看到应用程序正在运行。当应用程序运行时，内容将按顺序加载，首先作为预渲染的
+    HTML，然后加载 JavaScript 打包文件。
+- en: Using a technique like this can mean faster load times and will yield a boost
+    in perceived performance. With users expecting page-load times of two seconds
+    or less, any improved performance can mean the difference between users using
+    your website or bouncing to a competitor.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这样的技术可以意味着更快的加载时间，并将提升用户的感知性能。用户期望页面加载时间在两秒或更短，任何性能改进都可能意味着用户选择使用您的网站还是跳转到竞争对手。
+- en: Server Rendering with Next.js
+  id: totrans-72
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用Next.js进行服务器渲染
+- en: Another powerful and widely used tool in the server rendering ecosystem is Next.js.
+    Next is an open source technology that was released by Zeit to help engineers
+    write server-rendered apps more easily. This includes features for intuitive routing,
+    statically optimizing, automatic splitting, and more. In the next section, we’ll
+    take a closer look at how to work with Next.js to enable server rendering in our
+    app.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个在服务器渲染生态系统中强大且广泛使用的工具是Next.js。Next是由Zeit发布的开源技术，旨在帮助工程师更轻松地编写服务器渲染的应用程序。这包括直观的路由功能、静态优化、自动分割等特性。在下一节中，我们将更详细地介绍如何使用Next.js在我们的应用程序中启用服务器渲染。
+- en: 'To start, we’ll create a whole new project, running the following commands:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将创建一个全新的项目，运行以下命令：
+- en: '[PRE19]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Then we’ll create some npm scripts to run common commands more easily:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将创建一些npm脚本，以便更轻松地运行常见命令：
+- en: '[PRE20]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'In the *pages* folder, we’ll create an *index.js* file. We’ll write our component,
+    but we won’t worry about importing React or ReactDOM. Instead, we’ll just write
+    a component:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*pages*文件夹中，我们将创建一个*index.js*文件。我们将编写我们的组件，但不用担心导入React或ReactDOM。相反，我们只需编写一个组件：
+- en: '[PRE21]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Once we’ve created this, we can run `npm run dev` to see the page running on
+    `localhost:3000`. It displays the expected component.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们创建了这个，我们可以运行`npm run dev`来查看页面运行在`localhost:3000`。它将显示预期的组件。
+- en: You’ll also notice there’s a small lightning bolt icon in the lower righthand
+    corner of the screen. Hovering over this will display a button that reads `Prerendered
+    Page`. When you click on it, it will take you to documentation about the Static
+    Optimization Indicator. This means that the page fits the criteria for automatic
+    static optimization, meaning that it can be prerendered. There are no data requirements
+    that block it. If a page is automatically statically optimized (a mouthful, but
+    useful!), the page is faster to load because there’s no server-side effort needed.
+    The page can be streamed from a CDN, yielding a super-fast user experience. You
+    don’t have to do anything to pick up on this performance enhancement.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你还会注意到屏幕右下角有一个小闪电符号。将鼠标悬停在上面将显示一个按钮，上面写着`Prerendered Page`。点击它将带您进入关于静态优化指示器的文档。这意味着页面符合自动静态优化的标准，即可以预渲染。没有数据需求会阻塞它。如果页面自动静态优化（这听起来有点复杂，但非常实用！），加载速度更快，因为不需要服务器端的工作。页面可以从CDN流式传输，提供超快的用户体验。您不必做任何操作即可获得这种性能增强。
+- en: 'What if the page does have data requirements? What if the page cannot be prerendered?
+    To explore this, let’s make our app a bit more robust and build toward a component
+    that fetches some remote data from an API. In a new file called *Pets.js*:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果页面确实有数据需求怎么办？如果页面无法预渲染怎么办？为了探讨这个问题，让我们将我们的应用程序变得更加健壮，并构建一个组件，从API获取一些远程数据。在一个名为*Pets.js*的新文件中：
+- en: '[PRE22]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'To start, we’ll render an `h1`. Now we can visit `localhost:3000/pets` to see
+    that our page is now loaded on that route. That’s good, but we can improve this
+    by adding links and a layout component that will display the correct content for
+    each page. We’ll create a header that can be used on both pages and will display
+    links:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将渲染一个`h1`。现在我们可以访问`localhost:3000/pets`，看到我们的页面现在加载在那个路由上。这很好，但我们可以通过添加链接和布局组件来改进这一点，该组件将显示每个页面的正确内容。我们将创建一个可以在两个页面上使用的头部，并显示链接：
+- en: '[PRE23]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'The `Link` component is a wrapper around a couple of links. These look similar
+    to the links we created with React Router. We can also add a style to each of
+    the `<a>` tags:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Link`组件是一种包装器，围绕着一些链接。这些看起来类似于我们使用React Router创建的链接。我们还可以为每个`<a>`标签添加样式：'
+- en: '[PRE24]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: 'Next, we’ll incorporate the `Header` component into a new file called *Layout.js*.
+    This will dynamically display the component based on the correct route:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们将把`Header`组件整合到一个名为*Layout.js*的新文件中。这将根据正确的路由动态显示组件：
+- en: '[PRE25]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'The `Layout` component will take in props and display any additional content
+    in the component underneath the `Header`. Then in each page, we can create content
+    blocks that can be passed to the `Layout` component when rendered. For example,
+    the *index.js* file would now look like this:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Layout` 组件将接收 props 并在组件下方显示任何额外的内容在 `Header` 下方。然后，在每个页面中，当渲染时可以创建可以传递给 `Layout`
+    组件的内容块。例如，*index.js* 文件现在看起来是这样的：'
+- en: '[PRE26]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: 'We’ll do the same in the *Pets.js* file:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将在 *Pets.js* 文件中执行相同的操作：
+- en: '[PRE27]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Now if we visit the homepage, we should see the header, then when we click the
+    `Pets` link, we should see the Pets page.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们访问首页，我们应该看到页眉，然后当我们点击 `Pets` 链接时，我们应该看到 Pets 页面。
+- en: When we click on the lightning bolt button in the lower righthand corner, we’ll
+    notice that these pages are still being prerendered. This is to be expected as
+    we continue to render static content. Let’s use the Pets page to load some data
+    and see how this changes.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们点击右下角的闪电按钮时，我们会注意到这些页面仍在预渲染。这是可以预期的，因为我们继续渲染静态内容。让我们使用 Pets 页面加载一些数据，看看这如何改变。
+- en: 'To start, we’ll install `isomorphic-unfetch` like we did earlier in the chapter:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将像在本章开头那样安装 `isomorphic-unfetch`：
+- en: '[PRE28]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'We’ll use this to make a fetch call to the Pet Library API. Start by importing
+    it in the *Pages.js* file:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用此功能从 Pet Library API 进行获取调用。首先，在 *Pages.js* 文件中导入它：
+- en: '[PRE29]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'Then we’re going to add a function called `getInitialProps`. This will handle
+    fetching and loading the data:'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将添加一个名为 `getInitialProps` 的函数。这将处理获取和加载数据：
+- en: '[PRE30]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: When we return the data as the value for `pets`, we then can map over the data
+    in the component.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们将数据作为 `pets` 的值返回时，我们可以在组件中对数据进行映射。
+- en: 'Adjust the component to map over the `pets` property:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调整组件以映射 `pets` 属性：
+- en: '[PRE31]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: If `getInitialProps` is present in the component, Next.js will render the page
+    in response to each request. This means that the page will be server-side rendered
+    instead of statically prerendered, so the data from the API will be current on
+    each request.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果组件中存在 `getInitialProps`，Next.js 将根据每个请求渲染页面。这意味着页面将以服务器端渲染的方式呈现，而不是静态预渲染，因此每个请求都将使用
+    API 中的最新数据。
+- en: Once we’re satisfied with the state of the application, we can run a build with
+    `npm run build`. Next.js is concerned with performance, so it will give us a full
+    rundown of the number of kilobytes present for each file. This is a quick spot-check
+    for unusually large files.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们对应用程序的状态感到满意，我们可以使用 `npm run build` 运行构建。Next.js 关注性能，因此它将为我们每个文件的存在的千字节数提供完整的详细信息。这是对异常大文件的快速检查。
+- en: Next to each file, we’ll see an icon for whether a site is server-rendered at
+    runtime (λ), automatically rendered as HTML (○), or automatically generated as
+    static HTML + JSON (●).
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每个文件旁边，我们将看到一个图标，指示站点在运行时是否是服务器端渲染（λ），自动呈现为 HTML（○），或自动生成为静态 HTML + JSON（●）。
+- en: Once you’ve built the app, you can deploy it. Next.js is an open source product
+    of Zeit, a cloud-hosting provider, so the experience of deploying with Zeit is
+    the most straightforward. However, you can use many different hosting providers
+    to deploy your application.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您构建了应用程序，您可以部署它。Next.js 是 Zeit 的开源产品，一个云托管提供商，因此使用 Zeit 进行部署的体验是最直接的。但是，您可以使用许多不同的托管提供商来部署您的应用程序。
+- en: 'To recap, there are some important bits of terminology that are important to
+    understand when setting out to build your own apps:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总结一下，在开始构建自己的应用程序时，理解一些重要的术语是很重要的：
+- en: CSR (client-side rendering)
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSR（客户端端渲染）
+- en: Rendering an app in a browser, generally using the DOM. This is what we do with
+    an unmodified Create React App.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在浏览器中呈现应用程序，通常使用 DOM。这就是我们在未修改的 Create React App 中所做的事情。
+- en: SSR (server-side rendering)
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: SSR（服务器端渲染）
+- en: Rendering a client-side or universal app to HTML on the server.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将客户端或通用应用程序呈现为服务器上的 HTML。
+- en: Rehydration
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再水合作用
+- en: Loading JavaScript views on the client to reuse the server-rendered HTML’s DOM
+    tree and data.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在客户端加载 JavaScript 视图以重用服务器渲染的 HTML 的 DOM 树和数据。
+- en: Prerendering
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 预渲染
+- en: Running a client-side application at build time and capturing initial state
+    as static HTML.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在构建时运行客户端应用程序并捕获静态 HTML 的初始状态。
+- en: Gatsby
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Gatsby
+- en: Another popular site generator that’s based on React is Gatsby. Gatsby is taking
+    over the world as a straightforward way to create a content-driven website. It
+    aims to offer smarter defaults to manage concerns like performance, accessibility,
+    image handling, and more. And if you’re reading this book, it’s likely that you
+    might work on a Gatsby project at some point!
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个基于React的流行站点生成器是Gatsby。 Gatsby作为创建内容驱动网站的简单方式正在全球流行。 它旨在提供更智能的默认设置来管理性能、可访问性、图像处理等问题。
+    如果你正在阅读这本书，很可能在某个时候你会参与一个Gatsby项目！
+- en: Gatsby is used for a range of projects, but it’s often used to build content-driven
+    websites. In other words, if you have a blog or static content, Gatsby is a great
+    choice, particularly now that you know React. Gatsby can also handle dynamic content
+    like loading data from APIs, integration with frameworks, and more.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Gatsby用于各种项目，但通常用于构建内容驱动的网站。 换句话说，如果你有一个博客或静态内容，Gatsby是一个很好的选择，特别是现在你了解了React。
+    Gatsby还可以处理来自API的动态内容、与框架的集成等。
+- en: 'In this section, we’ll start building a quick Gatsby site to demonstrate how
+    it works. Essentially, we’ll build our small Next.js app as a Gatsby app:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我们将开始构建一个快速的Gatsby站点来演示其工作原理。 基本上，我们将构建我们的小型Next.js应用作为一个Gatsby应用程序：
+- en: '[PRE32]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'If you have yarn installed globally, the CLI will ask you whether to use yarn
+    or npm. Either is fine. Then you’ll change directory into the *pets* folder:'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你全局安装了yarn，命令行界面会询问你是否使用yarn还是npm。 两者都可以。 然后你会进入*pets*文件夹：
+- en: '[PRE33]'
+  id: totrans-124
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Now you can start the project with `gatsby develop`. When you visit `localhost:8000`,
+    you’ll see your Gatsby starter site running. Now you can take a tour of the files.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你可以使用`gatsby develop`启动项目。 当你访问`localhost:8000`时，你将看到你的Gatsby起始站点正在运行。 现在你可以开始浏览文件。
+- en: 'If you open up the project’s *src* folder, you’ll see three subfolders: *components*,
+    *images*, and *pages*.'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你打开项目的*src*文件夹，你会看到三个子文件夹：*components*、*images*和*pages*。
+- en: Within the *pages* folder, you’ll find a *404.js* error page, an *index.js*
+    page (the page that renders when you visit `localhost:8000`), and a *page-2.js*
+    that renders the content of the second page.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*pages*文件夹内，你会找到一个*404.js*错误页面，一个*index.js*页面（访问`localhost:8000`时渲染的页面），以及一个*page-2.js*，用于呈现第二页的内容。
+- en: If you visit the *components* folder, this where the magic of Gatsby is located.
+    Remember when we built the `Header` and `Layout` components with Next.js? Both
+    of these components are already created as templates in the *components* folder.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你访问*components*文件夹，这就是Gatsby的魔力所在。 还记得我们在Next.js中构建了`Header`和`Layout`组件吗？
+    这两个组件已经作为模板在*components*文件夹中创建了。
+- en: 'A few particularly interesting things to note:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一些特别有趣的事情需要注意：
+- en: '*layout.js*'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*layout.js*'
+- en: This contains the `Layout` component. It uses the `useStaticQuery` hook to query
+    some data about the site using GraphQL.
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这包含了`Layout`组件。 它使用`useStaticQuery`钩子来通过GraphQL查询关于站点的一些数据。
+- en: '*seo.js*'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*seo.js*'
+- en: This component lets us access the page’s metadata for search engine optimization
+    purposes.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个组件让我们能够访问页面的元数据，用于搜索引擎优化。
+- en: 'If you add additional pages to the *pages* folder, this will add additional
+    pages to your site. Let’s try it and add a *page-3.js* file to the *pages* folder.
+    Then we’ll add the following code to that file to stand up a quick page:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你向*pages*文件夹添加额外的页面，这将在你的站点上添加额外的页面。让我们试试，在*pages*文件夹中添加一个*page-3.js*文件。然后我们将在该文件中添加以下代码来快速创建一个页面：
+- en: '[PRE34]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: We’ll use the `Layout` component to wrap the content so that it’s displayed
+    as `children`. Not only does `Layout` display the dynamic content, but as soon
+    as we create it, the page is autogenerated.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将使用`Layout`组件来包装内容，以便它显示为`children`。 `Layout`不仅显示动态内容，而且一旦我们创建它，页面就会自动生成。
+- en: 'That’s the tip of the iceberg with what you can do with Gatsby, but we’ll leave
+    you with some information about some of its additional features:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这只是你可以使用Gatsby做的一小部分，但我们会为你留下一些关于其额外功能的信息：
+- en: Static content
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态内容
+- en: You can build your site as static files, which can be deployed without a server.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以将站点构建为静态文件，这些文件可以在没有服务器的情况下部署。
+- en: CDN support
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CDN支持
+- en: It’s possible to cache your site on CDNs all over the world to improve performance
+    and availability.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以将你的站点缓存在全球各地的CDN上，以提高性能和可用性。
+- en: Responsive and progressive images
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 响应式和渐进式图像
+- en: Gatsby loads images as blurry placeholders, then fades in the full assets. This
+    tactic, popularized by Medium, allows users to see something rendering before
+    the full resource is available.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Gatsby将图像加载为模糊的占位符，然后淡入完整的资源。这种策略，由Medium推广，允许用户在完整资源可用之前看到正在渲染的内容。
+- en: Prefetching of linked pages
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 预取链接页面
+- en: All of the content needed to load the next page will load in the background
+    before you click on the next link.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你点击下一个链接之前，加载下一页所需的所有内容将在后台加载。
+- en: All of these features and more are used to ensure a seamless user experience.
+    Gatsby has made a lot of decisions for you. That could be good or bad, but these
+    constraints aim to let you focus on your content.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有这些功能和更多功能都用于确保无缝的用户体验。Gatsby已经为你做出了许多决定。这可能是好事或坏事，但这些限制旨在让你专注于你的内容。
+- en: React in the Future
+  id: totrans-147
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 未来的React
+- en: While Angular, Ember, and Vue continue to have substantial marketshare in the
+    JavaScript ecosystem, it’s hard to argue with the fact that React is currently
+    the most widely used and influential library for building JavaScript apps. In
+    addition to the library itself, the wider JavaScript community, as evidenced particularly
+    by Next.js and Gatsby, has embraced React as the tool of choice.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管Angular、Ember和Vue在JavaScript生态系统中仍然拥有大量市场份额，但很难否认React目前是构建JavaScript应用程序最广泛使用和具有影响力的库。除了库本身，更广泛的JavaScript社区，特别是通过Next.js和Gatsby所体现的，已经将React作为首选工具。
+- en: So where do we go from here? We’d encourage you to use these skills to build
+    your own projects. If you’re looking to build mobile applications, you can check
+    out React Native. If you’re looking to declaratively fetch data, you can check
+    out GraphQL. If you’re looking to build content-based websites, dig deeper into
+    Next.js and Gatsby.
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么我们接下来该怎么做呢？我们鼓励你利用这些技能来构建自己的项目。如果你想要构建移动应用程序，可以尝试使用React Native。如果你想要声明式地获取数据，可以尝试使用GraphQL。如果你想要构建基于内容的网站，可以深入了解Next.js和Gatsby。
+- en: There are a number of avenues you can travel down, but these skills you’ve picked
+    up in React will serve you well as you set out to build your own applications.
+    When you’re doing so, we hope that this book will serve as a reference and a foundation.
+    Although React and its related libraries will almost certainly go through changes,
+    these are stable tools that you can feel confident about using right away. Building
+    apps with React and functional, declarative JavaScript is a lot of fun, and we
+    can’t wait to see what you’ll build.
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以选择多种途径，但是你在React中掌握的这些技能将在你着手构建自己的应用程序时发挥作用。在这个过程中，我们希望这本书能成为你的参考和基础。尽管React及其相关库几乎肯定会发生变化，但这些是你可以立即放心使用的稳定工具。使用React和功能性、声明式JavaScript构建应用程序非常有趣，我们迫不及待地想看到你将会构建什么。
+- en: ^([1](ch12.html#idm45901614496952-marker)) Gert Hengeveld, [“Isomorphism vs
+    Universal JavaScript”](https://oreil.ly/i70W2), Medium.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch12.html#idm45901614496952-marker)) Gert Hengeveld，[“同构 vs 通用 JavaScript”](https://oreil.ly/i70W2)，Medium。

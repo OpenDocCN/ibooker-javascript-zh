@@ -1,0 +1,772 @@
+- en: Chapter 14\. Working with Apollo Client
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 14 章。使用 Apollo Client
+- en: 'I remember my first internet connection vividly. My computer’s modem would
+    dial in to a local number connected to my internet service provider (ISP), setting
+    me free on the web. As magical as this felt at the time, it is a far cry from
+    the instant, always-on connections that we use today. Here’s what the process
+    looked like:'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我清楚地记得我的第一个互联网连接。我的计算机调制解调器会拨打连接到我的互联网服务提供商（ISP）的本地号码，让我自由地访问网络。尽管当时这种感觉很神奇，但与我们今天使用的即时、始终在线的连接方式相比，有很大的不同。以下是该过程的步骤：
+- en: Sit down at my computer and open the ISP software.
+  id: totrans-2
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 坐在我的电脑前，打开 ISP 软件。
+- en: Click Connect, and wait for the modem to dial the number.
+  id: totrans-3
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 点击连接，等待调制解调器拨号连接号码。
+- en: If the connection is successful, hear the glorious “modem sounds.” If not, such
+    as during peak hours when the lines may be overloaded and busy, try again.
+  id: totrans-4
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 如果连接成功，听到那美妙的“调制解调器声音”。如果没有，例如在高峰时段电话线可能过载和忙碌时，再试一次。
+- en: Once connected, receive a success notification and browse the web in all of
+    its GIF-filled 90s glory.
+  id: totrans-5
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 连接成功后，将接收到成功通知，并且沉浸在所有带有 GIF 的 90 年代辉煌的网络中。
+- en: 'This cycle may seem arduous, but it still represents the way in which services
+    speak to each other: they request a connection, make that connection, send a request,
+    and get something back in return. Our client applications will work in the same
+    manner. We will first make a connection to our server API application and, if
+    successful, make requests to that server.'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个过程可能看起来很艰苦，但它仍然代表了服务之间交流的方式：它们请求连接，建立连接，发送请求，然后得到返回的东西。我们的客户端应用程序将以相同的方式工作。我们将首先连接到我们的服务器
+    API 应用程序，如果成功，将向该服务器发出请求。
+- en: In this chapter, we’ll use Apollo Client to connect to our API. Once we’ve connected,
+    we’ll write a GraphQL query, which will be used to display data on a page. We’ll
+    also introduce pagination, both within an API query and in our interface components.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将使用 Apollo Client 来连接我们的 API。一旦连接成功，我们将编写一个 GraphQL 查询，用于在页面上显示数据。我们还将介绍分页，既在
+    API 查询中，也在我们的界面组件中。
+- en: Running the API Locally
+  id: totrans-8
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 本地运行 API
+- en: The development of our web client application will require access to a local
+    instance of our API. If you’ve been following along with the book, you may already
+    have the Notedly API and its database up and running on your machine. If not,
+    I’ve added instructions to [Appendix A](app01.html#appendix-api) on how to get
+    a copy of the API up and running along with some sample data. If you already have
+    the API running, but would like some additional data to work with, run `npm run
+    seed` from the root of the API project directory.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 Web 客户端应用程序的开发需要访问本地的 API 实例。如果您一直在跟着本书进行学习，您可能已经在您的机器上运行了 Notedly API 和其数据库。如果没有，我已经在
+    [附录 A](app01.html#appendix-api) 中添加了如何获取 API 的副本以及一些示例数据的说明。如果您已经运行了 API，但希望获得一些额外的数据来进行操作，请在
+    API 项目目录的根目录中运行 `npm run seed`。
+- en: Setting Up Apollo Client
+  id: totrans-10
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 设置 Apollo Client
+- en: Much like Apollo Server, Apollo Client offers a number of helpful features to
+    simplify working with GraphQL within JavaScript UI applications. Apollo Client
+    provides libraries for connecting a web client to an API, local caching, GraphQL
+    syntax, local state management, and more. We’ll also be using Apollo Client with
+    a React application, but Apollo also offers libraries for Vue, Angular, Meteor,
+    Ember, and Web Components.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与 Apollo Server 类似，Apollo Client 提供了许多有用的功能，以简化 JavaScript UI 应用程序中使用 GraphQL
+    的工作。Apollo Client 提供了连接 Web 客户端到 API 的库、本地缓存、GraphQL 语法、本地状态管理等功能。我们还将在 React
+    应用程序中使用 Apollo Client，但 Apollo 还为 Vue、Angular、Meteor、Ember 和 Web 组件提供了库。
+- en: 'First, we’ll want to ensure that our *.env* file contains a reference to our
+    local API URI. This will allow us to use our local API instance in development,
+    while pointing to our product API when we release our application to a public
+    web server. In our *.env* file, we should have a `API_URI` variable with our local
+    API server’s address:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们要确保我们的 *.env* 文件包含对我们本地 API URI 的引用。这将允许我们在开发中使用我们的本地 API 实例，同时在发布应用程序到公共
+    Web 服务器时指向我们的产品 API。在我们的 *.env* 文件中，我们应该有一个名为 `API_URI` 的变量，其值是我们本地 API 服务器的地址：
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Our code bundler, Parcel, is configured to automatically work with *.env* files.
+    Any time we want to reference an *.env* variable in our code, we can use `process.``env.`*`VARIABLE_NAME`*.
+    This will allow us to use unique values in local development, production, and
+    any other environment that we may need (such as staging or continuous integration).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的代码打包工具 Parcel 配置为自动处理 *.env* 文件。每当我们在代码中引用 *.env* 变量时，我们可以使用 `process.env.VARIABLE_NAME`。这将允许我们在本地开发、生产和任何其他环境（如分段或持续集成）中使用唯一的值。
+- en: 'With the address stored in an environment variable, we are ready to connect
+    our web client to our API server. Working in our *src/App.js* file, first we need
+    to import the Apollo packages that we’ll be using:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将地址存储在环境变量中后，我们可以连接我们的 Web 客户端到我们的 API 服务器。在我们的 *src/App.js* 文件中，首先我们需要导入我们将要使用的
+    Apollo 包：
+- en: '[PRE1]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'With these imported, we can configure a new Apollo Client instance, passing
+    it the API URI, initiating the cache, and enabling the use of the local Apollo
+    developer tools:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 导入这些后，我们可以配置一个新的 Apollo Client 实例，传递 API URI，初始化缓存，并启用本地 Apollo 开发工具的使用：
+- en: '[PRE2]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'Finally, we can connect our React application to our Apollo Client by wrapping
+    it in an `ApolloProvider`. We’ll replace our empty `<div>` tags with `<ApolloProvider>`
+    and include our client as a connection:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以通过将其包装在 `ApolloProvider` 中来将我们的 React 应用程序连接到我们的 Apollo Client。我们将空的
+    `<div>` 标签替换为 `<ApolloProvider>`，并包括我们的客户端作为连接：
+- en: '[PRE3]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Overall, our *src/App.js* file will now look as follows:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总体而言，我们的 *src/App.js* 文件现在将如下所示：
+- en: '[PRE4]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: With our client connected to our API server, we can now integrate GraphQL queries
+    and mutations into our application.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的客户端连接到我们的 API 服务器后，我们现在可以将 GraphQL 查询和突变集成到我们的应用程序中。
+- en: Querying an API
+  id: totrans-24
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 查询一个 API
+- en: When we query an API, we are requesting data. In a UI client, we want to be
+    able to query that data and display it to the user. Apollo enables us to compose
+    queries to fetch data. We can then update React components to display the data
+    to the end user. We can explore the use of queries by writing a `noteFeed` query,
+    which will return a feed of the latest notes to the user and display it on the
+    application’s home page.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们查询 API 时，我们正在请求数据。在 UI 客户端中，我们希望能够查询这些数据并将其显示给用户。Apollo 能够帮助我们组合查询以获取数据。我们可以更新
+    React 组件以将数据显示给最终用户。我们可以通过编写一个 `noteFeed` 查询来探索查询的使用，该查询将向用户返回最新的笔记并在应用程序的主页上显示它。
+- en: 'When I am first writing a query, I find the following process useful:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我首次编写查询时，我发现以下过程很有用：
+- en: Consider what data the query needs to return.
+  id: totrans-27
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 考虑查询需要返回的数据。
+- en: Write the query in the GraphQL Playground.
+  id: totrans-28
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将查询写入 GraphQL Playground。
+- en: Integrate the query into the client application.
+  id: totrans-29
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 将查询集成到客户端应用程序中。
+- en: 'Let’s follow this process in drafting our query. If you followed along in the
+    API portion of the book, you may recall that the `noteFeed` query returns a list
+    of 10 notes along with a `cursor`, which indicates the position of the last note
+    returned, and a `hasNextPage` boolean, which allows us to determine if there are
+    additional notes to load. We can view our schema within the GraphQL Playground,
+    allowing us to see all of the data options available. For our query, we’ll most
+    likely require the following information:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在起草查询时遵循这个流程。如果你在本书的 API 部分跟随过，你可能还记得 `noteFeed` 查询返回了一个包含 10 条笔记的列表，还有一个
+    `cursor`，指示了最后返回的笔记位置，以及一个 `hasNextPage` 布尔值，用于确定是否还有其他笔记需要加载。我们可以在 GraphQL Playground
+    中查看我们的架构，以查看所有可用的数据选项。对于我们的查询，我们很可能需要以下信息：
+- en: '[PRE5]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Now, in our GraphQL Playground we can flesh this out into a GraphQL query.
+    We’ll be writing this a bit more verbosely than the queries from a server chapter,
+    by naming the query and providing an optional variable named `cursor`. To use
+    the GraphQL Playground, first ensure that the API server is running, and then
+    visit *http://localhost:4000/api*. In the GraphQL Playground, add the following
+    query:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在我们的 GraphQL Playground 中，我们可以将其充实为一个 GraphQL 查询。我们将稍微详细地命名查询，并提供一个名为 `cursor`
+    的可选变量。要使用 GraphQL Playground，请确保 API 服务器正在运行，然后访问 *http://localhost:4000/api*。在
+    GraphQL Playground 中，添加以下查询：
+- en: '[PRE6]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'In the GraphQL Playground, also add a “query variable” to test out the use
+    of the variable:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 GraphQL Playground 中，还可以添加一个“查询变量”来测试变量的使用：
+- en: '[PRE7]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: To test out this variable, replace the empty string with the ID value of any
+    of the notes in our database ([Figure 14-1](#web-first-query)).
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要测试这个变量，用数据库中任何笔记的 ID 值替换空字符串（[图 14-1](#web-first-query)）。
+- en: '![A screenshot of the noteFeed query in GraphQL Playground](assets/jsev_1401.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![在 GraphQL Playground 中的 noteFeed 查询的截图](assets/jsev_1401.png)'
+- en: Figure 14-1\. Our noteFeed query in the GraphQL Playground
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 14-1\. 在 GraphQL Playground 中的我们的 noteFeed 查询
+- en: 'Now that we know that our query is properly written, we can confidently integrate
+    it into our web application. In the *src/pages/home.js* file, import the `useQuery`
+    library as well as the GraphQL syntax via the `gql` library from `@apollo/client`:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们知道我们的查询已经正确编写，我们可以自信地将其集成到我们的 Web 应用程序中。在 *src/pages/home.js* 文件中，导入 `useQuery`
+    库以及通过 `@apollo/client` 中的 `gql` 库导入 GraphQL 语法：
+- en: '[PRE8]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now we can integrate the query into our React application. To do this, we’ll
+    pass our GraphQL query string to Apollo’s `useQuery` React hook. Our hook will
+    return an object containing one of the following values:'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以将查询集成到我们的 React 应用程序中了。为此，我们将我们的 GraphQL 查询字符串传递给 Apollo 的 `useQuery`
+    React hook。我们的 hook 将返回一个包含以下值之一的对象：
+- en: '`data`'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`data`'
+- en: The data returned by the query, if successful.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果查询成功返回的数据。
+- en: '`loading`'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`loading`'
+- en: The loading state, which is set to `true` when the data is being fetched. This
+    allows us to display a loading indicator to our users.
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当数据正在获取时，设置为 `true` 的加载状态。这允许我们向用户显示加载指示器。
+- en: '`error`'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`error`'
+- en: If our data fails to fetch, an error is returned to our application.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的数据获取失败，错误将返回到我们的应用程序。
+- en: 'We can update our `Home` component to include our query:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以更新我们的 `Home` 组件以包括我们的查询：
+- en: '[PRE9]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: If you’ve done everything successfully, you should see a “The data loaded!”
+    message on the home page of our application ([Figure 14-2](#web-data-loaded)).
+    We’ve also included a `console.log` statement, which will print our data to the
+    browser console. Taking a look at the structure of data results can be a helpful
+    guidepost when integrating the data into the application.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您一切顺利，您应该在我们应用程序的主页上看到一个“数据已加载！”的消息（[图 14-2](#web-data-loaded)）。我们还包含了一个 `console.log`
+    语句，它将我们的数据打印到浏览器控制台。查看数据结果的结构可以帮助我们将数据集成到应用程序中。
+- en: '![A screenshot of the application, successfully connected to the data set](assets/jsev_1402.png)'
+  id: totrans-51
+  prefs: []
+  type: TYPE_IMG
+  zh: '![成功连接到数据集的应用程序截图](assets/jsev_1402.png)'
+- en: Figure 14-2\. If our data has been successfully fetched, our component will
+    display a “The data loaded!” message and the data will print to the console
+  id: totrans-52
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 14-2\. 如果我们的数据成功获取，我们的组件将显示一个“数据已加载！”的消息，并且数据将打印到控制台
+- en: 'Now, let’s integrate the data we receive into the application. To do this,
+    we will `map` over the array of notes returned within our data. React requires
+    that each result be assigned a unique key, for which we’ll use the individual
+    note’s ID. To begin, we’ll display the username of the author for each note:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们将接收到的数据集成到应用程序中。为此，我们将对返回的注释数组进行 `map` 操作。React 要求每个结果都分配一个唯一的键，我们将使用每个注释的
+    ID。首先，我们将显示每个注释的作者的用户名：
+- en: '[PRE10]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Using JavaScript’s map() Method
+  id: totrans-55
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 JavaScript 的 `map()` 方法
+- en: If you haven’t worked with JavaScript’s `map()` method before, the syntax can
+    seem a bit intimidating at first. The `map()` method allows you to perform an
+    action for items within an array. This can be incredibly useful when you’re working
+    with data returned from an API, allowing you to perform actions such as displaying
+    each item in a certain way within the template. To learn more about `map()`, I
+    recommend reading the [MDN Web Docs guide](https://oreil.ly/Oca3y).
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您之前没有使用过 JavaScript 的 `map()` 方法，该语法一开始可能看起来有点复杂。`map()` 方法允许您对数组中的每个项执行操作。当您处理从
+    API 返回的数据时，这将非常有用，允许您执行诸如在模板中以某种方式显示每个项的操作。要了解更多关于 `map()` 的信息，建议阅读 [MDN Web Docs
+    指南](https://oreil.ly/Oca3y)。
+- en: If there is data in our database, you should now see a list of usernames on
+    the page ([Figure 14-3](#web-username-data)).
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们的数据库中有数据，您现在应该在页面上看到一个用户名列表（[图 14-3](#web-username-data)）。
+- en: '![Usernames from our data, printed to the screen](assets/jsev_1403.png)'
+  id: totrans-58
+  prefs: []
+  type: TYPE_IMG
+  zh: '![从我们的数据中打印到屏幕上的用户名](assets/jsev_1403.png)'
+- en: Figure 14-3\. Usernames from our data, printed to the screen
+  id: totrans-59
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 14-3\. 从我们的数据中打印到屏幕上的用户名
+- en: Now that we have successfully mapped over our data, we can write the rest of
+    our component. Since our notes are written in Markdown, let’s import a library
+    that will allow us to render Markdown to the page.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们成功地映射了我们的数据，我们可以编写剩余的组件部分了。由于我们的注释是用 Markdown 编写的，让我们导入一个允许我们将 Markdown
+    渲染到页面的库。
+- en: 'In *src/pages/home.js*:'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 *src/pages/home.js* 中：
+- en: '[PRE11]'
+  id: totrans-62
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Now we can update our UI to include the author’s avatar, the author’s username,
+    the date the note was created, the number of favorites that a note has, and finally
+    the content of the note itself. In *src/pages/home.js*:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以更新我们的 UI，以包括作者的头像、作者的用户名、注释创建日期、注释的收藏数量，以及注释的内容本身。在 *src/pages/home.js*
+    中：
+- en: '[PRE12]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Whitespace in React
+  id: totrans-65
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 在React中的空白处
+- en: React strips the whitespace between elements on new lines. Using `{' '}` in
+    our markup is a way of manually adding whitespace.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React会删除新行上元素之间的空格。 在我们的标记中使用`{' '}`是手动添加空格的一种方式。
+- en: 'You should now see a complete list of notes in your browser. Before we move
+    on to styling them, however, there is an opportunity for a small refactor. This
+    is our first page displaying notes, but we know that we will be making several
+    more. On other pages we will need to display individual notes, as well as feeds
+    of other note types (such as “my notes” and “favorites”). Let’s go ahead and create
+    two new components: *src/components/Note.js* and *src/components/NoteFeed.js*.'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您应该在浏览器中看到完整的注释列表。 在我们开始为它们添加样式之前，有一个小的重构机会。 这是我们第一页显示注释，但我们知道我们将会创建更多页面。
+    在其他页面上，我们将需要显示单个注释，以及其他类型注释的反馈（如“我的注释”和“收藏夹”）。 让我们继续创建两个新组件：*src/components/Note.js*和*src/components/NoteFeed.js*。
+- en: In *src/components/Note.js*, we’ll include the markup for an individual note.
+    To accomplish this, we’ll pass each of our component functions a property containing
+    the appropriate content.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在*src/components/Note.js*中，我们将包含单个注释的标记。 为了实现这一目标，我们将为每个组件函数传递一个包含适当内容的属性。
+- en: '[PRE13]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Now for the *src/components/NoteFeed.js* component:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在轮到*src/components/NoteFeed.js*组件了：
+- en: '[PRE14]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'Finally, we can update the *src/pages/home.js* component to reference our `NoteFeed`:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们可以更新*src/pages/home.js*组件以引用我们的`NoteFeed`：
+- en: '[PRE15]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: With this refactor, we’ll now be able to easily re-create note and note feed
+    instances across our application.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过此重构，我们现在能够在整个应用程序中轻松重新创建注释和注释反馈实例。
+- en: Some Style
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 一些样式
+- en: 'Now that we have written our components and can view our data, we can add some
+    style. One of the most obvious opportunities for improvement is in the way that
+    our “created at” date displays. To address this, we’ll use the [`date-fns` library](https://date-fns.org),
+    which provides small components for working with dates in JavaScript. In *src/components/Note.js*,
+    import the library and update the date markups to apply the conversion as follows:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经编写了组件并且可以查看我们的数据，我们可以添加一些样式。 其中最明显的改进机会之一是我们“创建于”日期显示的方式。 为了解决这个问题，我们将使用[`date-fns`库](https://date-fns.org)，该库提供了用于在JavaScript中处理日期的小组件。
+    在*src/components/Note.js*中，导入该库并更新日期标记以应用转换，如下所示：
+- en: '[PRE16]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'With our date formatted, we can use the Styled Components library to update
+    the note layout:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了我们的日期格式化后，我们可以使用Styled Components库来更新注释布局：
+- en: '[PRE17]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'We would also be well served to add some space and a light border between the
+    notes in our *NoteFeed.js* component:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以在*NoteFeed.js*组件中为我们的注释之间添加一些空间和轻微边框：
+- en: '[PRE18]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: With these updates, we’ve introduced layout styles to our application.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这些更新，我们已经为我们的应用程序引入了布局样式。
+- en: Dynamic Queries
+  id: totrans-83
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 动态查询
+- en: Currently our application consists of three routes, each of which is static.
+    These routes are located at a static URL and will always make the same data request.
+    However, applications commonly need dynamic routes and queries based upon those
+    routes. As an example, every tweet on Twitter.com is assigned a unique URL at
+    *twitter.com/<username>/status/<tweet_id>*. This allows users to link and share
+    individual tweets both within the Twitter ecosystem as well as anywhere on the
+    web.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们的应用程序包含三条路由，每条路由都是静态的。 这些路由位于静态URL上，并且始终会进行相同的数据请求。 但是，应用程序通常需要基于这些路由的动态路由和查询。
+    例如，Twitter.com上的每条推文都分配了一个唯一的URL，位于*twitter.com/<username>/status/<tweet_id>*。
+    这允许用户在Twitter生态系统内以及在Web的任何地方链接和分享单个推文。
+- en: Currently, in our application notes can only be accessed within a feed, but
+    we want to allow users to view and link to individual notes. To accomplish this
+    we’ll set up dynamic routing in our React application as well as an individual
+    note GraphQL query. Our goal is for users to be able to access routes at */note/<note_id>*.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们的应用程序注释只能在一个反馈中访问，但我们希望允许用户查看和链接到单独的注释。 为了实现这一目标，我们将在我们的React应用程序中设置动态路由以及单个注释的GraphQL查询。
+    我们的目标是让用户能够访问*/note/<note_id>*的路径。
+- en: To begin, we’ll create a new page component at *src/pages/note.js*. We will
+    pass our `props` (property) object to the component, which includes the `match`
+    property via React Router. This property contains information about how the route
+    path matches the URL. This will give us access to the URL parameters through `match.params`.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将在*src/pages/note.js*创建一个新的页面组件。 我们将通过React Router将我们的`props`（属性）对象传递给组件，其中包括`match`属性。
+    该属性包含有关路由路径如何匹配URL的信息。 这将使我们能够通过`match.params`访问URL参数。
+- en: '[PRE19]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Now we can add a corresponding route to our *src/pages/index.js* file. This
+    route will include an ID parameter indicated with `:id`:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以在我们的 *src/pages/index.js* 文件中添加相应的路由。该路由将包括一个以 `:id` 表示的 ID 参数：
+- en: '[PRE20]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'Now, visiting *http://localhost:1234/note/123* will print `ID: 123` to our
+    page. To test it out, replace the ID parameter with anything of your choosing,
+    such as */note/pizza* or */note**/GONNAPARTYLIKE1999*. This is pretty cool, but
+    not very useful. Let’s update our *src/pages/note.js* component to make a GraphQL
+    query for the note with the ID found in the URL. To do this, we’ll use the `note`
+    query from our API as well as our `Note` React component:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '现在，访问 *http://localhost:1234/note/123* 将在我们的页面上打印 `ID: 123`。为了测试它，请将 ID 参数替换为您选择的任何内容，比如
+    */note/pizza* 或 */note**/GONNAPARTYLIKE1999*。这很酷，但并不是非常有用。让我们更新我们的 *src/pages/note.js*
+    组件，以便为在 URL 中找到的笔记进行 GraphQL 查询。为此，我们将使用来自我们 API 的 `note` 查询以及我们的 `Note` React
+    组件：'
+- en: '[PRE21]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Now, navigating to a URL with an ID parameter will render either the corresponding
+    note or an error message. Finally, let’s update our *src/components/NoteFeed.js*
+    component to display a link to the individual note in the UI.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，导航到带有 ID 参数的 URL 将渲染相应的笔记或错误消息。最后，让我们更新我们的 *src/components/NoteFeed.js* 组件，以在
+    UI 中显示到单个笔记的链接。
+- en: 'First, at the top of the file, import `{Link}` from React Router:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在文件顶部从 React Router 中导入 `{Link}`：
+- en: '[PRE22]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Then, update the JSX to include a link to the note page as follows:'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，更新 JSX 以包含指向笔记页面的链接如下：
+- en: '[PRE23]'
+  id: totrans-96
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: With this, we are using dynamic routes in our application and enabling users
+    to view individual notes.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这样做，我们在应用程序中使用动态路由，使用户能够查看单个笔记。
+- en: Pagination
+  id: totrans-98
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 分页
+- en: Currently we are only retrieving the 10 most recent notes within our application’s
+    home page. If we want to display additional notes, we need to enable pagination.
+    You may recall from the beginning of this chapter and the development of our API
+    server that our API returns a `cursor`, which is the ID of the last note returned
+    in a page of results. Additionally, the API returns the `hasNextPage` boolean,
+    which is `true` if there are additional notes found in our database. When making
+    a request to our API, we can pass it a cursor argument, which will return the
+    next 10 items.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 目前，我们仅在应用程序的主页中检索最近的 10 条笔记。如果我们想要显示更多的笔记，我们需要启用分页。你可能还记得本章开头和我们 API 服务器的开发阶段，我们的
+    API 返回一个 `cursor`，它是页面结果中最后一条笔记的 ID。此外，API 还返回一个 `hasNextPage` 布尔值，如果在我们的数据库中找到其他笔记，则为
+    `true`。在向我们的 API 发出请求时，我们可以传递一个 cursor 参数，它将返回接下来的 10 个项目。
+- en: In other words, if we have a list of 25 objects (with corresponding IDs of 1–25),
+    when we make an initial request it will return items 1–10 as well as a `cursor`
+    value of `10` and a `hasNextPage` value of `true`. If we make a request, passing
+    a `cursor` value of 10, we will receive items 11–20, with a `cursor` value of
+    `20` and a `hasNextPage` value of `true`. Finally, if we make a third request,
+    passing it a `cursor` of `20`, we will receive items 21–25, with a `cursor` value
+    of `25` and a `hasNextPage` value of `false`. This is exactly the logic we’ll
+    be implementing within our `noteFeed` query.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，如果我们有一个包含 25 个对象的列表（对应的 ID 为 1–25），当我们进行初始请求时，它将返回项目 1–10 以及一个 `cursor`
+    值为 `10` 和一个 `hasNextPage` 值为 `true`。如果我们发出请求，传递一个 `cursor` 值为 10，我们将收到项目 11–20，`cursor`
+    值为 `20` 和 `hasNextPage` 值为 `true`。最后，如果我们发出第三个请求，传递一个 `cursor` 为 `20`，我们将收到项目
+    21–25，`cursor` 值为 `25` 和 `hasNextPage` 值为 `false`。这正是我们将在 `noteFeed` 查询中实现的逻辑。
+- en: To do this, let’s update our *src/pages/home.js* file to make paginated queries.
+    In our UI, when a user clicks a See More button, the next 10 notes should load
+    on the page. We’ll want this to happen without any page refreshes. To do this
+    we need to include the `fetchMore` argument within our query component and display
+    the `Button` component only when `hasNextPage` is `true`. For now we’ll write
+    this directly into our home page component, but it could easily be isolated into
+    its own component or become part of the `NoteFeed` component.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了做到这一点，让我们更新我们的 *src/pages/home.js* 文件以进行分页查询。在我们的用户界面中，当用户点击“查看更多”按钮时，应在页面上加载下一个
+    10 条笔记。我们希望这在不刷新页面的情况下完成。为此，我们需要在查询组件中包含 `fetchMore` 参数，并且仅在 `hasNextPage` 为 `true`
+    时显示 `Button` 组件。目前，我们将这直接写入我们的主页组件中，但它也可以很容易地被隔离到自己的组件中或成为 `NoteFeed` 组件的一部分。
+- en: '[PRE24]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Conditionals in React
+  id: totrans-103
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: React 中的条件语句
+- en: In the previous example we are conditionally displaying the “Load more” button
+    using an inline `if` statement with the `&&` operator. If `hasNextPage` is true,
+    the button is displayed. You can read more about conditional rendering in the
+    [official React documentation](https://oreil.ly/a_F5s).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在前面的示例中，我们使用内联 `if` 语句和 `&&` 运算符有条件地显示“Load more”按钮。如果 `hasNextPage` 为真，则显示按钮。您可以在[官方
+    React 文档](https://oreil.ly/a_F5s)中了解更多关于条件渲染的信息。
+- en: Now we can update the `<Button>` component to use an `onClick` handler. When
+    a user clicks the button, we’ll want to use the `fetchMore` method to make an
+    additional query and append the returned data to our page.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以更新 `<Button>` 组件以使用一个 `onClick` 处理程序。当用户点击按钮时，我们将使用 `fetchMore` 方法进行额外的查询，并将返回的数据附加到我们的页面上。
+- en: '[PRE25]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: The previous code might look a little gnarly, so let’s break it down. Our `<Button>`
+    component includes an `onClick` handler. When the button is clicked, a new query
+    is executed using the `fetchMore` method, passing the `cursor` value returned
+    in the previous query. Once returned, `updateQuery` is executed, which updates
+    our `cursor` and `hasNextPage` values and combines the results into a single array.
+    The `__typename` is the name of the query, which is included in Apollo’s results.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前的代码可能看起来有点复杂，所以让我们来分解一下。我们的 `<Button>` 组件包括一个 `onClick` 处理程序。当点击按钮时，使用 `fetchMore`
+    方法执行新的查询，传递前一个查询返回的 `cursor` 值。一旦返回，将执行 `updateQuery`，更新我们的 `cursor` 和 `hasNextPage`
+    值，并将结果组合成一个单一的数组。`__typename` 是查询的名称，包含在 Apollo 的结果中。
+- en: With this change, we are able to view all of the notes from our note feed. Try
+    it out yourself by scrolling to the bottom of your note feed. If your database
+    contains more than 10 notes, the button will be visible. Clicking “Load more”
+    will add the next `noteFeed` result to the page.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个改变，我们能够查看笔记流中的所有笔记。通过滚动到笔记流的底部，您可以自行尝试。如果您的数据库包含超过 10 条笔记，则按钮将可见。点击“Load
+    more”将把下一个 `noteFeed` 结果添加到页面中。
+- en: Conclusion
+  id: totrans-109
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: We’ve covered a lot of ground in this chapter. We’ve set up Apollo Client to
+    work with our React application and integrated multiple GraphQL queries into our
+    UI. The power of GraphQL is demonstrated in the ability to write single queries
+    that return precisely the data that a UI requires. In the next chapter we’ll integrate
+    user authentication into our application, allowing users to log in and view their
+    notes and favorites.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们涵盖了很多内容。我们设置了 Apollo Client 来与我们的 React 应用程序配合工作，并将多个 GraphQL 查询集成到我们的
+    UI 中。GraphQL 的强大之处在于能够编写单一查询，精确返回 UI 需要的数据。在下一章中，我们将集成用户认证到我们的应用程序中，允许用户登录并查看他们的笔记和收藏。

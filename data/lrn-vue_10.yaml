@@ -1,0 +1,650 @@
+- en: Chapter 10\. Transitioning and Animation in Vue
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第10章. Vue中的过渡和动画
+- en: 'We have explored all the crucial aspects of building a working Vue application,
+    including handling routes and data flow with proper state management. This chapter
+    will explore a unique Vue feature for enhancing the user experience: animation
+    and transitions, using transition components, hooks, and CSS.'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经探讨了构建工作中Vue应用的所有关键方面，包括使用适当的状态管理处理路由和数据流。本章将探讨增强用户体验的独特Vue功能：动画和过渡，使用过渡组件、钩子和CSS。
+- en: Understanding CSS Transitions and CSS Animations
+  id: totrans-2
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 理解CSS过渡和CSS动画
+- en: 'CSS animations are the visual effects of a state change on a specific element
+    or component, with no limit on the number of states. A CSS animation can start
+    automatically and go into a loop without explicit triggering. In contrast, CSS
+    transition is an animation that responds to a change *between two states only*,
+    from average to hover for a button or from hidden to visible for a tooltip. To
+    define a CSS animation, we often use the `@keyframes` rule and then apply it to
+    the target element using the `animation` property. For example, we can define
+    a simple animation effect for a button:'
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: CSS动画是在特定元素或组件状态变化时的视觉效果，状态数量不限。CSS动画可以自动启动并循环播放，无需显式触发。相比之下，CSS过渡是仅响应于两个状态之间的动画，例如按钮从普通状态到悬停状态或提示框从隐藏到可见状态。通常使用`@keyframes`规则定义CSS动画，然后通过`animation`属性将其应用于目标元素。例如，我们可以为按钮定义一个简单的动画效果：
+- en: '[PRE0]'
+  id: totrans-4
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: We defined a simple animation effect, `pulse`, and applied it to any element
+    with `button` class, where the box shadow will expand and shrink in a loop, lasting
+    two seconds. This effect will run infinitely if the element exists in the DOM.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们定义了一个简单的动画效果`pulse`，并将其应用于所有带有`button`类的元素，其中阴影框将在循环中扩展和收缩，持续两秒。如果元素存在于DOM中，此效果将无限循环运行。
+- en: '![A screenshot displays a button with a pulse effect](assets/lvue_1001.png)'
+  id: totrans-6
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示具有脉冲效果的按钮](assets/lvue_1001.png)'
+- en: Figure 10-1\. Indefinite pulse animation effect
+  id: totrans-7
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图10-1\. 无限脉冲动画效果
+- en: 'Meanwhile, we can use the `transition` property to define a transition effect
+    for a specific element when the user hovers over it:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与此同时，我们可以使用`transition`属性为用户悬停在特定元素上时定义一个过渡效果：
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'In this code, we created a simple transition effect for the `button` element:
+    the background color will change from the default color to red on hovering, with
+    a delay of `0.5` seconds, with a smoothing effect of `ease-in-out`. Alternatively,
+    we can also use JavaScript and other animation libraries to define transition
+    and animation programmatically using JavaScript.'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此代码中，我们为`button`元素创建了一个简单的过渡效果：背景颜色在悬停时从默认颜色变为红色，延迟`0.5`秒，平滑效果为`ease-in-out`。此外，我们还可以使用JavaScript和其他动画库通过JavaScript编程方式定义过渡和动画。
+- en: Transition and animation offer users a significantly smoother experience when
+    using the application. However, working with transition and animation can sometimes
+    be challenging. As a framework focusing on the view layer, Vue provides a set
+    of APIs to help us create smooth, beautiful animations and transition effects
+    for components and routes, with CSS and/or JavaScript, in a more straightforward
+    manner. One is the `transition` component, which we will discuss in the following
+    section.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当使用应用程序时，过渡和动画可以显著提供用户更流畅的体验。然而，处理过渡和动画有时可能具有挑战性。作为专注于视图层的框架，Vue提供了一组API来帮助我们更简单地为组件和路由创建平滑、美观的动画和过渡效果，无论是使用CSS还是JavaScript。其中之一是`transition`组件，我们将在接下来的部分中讨论它。
+- en: Transition Component in Vue.js
+  id: totrans-12
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Vue.js中的过渡组件
+- en: 'The `transition` component is a wrapper component that allows us to create
+    a transition for a single element with two available transition states: enter
+    and leave. The component provides a prop `name` as the name of the desired transition
+    effect. Vue will compute the relevant transition classes with the `name` as their
+    prefix and the direction state of the transition (`to`, `active`, or `from`) as
+    their suffix, as seen here:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`transition`组件是一个包装组件，允许我们为单个元素创建过渡，具有两个可用的过渡状态：进入和离开。组件提供一个`name`作为所需过渡效果的名称属性。Vue将计算相关的过渡类，`name`作为其前缀，过渡状态（`to`、`active`或`from`）作为其后缀，如下所示：'
+- en: '[PRE2]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'For example, we can use a `slidein` transition effect on an element:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，我们可以在元素上使用`slidein`过渡效果：
+- en: '[PRE3]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Vue will generate a set of classes, which are described in [Table 10-1](#table_chap08_01).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue将生成一组类，这些类在[表10-1](#table_chap08_01)中描述。
+- en: Table 10-1\. Generated transition classes for the slide-in transition effect
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 10-1\. 用于滑入过渡效果的生成过渡类
+- en: '| Classes | Description |'
+  id: totrans-19
+  prefs: []
+  type: TYPE_TB
+  zh: '| 类 | 描述 |'
+- en: '| --- | --- |'
+  id: totrans-20
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| `.slidein-enter-from` | Class selector for the starting state of the entering
+    transition |'
+  id: totrans-21
+  prefs: []
+  type: TYPE_TB
+  zh: '| `.slidein-enter-from` | 定义进入过渡的起始状态的类选择器 |'
+- en: '| `.slidein-enter-active` | Class selector for defining the duration and delay
+    of transition when the element is actively entering transition |'
+  id: totrans-22
+  prefs: []
+  type: TYPE_TB
+  zh: '| `.slidein-enter-active` | 定义元素在进入过渡期间的持续时间和延迟的类选择器 |'
+- en: '| `.slidein-enter-to` | Class selector for the ending state of the entering
+    transition |'
+  id: totrans-23
+  prefs: []
+  type: TYPE_TB
+  zh: '| `.slidein-enter-to` | 定义进入过渡的结束状态的类选择器 |'
+- en: '| `slidein-leave-from` | Class selector for the starting state of the leaving
+    transition |'
+  id: totrans-24
+  prefs: []
+  type: TYPE_TB
+  zh: '| `slidein-leave-from` | 定义离开过渡的起始状态的类选择器 |'
+- en: '| `slidein-leave-to` | Class selector for the ending state of the leaving transition
+    |'
+  id: totrans-25
+  prefs: []
+  type: TYPE_TB
+  zh: '| `slidein-leave-to` | 定义离开过渡的结束状态的类选择器 |'
+- en: '| `slidein-leave-active` | Class selector for defining the duration and delay
+    of transition when the element is active in the middle of leaving transition |'
+  id: totrans-26
+  prefs: []
+  type: TYPE_TB
+  zh: '| `slidein-leave-active` | 定义元素在离开过渡期间的持续时间和延迟的类选择器 |'
+- en: 'The *enter state* means the element starts the process of transitioning to
+    visible mode in the browser’s display, while the *leave state* indicates the opposite.
+    We can combine with `v-show`, which toggles the element’s CSS `display` property,
+    or `v-if` attribute, which inserts the piece to the DOM conditionally. We will
+    add the `v-show` to the `ul` component of our code example:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*进入状态* 表示元素开始过渡到浏览器显示的可见模式，而 *离开状态* 则表示相反。我们可以与 `v-show` 结合，它切换元素的 CSS `display`
+    属性，或者 `v-if` 属性，有条件地将片段插入到 DOM 中。我们将 `v-show` 添加到代码示例中 `ul` 组件：'
+- en: '[PRE4]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Now we can use the previous classes to define the transition named `slidein`
+    with the CSS `transition` property and the target CSS property or properties to
+    perform the effect.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以使用先前的类来定义名为 `slidein` 的过渡，使用 CSS 的 `transition` 属性以及目标 CSS 属性或属性来执行效果。
+- en: 'The following is an example implementation for the slide-in transition effect:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是滑入过渡效果的示例实现：
+- en: '[PRE5]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: In this code, before the entering transition, the browser will reposition the
+    `ul` element horizontally to the left of the viewport using `translateX(-100%)`,
+    then move it back to the correct position with `translateX(0)` in `slidein-enter-to`.
+    The same applies to the leaving transition, except that the element will move
+    to the viewport’s right instead of the left. Both changes will be on the `transform`
+    property, with a duration of 0.5 seconds, as stated in the `slidein-enter-active`
+    and `slidein-leave-active` classes.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此代码中，在进入过渡之前，浏览器将通过 `slidein-enter-to` 将 `ul` 元素水平重新定位到视口的左侧，然后通过 `translateX(0)`
+    将其移回正确位置。离开过渡也是同样的过程，只是元素将向右侧的视口移动而不是左侧。这两个变化都将在 `transform` 属性上进行，持续时间为 0.5 秒，如
+    `slidein-enter-active` 和 `slidein-leave-active` 类所述。
+- en: 'To see the effect in action, we can add a small timeout to change the value
+    of the `searchResults` data property:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要查看效果，请添加一个小的超时来改变 `searchResults` 数据属性的值：
+- en: '[PRE6]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: The Vue engine will add or remove each class as appropriate. We add another
+    timeout to change the value of `showList` back to `false`, and Vue will trigger
+    the transition effect again, except it is for the leave state ([Figure 10-2](#figure_c10_01)).
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue 引擎会根据需要添加或删除每个类。我们再次添加一个超时来将 `showList` 的值改回 `false`，Vue 将再次触发过渡效果，但这次是离开状态（[图 10-2](#figure_c10_01)）。
+- en: We have implemented a simple effect using the `transition` component with a
+    single impact of `slidein`. How about combining different effects, such as `slidein`
+    for the entering state and `rotate` for the leaving state? For such cases we use
+    custom transition class attributes, which we will discuss in the next section.
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用 `transition` 组件实现了一个简单的效果，只有一个 `slidein` 的影响。如何结合不同的效果，例如进入状态使用 `slidein`，离开状态使用
+    `rotate`？对于这种情况，我们使用自定义过渡类属性，在下一节将会讨论。
+- en: '![A screenshot displays some transition effect browser performs for a list
+    of elements](assets/lvue_1002.png)'
+  id: totrans-37
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示浏览器为一系列元素列表执行的一些过渡效果](assets/lvue_1002.png)'
+- en: Figure 10-2\. Transition effect for the pizza list when `showList` is `true`
+  id: totrans-38
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-2\. 当 `showList` 为 `true` 时，披萨列表的过渡效果
+- en: Using Custom Transition Class Attributes
+  id: totrans-39
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用自定义过渡类属性
+- en: 'Besides auto-generating the classes according to the `name` attribute, Vue
+    also lets us specify the custom classes for each transition class using the following
+    relevant props: `enter-class`, `enter-active-class`, `enter-to-class`, `leave-class`,
+    `leave-active-class`, and `leave-to-class`. For example, we can define the custom
+    classes for the `rotate` transition effect on leaving the state:'
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了根据`name`属性自动生成类之外，Vue还允许我们使用以下相关属性为每个过渡类指定自定义类名：`enter-class`、`enter-active-class`、`enter-to-class`、`leave-class`、`leave-active-class`和`leave-to-class`。例如，我们可以定义离开状态时`rotate`过渡效果的自定义类：
+- en: '[PRE7]'
+  id: totrans-41
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'In the `style` section, we use `@keyframes` controls to define the animation
+    effect for the `rotate` transition with keyframe offsets of 0%, 50%, 90% and 100%:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`style`部分，我们使用`@keyframes`控制定义了`rotate`过渡的动画效果，关键帧偏移为0%，50%，90%和100%。
+- en: '[PRE8]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Then we can assign the animation effect `rotate` to `animation` property of
+    the `rotate` class, at a duration of 0.5 seconds:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以将动画效果`rotate`分配给`rotate`类的`animation`属性，持续时间为0.5秒：
+- en: '[PRE9]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Let’s set the initial value of `showList` to `true` and a timeout of `1000`
+    milliseconds to change it to `false`. While the effect on entering for the `ul`
+    element is still `slidein`, the effect on leaving is now an animation of rotation
+    starting from 45 degrees, then 90 degrees, and finally 180 degrees. See [Figure 10-3](#figure_c10_02)
+    for an illustration.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们将`showList`的初始值设置为`true`，并设置一个`1000`毫秒的超时将其更改为`false`。虽然`ul`元素的进入效果仍然是`slidein`，但离开时的效果现在是从45度开始旋转的动画，然后是90度，最后是180度。参见[图 10-3](#figure_c10_02)进行说明。
+- en: '[PRE10]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '![A screenshot displays some rotation effect browser performs for a list of
+    elements](assets/lvue_1003.png)'
+  id: totrans-48
+  prefs: []
+  type: TYPE_IMG
+  zh: '![一个截图显示浏览器为一组元素执行的某些旋转效果](assets/lvue_1003.png)'
+- en: Figure 10-3\. Rotating effect on transition using keyframes
+  id: totrans-49
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-3\. 使用关键帧进行过渡的旋转效果
+- en: You can assign multiple classes to these props, separated by a single space,
+    to apply various effects to a specific transition state. This feature is helpful
+    when you want to integrate animation from external CSS libraries, such as Bootstrap,
+    Tailwind CSS, or Bulma, with their classes.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以将多个类分隔以单个空格的方式分配给这些属性，以应用于特定过渡状态的各种效果。当您希望将来自外部CSS库（如Bootstrap、Tailwind CSS或Bulma）的动画集成到Vue中时，此功能非常有用。
+- en: Our component now has the transition effect whenever toggling the value of `showList`.
+    However, we often want to animate the element when it appears on the screen after
+    the page is loaded and without additional interaction. To do so, we can use the
+    `appear` prop.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的组件现在在切换`showList`值时具有过渡效果。然而，我们经常希望在页面加载后元素首次出现时进行动画处理，而不需要额外的交互。为此，我们可以使用`appear`属性。
+- en: Adding Transition Effect on the Initial Render with appear
+  id: totrans-52
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在初始渲染时使用`appear`添加过渡效果
+- en: 'When we set the `appear` prop to `true` on the `transition` element, Vue will
+    automatically add the `enter-active` and `enter-to` classes to the component when
+    mounting to the DOM, triggering the transition effect. For instance, to have the
+    `slidein` impact applied on the initial render of the `ul` component, we only
+    need to add `appear` prop to the `transition` element:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在`transition`元素上将`appear`属性设置为`true`时，Vue将在组件挂载到DOM时自动添加`enter-active`和`enter-to`类，触发过渡效果。例如，要在`ul`组件的初始渲染时应用`slidein`效果，我们只需在`transition`元素上添加`appear`属性即可：
+- en: '[PRE11]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The browser now will apply the `slidein` effect on the UI’s initial appearance
+    of the `ul` element.
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，浏览器将在UI的初始出现时应用`ul`元素的`slidein`效果。
+- en: We have learned how to use the `transition` component to create a smooth transition
+    effect for a single element. However, this component is not useful when we want
+    to animate multiple parts simultaneously and in an orderly fashion. To do this,
+    we have `transition-group`, which we will discuss next.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经学习了如何使用`transition`组件为单个元素创建平滑的过渡效果。然而，当我们希望同时和有序地对多个部分进行动画化时，这个组件就不够用了。为此，我们有`transition-group`，接下来我们将讨论它。
+- en: Building Transition for a Group of Elements
+  id: totrans-57
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 构建一组元素的过渡效果
+- en: The `transition-group` component is a particular version of the `transition`,
+    aiming to provide animation support to a group of elements. It accepts the same
+    props as `transition` and is handy when we want to animate each item in a list,
+    such as a list of pizzas or users. Nevertheless, unlike the `transition` element,
+    `transition-group` supports rendering a wrapper element using the `tag` prop,
+    and all the child elements will receive the same transition classes but not the
+    wrapper (if one exists).
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`transition-group`组件是`transition`的特殊版本，旨在为一组元素提供动画支持。它接受与`transition`相同的props，在我们想要为列表中的每个项（如披萨或用户列表）添加动画时非常有用。然而，与`transition`元素不同，`transition-group`支持使用`tag`属性渲染包装元素，并且所有子元素将接收相同的过渡类，但不包括包装器（如果存在）。'
+- en: 'Take our list of pizzas, for instance. We can use the `transition-group` to
+    animate each pizza card with the `fadein` effect when it appears on screen and
+    wrap the cards under a `ul` element:'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以披萨列表为例。我们可以使用`transition-group`为屏幕上出现的每个披萨卡片添加`fadein`效果，并将卡片包裹在`ul`元素下：
+- en: '[PRE12]'
+  id: totrans-60
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Using `key` Attribute
+  id: totrans-61
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用`key`属性
+- en: You must use the `key` attribute on each list element for Vue to track the changes
+    in the list and apply the transition effect accordingly.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您必须在每个列表元素上使用`key`属性，以便Vue跟踪列表中的变化，并相应地应用过渡效果。
+- en: 'Vue will add the relevant classes `fadein-enter-active`, `fadein-enter-to`,
+    `fadein-leave-active`, `fadein-leave-to` to each `li` element, which we define
+    with the following CSS rules:'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Vue会为我们定义的每个`li`元素添加相关的类名`fadein-enter-active`、`fadein-enter-to`、`fadein-leave-active`、`fadein-leave-to`，这些类名是根据以下CSS规则定义的：
+- en: '[PRE13]'
+  id: totrans-64
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'That’s it. Each pizza card in our list now appears with a fading effect and
+    a slight slide-in transition from the right when loading the component for the
+    first time. Whenever we filter the list using the search box, the new cards will
+    appear with the same effect, while the old cards will disappear with the opposite
+    effect: fading out and sliding out to the right ([Figure 10-4](#figure_c10_03)).'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们的列表中的每个披萨卡片都会在首次加载组件时以淡出效果和从右侧轻微滑入的过渡效果出现。每当我们使用搜索框筛选列表时，新卡片将以相同的效果出现，而旧卡片则会以相反的效果消失：淡出并向右滑出（参见[图 10-4](#figure_c10_03)）。
+- en: '![A screenshot displays products fading away on search term typed](assets/lvue_1004.png)'
+  id: totrans-66
+  prefs: []
+  type: TYPE_IMG
+  zh: '![屏幕截图显示在键入搜索词时产品淡出的效果](assets/lvue_1004.png)'
+- en: Figure 10-4\. Fading effect on searching in list
+  id: totrans-67
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-4\. 列表搜索时的淡出效果
+- en: Adding More Effects on the Movement
+  id: totrans-68
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 添加更多移动效果
+- en: You can also add more effects to the moving items using the `<effect>-move`
+    class (like `fadein-move`). This solution can be smoother when things move around
+    in the list.
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以使用`<effect>-move`类（例如`fadein-move`）为移动的项目添加更多效果。在列表中物品移动时，这种解决方案可能更加平滑。
+- en: So far so good. We have explored how to use `transition` and `transition-group`
+    components. The next step is to learn how to combine these components with the
+    `router-view` element to create a smooth transition when navigating between routes.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，一切顺利。我们已经探讨了如何使用`transition`和`transition-group`组件。接下来的步骤是学习如何将这些组件与`router-view`元素结合起来，在路由之间导航时创建平滑的过渡效果。
+- en: Creating Route Transitions
+  id: totrans-71
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 创建路由过渡效果
+- en: 'Beginning with Vue Router 4.0, we no longer can wrap the `router-view` component
+    with the `transition` element. Instead, we combine the usage of the `Component`
+    prop exposed by the `v-lot` API from the `router-view`, and the dynamic `component`,
+    as shown in the following code:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从Vue Router 4.0开始，我们不再可以用`transition`元素包裹`router-view`组件。相反，我们结合了由`router-view`暴露的`Component`属性和动态`component`的使用，如下面的代码所示：
+- en: '[PRE14]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'The `Component` prop refers to the target component that Vue renders in place
+    of the `router-view` placeholder. We can then use the `component` element to generate
+    the component dynamically and wrap it with the `transition` element to apply the
+    `slidein` effect. By doing so, whenever we navigate a different route, there will
+    be an animation effect: sliding in for the page entering and sliding out for the
+    page leaving.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Component`属性指的是Vue在`router-view`占位符所在位置渲染的目标组件。然后，我们可以使用`component`元素动态生成组件，并用`transition`元素包裹它以应用`slidein`效果。通过这样做，无论何时我们导航到不同的路由，都会有动画效果：页面进入时滑入，页面离开时滑出。'
+- en: 'There is a minor issue here, however. When we navigate a different route, note
+    that the new page’s content may appear before the previous page’s content finishes
+    the animation for leaving and disappears. In such cases, we can use `mode` prop
+    with the value `out-in` to ensure the new content will enter and start animating
+    only after the previous content has disappeared entirely from the screen:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但这里有一个小问题。当我们导航到不同的路由时，请注意新页面的内容可能会在前一页的内容完成离开动画并消失之前出现。在这种情况下，我们可以使用`mode`属性，其值为`out-in`，以确保新内容只有在前一个内容完全从屏幕上消失后才进入并开始动画：
+- en: '[PRE15]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Now, whenever we navigate to a different route, such as moving from `/` to `/about`,
+    the About view will appear only after the Home view disappears.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，每当我们导航到不同的路由时，例如从`/`到`/about`，关于视图只有在主页视图消失后才会出现。
+- en: To this point, we have explored how to create transition effects using `name`
+    and custom transition classes. While these are sufficient to create smooth transition
+    effects with custom animation classes for our application in most scenarios, we
+    may find other cases where we want to use third-party JavaScript animation libraries
+    for better transition effects. We need a different approach for such cases, allowing
+    us to plug in custom animation control using JavaScript. We will learn how to
+    do that in the next section.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经探讨了如何使用`name`和自定义过渡类来创建过渡效果。虽然这些在大多数情况下足以为我们的应用程序创建具有自定义动画类的平滑过渡效果，但在其他情况下，我们可能会发现需要使用第三方JavaScript动画库来获得更好的过渡效果。对于这种情况，我们需要一种不同的方法，允许我们使用JavaScript插入自定义动画控制。我们将在下一节中学习如何做到这一点。
+- en: Using Transition Events to Control Animation
+  id: totrans-79
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用过渡事件控制动画
+- en: In contrast to the custom classes, Vue exposes some appropriate transition events
+    for both transition components to emit. These events are `before-enter`, `enter`,
+    `after-enter`, and `enter-cancelled` for the entering state of an element, and
+    `before-leave`, `leave`, `after-leave`, and `leave-cancelled` for its leaving
+    form. We can bind these events to the desired callbacks and control the transition
+    effect using JavaScript.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与自定义类不同，Vue为过渡组件提供了一些适当的过渡事件来发出。这些事件包括元素进入状态的`before-enter`、`enter`、`after-enter`和`enter-cancelled`，以及离开状态的`before-leave`、`leave`、`after-leave`和`leave-cancelled`。我们可以将这些事件绑定到所需的回调函数上，并使用JavaScript控制过渡效果。
+- en: 'For instance, we can use the `before-enter`, `enter`, `afterEnter` events to
+    control the animation of the `slidein` effect on a page transitioning:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，我们可以使用`before-enter`、`enter`、`afterEnter`事件来控制页面过渡中`slidein`效果的动画：
+- en: '[PRE16]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: Using the css Prop
+  id: totrans-83
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用`css`属性
+- en: When using the callbacks approach, we can use the `css` prop to disable the
+    default and any possible overlapping CSS transition classes.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用回调函数方法时，我们可以使用`css`属性来禁用默认的CSS过渡类和任何可能的重叠。
+- en: 'In the `script` section, we can define the callbacks for each event:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`script`部分，我们可以为每个事件定义回调函数：
+- en: '[PRE17]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'In this code, we use the `gsap` (GreenSock Animation Platform) library to animate
+    the element when it enters the DOM. We define the following:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此代码中，我们使用`gsap`（GreenSock动画平台）库来在元素进入DOM时对其进行动画处理。我们定义如下：
+- en: '`beforeEnter`'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`beforeEnter`'
+- en: Callback to set the initial state of the element, including setting the `opacity`
+    to hidden and repositioning the element 20px from the origin
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回调函数来设置元素的初始状态，包括将`opacity`设置为隐藏并将元素重新定位到原点20px处
+- en: '`enter`'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`enter`'
+- en: Callback to animate the element using `gsap.to` function^([1](ch10.html#id1538))
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回调函数以使用`gsap.to`函数来动画元素^([1](ch10.html#id1538))
+- en: '`afterEnter`'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`afterEnter`'
+- en: Callback to set the element’s visibility state and the position after the animation
+    finishes
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回调函数来设置元素的可见状态和动画完成后的位置
+- en: Similarly, we can use the `before-leave`, `leave`, and `after-leave` events
+    to animate the element when it leaves the DOM (such as a sliding-out effect) with
+    the animation library of our choice.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，我们可以使用`before-leave`、`leave`和`after-leave`事件来在元素离开DOM时（如滑出效果）使用所选的动画库进行动画。
+- en: Summary
+  id: totrans-95
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: In this chapter, we learned how to use the transition component and the available
+    hooks to create smooth transition effects from one route to another. We also learned
+    how to make group transitions and use the transition component to animate elements
+    within a segment.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们学习了如何使用过渡组件和可用的钩子来创建从一个路由到另一个路由的平滑过渡效果。我们还学习了如何创建组过渡，并使用过渡组件来在段落内动画化元素。
+- en: 'In the next chapter, we will discover another significant aspect of web development:
+    testing. We will learn how to test composables with Vitest and components with
+    the Vue Test Utils library and then develop a complete end-to-end testing plan
+    with Playwright for our application.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将探讨 Web 开发的另一个重要方面：测试。我们将学习如何使用 Vitest 测试组合组件，使用 Vue Test Utils 库测试组件，然后为我们的应用程序开发完整的端到端测试计划。
+- en: ^([1](ch10.html#id1538-marker)) This function receives a target element and
+    optional object containing all properties for animation. See [*https://oreil.ly/XNgFb*](https://oreil.ly/XNgFb).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch10.html#id1538-marker)) 此函数接收一个目标元素和可选的包含所有动画属性的对象。详见 [*https://oreil.ly/XNgFb*](https://oreil.ly/XNgFb)。

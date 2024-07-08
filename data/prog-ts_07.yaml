@@ -1,0 +1,928 @@
+- en: Chapter 7\. Handling Errors
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第7章。处理错误
+- en: A physicist, a structural engineer, and a programmer were in a car driving over
+    a steep alpine pass when the brakes failed. The car went faster and faster, they
+    were struggling to get around the corners, and once or twice the flimsy crash
+    barrier saved them from tumbling down the side of the mountain. They were sure
+    they were all going to die, when suddenly they spotted an escape lane. They pulled
+    into the escape lane, and came safely to a halt.
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 一名物理学家、一名结构工程师和一名程序员在驾驶一辆汽车越过陡峭的高山通道时，刹车失灵了。汽车越来越快，他们挣扎着转过弯道，有时脆弱的防护栏救了他们一两次免于滚落山坡。他们确信自己都要死了，突然他们发现了一个逃生车道。他们驶入逃生车道，安全地停了下来。
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: The physicist said, “We need to model the friction in the brake pads and the
+    resultant temperature rise, and see if we can work out why they failed.”
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 物理学家说：“我们需要建模制动片的摩擦和由此产生的温升，并看看为什么它们失灵了。”
+- en: ''
+  id: totrans-4
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: The structural engineer said, “I think I’ve got a few spanners in the back.
+    I’ll take a look and see if I can work out what’s wrong.”
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 结构工程师说：“我想我后面有几把扳手。我来看看能不能找出问题所在。”
+- en: ''
+  id: totrans-6
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: The programmer said, “Why don’t we see if it’s reproducible?”
+  id: totrans-7
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 程序员说：“为什么我们不看看它是否可以重现？”
+- en: ''
+  id: totrans-8
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Anonymous
+  id: totrans-9
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 匿名
+- en: 'TypeScript does everything it can to move runtime exceptions to compile time:
+    from the rich type system it provides to the powerful static and symbolic analyses
+    it performs, it works hard so you don’t have to spend your Friday nights debugging
+    misspelled variables and null pointer exceptions (and so your on-call coworker
+    doesn’t have to be late to their great aunt’s birthday party because of it).'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 尽其所能将运行时异常转移到编译时：从其提供的丰富类型系统到执行的强大静态和符号分析，它努力让你不必在周五夜晚调试拼写错误的变量和空指针异常（也让你的值班同事不必因此迟到参加他们的大姨妈生日派对）。
+- en: Unfortunately, regardless of what language you write in, sometimes runtime exceptions
+    do sneak through. TypeScript is really good about preventing them, but even it
+    can’t prevent things like network and filesystem failures, errors parsing user
+    input, stack overflows, and out of memory errors. What it does do—thanks to its
+    lush type system—is give you lots of ways to deal with the runtime errors that
+    end up making it through.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，无论您使用什么语言编写，有时运行时异常都会偷偷溜走。TypeScript 在防止它们方面做得非常好，但即使是它也无法防止诸如网络和文件系统故障、用户输入解析错误、堆栈溢出和内存耗尽等问题。它所做的——得益于其丰富的类型系统——是为您提供了处理最终导致这些运行时错误的多种方式。
+- en: 'In this chapter I’ll walk you through the most common patterns for representing
+    and handling errors in TypeScript:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我将为您介绍 TypeScript 中表示和处理错误的最常见模式：
+- en: Returning `null`
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 返回`null`
+- en: Throwing exceptions
+  id: totrans-14
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 抛出异常
+- en: Returning exceptions
+  id: totrans-15
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 返回异常
+- en: The `Option` type
+  id: totrans-16
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Option`类型'
+- en: Which mechanism you use is up to you, and depends on your application. As I
+    cover each error-handling mechanism, I’ll talk about its pros and cons so you
+    can make the right choice for yourself.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您使用哪种机制取决于您的应用程序。在我讨论每种错误处理机制时，我会谈论它的优缺点，以便您可以为自己做出正确选择。
+- en: Returning null
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 返回`null`
+- en: 'We’re going to write a program that asks a user for their birthday, which we
+    will then parse into a `Date` object:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将编写一个程序，询问用户的生日，然后将其解析为`Date`对象：
+- en: '[PRE0]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'We should probably validate the date the user entered—it’s just a text prompt,
+    after all:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可能应该验证用户输入的日期——毕竟只是一个文本提示：
+- en: '[PRE1]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'When we consume this, we’re forced to first check if the result is `null` before
+    we can use it:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们使用时，我们被迫首先检查结果是否为`null`，然后才能使用它：
+- en: '[PRE2]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Returning `null` is the most lightweight way to handle errors in a typesafe
+    way. Valid user input results in a `Date`, invalid user input in a `null`, and
+    the type system checks for us that we handled both.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回`null`是一种在类型安全的方式下处理错误的最轻量级方法。有效的用户输入结果是一个`Date`，无效的用户输入是一个`null`，而类型系统会检查我们是否处理了这两种情况。
+- en: However, we lose some information doing it this way `parse` doesn’t tell us
+    why exactly the operation failed, which stinks for whatever engineer has to comb
+    through our logs to debug this, as well as the user who gets a pop up saying that
+    there was an “Error parsing date for some reason” rather than a specific, actionable
+    error like “Enter a date in the form YYYY/MM/DD.”
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，通过这种方式我们会丢失一些信息 `parse`并没有告诉我们确切的操作失败原因，这对于不得不查阅我们的日志来调试的工程师和接收到弹出窗口显示“由于某些原因解析日期出错”的用户来说都很糟糕，而不是一个具体的、可操作的错误，比如“请输入形式为YYYY/MM/DD的日期”。
+- en: 'Returning `null` is also difficult to compose: having to check for `null` after
+    every operation can become verbose as you start to nest and chain operations.'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 返回 `null` 也很难组合：在每次操作后都必须检查 `null`，随着嵌套和链接操作的增加，这可能会变得冗长。
+- en: Throwing Exceptions
+  id: totrans-28
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 抛出异常
+- en: Let’s throw an exception instead of returning `null`, so that we can handle
+    specific failure modes and have some metadata about the failure so we can debug
+    it more easily.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们抛出一个异常，而不是返回 `null`，这样我们就可以处理特定的失败模式，并且可以获得一些关于失败的元数据，以便更容易地调试它。
+- en: '[PRE3]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Now when we consume this code, we need to be careful to catch the exception
+    so that we can handle it gracefully without crashing our whole application:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当我们使用这段代码时，我们需要小心捕获异常，以便我们可以优雅地处理它，而不会使整个应用程序崩溃：
+- en: '[PRE4]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'We probably want to be careful to rethrow other exceptions, so we don’t silently
+    swallow every possible error:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可能希望小心地重新抛出其他异常，以免无声地吞咽每一个可能的错误：
+- en: '[PRE5]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'We might want to subclass the error for something more specific, so that when
+    another engineer changes `parse` or `ask` to throw other `RangeError`s, we can
+    differentiate between our error and the one they added:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可能希望为某些更具体的内容创建错误的子类，以便当另一个工程师更改 `parse` 或 `ask` 以抛出其他 `RangeError` 时，我们可以区分我们的错误和他们添加的错误：
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Looking good. We can now do more than just signal that something failed: we
+    can use a custom error to indicate *why* it failed. These errors might come in
+    handy when combing through our server logs to debug an issue, or we can map them
+    to specific error dialogs to give our users actionable feedback about what they
+    did wrong and how they can fix it. We can also effectively chain and nest operations
+    by wrapping any number of operations in a single `try`/`catch` (we don’t have
+    to check each operation for failure, like we did when returning `null`).'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 看起来不错。现在我们不仅可以表示某些事情失败了，而且可以使用自定义错误来指示*为什么*它失败了。当通过服务器日志调试问题时，这些错误可能会派上用场，或者我们可以将它们映射到特定的错误对话框，向用户提供有关他们做错了什么以及如何修复的可操作反馈。我们还可以通过在单个
+    `try`/`catch` 中包装任意数量的操作来有效地链接和嵌套操作（我们不必像返回 `null` 时那样检查每个操作的失败）。
+- en: 'What does it feel like to use this code? Say the big `try`/`catch` is in one
+    file, and the rest of the code is in a library being imported from somewhere else.
+    How would an engineer know to catch those specific types of errors (`InvalidDateFormatError`
+    and `DateIsInTheFutureError`), or to even just check for a regular old `RangeError`?
+    (Remember that TypeScript doesn’t encode exceptions as part of a function’s signature.)
+    We could indicate it in our function’s name (`parseThrows`), or include it in
+    a docblock:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这段代码感觉如何？假设大的 `try`/`catch` 在一个文件中，其余的代码在从其他地方导入的库中。工程师如何知道要捕获这些特定类型的错误（`InvalidDateFormatError`
+    和 `DateIsInTheFutureError`），或者甚至只是检查普通的 `RangeError`？（请记住，TypeScript 不会将异常编码为函数签名的一部分。）我们可以在函数名中指示它（`parseThrows`），或者在文档块中包含它：
+- en: '[PRE7]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: But in practice, an engineer probably wouldn’t wrap this code in a `try`/`catch`
+    and check for exceptions at all, because engineers are lazy (at least, I am),
+    and the type system isn’t telling them that they missed a case and should handle
+    it. Sometimes, though—like in this example—errors are so expected that downstream
+    code really should handle them, lest they cause the program to crash.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但在实际操作中，工程师可能根本不会在 `try`/`catch` 中包装此代码并检查异常，因为工程师都是懒惰的（至少我是），而且类型系统并未告诉他们他们错过了一个案例并应该处理它。然而，有时候——就像这个例子一样——错误是如此预期，以至于下游代码确实应该处理它们，以免导致程序崩溃。
+- en: How else can we indicate to consumers that they should handle both the success
+    and the error cases?
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还能以何种方式向使用者指示他们应该处理成功和错误的情况？
+- en: Returning Exceptions
+  id: totrans-42
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 返回异常
+- en: 'TypeScript isn’t Java, and doesn’t support `throws` clauses.^([1](ch07.html#idm46304961581304))
+    But we can achieve something similar with union types:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 不是 Java，不支持 `throws` 子句。^([1](ch07.html#idm46304961581304)) 但我们可以使用联合类型实现类似的效果：
+- en: '[PRE8]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'Now a consumer is forced to handle all three cases—`InvalidDateFormatError`,
+    `DateIsInTheFutureError`, and successful parse—or they’ll get a `TypeError` at
+    compile time:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，消费者被迫处理所有三种情况——`InvalidDateFormatError`、`DateIsInTheFutureError` 和成功的解析——否则他们将在编译时获得
+    `TypeError`：
+- en: '[PRE9]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'Here, we successfully took advantage of TypeScript’s type system to:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们成功地利用了 TypeScript 的类型系统来：
+- en: Encode likely exceptions in `parse`’s signature.
+  id: totrans-48
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在 `parse` 的签名中编码可能的异常。
+- en: Communicate to consumers which specific exceptions might be thrown.
+  id: totrans-49
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 向使用者传达可能会抛出的具体异常。
+- en: Force consumers to handle (or rethrow) each of the exceptions.
+  id: totrans-50
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 强制使用者处理（或重新抛出）每个异常。
+- en: 'A lazy consumer can avoid handling each error individually. But they have to
+    do so explicitly:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个懒惰的消费者可以避免单独处理每个错误。但他们必须显式地这样做：
+- en: '[PRE10]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Of course, your program might still crash due to an out of memory error or a
+    stack overflow exception, but there’s not much we can do to recover from those.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，你的程序可能因为内存不足或堆栈溢出异常而崩溃，但我们对此无能为力。
+- en: This approach is lightweight and doesn’t require fancy data structures, but
+    it’s also informative enough that consumers will know what type of failure an
+    error represents and what to search for to find more information.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法轻巧且不需要复杂的数据结构，但它也足够信息化，以便消费者知道错误代表的失败类型以及要搜索的更多信息。
+- en: 'A downside is that chaining and nesting error-giving operations can quickly
+    get verbose. If a function returns `T | Error1`, then any function that consumes
+    that function has two options:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个缺点是，链式和嵌套的可能引发错误的操作可能会变得冗长。如果一个函数返回 `T | Error1`，那么消费该函数的任何函数都有两个选项：
+- en: Explicitly handle `Error1`.
+  id: totrans-56
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 显式处理 `Error1`。
+- en: 'Handle `T` (the success case) and pass `Error1` through to its consumers to
+    handle. If you do this enough, the list of possible errors that a consumer has
+    to handle grows quickly:'
+  id: totrans-57
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 处理 `T`（成功情况）并将 `Error1` 传递给其消费者进行处理。如果您做得足够多，消费者必须处理的可能错误列表会迅速增长：
+- en: '[PRE11]'
+  id: totrans-58
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: This approach is verbose, but gives us excellent safety.
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法冗长，但确保了我们的安全性。
+- en: The Option Type
+  id: totrans-60
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 选项类型
+- en: You can also describe exceptions using special-purpose data types. This approach
+    has some downsides compared to returning unions of values and errors (notably,
+    interoperability with code that doesn’t use these data types), but it does give
+    you the ability to chain operations over possibly errored computations. Three
+    of the most popular options (heh!) are the `Try`, `Option`,^([2](ch07.html#idm46304961216792))
+    and `Either` types. In this chapter, we’ll just cover the `Option` type;^([3](ch07.html#idm46304961214696))
+    the other two are similar in spirit.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你也可以使用专用的数据类型来描述异常。与返回值和错误的联合相比，这种方法有一些缺点（特别是与不使用这些数据类型的代码的互操作性），但它确实使您能够在可能出错的计算中链式操作。三种最受欢迎的选项（哈！）是
+    `Try`、`Option`、^([2](ch07.html#idm46304961216792)) 和 `Either` 类型。在本章中，我们只涵盖 `Option`
+    类型；^([3](ch07.html#idm46304961214696)) 另外两种在精神上类似。
+- en: Note
+  id: totrans-62
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Note that the `Try`, `Option`, and `Either` data types don’t come built into
+    JavaScript environments the same way that `Array`, `Error`, `Map`, or `Promise`
+    are. If you want to use these types, you’ll have to find implementations on NPM,
+    or write them yourself.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，`Try`、`Option` 和 `Either` 数据类型不像 `Array`、`Error`、`Map` 或 `Promise` 那样内置于
+    JavaScript 环境中。如果您想使用这些类型，您必须在 NPM 上找到实现，或者自己编写。
+- en: 'The `Option` type comes to us from languages like Haskell, OCaml, Scala, and
+    Rust. The idea is that instead of returning a value, you return a *container*
+    that may or may not have a value in it. The container has a few methods defined
+    on it, which lets you chain operations even though there may not actually be a
+    value inside. The container can be pretty much any data structure, so long as
+    it can hold a value. For example, you could use an array as the container:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Option` 类型源自像 Haskell、OCaml、Scala 和 Rust 这样的语言。其想法是，不返回一个值，而是返回一个*容器*，该容器可能包含或不包含值。容器上定义了几种方法，这让您能够链式操作，即使容器内实际上可能没有值。容器可以是几乎任何数据结构，只要它能保存一个值。例如，您可以使用数组作为容器：'
+- en: '[PRE12]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Note
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As you may have noticed, a downside of `Option` is that, much like our original
+    `null`-returning approach, it doesn’t tell the consumer why the error happened;
+    it just signals that something went wrong.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如您可能已经注意到的那样，`Option` 的一个缺点是，就像我们最初的返回 `null` 的方法一样，它并不告诉消费者错误发生的原因；它只是表明出了问题。
+- en: Where `Option` really shines is when you need to do multiple operations in a
+    row, each of which might fail.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Option` 真正发光的时候是当您需要连续执行多个操作，每个操作都可能失败时。'
+- en: For example, before we assumed that `prompt` always succeeds, and `parse` might
+    fail. But what if `prompt` can fail too? That might happen if the user cancelled
+    out of the birthday prompt—that’s an error and we shouldn’t continue our computation.
+    We can model that with… another `Option`!
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，在之前我们假设 `prompt` 总是成功的，而 `parse` 可能失败。但如果 `prompt` 也可能失败呢？如果用户取消了生日提示，那就是一个错误，我们不应该继续计算。我们可以用另一个
+    `Option` 来建模！
+- en: '[PRE13]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'Yikes—that didn’t work. Since we mapped an array of `Date`s (`Date[]`) to an
+    array of arrays of `Date`s (`Date[][]`), we need to flatten it back to an array
+    of `Date`s before we can keep going:'
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 哎呀——那行不通。因为我们将`Date`数组（`Date[]`）映射为`Date`数组的数组（`Date[][]`），所以我们需要将其展平为`Date`数组，然后才能继续：
+- en: '[PRE14]'
+  id: totrans-72
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'This is all getting a bit unwieldy. Because the types don’t tell you much (everything
+    is a regular array), it’s hard to understand what’s going on in that code at a
+    glance. To fix this, let’s wrap what we’re doing—putting a value in a container,
+    exposing a way to operate on that value, and exposing a way to get a result back
+    from the container—in a special data type that helps document our approach. Once
+    we’re done implementing it, you’ll be able to use the data type like this:'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这一切看起来有点笨重。因为类型没有告诉你太多（一切都是常规数组），一眼看不出代码的运行情况。为了解决这个问题，让我们将我们正在做的事情——将一个值放入容器中，公开操作该值的方法，并公开从容器中获取结果的方法——封装在一个特殊的数据类型中，以帮助文档化我们的方法。一旦我们完成了实现，您将能够像这样使用数据类型：
+- en: '[PRE15]'
+  id: totrans-74
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'We’ll define our `Option` type like this:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将如下定义我们的`Option`类型：
+- en: '`Option` is an interface that’s implemented by two classes: `Some<T>` and `None`
+    (see [Figure 7-1](#optiont-fig)). They are the two kinds of `Option`s. `Some<T>`
+    is an `Option` that contains a value of type `T`, and `None` is an `Option` without
+    a value, which represents a failure.'
+  id: totrans-76
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Option`是一个接口，由两个类实现：`Some<T>`和`None`（参见[图 7-1](#optiont-fig)）。它们是两种`Option`。`Some<T>`是包含类型为`T`的值的`Option`，而`None`是没有值的`Option`，表示失败。'
+- en: '`Option` is both a type and a function. Its type is an interface that simply
+    serves as the supertype of `Some` and `None`. Its function is the way to create
+    a new value of type `Option`.'
+  id: totrans-77
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Option`既是一个类型，也是一个函数。它的类型是一个接口，仅作为`Some`和`None`的超类型。它的函数是创建类型为`Option`的新值的方法。'
+- en: '![prts 0701](assets/prts_0701.png)'
+  id: totrans-78
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0701](assets/prts_0701.png)'
+- en: 'Figure 7-1\. Option<T> has two cases: Some<T> and None'
+  id: totrans-79
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 7-1\. `Option<T>`有两种情况：`Some<T>`和`None`
+- en: 'Let’s start by sketching out the types:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从草图开始：
+- en: '[PRE16]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: '[![1](assets/1.png)](#co_handling_errors_CO1-1)'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_handling_errors_CO1-1)'
+- en: '`Option<T>` is an interface that we’ll share between `Some<T>` and `None`.'
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Option<T>`是一个接口，我们将在`Some<T>`和`None`之间共享。'
+- en: '[![2](assets/2.png)](#co_handling_errors_CO1-2)'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_handling_errors_CO1-2)'
+- en: '`Some<T>` represents a successful operation that resulted in a value. Like
+    the array we used before, `Some<T>` is a container for that value.'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Some<T>`代表成功的操作结果值。像我们之前使用的数组一样，`Some<T>`是该值的容器。'
+- en: '[![3](assets/3.png)](#co_handling_errors_CO1-3)'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_handling_errors_CO1-3)'
+- en: '`None` represents an operation that failed, and does not contain a value.'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`None`表示操作失败，不包含值。'
+- en: 'These types are equivalent to the following in our array-based `Option` implementation:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们基于数组的`Option`实现中，这些类型等同于以下内容：
+- en: '`Option<T>` is `[T] | []`.'
+  id: totrans-89
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Option<T>`是`[T] | []`。'
+- en: '`Some<T>` is `[T]`.'
+  id: totrans-90
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Some<T>`是`[T]`。'
+- en: '`None` is `[]`.'
+  id: totrans-91
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`None`是`[]`。'
+- en: 'What can you do with an `Option`? For our bare-bones implementation, we’ll
+    define just two operations:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以如何处理`Option`？对于我们的基本实现，我们将仅定义两个操作：
+- en: '`flatMap`'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`flatMap`'
+- en: A way to chain operations on a possibly empty `Option`
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于链式操作可能为空的`Option`的方法。
+- en: '`getOrElse`'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getOrElse`'
+- en: A way to retrieve a value from an `Option`
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从`Option`中检索值的方法。
+- en: 'We’ll start by defining these operations on our `Option` interface, meaning
+    that `Some<T>` and `None` will need to provide concrete implementations for them:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将首先在我们的`Option`接口上定义这些操作，这意味着`Some<T>`和`None`将需要为它们提供具体的实现：
+- en: '[PRE17]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'That is:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即：
+- en: '`flatMap` takes a function `f` that takes a value of type `T` (the type of
+    the value the `Option` contains) and returns an `Option` of `U`. `flatMap` calls
+    `f` with the `Option`’s value, and returns a new `Option<U>`.'
+  id: totrans-100
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`flatMap`接受一个函数`f`，该函数接受类型为`T`的值（`Option`包含的值的类型），并返回类型为`U`的`Option`。`flatMap`调用`f`与`Option`的值，并返回一个新的`Option<U>`。'
+- en: '`getOrElse` takes a default value of the same type `T` as the value that the
+    `Option` contains, and returns either that default value (if the `Option` is an
+    empty `None`) or the `Option`’s value (if the `Option` is a `Some<T>`).'
+  id: totrans-101
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`getOrElse`接受与`Option`包含的值相同类型的默认值`T`，并返回该默认值（如果`Option`为空的`None`）或`Option`的值（如果`Option`是`Some<T>`）。'
+- en: 'Guided by the types, let’s implement these methods for `Some<T>` and `None`:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在类型的指导下，让我们为`Some<T>`和`None`实现这些方法：
+- en: '[PRE18]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '[![](assets/1.png)](#callout_7_1_1)'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![](assets/1.png)](#callout_7_1_1)'
+- en: When we call `flatMap` on a `Some<T>`, we pass in a function `f`, which `flatMap`
+    calls with the `Some<T>`’s value to yield a new `Option` of a new type.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们在`Some<T>`上调用`flatMap`时，我们传入一个函数`f`，`flatMap`会使用`Some<T>`的值调用它，以产生一个新类型的`Option`。
+- en: '[![](assets/2.png)](#callout_7_1_2)'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![](assets/2.png)](#callout_7_1_2)'
+- en: Calling `getOrElse` on a `Some<T>` just returns the `Some<T>`’s value.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`Some<T>`上调用`getOrElse`只会返回`Some<T>`的值。
+- en: '[![](assets/3.png)](#callout_7_1_3)'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![](assets/3.png)](#callout_7_1_3)'
+- en: 'Since a `None` represents a failed computation, calling `flatMap` on it always
+    returns a `None`: once a computation fails, we can’t recover from that failure
+    (at least not with our particular `Option` implementation).'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为`None`表示一个失败的计算，调用它的`flatMap`总是返回`None`：一旦计算失败，我们无法从这个失败中恢复（至少在我们特定的`Option`实现中是这样）。
+- en: '[![](assets/4.png)](#callout_7_1_4)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![](assets/4.png)](#callout_7_1_4)'
+- en: Calling `getOrElse` on a `None` always returns the value we passed into `getOrElse`.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`None`上调用`getOrElse`总是返回我们传递给`getOrElse`的值。
+- en: We can actually go a step beyond this naive implementation, and specify our
+    types better. If all you know is that you have an `Option` and a function from
+    `T` to `Option<U>`, then an `Option<T>` always `flatMap`s to an `Option<U>`. But
+    when you know you have a `Some<T>` or a `None`, you can be more specific.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，我们可以进一步完善这个天真的实现，并更好地指定我们的类型。如果你只知道你有一个`Option`和一个从`T`到`Option<U>`的函数，那么`Option<T>`总是`flatMap`到`Option<U>`。但当你知道你有一个`Some<T>`或`None`时，你可以更具体地指定。
+- en: '[Table 7-1](#flatmap-table) shows the result types we want when calling `flatMap`
+    on the two types of `Option`s.'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[表 7-1](#flatmap-table) 展示了在两种`Option`类型上调用`flatMap`时我们想要的结果类型。'
+- en: Table 7-1\. Result of calling .flatMap(f) on Some<T> and None
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 7-1\. 在`Some<T>`和`None`上调用`.flatMap(f)`的结果
+- en: '|  | From `Some<T>` | From `None` |'
+  id: totrans-115
+  prefs: []
+  type: TYPE_TB
+  zh: '|  | 来自 `Some<T>` | 来自 `None` |'
+- en: '| --- | --- | --- |'
+  id: totrans-116
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| To `Some<U>` | `Some<U>` | `None` |'
+  id: totrans-117
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对于 `Some<U>` | `Some<U>` | `None` |'
+- en: '| To `None` | `None` | `None` |'
+  id: totrans-118
+  prefs: []
+  type: TYPE_TB
+  zh: '| 对于 `None` | `None` | `None` |'
+- en: 'That is, we know that mapping over a `None` always results in a `None`, and
+    mapping over a `Some<T>` results in either a `Some<T>` or a `None`, depending
+    on what calling `f` returns. We’ll exploit this and use overloaded signatures
+    to give `flatMap` more specific types:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，我们知道在`None`上映射总是导致`None`，而在`Some<T>`上映射则会导致`Some<T>`或`None`，具体取决于调用`f`返回什么。我们将利用这一点并使用重载签名来为`flatMap`提供更具体的类型：
+- en: '[PRE19]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'We’re almost done. All that’s left to do is implement the `Option` function,
+    which we’ll use to create new `Option`s. We already implemented the `Option` *type*
+    as an interface; now we’re going to implement a function with the same name (remember
+    that TypeScript has two separate namespaces for types and for values) as a way
+    to create a new `Option`, similar to what we did in [“Companion Object Pattern”](ch06.html#companion-objects).
+    If a user passes in `null` or `undefined`, we’ll give them back a `None`; otherwise,
+    we’ll return a `Some`. Once again, we’ll overload the signature to do that:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们快完成了。剩下的就是实现`Option`函数，我们将用它来创建新的`Option`。我们已经将`Option` *类型* 实现为一个接口；现在我们将实现一个同名的函数（请记住
+    TypeScript 为类型和值分别有两个独立的命名空间），用于创建类似于我们在[“伴随对象模式”](ch06.html#companion-objects)中所做的新`Option`。如果用户传入`null`或`undefined`，我们将返回`None`；否则，我们将返回`Some`。再次，我们将重载签名来实现这一点：
+- en: '[PRE20]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '[![1](assets/1.png)](#co_handling_errors_CO2-1)'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_handling_errors_CO2-1)'
+- en: If the consumer calls `Option` with `null` or `undefined`, we return a `None`.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果消费者用`null`或`undefined`调用`Option`，我们会返回`None`。
+- en: '[![2](assets/2.png)](#co_handling_errors_CO2-2)'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_handling_errors_CO2-2)'
+- en: Otherwise, we return a `Some<T>`, where `T` is the type of value the user passed
+    in.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 否则，我们返回一个`Some<T>`，其中`T`是用户传入的值的类型。
+- en: '[![3](assets/3.png)](#co_handling_errors_CO2-3)'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_handling_errors_CO2-3)'
+- en: 'Finally, we manually calculate an upper bound for the two overloaded signatures.
+    The upper bound of `null | undefined` and `T` is `T | null | undefined`, which
+    simplifies to `T`. The upper bound of `None` and `Some<T>` is `None | Some<T>`,
+    which we already have a name for: `Option<T>`.'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们手动计算了两个重载签名的上界。`null | undefined` 和 `T` 的上界是 `T | null | undefined`，简化为
+    `T`。`None` 和 `Some<T>` 的上界是 `None | Some<T>`，我们已经有一个名称：`Option<T>`。
+- en: 'That’s it. We’ve derived a fully working, minimal `Option` type that lets us
+    safely perform operations over maybe-`null` values. We use it like this:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就这样。我们得到了一个完全工作的、最小的`Option`类型，让我们能够安全地处理可能为`null`的值。我们可以像这样使用它：
+- en: '[PRE21]'
+  id: totrans-130
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Getting back to our birthday prompt example, our code now works as we’d expect:'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到我们的生日提示示例，我们的代码现在按照我们的预期工作：
+- en: '[PRE22]'
+  id: totrans-132
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: '`Option`s are a powerful way to work with series of operations that may or
+    may not succeed. They give you excellent type safety, and signal to consumers
+    via the type system that a given operation might fail.'
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Option`是处理可能成功或可能失败的一系列操作的强大方式。它为你提供了优秀的类型安全性，并通过类型系统向使用者发出信号，表明特定操作可能会失败。'
+- en: However, `Option`s aren’t without their downsides. They signal failure with
+    a `None`, so you don’t get more details about what failed and why. They also don’t
+    interoperate with code that doesn’t use `Option`s (you’ll have to explicitly wrap
+    those APIs to return `Option`s).
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，`Option`并不是没有缺点。它们通过`None`表示失败，因此你无法获得更多关于失败及其原因的详细信息。它们也无法与不使用`Option`的代码互操作（你必须显式地包装那些API以返回`Option`）。
+- en: Still, what you did there was pretty neat. The overloads you added let you do
+    something that you can’t express in most languages, even those that rely on the
+    `Option` type for working with nullable values. By restricting `Option` to just
+    `Some` or `None` where possible via overloaded call signatures, you made your
+    code a whole lot safer, and a whole lot of Haskell programmers very jealous. Now
+    go grab yourself a cold one—you deserve it.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管如此，你在那里所做的事情非常棒。你添加的重载使你能够做一些在大多数语言中无法表达的事情，即使是那些依赖于`Option`类型处理可空值的语言也是如此。通过限制`Option`尽可能地只有`Some`或`None`，你使你的代码更加安全，让许多Haskell程序员都很羡慕。现在去拿一杯冷饮庆祝一下吧，你值得拥有。
+- en: Summary
+  id: totrans-136
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'In this chapter we covered the different ways to signal and recover from errors
+    in TypeScript: returning `null`, throwing exceptions, returning exceptions, and
+    the `Option` type. You now have an arsenal of approaches for safely working with
+    things that might fail. Which approach you choose is up to you, and depends on:'
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们讨论了在TypeScript中信号和从错误中恢复的不同方法：返回`null`，抛出异常，返回异常以及`Option`类型。你现在拥有一系列安全处理可能失败的方法。你选择哪种方法取决于你，并且取决于：
+- en: Whether you want to simply signal that something failed (`null`, `Option`),
+    or give more information about why it failed (throwing and returning exceptions).
+  id: totrans-138
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 无论你只是想简单地表明某些操作失败了（`null`，`Option`），还是想提供更多关于失败原因的信息（抛出异常并返回）。
+- en: Whether you want to force consumers to explicitly handle every possible exception
+    (returning exceptions), or write less error-handling boilerplate (throwing exceptions).
+  id: totrans-139
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 无论你是否想要强制消费者显式处理每一个可能的异常（返回异常），还是减少错误处理的样板代码（抛出异常）。
+- en: Whether you need a way to compose errors (`Option`), or simply handle them when
+    they come up (`null`, exceptions).
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 无论你需要一种组合错误的方式（`Option`），还是仅仅在错误发生时处理它们（`null`，异常）。
+- en: Exercises
+  id: totrans-141
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 练习
+- en: 'Design a way to handle errors for the following API, using one of the patterns
+    from this chapter. In this API, every operation might fail—feel free to update
+    the API’s method signatures to allow for failures (or don’t, if you prefer). Think
+    about how you might perform a sequence of actions while handling errors that come
+    up (e.g., getting the logged-in user’s ID, then getting their list of friends,
+    then getting each friend’s name):'
+  id: totrans-142
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 设计一种处理以下API错误的方法，使用本章中的一个模式。在这个API中，每个操作都可能失败——随意更新API的方法签名以允许失败（或者如果你喜欢的话，不要这样做）。考虑如何在处理出现的错误时执行一系列操作（例如，获取已登录用户的ID，然后获取他们的朋友列表，然后获取每个朋友的名称）：
+- en: '[PRE23]'
+  id: totrans-143
+  prefs:
+  - PREF_IND
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: ^([1](ch07.html#idm46304961581304-marker)) If you haven’t worked with Java before,
+    a `throws` clause indicates which types of runtime exceptions a method might throw,
+    so a consumer has to handle those exceptions.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch07.html#idm46304961581304-marker)) 如果你之前没有使用过Java，`throws`子句表示方法可能会抛出哪些类型的运行时异常，因此使用者必须处理这些异常。
+- en: ^([2](ch07.html#idm46304961216792-marker)) Also called the `Maybe` type.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch07.html#idm46304961216792-marker)) 也称为`Maybe`类型。
+- en: ^([3](ch07.html#idm46304961214696-marker)) Google “try type” or “either type”
+    for more information on those types.
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch07.html#idm46304961214696-marker)) 搜索“try类型”或“either类型”获取更多关于这些类型的信息。

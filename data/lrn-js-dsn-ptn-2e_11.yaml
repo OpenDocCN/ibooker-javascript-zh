@@ -1,0 +1,749 @@
+- en: Chapter 11\. Namespacing Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第11章 命名空间模式
+- en: In this chapter, we will explore patterns for namespacing in JavaScript. Namespaces
+    can be considered a logical grouping of code units under a unique identifier.
+    You can reference the identifier in many namespaces, and each identifier can contain
+    a hierarchy of nested (or sub) namespaces.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将探讨 JavaScript 中的命名空间模式。命名空间可以被视为代码单元在唯一标识符下的逻辑分组。您可以在多个命名空间中引用该标识符，并且每个标识符可以包含一组嵌套（或子）命名空间的层次结构。
+- en: In application development, we employ namespaces for many important reasons.
+    JavaScript namespaces help us avoid *collisions* with other objects or variables
+    in the global namespace. They’re also handy for helping organize blocks of functionality
+    in a codebase so that it can be more easily referenced and used.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在应用程序开发中，我们使用命名空间有许多重要原因。JavaScript 命名空间帮助我们避免与全局命名空间中的其他对象或变量发生冲突。它们还有助于帮助我们组织代码库中的功能块，使其更容易被引用和使用。
+- en: Namespacing any serious script or application is critical because it’s crucial
+    to safeguard our code from breaking in the event of another script on the page
+    using the *same* variable or method names we are. With the number of *third-party*
+    tags regularly injected into pages, this can be a common problem we all need to
+    tackle at some point in our careers. As a well-behaved “citizen” of the global
+    namespace, it’s also imperative that we try our best not to prevent other developers’
+    scripts from executing due to the same issues.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对任何严肃的脚本或应用程序进行命名空间设置至关重要，因为这对于保护我们的代码免受页面上另一个脚本使用相同变量或方法名称可能造成的破坏至关重要。由于定期注入页面的大量第三方标签，这可能是我们在职业生涯中不可避免要解决的常见问题。作为全局命名空间的良好“公民”，我们也必须尽力不要阻止其他开发人员的脚本执行由于相同的问题。
+- en: While JavaScript doesn’t have built-in support for namespaces like other languages,
+    it does have objects and closures that you can use to achieve a similar effect.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 JavaScript 不像其他语言那样内置支持命名空间，但它确实有对象和闭包，你可以利用它们来达到类似的效果。
+- en: Namespacing Fundamentals
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 命名空间基础知识
+- en: 'You can find namespaces in almost any serious JavaScript application. Unless
+    we’re working with a simple code snippet, we must do our best to ensure that we’re
+    implementing namespacing correctly, as it’s not just easy to pick up; it’ll also
+    avoid third-party code destroying our own. The patterns we’ll be examining in
+    this section are:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以在几乎任何严肃的 JavaScript 应用程序中找到命名空间。除非我们正在处理一个简单的代码片段，否则我们必须尽力确保正确实现命名空间，因为它不仅易于掌握，而且还可以避免第三方代码破坏我们自己的代码。本节中我们将要探讨的模式有：
+- en: Single global variables
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 单一全局变量
+- en: Prefix namespacing
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 前缀命名空间
+- en: Object literal notation
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 对象字面量表示法
+- en: Nested namespacing
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 嵌套命名空间
+- en: Immediately invoked function
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 立即调用函数
+- en: Expressions
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 表达式
+- en: Namespace injection
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 命名空间注入
+- en: Single Global Variables
+  id: totrans-14
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 单一全局变量
+- en: 'One popular pattern for namespacing in JavaScript is opting for a single global
+    variable as our primary object of reference. Here’s a skeleton implementation
+    of this where we return an object with functions and properties:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，一种流行的命名空间模式是选择一个单一的全局变量作为我们的主要参考对象。以下是这种模式的基本实现，我们返回一个具有函数和属性的对象：
+- en: '[PRE0]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Although this works for certain situations, the biggest challenge with the single
+    global variable pattern is ensuring that no one else has used the same global
+    variable name as we have on the page.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然这种方法在某些情况下很有效，但单一全局变量模式的最大挑战在于确保没有其他人在页面上使用与我们相同的全局变量名称。
+- en: Prefix Namespacing
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 前缀命名空间
+- en: 'One solution to the problem mentioned, as noted by [Peter Michaux](https://oreil.ly/o2dgF),
+    is to use prefix namespacing. It’s a simple concept at heart, but the idea is
+    we select a unique prefix namespace we wish to use (in this example, `myApplication_`)
+    and then define any methods, variables, or other objects after the prefix as follows:'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 根据 [Peter Michaux](https://oreil.ly/o2dgF) 所述，解决上述问题的一个解决方案是使用前缀命名空间。这本质上是一个简单的概念，但其核心思想是选择一个唯一的前缀命名空间（在本例中是
+    `myApplication_`），然后按照以下方式定义任何方法、变量或其他对象：
+- en: '[PRE1]'
+  id: totrans-20
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: This effectively decreases the chances of a particular variable existing in
+    the global scope, but remember that a uniquely named object can have the same
+    effect.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这有效地减少了特定变量存在于全局范围内的机会，但请记住，一个具有唯一命名的对象可能会产生相同的效果。
+- en: This aside, the biggest issue with the pattern is that it can result in many
+    global objects once our application grows. There is also a heavy reliance on our
+    prefix not being used by any other developers in the global namespace, so be careful
+    if opting to use this.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这种模式的最大问题是，一旦我们的应用程序扩展，可能会导致许多全局对象。此外，非常依赖于我们的前缀在全局命名空间中不被其他开发人员使用，因此如果选择使用这种方式，一定要小心。
+- en: For more on Peter’s views about the single global variable pattern, [read his
+    excellent post](https://oreil.ly/o2dgF).
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 关于单一全局变量模式的更多信息，请阅读[他的优秀文章](https://oreil.ly/o2dgF)。
+- en: Object Literal Notation
+  id: totrans-24
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 对象字面量表示法
+- en: 'Object literal notation, which we also cover in the Module pattern section,
+    can be thought of as an object containing a collection of key-value pairs with
+    a colon separating each pair of keys and values, where keys can also represent
+    new namespaces:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量表示法，我们在模块模式部分也进行了介绍，可以被视为一个包含一系列键值对的对象，其中冒号分隔每对键和值，键还可以表示新的命名空间：
+- en: '[PRE2]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'One can also opt for adding properties directly to the namespace:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也可以选择直接向命名空间添加属性：
+- en: '[PRE3]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Object literals don’t pollute the global namespace but assist in organizing
+    code and parameters logically. They are truly beneficial if you wish to create
+    easily readable structures that you can expand to support deep nesting. Unlike
+    simple global variables, object literals often consider tests for the existence
+    of a variable by the same name, so the chances of a collision occurring are significantly
+    reduced.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量不会污染全局命名空间，但有助于逻辑上组织代码和参数。如果您希望创建易于阅读的结构，并支持深层嵌套，它们确实非常有益。与简单的全局变量不同，对象字面量通常会考虑通过相同名称变量的存在性测试，因此碰撞发生的几率显著降低。
+- en: 'The following sample demonstrates several ways to check if an object namespace
+    already exists, defining it if it doesn’t:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下示例演示了几种检查对象命名空间是否已存在并在不存在时定义它的方法：
+- en: '[PRE4]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: You’ll often see developers opting for Option 1 or Option 2—they are both straightforward
+    and equivalent in terms of their results.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您经常会看到开发人员选择选项1或选项2——它们在结果上都是直接且等效的。
+- en: 'Option 3 assumes that you’re working in the global namespace, but it can also
+    be written as:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选项3假设您正在全局命名空间中工作，但也可以编写为：
+- en: '[PRE5]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'This variation assumes that `myApplication` has already been initialized, so
+    it’s only handy for a parameter/argument scenario, as in the following example:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此变体假设`myApplication`已经初始化，因此只适用于参数/参数场景，如以下示例：
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'Option 4 can help write jQuery plug-ins where:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选项4可以帮助编写jQuery插件，其中：
+- en: '[PRE7]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: This results in better compression (minification) and can save on scope lookups.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这样可以获得更好的压缩（缩小）效果，并可以节省作用域查找的开销。
+- en: Option 5 is a little similar to Option 4 but is a long form that evaluates whether
+    `myApplication` is `undefined` inline, such that it’s defined as an object if
+    not and set to a current value for `myApplication` if so.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选项5与选项4有些相似，但它是一个长形式，用于评估`myApplication`是否内联为`undefined`，如果不是，则将其定义为对象，并设置为`myApplication`的当前值。
+- en: It is shown just for the sake of being thorough, but in most situations, Options
+    1–4 will more than suffice for most needs.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它仅仅是为了全面起见而显示出来，但在大多数情况下，选项1到选项4将足够满足大多数需求。
+- en: 'There is, of course, a great deal of variance in how and where object literals
+    are used for organizing and structuring code. For smaller applications wishing
+    to expose a nested API for a particular self-enclosed module, you may just find
+    yourself using the Revealing Module pattern, which we covered earlier in the book:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，在使用对象字面量组织和结构化代码的方式及其变体中有很多不同之处。对于希望为特定的自封闭模块公开嵌套API的较小应用程序，您可能会发现自己使用我们在本书前面讨论过的揭示模块模式：
+- en: '[PRE8]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'The benefit of using object literals here is that they offer us a very elegant
+    key-value syntax to work with—one where we’re able to easily encapsulate any distinct
+    logic or functionality for our application in a way that clearly separates it
+    from others and provides a solid foundation for extending our code:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里使用对象字面量的好处是，它们为我们提供了一个非常优雅的键值语法，使我们能够轻松地封装任何独特的逻辑或功能，从而清晰地与其他代码分离开来，并为扩展我们的代码提供坚实的基础：
+- en: '[PRE9]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Note that JSON is a subset of object literal notation, and there are only minor
+    syntactical differences between it and the preceding code (e.g., JSON keys must
+    be strings). If, for any reason, one wishes to use JSON for storing configuration
+    data instead (e.g., for simpler storage when sending to the backend), feel free
+    to.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，JSON是对象字面量表示法的子集，它与前面的代码之间只有轻微的语法差异（例如，JSON键必须是字符串）。如果出于任何原因，希望使用JSON来存储配置数据（例如，在发送到后端时进行简单的存储），请随意。
+- en: Nested Namespacing
+  id: totrans-47
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 嵌套命名空间
+- en: An extension of the Object Literal pattern is nested namespacing. It’s another
+    common pattern that offers a lower risk of collision because even if a namespace
+    already exists, it’s unlikely the same nested children do.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对象字面量模式的扩展是嵌套命名空间。它是另一种常见的模式，提供了更低的碰撞风险，因为即使命名空间已经存在，它的嵌套子级也不太可能相同。
+- en: 'For example, something like this:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，像这样：
+- en: '[PRE10]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'Older versions of Yahoo!’s YUI library regularly used the Nested Object Namespacing
+    pattern. During my time as an engineer at AOL, we also used this pattern in many
+    of our larger applications. A sample implementation of nested namespacing may
+    look like this:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 旧版本的Yahoo！YUI库经常使用嵌套对象命名空间模式。在我在AOL担任工程师期间，我们在许多较大的应用程序中也使用了这种模式。嵌套命名空间的示例实现可能如下所示：
+- en: '[PRE11]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Note
+  id: totrans-53
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: This code differs from how YUI3 approaches namespacing. YUI3 modules use a sandboxed
+    API host object with far less and far shallower namespacing.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码与YUI3处理命名空间的方式有所不同。YUI3模块使用一个具有远低且更浅的命名空间的沙盒API宿主对象。
+- en: 'We can also opt to declare new nested namespaces/properties as indexed properties
+    as follows:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们也可以选择将新的嵌套命名空间/属性声明为索引属性，如下所示：
+- en: '[PRE12]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Both options are readable and organized and offer a relatively safe way of namespacing
+    our application, similar to what we may be used to in other languages. The only
+    real caveat is that it requires our browser’s JavaScript engine first to locate
+    the `myApp` object and then dig down until it gets to the function we actually
+    wish to use.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种选择都具有可读性和组织性，并提供了一种相对安全的应用程序命名空间方式，类似于我们在其他语言中可能已经习惯了的方式。唯一的真正注意事项是，它需要我们的浏览器JavaScript引擎首先定位`myApp`对象，然后深入到实际希望使用的函数。
+- en: This can mean more work to perform lookups; however, developers such as [Juriy
+    Zaytsev](https://oreil.ly/hxJnZ) have previously tested and found the performance
+    differences between single object namespacing versus the “nested” approach quite
+    negligible.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这可能意味着执行查找的更多工作；然而，像[Juriy Zaytsev](https://oreil.ly/hxJnZ)这样的开发者先前测试并发现单个对象命名空间与“嵌套”方法之间的性能差异相当可忽略。
+- en: Immediately Invoked Function Expressions
+  id: totrans-59
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 立即调用函数表达式（Immediately Invoked Function Expressions）
+- en: Earlier in the book, we briefly covered the concept of an immediately invoked
+    function expression (IIFE); an [IIFE](https://oreil.ly/KSspI), which is effectively
+    an unnamed function, is immediately invoked after it’s been defined. If it sounds
+    familiar, it’s because you may have previously come across it referred to as a
+    self-executing (or self-invoked) `anonymous` function. However, I feel Ben Alman’s
+    IIFE naming is more accurate. In JavaScript, because both variables and functions
+    explicitly defined within such a context may be accessed only inside of it, function
+    invocation provides an easy means to achieving privacy.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本书前面简要介绍了立即调用函数表达式（IIFE）的概念；一个[IIFE](https://oreil.ly/KSspI)，实际上是一个未命名的函数，在定义后立即被调用。如果这听起来很熟悉，那是因为你可能之前已经见过它被称为自执行（或自调用）的`anonymous`函数。不过，我认为Ben
+    Alman对IIFE的命名更加准确。在JavaScript中，因为在这样的上下文中明确定义的变量和函数只能在其内部访问，函数调用提供了一种实现隐私的简便方法。
+- en: IIFEs are a popular approach to encapsulating application logic to protect it
+    from the global namespace, but they also have their use in the world of namespacing.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: IIFE是一种封装应用逻辑以保护它免受全局命名空间污染的流行方法，但它们在命名空间的世界中也有其用途。
+- en: 'Here are examples of IIFEs:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里是IIFE的示例：
+- en: '[PRE13]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: 'A slightly more expanded version of the first example might look like this:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个示例的略微扩展版本可能如下所示：
+- en: '[PRE14]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'While readable, this example could be significantly expanded to address common
+    development concerns such as defined levels of privacy (public/private functions
+    and variables) as well as convenient namespace extension. Let’s go through some
+    more code:'
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然可读性强，但这个示例可以显著扩展以解决常见的开发问题，例如定义隐私级别（公共/私有函数和变量）以及便捷的命名空间扩展。让我们再看一些代码：
+- en: '[PRE15]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Extensibility is of course key to any scalable namespacing pattern and IIFEs
+    can be used to achieve this quite easily. In the following example, our “namespace”
+    is once again passed as an argument to our `anonymous` function and is then extended
+    (or decorated) with additional functionality:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可扩展性当然是任何可扩展命名空间模式的关键，而立即调用函数表达式（IIFE）可以很容易地实现这一点。在以下示例中，我们的“命名空间”再次作为参数传递给我们的匿名函数，然后通过额外的功能进行扩展（或装饰）：
+- en: '[PRE16]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: If you want to learn more about this pattern, I recommend reading Ben’s [IIFE
+    post](https://oreil.ly/KSspI) for more information.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您想了解更多关于这种模式的信息，我建议阅读本的[立即调用函数表达式帖子](https://oreil.ly/KSspI)。
+- en: Namespace Injection
+  id: totrans-71
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 命名空间注入
+- en: Namespace injection is another variation on the IIFE in which we “inject” the
+    methods and properties for a specific namespace from within a function wrapper
+    using `this` as a namespace proxy. The benefit this pattern offers is the easy
+    application of functional behavior to multiple objects or namespaces and can come
+    in useful when applying a set of base methods to be built on later (e.g., getters
+    and setters).
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 命名空间注入是IIFE的另一种变体，在这种变体中，我们使用`this`作为命名空间代理从函数包装器内部“注入”特定命名空间的方法和属性。这种模式提供的好处是可以轻松地将功能行为应用于多个对象或命名空间，并且在应用一组基本方法以供稍后构建时（例如，获取器和设置器）时非常有用。
+- en: The disadvantages of this pattern are that there may be easier or more optimal
+    approaches to achieving this goal (e.g., deep object extension or merging), which
+    I cover earlier in the section.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式的缺点是，可能有更简单或更优化的方法来实现这个目标（例如，深度对象扩展或合并），我在本节前面已经介绍过。
+- en: 'Next we can see an example of this pattern in action, where we use it to populate
+    the behavior for two namespaces: one initially defined (`utils`) and another which
+    we dynamically create as a part of the functionality assignment for `utils` (a
+    new namespace called `tools`):'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来我们可以看到这种模式在实际中的应用示例，我们使用它来填充两个命名空间的行为：一个最初定义的(`utils`)，另一个我们动态创建作为`utils`功能分配的一部分（称为`tools`的新命名空间）：
+- en: '[PRE17]'
+  id: totrans-75
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'Previously, Angus Croll has suggested [using the call API to provide a natural
+    separation between contexts and arguments](https://oreil.ly/eBc5N). This pattern
+    can feel a lot more like a module creator, but as modules still offer an encapsulation
+    solution, we’ll briefly cover it for the sake of thoroughness:'
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之前，Angus Croll建议[使用调用API来在上下文和参数之间提供自然分离](https://oreil.ly/eBc5N)。这种模式可能更像一个模块创建者，但由于模块仍然提供了封装解决方案，为了全面性，我们将简要介绍它：
+- en: '[PRE18]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: As mentioned, this type of pattern helps assign a similar base set of functionality
+    to multiple modules or namespaces. I would, however, suggest using it only where
+    explicitly declaring functionality within an object/closure as direct access doesn’t
+    make sense.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如前所述，这种类型的模式有助于将一组相似的基本功能分配给多个模块或命名空间。然而，我建议仅在明确声明对象/闭包内部功能直接访问不合理时使用它。
+- en: Advanced Namespacing Patterns
+  id: totrans-79
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 高级命名空间模式
+- en: We’ll now explore some advanced patterns and utilities that I have found invaluable
+    when working on more extensive applications, some of which have required a rethink
+    of traditional approaches to application namespacing. I’ll note that I am not
+    advocating the following as *the* way to namespace but rather as ways I have found
+    to work in practice.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们现在将探讨一些高级模式和实用程序，这些在处理更复杂的应用程序时我发现非常宝贵，其中一些需要重新思考应用程序命名空间的传统方法。我要指出的是，我并不主张以下内容作为*命名空间的*方式，而是作为我实际工作中发现有效的方式。
+- en: Automating Nested Namespacing
+  id: totrans-81
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 自动化嵌套命名空间
+- en: 'As we’ve reviewed, nested namespaces can provide an organized hierarchy of
+    structure for a unit of code. An example of such a namespace could be the following:
+    `application.utilities.drawing.canvas.2d`. This can also be expanded using the
+    Object Literal pattern to be:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如我们所看到的，嵌套命名空间可以为代码单元提供有序的层次结构。这样一个命名空间的示例可能是：`application.utilities.drawing.canvas.2d`。这也可以通过对象字面量模式扩展为：
+- en: '[PRE19]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: One of the obvious challenges with this pattern is that each additional layer
+    we wish to create requires yet another object to be defined as a child of some
+    parent in our top-level namespace. This can become particularly laborious when
+    multiple depths are required as our application increases in complexity.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式的一个明显挑战是，每个我们想要创建的额外层级都需要另一个对象被定义为顶级命名空间中某个父对象的子对象。当我们的应用程序复杂度增加时，这可能特别繁琐。
+- en: How can this problem be better solved? In *JavaScript Patterns*, Stoyan Stefanov
+    presents a clever approach for automatically defining nested namespaces under
+    an existing global variable. He suggests a convenience method that takes a single
+    string argument for a nest, parses this, and automatically populates our base
+    namespace with the objects required.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如何更好地解决这个问题？在《JavaScript 模式》中，Stoyan Stefanov 提出了一个聪明的方法，用于在现有全局变量下自动定义嵌套命名空间。他建议使用一个便利方法，该方法接受一个字符串参数作为一个嵌套，解析它，并自动将所需的对象填充到我们的基本命名空间中。
+- en: 'The method he suggests using is the following, which I’ve updated to be a generic
+    function for easier reuse with multiple namespaces:'
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 他建议使用的方法如下，我已经更新为一个通用函数，以便更轻松地在多个命名空间中重用：
+- en: '[PRE20]'
+  id: totrans-87
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '[Figure 11-1](#web_inspector_output) shows the Chrome Developer Tools output.
+    Where one would previously have had to explicitly declare the various nests for
+    their namespace as objects, this can now be easily achieved using a single, cleaner
+    line of code.'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[图 11-1](#web_inspector_output) 显示了 Chrome 开发者工具的输出。在以前，我们可能需要显式声明命名空间的各种嵌套对象，现在可以通过一行更简洁的代码轻松实现。'
+- en: '![ljd2 1101](Images/ljd2_1101.png)'
+  id: totrans-89
+  prefs: []
+  type: TYPE_IMG
+  zh: '![ljd2 1101](Images/ljd2_1101.png)'
+- en: Figure 11-1\. Chrome Developer Tools output
+  id: totrans-90
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-1\. Chrome 开发者工具输出
+- en: Dependency Declaration Pattern
+  id: totrans-91
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 依赖声明模式
+- en: 'We’ll now explore a minor augmentation to the Nested Namespacing pattern, which
+    we’ll refer to as the Dependency Declaration pattern. We all know that local references
+    to objects can decrease overall lookup times, but let’s apply this to namespacing
+    to see how it might look in practice:'
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将探讨一种对嵌套命名空间模式的轻微增强，我们将其称为依赖声明模式。我们都知道，对对象的局部引用可以减少总体查找时间，但让我们将其应用于命名空间，看看在实践中它可能是什么样子：
+- en: '[PRE21]'
+  id: totrans-93
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Working with a local variable here is almost always faster than working with
+    a top-level global (e.g., `myApp`). It’s also more convenient and more performant
+    than accessing nested properties/subnamespaces on every subsequent line and can
+    improve readability in more complex applications.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里使用本地变量几乎总比在顶级全局变量（例如 `myApp`）上工作要快。这也比在每个后续行上访问嵌套属性/子命名空间更方便和更高效，并且可以提高在更复杂应用程序中的可读性。
+- en: Stoyan recommends declaring localized namespaces required by a function or module
+    at the top of our function scope (using the single-variable pattern) and calls
+    this a Dependency Declaration pattern. One of the benefits this offers is a decrease
+    in locating dependencies and resolving them, should we have an extendable architecture
+    that dynamically loads modules into our namespace when required.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Stoyan 建议在函数或模块的顶部声明所需的本地化命名空间（使用单变量模式），并将其称为依赖声明模式。其中一个好处是减少定位依赖项并解决它们的时间，特别是在我们有一个可扩展的架构，在需要时动态加载模块到我们的命名空间中。
+- en: In my opinion, this pattern works best when working at a modular level, localizing
+    a namespace to be used by a group of methods. Localizing namespaces on a per-function
+    level, especially where there is significant overlap between namespace dependencies,
+    is something I recommend avoiding where possible. Instead, define it further up
+    and have them all access the same reference.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我看来，这种模式在模块化级别工作时效果最好，将命名空间本地化以供一组方法使用。在每个函数级别上本地化命名空间，特别是在命名空间依赖之间有显著重叠时，我建议尽可能避免。相反，将其定义在更高的位置，并让它们都访问同一个引用。
+- en: Deep Object Extension
+  id: totrans-97
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 深度对象扩展
+- en: An alternative approach to automatic namespacing is deep object extension. Namespaces
+    defined using object literal notation may be easily extended (or merged) with
+    other objects (or namespaces) such that the properties and functions of both namespaces
+    can be accessible under the same namespace postmerge.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动命名空间的另一种方法是深度对象扩展。使用对象字面量表示的命名空间可以轻松地与其他对象（或命名空间）扩展（或合并），以便两个命名空间的属性和函数在合并后都可以在同一个命名空间下访问。
+- en: 'This is something that’s been made relatively easy to accomplish with JavaScript
+    frameworks (e.g., see jQuery’s [`$.extend`](https://oreil.ly/WDJWX)); however,
+    if looking to extend objects (namespaces) using conventional JS, the following
+    routine may be of assistance:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这在 JavaScript 框架中实现起来相对容易（例如，参见 jQuery 的 [`$.extend`](https://oreil.ly/WDJWX)）；然而，如果要使用传统的
+    JS 扩展对象（命名空间），下面的例程可能会有所帮助：
+- en: '[PRE22]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Note
+  id: totrans-101
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注释
+- en: This implementation is not cross-browser compatible with all objects and should
+    be considered a proof of concept only. One may find the [Lodash.js `extend()`
+    method](https://oreil.ly/TD1-D) to be a simpler, more cross-browser-friendly implementation
+    to start with.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种实现在所有对象上不具备跨浏览器兼容性，并且仅应视为概念验证。可以发现[Lodash.js `extend()` 方法](https://oreil.ly/TD1-D)更简单、更跨浏览器友好的实现来开始使用。
+- en: 'For developers who are going to use jQuery in their applications, one can achieve
+    the same object namespace extensibility with `$.extend` as follows:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于将在其应用程序中使用 jQuery 的开发人员，可以通过`$.extend`来实现相同的对象命名空间扩展性，如下所示：
+- en: '[PRE23]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: For thoroughness, please check [this](https://oreil.ly/ZCB2C) for jQuery `$.extend`
+    equivalents to the rest of the namespacing experiments in this section.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了全面性，请查看[此链接](https://oreil.ly/ZCB2C)，了解 jQuery `$.extend` 方法在本节其余命名空间实验中的等效项。
+- en: Recommendation
+  id: totrans-106
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 建议
+- en: Reviewing the namespace patterns we’ve explored in this section, the option
+    that I would personally use for most larger applications is Nested Object Namespacing
+    with the Object Literal pattern. Where possible, I would implement this using
+    automated nested namespacing. However, this is just a personal preference.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回顾我们在本节中探讨的命名空间模式，我个人偏好于对象字面量模式的嵌套对象命名空间。在可能的情况下，我会使用自动化的嵌套命名空间实现这一点。然而，这仅仅是个人偏好。
+- en: IIFEs and single global variables may work fine for applications in the small
+    to medium range. However, larger codebases requiring both namespaces and deep
+    subnamespaces require a succinct solution that promotes readability and scale.
+    This pattern achieves all of these objectives well.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: IIFEs 和单个全局变量对于中小型范围内的应用程序可能效果很好。然而，对于需要命名空间和深层子命名空间的更大代码库，需要一种简洁的解决方案，促进可读性和扩展性。这种模式很好地实现了所有这些目标。
+- en: I recommend trying out some of the suggested advanced utility methods for namespace
+    extension, as they can save time in the long run.
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我建议尝试一些推荐的高级实用程序方法来扩展命名空间，因为它们可以从长远来看节省时间。
+- en: Summary
+  id: totrans-110
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 概要
+- en: This chapter discussed how namespacing could help bring structure to your JavaScript
+    and jQuery applications and prevent collisions between variables and function
+    names. Organizing our project files in large JavaScript applications with many
+    code files helps you better manage modules and namespaces and enhances the development
+    experience.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章讨论了如何通过命名空间为您的 JavaScript 和 jQuery 应用程序带来结构，并防止变量和函数名称之间的冲突。在大型 JavaScript
+    应用程序中组织我们的项目文件可以帮助您更好地管理模块和命名空间，增强开发体验。
+- en: We have now covered different aspects of design and architecture using plain
+    JavaScript. We have mentioned React in passing but haven’t discussed any React
+    patterns in detail. In the next chapter, we aim to do just that.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们已经涵盖了使用纯 JavaScript 的设计和架构的不同方面。我们提到了 React，但没有详细讨论任何 React 模式。在下一章中，我们的目标是详细讨论这些内容。

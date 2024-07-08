@@ -1,0 +1,328 @@
+- en: Chapter 17\. Deploying a Web Application
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第17章. 部署 Web 应用程序
+- en: When I first began doing web development professionally, a “deployment” meant
+    uploading files from my local machine to a web server through an FTP client. There
+    weren’t any build steps or pipelines, meaning that the raw files on my machine
+    were the same as those on my web server. If something went wrong, I would either
+    frantically try to fix the issue or roll back the change by replacing it with
+    copies of the old files. This wild west approach worked OK at the time, but also
+    led to a lot of site downtime and unexpected issues.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我开始专业进行 web 开发时，“部署”意味着通过 FTP 客户端从我的本地机器上传文件到 web 服务器。当时没有任何构建步骤或流水线，这意味着我的本地机器上的原始文件与我的
+    web 服务器上的文件相同。如果出现问题，我要么拼命地尝试修复问题，要么通过替换旧文件的副本来回滚更改。这种“荒野西部”的方法当时效果还可以，但也导致了很多站点停机和意外问题。
+- en: In today’s world of web development, the needs of our local development environment
+    and our web servers are quite different. On my local machine, I want to see instant
+    changes when I update a file and have uncompressed files for debugging. On my
+    web server, I only expect to see changes when I deploy them and value small file
+    sizes. In this chapter, we’ll look at one way that we can deploy a static application
+    to the web.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在今天的 web 开发世界中，我们本地开发环境和 web 服务器的需求是完全不同的。在我的本地机器上，当我更新文件时，我希望看到即时变化，并且拥有未压缩的文件以进行调试。在我的
+    web 服务器上，我只期望在部署时看到变化，并且重视小文件大小。在本章中，我们将看一种将静态应用程序部署到 web 的方式。
+- en: Static Websites
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 静态网站
+- en: A web browser parses HTML, CSS, and JavaScript to generate the web pages that
+    we interact with. Unlike frameworks such as Express, Rails, and Django, which
+    generate the markup for a page server-side at the time of the request, static
+    websites are simply a collection of HTML, CSS, and JavaScript stored on a server.
+    This can range in complexity from a single HTML file containing markup to complicated
+    frontend build processes that compile templating languages, multiple JavaScript
+    files, and CSS pre-processors. In the end, however, static websites are a collection
+    of those three file types.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: web 浏览器解析 HTML、CSS 和 JavaScript 来生成我们交互的网页。不同于 Express、Rails 和 Django 等框架在请求时服务器端生成页面的标记，静态网站只是存储在服务器上的一组
+    HTML、CSS 和 JavaScript。这可以从包含标记的单个 HTML 文件到编译模板语言、多个 JavaScript 文件和 CSS 预处理器的复杂前端构建过程。然而，静态网站最终只是这三种文件类型的集合。
+- en: 'Our application, Notedly, is a static web app. It contains some markup, CSS,
+    and JavaScript. Our build tool, [Parcel](https://parceljs.org), compiles the components
+    that we write into files usable by the browser. In local development, we run a
+    web server and these files are updated on the fly using Parcel’s hot module replacement
+    feature. If we look at our *package.json* file, you’ll see that I’ve included
+    two `deploy` scripts:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的应用程序 Notedly 是一个静态 web 应用程序。它包含一些标记、CSS 和 JavaScript。我们的构建工具，[Parcel](https://parceljs.org)，将我们编写的组件编译为浏览器可用的文件。在本地开发中，我们运行一个
+    web 服务器，并使用 Parcel 的热模块替换功能即时更新这些文件。如果我们查看我们的*package.json*文件，你会看到我包含了两个`deploy`脚本：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'To build the application, open your terminal application, **`cd`** into the
+    root of your *web* directory, which contains the project, and then run the **`build`**
+    command:'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要构建应用程序，请打开你的终端应用程序，**`cd`** 进入包含项目的*web*目录的根目录，然后运行**`build`**命令：
+- en: '[PRE1]'
+  id: totrans-8
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: If you’ve been following along with the book and developing your web application
+    in the *src* directory, running `npm run deploy:src` in the terminal, as just
+    described, will generate the built application from your code. If you would prefer
+    to use the final version of the application that is bundled with the sample code,
+    using `npm run deploy:final` will build the code from the *final* application
+    directory.
+  id: totrans-9
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你一直在跟随本书并在*src*目录中开发你的 web 应用程序，那么在终端中运行 `npm run deploy:src`，正如刚才描述的那样，将会根据你的代码生成构建好的应用程序。如果你更愿意使用与示例代码捆绑的应用程序的最终版本，那么使用
+    `npm run deploy:final` 将会从*final*应用程序目录构建代码。
+- en: In the rest of the chapter, I’ll demonstrate one way to deploy a statically
+    built application, but these files could be hosted anywhere that can serve HTML—from
+    a web hosting provider to a Raspberry Pi left running on your desk. While there
+    are many tangible benefits to the type of process we’ll be working through, your
+    deploy could be as simple as updating the *.env* file to point to the remote API,
+    running the build script, and uploading the files.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章的其余部分，我将演示一种部署静态构建应用程序的方法，但这些文件可以托管在任何可以提供 HTML 的地方，从 Web 主机提供商到放在桌子上运行的树莓派。虽然我们将要进行的这种过程有许多实际的好处，但您的部署可能仅需简单地更新
+    *.env* 文件以指向远程 API，运行构建脚本并上传文件。
+- en: Server-Side Rendered React
+  id: totrans-11
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 服务器端渲染的 React
+- en: Though we’re building our React application as a static web application, it
+    is also possible to render JSX on the server. This technique is often referred
+    to as “universal JavaScript” and can have many benefits, including performance
+    gains, client-side JavaScript fallbacks, and SEO improvements. Frameworks such
+    as [Next.js](https://nextjs.org) have sought to simplify this setup. Though we’re
+    not covering server-side rendered JavaScript applications in this book, I highly
+    recommend exploring this approach once you’re comfortable with client-side JavaScript
+    application development.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然我们正在构建我们的 React 应用作为静态 Web 应用程序，但也可以在服务器上渲染 JSX。这种技术通常被称为“通用 JavaScript”，可以带来许多好处，包括性能提升、客户端
+    JavaScript 备用和 SEO 改进。像 [Next.js](https://nextjs.org) 这样的框架试图简化这个设置。虽然本书不涵盖服务器端渲染的
+    JavaScript 应用程序，但我强烈建议一旦您熟悉了客户端 JavaScript 应用程序开发，探索这种方法。
+- en: Our Deployment Pipeline
+  id: totrans-13
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 我们的部署流水线
+- en: For our application’s deployment, we’ll make use of a simple pipeline, which
+    will allow us to automatically deploy changes to our codebase. For our pipeline
+    we’ll be using two services. The first will be our source code repository, [GitHub](https://github.com).
+    The second will be our web host, [Netlify](https://www.netlify.com). I’ve chosen
+    Netlify for its extensive, but easy-to-use, feature set for deployments as well
+    as its focus on static and serverless applications.
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们应用程序的部署，我们将使用一个简单的流水线，这将允许我们自动部署代码库的更改。对于我们的流水线，我们将使用两个服务。第一个将是我们的源代码存储库，[GitHub](https://github.com)。第二个将是我们的
+    Web 主机，[Netlify](https://www.netlify.com)。我选择 Netlify 是因为它在部署方面具有广泛且易于使用的功能集，以及它专注于静态和无服务器应用程序。
+- en: Our goal is for any commit to the `master` branch of our application to be automatically
+    deployed to our web host. We could visualize that process as shown in [Figure 17-1](#web_deploy).
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的目标是使我们应用程序的 `master` 分支的任何提交都自动部署到我们的 Web 主机。我们可以将这个过程可视化如 [图 17-1](#web_deploy)
+    所示。
+- en: '![A diagram of our deployment process. Each commit is pushed to GitHub, then
+    built by Netlify, and finally pushed to a public web server.](assets/jsev_1701.png)'
+  id: totrans-16
+  prefs: []
+  type: TYPE_IMG
+  zh: '![我们部署过程的图示。每次提交都被推送到 GitHub，然后由 Netlify 构建，最后推送到公共 Web 服务器。](assets/jsev_1701.png)'
+- en: Figure 17-1\. Our deployment process
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 17-1\. 我们的部署过程
+- en: Hosting Source Code with Git
+  id: totrans-18
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 Git 托管源代码
+- en: The first step in our deployment process is to set up our source code repository.
+    You may have already done this, in which case feel free to skip ahead. As noted
+    before we’ll be using [GitHub](https://github.com), but this process could be
+    configured with other public Git hosts, such as [GitLab](https://about.gitlab.com)
+    or [Bitbucket](https://bitbucket.org).
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们部署过程的第一步是设置我们的源代码存储库。您可能已经完成了这一步骤，如果是这样，请随意跳过。正如前面提到的，我们将使用 [GitHub](https://github.com)，但这个过程也可以配置为使用其他公共
+    Git 主机，比如 [GitLab](https://about.gitlab.com) 或 [Bitbucket](https://bitbucket.org)。
+- en: GitHub Repositories
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: GitHub 存储库
+- en: We’ll be creating a new GitHub repository, but if you prefer, you can use the
+    official code sample at [*https://github.com/javascript​everywhere/web*](https://oreil.ly/MLMS7)
+    by creating a fork to your GitHub account.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们将创建一个新的 GitHub 存储库，但如果您愿意，您可以通过将官方代码示例 fork 到您的 GitHub 帐户来使用 [*https://github.com/javascript​everywhere/web*](https://oreil.ly/MLMS7)。
+- en: First, navigate to GitHub and create an account or sign in to your existing
+    account. Then click the New Repository button. Provide a name and click the Create
+    Repository button ([Figure 17-2](#new_repo)).
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，转到 GitHub 并创建一个帐户或登录您的现有帐户。然后点击“New Repository”按钮。提供一个名称并点击“Create Repository”按钮（[图
+    17-2](#new_repo)）。
+- en: '![A screenshot of GitHub''s new repository page](assets/jsev_1702.png)'
+  id: totrans-23
+  prefs: []
+  type: TYPE_IMG
+  zh: '![GitHub 的新存储库页面的截图](assets/jsev_1702.png)'
+- en: Figure 17-2\. GitHub’s new repository page
+  id: totrans-24
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 17-2\. GitHub 的新存储库页面
+- en: 'Now, in your terminal application, navigate to your web application’s directory,
+    set the Git origin to the new GitHub repository, and push the code. Because we
+    are updating an existing Git repo, our instructions will differ slightly from
+    GitHub’s:'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，在你的终端应用程序中，导航到你的Web应用程序目录，将Git origin设置为新的GitHub仓库，并推送代码。因为我们正在更新现有的Git仓库，所以我们的指令与GitHub的略有不同：
+- en: '[PRE2]'
+  id: totrans-26
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Now, if you navigate to *https://github.com/<your_username>/<your_repo_name>*,
+    you will see the source code of the application.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果你访问*https://github.com/<your_username>/<your_repo_name>*，你将看到应用程序的源代码。
+- en: Deploy with Netlify
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用Netlify进行部署
+- en: 'With our source code in a remote Git repository, we can now configure our web
+    host, Netlify, to build and deploy our code. First, go to [*netlify.com*](https://www.netlify.com)
+    and register for an account. Once you’ve created an account, click the “New site
+    from Git” button. This will walk you through setting up your site deployment:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们的源代码位于远程Git仓库中，我们可以配置我们的Web主机Netlify来构建和部署我们的代码。首先，访问[*netlify.com*](https://www.netlify.com)，注册一个账户。一旦你创建了账户，点击“New
+    site from Git”按钮。这将引导你完成设置站点部署的步骤：
+- en: Choose your Git provider by selecting GitHub, which will connect and authorize
+    your GitHub account.
+  id: totrans-30
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 选择GitHub作为你的Git提供者，这将连接并授权你的GitHub账户。
+- en: Next, select the repository that contains the source code.
+  id: totrans-31
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 接下来，选择包含源代码的存储库。
+- en: Finally, set up your build settings.
+  id: totrans-32
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 最后，设置你的构建设置。
+- en: 'For our build settings, add the following ([Figure 17-3](#web-netlify-deploy)):'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于我们的构建设置，请添加以下内容（[图17-3](#web-netlify-deploy)）：
+- en: 'Build command: `npm run deploy:src` (or `npm run deploy:final`, if deploying
+    the final example code).'
+  id: totrans-34
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 构建命令：`npm run deploy:src`（或者如果部署最终示例代码，则为`npm run deploy:final`）。
+- en: 'Publish directory: `dist`.'
+  id: totrans-35
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 发布目录：`dist`。
+- en: Under “Advanced settings,” click “New variable” and add a variable name of `API_URI`
+    with a variable value of *https://<your_api_name>.herokuapp.com/api* (this will
+    be the URL of the API application, which we deployed to Heroku).
+  id: totrans-36
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 在“高级设置”下，点击“新建变量”，并添加一个名为`API_URI`的变量名和值为*https://<your_api_name>.herokuapp.com/api*（这将是我们部署到Heroku的API应用的URL）。
+- en: Once you’ve configured the application, click the “Deploy site” button. After
+    a few minutes your application will be running at the Netlify-supplied URL. Now,
+    anytime we push a change to our GitHub repo, our site will be automatically deployed.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦配置了应用程序，点击“Deploy site”按钮。几分钟后，你的应用程序将在Netlify提供的URL上运行。现在，每当我们推送GitHub仓库的更改时，我们的网站将自动部署。
+- en: Slow Initial Load
+  id: totrans-38
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 初始加载缓慢
+- en: Our deployed web application will be loading data from our deployed Heroku API.
+    With Heroku’s free plan, application containers sleep after one hour of inactivity.
+    If you haven’t used your API in a while, the initial data load will be slow while
+    the container spins back up.
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们部署的Web应用程序将从我们部署的Heroku API加载数据。使用Heroku的免费计划，应用程序容器在一小时不活动后会进入睡眠状态。如果你有一段时间没有使用你的API，初始数据加载将会很慢，因为容器需要重新启动。
+- en: '![A screenshot of the Netlify deployment configuration](assets/jsev_1703.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Netlify部署配置的截图](assets/jsev_1703.png)'
+- en: Figure 17-3\. With Netlify we can configure our build process and environment
+    variables
+  id: totrans-41
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图17-3\. 使用Netlify我们可以配置我们的构建过程和环境变量。
+- en: Conclusion
+  id: totrans-42
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we’ve deployed a static web application. To do this, we’ve used
+    Netlify’s deployment pipeline features to watch for changes to our Git repository,
+    run our build processes, and store environment variables. With this foundation,
+    we have everything we need to publicly release web applications.
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们部署了一个静态网络应用程序。为此，我们使用了Netlify的部署管道功能来监视我们的Git仓库的更改，运行我们的构建流程，并存储环境变量。有了这个基础，我们拥有了发布Web应用程序所需的一切条件。

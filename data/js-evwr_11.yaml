@@ -1,0 +1,395 @@
+- en: Chapter 10\. Deploying Our API
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第 10 章\. 部署我们的API
+- en: Imagine if each time a user wanted to access our API to create, read, update,
+    or delete a note we had to go meet them, laptop in tow. Currently, this is how
+    our API works, as it is running only on our individual computer. We can resolve
+    this by *deploying* our application to a web server.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 想象一下，如果每次用户想要访问我们的API来创建、读取、更新或删除一个笔记时，我们都必须带着笔记本电脑去见他们。目前，这就是我们的API运行的方式，因为它仅在我们个人的计算机上运行。我们可以通过将我们的应用程序*部署*到Web服务器来解决这个问题。
+- en: 'In this chapter we’ll take two steps:'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们将采取两个步骤：
+- en: First, we’ll set up a remote database that our API can access.
+  id: totrans-3
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 首先，我们将设置一个远程数据库，供我们的API访问。
+- en: Second, we’ll deploy our API code to a server and connect it to the database.
+  id: totrans-4
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 其次，我们将部署我们的API代码到服务器，并将其连接到数据库。
+- en: Once we’ve followed these steps, we can access our API from any web-connected
+    computer, including the web, desktop, and mobile interfaces that we will develop.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦完成上述步骤，我们可以从任何联网的计算机上访问我们的API，包括我们将开发的Web、桌面和移动界面。
+- en: Hosting Our Database
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 托管我们的数据库
+- en: For the first step we’ll use a hosted database solution. For our Mongo database,
+    we’ll be using MongoDB Atlas. This is a fully managed cloud offering backed by
+    the organization behind Mongo itself. Additionally, they offer a free tier that
+    will work well for our initial deployment. Let’s walk through the steps of deploying
+    to MongoDB Atlas.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于第一步，我们将使用托管的数据库解决方案。对于我们的Mongo数据库，我们将使用MongoDB Atlas。这是一个由Mongo本身背后的组织提供的全管理云服务。此外，他们还提供了一个免费套餐，非常适合我们的初始部署。让我们来看看如何部署到MongoDB
+    Atlas的步骤。
+- en: 'First, visit [*mongodb.com/cloud/atlas*](https://oreil.ly/-TpJG) and create
+    an account. Once you’ve created an account, you’ll be prompted to create a database.
+    From this screen you can manage the settings of your sandbox database, but I recommend
+    sticking with the defaults for now. These are:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，访问[*mongodb.com/cloud/atlas*](https://oreil.ly/-TpJG)并创建一个账户。创建账户后，您将被提示创建一个数据库。从此屏幕上，您可以管理您的沙箱数据库的设置，但我建议暂时使用默认设置。这些设置是：
+- en: Amazon’s AWS as the database host, though Google’s Cloud Platform and Microsoft’s
+    Azure are also offered as options
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 亚马逊的AWS作为数据库主机，尽管谷歌的云平台和微软的Azure也提供了选项。
+- en: The closest region with a “free tier” option
+  id: totrans-10
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 最接近的带有“免费套餐”选项的地区
+- en: Cluster Tier with a default value of “M0 Sandbox (Shared RAM, 512MB Storage)”
+  id: totrans-11
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 集群层级，默认为“M0 Sandbox（共享RAM，512MB存储）”
+- en: Additional Settings, which we can leave as the defaults
+  id: totrans-12
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 其他设置，我们可以保持默认
+- en: Cluster Name, which we can leave as the default
+  id: totrans-13
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 集群名称，我们可以保持默认
+- en: From here, click Create Cluster, at which point it will take a few minutes for
+    Mongo to set up the database ([Figure 10-1](#mongo-atlas-create)).
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，点击创建集群，Mongo会花几分钟时间设置数据库（[图 10-1](#mongo-atlas-create)）。
+- en: '![A screenshot of the default MongoDB Atlas new database settings](assets/jsev_1001.png)'
+  id: totrans-15
+  prefs: []
+  type: TYPE_IMG
+  zh: '![MongoDB Atlas新数据库设置的默认截图](assets/jsev_1001.png)'
+- en: Figure 10-1\. The MongoDB Atlas database creation screen
+  id: totrans-16
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-1\. MongoDB Atlas数据库创建屏幕
+- en: Next, you’ll see the Clusters page, where you can manage your individual database
+    cluster ([Figure 10-2](#mongo-atlas-cluster)).
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，您将看到Clusters页面，您可以管理个人数据库集群（[图 10-2](#mongo-atlas-cluster)）。
+- en: '![A screenshot of MongoDB Atlas''s Cluster Screen](assets/jsev_1002.png)'
+  id: totrans-18
+  prefs: []
+  type: TYPE_IMG
+  zh: '![MongoDB Atlas集群屏幕的截图](assets/jsev_1002.png)'
+- en: Figure 10-2\. MongoDB Atlas Cluster
+  id: totrans-19
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-2\. MongoDB Atlas 集群
+- en: From the Clusters screen, click Connect, where you’ll be prompted to set up
+    your connection security. The first step will be to whitelist your IP address.
+    Because our application will have a dynamic IP address, you’ll need to open this
+    to any IP address by using `0.0.0.0/0`. With all IP addresses whitelisted, you’ll
+    then need to set up a secure username and password for accessing the data ([Figure 10-3](#mongo-atlas-ip)).
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从Clusters屏幕上，点击连接，您将被提示设置连接安全性。第一步是将您的IP地址加入白名单。因为我们的应用将使用动态IP地址，您需要将其开放给任何IP地址，使用`0.0.0.0/0`。当所有IP地址都被加入白名单后，您将需要设置一个安全的用户名和密码来访问数据（[图
+    10-3](#mongo-atlas-ip)）。
+- en: '![A screenshot of MongoDB Atlas''s IP whitelist and user prompt](assets/jsev_1003.png)'
+  id: totrans-21
+  prefs: []
+  type: TYPE_IMG
+  zh: '![MongoDB Atlas的IP白名单和用户提示的截图](assets/jsev_1003.png)'
+- en: Figure 10-3\. MongoDB Atlas IP whitelist and user account management
+  id: totrans-22
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-3\. MongoDB Atlas IP白名单和用户账号管理
+- en: Once your IP has been whitelisted and your user account has been created, you’ll
+    choose the connection method for the database. In this case, it will be an “Application”
+    connection ([Figure 10-4](#mongo-atlas-connection)).
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您的IP地址被加入白名单，用户账号被创建，您将选择数据库的连接方式。在这种情况下，它将是一个“应用程序”连接（[图 10-4](#mongo-atlas-connection)）。
+- en: '![A screenshot of the connection type selection in MongoDB Atlas](assets/jsev_1004.png)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_IMG
+  zh: '![MongoDB Atlas中连接类型选择的截图](assets/jsev_1004.png)'
+- en: Figure 10-4\. Selecting a connection type in MongoDB Atlas
+  id: totrans-25
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-4\. 在MongoDB Atlas中选择连接类型
+- en: From here, you can copy the connection string, which we’ll be using in our production
+    *.env* file ([Figure 10-5](#mongo-atlas-connection-string)).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里，你可以复制连接字符串，我们将在我们的生产`.env`文件中使用它（[图 10-5](#mongo-atlas-connection-string)）。
+- en: '![A screenshot of the connection string in MongoDB Atlas](assets/jsev_1005.png)'
+  id: totrans-27
+  prefs: []
+  type: TYPE_IMG
+  zh: '![MongoDB Atlas中连接字符串的截图](assets/jsev_1005.png)'
+- en: Figure 10-5\. MongoDB Atlas’s database connection string
+  id: totrans-28
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-5\. MongoDB Atlas的数据库连接字符串
+- en: Mongo Passwords
+  id: totrans-29
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Mongo密码
+- en: MongoDB Atlas *hex-encodes* special characters within passwords. This means
+    that if you use (and you should!) any nonalpha or numeric value, you will need
+    to use the hex value for that code when adding your password to the connection
+    string. The site [*ascii.cl*](https://ascii.cl) offers the corresponding hex codes
+    for all special characters. For example, if your password was `Pizz@2!` you would
+    need to encode the `@` and `!` characters. You do this with a `%` followed by
+    the hex value. The resulting password would be `Pizz%402%21`.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: MongoDB Atlas *hex-encodes* 密码中的特殊字符。这意味着，如果您使用（并且应该使用！）任何非字母或数字值，您需要在添加密码到连接字符串时使用该代码的十六进制值。网站[*ascii.cl*](https://ascii.cl)提供了所有特殊字符对应的十六进制代码。例如，如果您的密码是`Pizz@2!`，您需要对`@`和`!`字符进行编码。您可以使用`%`后跟十六进制值来执行此操作。生成的密码将是`Pizz%402%21`。
+- en: With our MongoDB Atlas managed database up and running, we now have a hosted
+    data store for our application. In the next step we’ll host our application code
+    and connect it to our database.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的MongoDB Atlas托管数据库已经运行起来，现在我们有了一个托管的数据存储用于我们的应用程序。在下一步中，我们将托管我们的应用程序代码并将其连接到我们的数据库。
+- en: Deploying Our Application
+  id: totrans-32
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 部署我们的应用程序
+- en: The next step in our deployment setup is to deploy our application code. For
+    the purpose of this book we will use the cloud application platform Heroku. I’ve
+    chosen Heroku due to its excellent user experience and generous free tier, but
+    other cloud platforms such as Amazon Web Services, Google Cloud Platform, Digital
+    Ocean, or Microsoft Azure all provide alternative hosting environments for Node.js
+    applications.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们部署设置的下一步是部署我们的应用程序代码。为了本书的目的，我们将使用云应用平台Heroku。我选择Heroku是因为其出色的用户体验和慷慨的免费套餐，但其他云平台如亚马逊Web服务、Google
+    Cloud Platform、Digital Ocean或Microsoft Azure都提供了Node.js应用程序的替代托管环境。
+- en: Before we begin, you will need to visit [Heroku’s website](https://heroku.com/apps)
+    and create an account. Once your account has been created, you’ll need to install
+    the [Heroku command-line tools](https://oreil.ly/Vf2Q_) for your operating system.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们开始之前，您需要访问[Heroku的网站](https://heroku.com/apps)并创建一个帐户。一旦您的帐户已创建，您将需要为您的操作系统安装[Heroku命令行工具](https://oreil.ly/Vf2Q_)。
+- en: 'For macOS you can install the Heroku command-line tools using Homebrew as follows:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于macOS用户，您可以使用Homebrew安装Heroku命令行工具，如下所示：
+- en: '[PRE0]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: For Windows users, visit the Heroku command-line tools guide and download the
+    appropriate installer.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于Windows用户，请访问Heroku命令行工具指南并下载适当的安装程序。
+- en: Project Setup
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 项目设置
+- en: With the Heroku command-line tools installed, we can set up our project within
+    the Heroku website. Create a new Heroku project by clicking New → Create New App
+    ([Figure 10-6](#heroku-new-app)).
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装了Heroku命令行工具后，我们可以在Heroku网站内设置我们的项目。通过点击New → Create New App来创建一个新的Heroku项目（[图 10-6](#heroku-new-app)）。
+- en: '![A screenshot of the Heroku new app dialog](assets/jsev_1006.png)'
+  id: totrans-40
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Heroku新应用对话框的截图](assets/jsev_1006.png)'
+- en: Figure 10-6\. The Heroku New App dialog
+  id: totrans-41
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-6\. Heroku新应用对话框
+- en: From here you’ll be prompted to give the application a unique name, after which
+    you can click the Create App button ([Figure 10-7](#heroku-name-app)). Going forward,
+    use this name anywhere you see `YOUR_APP_NAME`.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从这里，您将被提示为应用程序提供一个唯一的名称，之后您可以点击Create App按钮（[图 10-7](#heroku-name-app)）。在接下来的步骤中，您可以在任何地方看到`YOUR_APP_NAME`时使用此名称。
+- en: '![A screenshot of the Heroku app name screen](assets/jsev_1007.png)'
+  id: totrans-43
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Heroku应用名称屏幕的截图](assets/jsev_1007.png)'
+- en: Figure 10-7\. Provide a unique application name
+  id: totrans-44
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 10-7\. 提供一个唯一的应用程序名称
+- en: 'Now we can add environment variables. Similar to how we used our *.env* file
+    locally, we can manage our production environment variables within the Heroku
+    website interface. To do so, click Settings followed by the Reveal Config Vars
+    button. From this screen, add the following configuration variables ([Figure 10-8](#heroku-env)):'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们可以添加环境变量了。类似于我们在本地使用*.env*文件的方式，我们可以在Heroku网站界面内管理我们的生产环境变量。为此，请点击设置，然后点击显示配置变量按钮。在此屏幕上，添加以下配置变量（[图10-8](#heroku-env)）：
+- en: '[PRE1]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '![Screenshot of the Heroku environment variable configuration](assets/jsev_1008.png)'
+  id: totrans-47
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Heroku环境变量配置的截图](assets/jsev_1008.png)'
+- en: Figure 10-8\. Heroku’s environment variable configuration
+  id: totrans-48
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图10-8\. Heroku的环境变量配置
+- en: With our application configured, we’re ready to deploy our code.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过配置我们的应用程序，我们已经准备好部署我们的代码了。
+- en: Deployment
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 部署
+- en: 'Now we’re ready to deploy our code to Heroku’s servers. To do this, we can
+    use straightforward Git commands from our terminal application. We’ll set Heroku
+    as a remote endpoint, then add and commit our changes, and finally push our code
+    to Heroku. To do this, run the following commands within your terminal application:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们已经准备好将代码部署到Heroku的服务器上了。为此，我们可以从终端应用程序中使用直接的Git命令。我们将Heroku设置为远程端点，然后添加并提交我们的更改，最后将代码推送到Heroku。要执行此操作，请在终端应用程序中运行以下命令：
+- en: '[PRE2]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: You should see output in your terminal while Heroku builds and deploys the files.
+    Once complete, Heroku will use the `run` script within our *package.json* file
+    to run our application on their servers.
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Heroku构建和部署文件时，您应该在终端中看到输出。完成后，Heroku将使用我们*package.json*文件中的`run`脚本在其服务器上运行我们的应用程序。
+- en: Testing
+  id: totrans-54
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 测试
+- en: 'Once our application has been successfully deployed, we will be able to make
+    GraphQL API requests to our remote server. By default, the GraphQL Playground
+    UI is disabled in production, but we can test our application using `curl` from
+    our terminal application. To run a `curl` request, enter the following in your
+    terminal application:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦我们的应用程序成功部署，我们将能够向远程服务器发出GraphQL API请求。默认情况下，在生产环境中禁用GraphQL Playground UI，但我们可以使用终端应用程序中的`curl`测试我们的应用程序。要运行`curl`请求，请在终端应用程序中输入以下内容：
+- en: '[PRE3]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'If the test is successful, we should receive a response containing an empty
+    `notes` array, since our production database does not yet contain any data:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果测试成功，我们应该收到一个包含空的`notes`数组的响应，因为我们的生产数据库尚未包含任何数据：
+- en: '[PRE4]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: With this, we have deployed our application!
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个步骤，我们已经成功部署了我们的应用程序！
+- en: Conclusion
+  id: totrans-60
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 结论
+- en: In this chapter we used cloud services to deploy a database and our application
+    code. Services such as MongoDB Atlas and Heroku enable developers to launch small
+    applications and scale them anywhere from hobby projects to heavily trafficked
+    business. With our API deployed, we have successfully developed the backend services
+    of our applications’ stack. In the following chapters, we will focus on the UIs
+    of our app.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们使用云服务部署了数据库和我们的应用程序代码。诸如MongoDB Atlas和Heroku之类的服务使开发人员能够启动小型应用程序，并从兴趣项目到高流量业务进行扩展。通过部署我们的API，我们成功地开发了应用程序堆栈的后端服务。在接下来的章节中，我们将专注于应用程序的用户界面。

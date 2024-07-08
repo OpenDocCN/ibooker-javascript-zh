@@ -1,0 +1,2523 @@
+- en: Chapter 2\. Browsers
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第2章 浏览器
+- en: JavaScript doesn’t have a single, bespoke implementation like most other programming
+    languages do. For example, with Python, you’re probably going to run the Python
+    binary provided by the language maintainers. JavaScript, on the other hand, has
+    many different implementations. This includes the JavaScript engine that ships
+    with different web browsers, such as V8 in Chrome, SpiderMonkey in Firefox, and
+    JavaScriptCore in Safari. The V8 engine is also used by Node.js on the server.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript并不像大多数其他编程语言那样有一个独特的、定制的实现。例如，使用Python时，你可能会运行语言维护者提供的Python二进制文件。而JavaScript则有许多不同的实现。这包括随不同网络浏览器一起提供的JavaScript引擎，如Chrome中的V8，Firefox中的SpiderMonkey，以及Safari中的JavaScriptCore。V8引擎也被Node.js在服务器端使用。
+- en: These separate implementations each start off by implementing some facsimile
+    of the ECMAScript specification. As the compatibility charts that we so often
+    need to consult suggest, not every engine implements JavaScript the same way.
+    Certainly, browser vendors attempt to implement JavaScript features in the same
+    manner, but bugs do happen. At the language level, there are some concurrency
+    primitives that have been made available, which are covered in more detail in
+    Chapters [4](ch04.xhtml#ch_shared_mem) and [5](ch05.xhtml#ch_adv_shared_mem).
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些独立的实现每个都从实现ECMAScript规范的某种近似开始。正如我们经常需要参考的兼容性表所示，不是每个引擎都以相同的方式实现JavaScript。当然，浏览器供应商尝试以相同的方式实现JavaScript功能，但是错误确实会发生。在语言层面上，已经提供了一些并发原语，详细内容请参见第[4](ch04.xhtml#ch_shared_mem)章和第[5](ch05.xhtml#ch_adv_shared_mem)章。
+- en: Other APIs are also added in each implementation to make the JavaScript that
+    can be run even more powerful. This chapter focuses entirely on the multithreaded
+    APIs that are provided by modern web browsers, the most approachable of which
+    is the web worker.
+  id: totrans-3
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在每种实现中还添加了其他API，以使可运行的JavaScript更加强大。本章完全侧重于现代网络浏览器提供的多线程API，其中最易于使用的是Web Worker。
+- en: Using these worker threads is beneficial for many reasons, but one that is particularly
+    applicable to browsers is that, by offloading CPU-intensive work to a separate
+    thread, the main thread is then able to dedicate more resources to rendering the
+    UI. This can help contribute to a smoother, more user-friendly experience than
+    what might have been traditionally achievable.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用这些工作者线程有许多好处，特别适用于浏览器的一个好处是，通过将CPU密集型工作分配到单独的线程中，主线程可以更多地专注于渲染UI。这有助于实现比传统方式更流畅、更用户友好的体验。
+- en: Dedicated Workers
+  id: totrans-5
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 专用工作者
+- en: Web workers allow you to spawn a new environment for executing JavaScript in.
+    JavaScript that is executed in this way is allowed to run in a separate thread
+    from the JavaScript that spawned it. Communication occurs between these two environments
+    by using a pattern called *message passing*. Recall that it’s JavaScript’s nature
+    to be single-threaded. Web workers play nicely with this nature and expose message
+    passing by way of triggering functions to be run by the event loop.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web Worker允许你生成一个新的执行JavaScript的环境。以这种方式执行的JavaScript可以在与生成它的JavaScript不同的线程中运行。这两个环境之间通过称为*消息传递*的模式进行通信。请记住，JavaScript是单线程的。Web
+    Worker与这种特性很好地协作，并通过事件循环触发函数运行。
+- en: It’s possible for a JavaScript environment to spawn more than one web worker,
+    and a given web worker is free to spawn even more web workers. That said, if you
+    find yourself spawning massive hierarchies of web workers, you might need to reevaluate
+    your application.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript环境有可能生成多个Web Worker，并且给定的Web Worker可以自由生成更多的Web Worker。不过，如果你发现自己在生成大量Web
+    Worker层次结构时，可能需要重新评估你的应用程序。
+- en: There is more than one type of web worker, the simplest of which is the dedicated
+    worker.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Web Worker有多种类型，其中最简单的是专用工作者。
+- en: Dedicated Worker Hello World
+  id: totrans-9
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 专用工作者 Hello World
+- en: The best way to learn a new technology is to actually work with it. The relationship
+    between page and worker that you are building is displayed in [Figure 2-1](#fig_dedicated_worker_relationship).
+    In this case you’ll create just a single worker, but a hierarchy of workers is
+    also achievable.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 学习新技术的最佳方法是实际应用它。你正在构建的页面与工作者之间的关系显示在[图 2-1](#fig_dedicated_worker_relationship)中。在这种情况下，你将只创建一个工作者，但也可以实现工作者层次结构。
+- en: '![Dedicated Workers have exactly one parent](Images/mtjs_0201.png)'
+  id: totrans-11
+  prefs: []
+  type: TYPE_IMG
+  zh: '![专用工作者仅有一个父进程](Images/mtjs_0201.png)'
+- en: Figure 2-1\. Dedicated worker relationship
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图2-1 专用工作者关系
+- en: First, create a directory named *ch2-web-workers/*. You’ll keep the three example
+    files required for this project in there. Next, create an *index.html* file inside
+    the directory. JavaScript that runs in the browser needs to first be loaded by
+    a web page, and this file represents the basis of that web page. Add the content
+    from [Example 2-1](#ex_ww_index) to this file to kick things off.
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，创建一个名为 *ch2-web-workers/* 的目录。你将在其中保留这个项目所需的三个示例文件。接下来，在该目录中创建一个 *index.html*
+    文件。在浏览器中运行的 JavaScript 需要先被网页加载，而这个文件代表了该网页的基础。将 [Example 2-1](#ex_ww_index) 的内容添加到此文件以启动项目。
+- en: Example 2-1\. *ch2-web-workers/index.html*
+  id: totrans-14
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-1\. *ch2-web-workers/index.html*
+- en: '[PRE0]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: As you can see, this file is super basic. All it is doing is setting a title
+    and loading a single JavaScript file named *main.js*. The remaining sections in
+    this chapter follow a similar pattern. The more interesting part is what’s inside
+    the *main.js* file.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如您所见，这个文件非常基础。它所做的只是设置一个标题并加载一个名为 *main.js* 的单个 JavaScript 文件。本章的其余部分遵循类似的模式。更有趣的部分在于
+    *main.js* 文件的内容。
+- en: In fact, create that *main.js* file now, and add the content from [Example 2-2](#ex_ww_main)
+    to it.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，现在创建 *main.js* 文件，并将 [Example 2-2](#ex_ww_main) 的内容添加到其中。
+- en: Example 2-2\. *ch2-web-workers/main.js*
+  id: totrans-18
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-2\. *ch2-web-workers/main.js*
+- en: '[PRE1]'
+  id: totrans-19
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](Images/1.png)](#co_browsers_CO1-1)'
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO1-1)'
+- en: Instantiation of a new dedicated worker.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实例化一个新的专用 worker。
+- en: '[![2](Images/2.png)](#co_browsers_CO1-2)'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO1-2)'
+- en: A message handler is attached to the worker.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为 worker 附加一个消息处理程序。
+- en: '[![3](Images/3.png)](#co_browsers_CO1-3)'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO1-3)'
+- en: A message is passed into the worker.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向 worker 传递消息。
+- en: The first thing that happens in this file is that a call to `console.log()`
+    is made. This is to make it obvious the order in which files get executed. The
+    next thing that happens is that a new dedicated worker gets instantiated. This
+    is done by calling `new Worker(*filename*)`. Once called, the JavaScript engine
+    begins the download (or cache lookup) for the appropriate file in the background.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此文件的第一步是调用`console.log()`。这是为了明确文件执行的顺序。接下来要做的是实例化一个新的专用 worker。通过调用`new Worker(*filename*)`来完成。一旦调用，JavaScript
+    引擎将在后台开始下载（或缓存查找）适当的文件。
+- en: Next, a handler for the `message` event is attached to the worker. This is done
+    by assigning a function to the `.onmessage` property of the dedicated worker.
+    When a message is received, that function gets called. The argument provided to
+    the function is an instance of `MessageEvent`. It comes with a bunch of properties,
+    but the one that’s most interesting is the `.data` property. This represents the
+    object that was returned from the dedicated worker.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，为 worker 的 `message` 事件附加一个处理程序。通过将函数分配给专用 worker 的 `.onmessage` 属性来完成。当接收到消息时，该函数将被调用。提供给函数的参数是
+    `MessageEvent` 的一个实例。它带有许多属性，但最有趣的是 `.data` 属性。这代表了从专用 worker 返回的对象。
+- en: Finally, a call to the dedicated worker’s `.postMessage()` method is made. This
+    is how the JavaScript environment that instantiates the dedicated worker is able
+    to communicate with the dedicated worker. In this case a basic string has been
+    passed into the dedicated worker. There are restrictions on what kind of data
+    can be passed into this method; see the [Appendix](app01.xhtml#app_sca) for more
+    details.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，调用专用 worker 的 `.postMessage()` 方法。这是实例化专用 worker 的 JavaScript 环境与专用 worker
+    通信的方式。在本例中，传递了一个基本字符串到专用 worker。对于可以传递到此方法的数据类型有所限制；请参阅附录（app01.xhtml#app_sca）获取更多详情。
+- en: Now that your main JavaScript file is finished, you’re ready to create the file
+    that will be executed within the dedicated worker. Create a new file named *worker.js*
+    and add the contents of [Example 2-3](#ex_ww_worker) to it.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您的主 JavaScript 文件已经完成，可以创建在专用 worker 内执行的文件。创建一个名为 *worker.js* 的新文件，并将 [Example 2-3](#ex_ww_worker)
+    的内容添加到其中。
+- en: Example 2-3\. *ch2-web-workers/worker.js*
+  id: totrans-30
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-3\. *ch2-web-workers/worker.js*
+- en: '[PRE2]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: In this file a single global function named `onmessage` is defined and a function
+    is assigned to it. This `onmessage` function, inside the dedicated worker, is
+    called when the `worker.postMessage()` method is called from outside the dedicated
+    worker. This assignment could also have been written as `onmessage =` or even
+    `var onmessage =`, but using `const onmessage =` or `let onmessage =` or even
+    declaring `function onmessage` won’t work. The `self` identifier is an alias for
+    `globalThis` inside a web worker where the otherwise familiar `window` isn’t available.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个文件中，定义了一个名为`onmessage`的全局函数，并将一个函数分配给它。在专用worker内部，当从专用worker外部调用`worker.postMessage()`方法时，会调用此`onmessage`函数。此赋值也可以写为`onmessage
+    =`或甚至`var onmessage =`，但使用`const onmessage =`或`let onmessage =`，甚至声明`function
+    onmessage`都不起作用。`self`标识符是在专用worker内部的`globalThis`的别名，在那里通常的`window`不可用。
+- en: Inside the `onmessage` function, the code first prints the message that was
+    received from outside of the dedicated worker. After that, it calls the `postMessage()`
+    global function. This method takes an argument, and the argument is then provided
+    to the calling environment by triggering the dedicated worker’s `onmessage()`
+    method. The same rules about message passing and object cloning also apply here.
+    Again, the example is just using a simple string for now.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在`onmessage`函数内部，代码首先打印从专用worker外部接收到的消息。之后，它调用`postMessage()`全局函数。此方法接受一个参数，然后通过触发专用worker的`onmessage()`方法将参数提供给调用环境。关于消息传递和对象克隆的规则在这里也适用。同样，示例现在只是使用一个简单的字符串。
+- en: 'There are some additional rules when it comes to loading a dedicated worker
+    script file. The file that is loaded must be in the same origin that the main
+    JavaScript environment is running in. Also, browsers won’t allow you to run dedicated
+    workers when JavaScript runs using the `file://` protocol, which is a fancy way
+    of saying you can’t simply double-click the *index.html* file and view the application
+    running. Instead, you’ll need to run your application from a web server. Luckily,
+    if you have a recent Node.js installed, you can run the following command to start
+    a very basic web server locally:'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当加载专用worker脚本文件时还有一些额外的规则。加载的文件必须与主JavaScript环境运行的同一起源。此外，浏览器不允许在使用`file://`协议运行JavaScript时运行专用worker，这是一种说法，简单地说，你不能简单地双击*index.html*文件查看应用程序运行。相反，你需要从Web服务器运行你的应用程序。幸运的是，如果你安装了最新的Node.js，你可以运行以下命令在本地启动一个非常基本的Web服务器：
+- en: '[PRE3]'
+  id: totrans-35
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Once executed, this command spins up a server that hosts files from the local
+    filesystem. It also displays the URL that the server is available as. Typically
+    the command outputs the following URL, assuming the port is free:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行此命令后，将启动一个服务器，用于托管来自本地文件系统的文件。它还显示服务器可用的URL。通常情况下，该命令输出以下URL，假设端口是空闲的：
+- en: '[PRE4]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Copy whatever URL was provided to you and open it using a web browser. When
+    the page first opens you’ll most likely see a plain, white screen. But that’s
+    not a problem because all of the output is being displayed in the web developer
+    console. Different browsers make the console available in different ways, but
+    usually you can right-click somewhere in the background and click the Inspect
+    menu option, or you can press Ctrl+Shift+I (or Cmd-Shift-I) to open up the inspector.
+    Once in the inspector, click on the Console tab, and then refresh the page just
+    in case any console messages weren’t captured. Once that’s done you should see
+    the messages that are displayed in [Table 2-1](#ex_ww_output).
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将提供给你的任何URL复制并在Web浏览器中打开。当页面首次打开时，你可能会看到一个普通的白屏。但这并不是问题，因为所有的输出都显示在Web开发者控制台中。不同的浏览器以不同的方式提供控制台，但通常你可以右键点击背景的某个地方并选择检查菜单选项，或者按下Ctrl+Shift+I（或Cmd-Shift-I）打开检查器。一旦进入检查器，点击控制台选项卡，然后刷新页面，以防万一未捕获到任何控制台消息。完成这些步骤后，你应该看到显示在[Table 2-1](#ex_ww_output)中的消息。
+- en: Table 2-1\. Example console output
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Table 2-1\. 示例控制台输出
+- en: '| Log | Location |'
+  id: totrans-40
+  prefs: []
+  type: TYPE_TB
+  zh: '| 日志 | 位置 |'
+- en: '| --- | --- |'
+  id: totrans-41
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| hello from main.js | main.js:1:9 |'
+  id: totrans-42
+  prefs: []
+  type: TYPE_TB
+  zh: '| 来自main.js的hello | main.js:1:9 |'
+- en: '| hello from end of main.js | main.js:11:9 |'
+  id: totrans-43
+  prefs: []
+  type: TYPE_TB
+  zh: '| 来自main.js末尾的hello | main.js:11:9 |'
+- en: '| hello from worker.js | worker.js:1:9 |'
+  id: totrans-44
+  prefs: []
+  type: TYPE_TB
+  zh: '| 来自worker.js的hello | worker.js:1:9 |'
+- en: '| message from main, message sent to worker | worker.js:4:11 |'
+  id: totrans-45
+  prefs: []
+  type: TYPE_TB
+  zh: '| 来自主程序的消息，发送给worker的消息 | worker.js:4:11 |'
+- en: '| message received from worker, message sent from worker | main.js:6:11 |'
+  id: totrans-46
+  prefs: []
+  type: TYPE_TB
+  zh: '| 来自worker的消息，发送给worker的消息 | main.js:6:11 |'
+- en: This output confirms the order in which the messages have been executed, though
+    it’s not entirely deterministic. First, the *main.js* file is loaded, and its
+    output is printed. The worker is instantiated and configured, its `postMessage()`
+    method is called, and then the last message gets printed as well. Next, the *worker.js*
+    file is run, and its message handler is called, printing a message. It then calls
+    `postMessage()` to send a message back to *main.js*. Finally, the `onmessage`
+    handler for the dedicated worker is called in *main.js*, and the final message
+    is printed.
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个输出确认了消息执行的顺序，尽管它并不完全是确定性的。首先，加载*main.js*文件，并打印其输出。然后实例化和配置工作者，调用其`postMessage()`方法，最后打印最后一条消息。接下来，运行*worker.js*文件，并调用其消息处理程序，打印一条消息。然后调用`postMessage()`将消息发送回*main.js*。最后，在*main.js*中调用专用工作者的`onmessage`处理程序，并打印最后的消息。
+- en: Advanced Dedicated Worker Usage
+  id: totrans-48
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 高级专用工作者用法
+- en: Now that you’re familiar with the basics of dedicated workers, you’re ready
+    to work with some of the more complex features.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经熟悉专用工作者的基础知识，可以开始使用一些更复杂的功能了。
+- en: When you work with JavaScript that doesn’t involve dedicated workers, all the
+    code you end up loading is available in the same realm. Loading new JavaScript
+    code is done either by loading a script with a `<script>` tag, or by making an
+    XHR request and using the `eval()` function with a string representing the code.
+    When it comes to dedicated workers, you can’t inject a `<script>` tag into the
+    DOM because there’s no DOM associated with the worker.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您处理不涉及专用工作者的JavaScript时，您最终加载的所有代码都可在同一领域中使用。加载新的JavaScript代码可以通过使用`<script>`标签加载脚本，或通过发出XHR请求并使用带有表示代码的字符串的`eval()`函数来完成。在涉及专用工作者时，您无法将`<script>`标签注入DOM，因为与工作者关联的DOM不存在。
+- en: Instead, you can make use of the `importScripts()` function, which is a global
+    function only available within web workers. This function accepts one or more
+    arguments that represent the paths to scripts to be loaded. These scripts will
+    be loaded from the same origin as the web page. These scripts are loaded in a
+    synchronous manner, so code that follows the function call will run after the
+    scripts are loaded.
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，您可以使用`importScripts()`函数，该函数仅在Web工作者中可用。此函数接受一个或多个参数，表示要加载的脚本路径。这些脚本将从与网页相同的源加载。这些脚本以同步方式加载，因此在函数调用后运行的代码将在脚本加载后运行。
+- en: 'Instances of `Worker` inherit from `EventTarget` and have some generic methods
+    for dealing with events. However, the `Worker` class provides the most important
+    methods on the instance. The following is a list of these methods, some of which
+    you’ve already worked with, some of which are new:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Worker`的实例继承自`EventTarget`，并具有一些用于处理事件的通用方法。但是，`Worker`类提供了实例上最重要的方法。以下是这些方法的列表，其中一些您已经使用过，一些是新的：'
+- en: '`worker.postMessage(msg)`'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker.postMessage(msg)`'
+- en: This sends a message to the worker that is handled by the event loop before
+    invoking the `self.onmessage` function, passing in `msg`.
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这会向工作者发送一条消息，在调用`self.onmessage`函数之前由事件循环处理，传递`msg`参数。
+- en: '`worker.onmessage`'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker.onmessage`'
+- en: If assigned, it is in turn invoked when the `self.postMessage` function inside
+    the worker is called.
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果分配了，它将在工作者内部调用`self.postMessage`函数时调用。
+- en: '`worker.onerror`'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker.onerror`'
+- en: If assigned, it is invoked when an error is thrown inside the worker. A single
+    `ErrorEvent` argument is provided, having `.colno`, `.lineno`, `.filename`, and
+    `.message` properties. This error will bubble up unless you call `err.preventDefault()`.
+  id: totrans-58
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果分配了，当工作者内部抛出错误时将调用它。将提供一个单一的`ErrorEvent`参数，具有`.colno`、`.lineno`、`.filename`和`.message`属性。此错误将冒泡，除非您调用`err.preventDefault()`。
+- en: '`worker.onmessageerror`'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker.onmessageerror`'
+- en: If assigned, this is invoked when the worker receives a message that it cannot
+    deserialize.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果分配了，当工作者接收到无法反序列化的消息时将调用此函数。
+- en: '`worker.terminate()`'
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`worker.terminate()`'
+- en: If called, the worker terminates immediately. Future calls to `worker.postMessage()`
+    will silently fail.
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果被调用，工作者将立即终止。将来对`worker.postMessage()`的调用将静默失败。
+- en: Inside the dedicated worker, the global `self` variable is an instance of `WorkerGlobalScope`.
+    The most notable addition is the `importScripts()` function for injecting new
+    JavaScript files. Some of the high-level communication APIs like `XMLHttpRequest`,
+    `WebSocket`, and `fetch()` are available. Useful functions that aren’t necessarily
+    part of JavaScript but are rebuilt by every major engine, like `setTimeout()`,
+    `setInterval()`, `atob()`, and `btoa()`, are also available. The two data-storage
+    APIs, `localStorage` and `indexedDB`, are available.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在专用工作线程内部，全局变量`self`是`WorkerGlobalScope`的一个实例。最显著的新增功能是`importScripts()`函数，用于注入新的JavaScript文件。一些高级通信API，如`XMLHttpRequest`、`WebSocket`和`fetch()`可用。一些有用的函数，虽然不一定是JavaScript的一部分，但由每个主要引擎重新构建，如`setTimeout()`、`setInterval()`、`atob()`和`btoa()`，也是可用的。两个数据存储API，`localStorage`和`indexedDB`，同样可用。
+- en: When it comes to APIs that are missing, though, you’ll need to experiment and
+    see what you have access to. Generally, APIs that modify the global state of the
+    web page aren’t available. In the main JavaScript realm, the global `location`
+    is available and is an instance of `Location`. Inside a dedicated worker, `location`
+    is still available, but it’s an instance of `WorkerLocation` and is a little different,
+    notably missing a `.reload()` method that can cause a page refresh. The `document`
+    global is also missing, which is the API for accessing the page’s DOM.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 至于缺失的API，您需要实验并查看您能访问的内容。通常情况下，修改全局状态的API在专用工作线程中是不可用的。在主JavaScript领域中，全局的`location`可用，是`Location`的一个实例。在专用工作线程内部，`location`也是可用的，但是是`WorkerLocation`的一个实例，有些不同，显著缺少了可以引发页面刷新的`.reload()`方法。全局的`document`也是不可用的，这是访问页面DOM的API。
+- en: 'When instantiating a dedicated worker, there is an optional second argument
+    for specifying the options for the worker. The instantiation takes on the following
+    signature:'
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在实例化专用工作线程时，可以选择性地使用第二个参数来指定工作线程的选项。实例化的签名如下：
+- en: '[PRE5]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'The `options` argument is an object that can contain the properties listed
+    here:'
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`options`参数是一个对象，可以包含以下列出的属性：'
+- en: '`type`'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`type`'
+- en: Either `classic` (default), for a classic JavaScript file, or `module`, to specify
+    an ECMAScript Module (ESM).
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以是`classic`（默认），表示经典的JavaScript文件，或者`module`，表示ECMAScript模块（ESM）。
+- en: '`credentials`'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`credentials`'
+- en: This value determines if HTTP credentials are sent with the request to get the
+    worker file. The value can be `omit` to exclude the credentials, `same-origin`
+    to send credentials (but only if the origin matches), or `include` to always send
+    the credentials.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个值确定了是否将HTTP凭据发送到获取工作线程文件的请求中。该值可以是`omit`（排除凭据），`same-origin`（发送凭据，但仅当来源匹配时），或`include`（始终发送凭据）。
+- en: '`name`'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`name`'
+- en: This names a dedicated worker and is mostly used for debugging. The value is
+    provided in the worker as a global named `name`.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个名称是指一个专用的工作线程，通常用于调试。在工作线程中作为全局命名的值为`name`。
+- en: Shared Workers
+  id: totrans-74
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 共享工作线程
+- en: A *shared worker* is another type of web worker, but what makes it special is
+    that a shared worker can be accessed by different browser environments, such as
+    different windows (tabs), across iframes, and even from different web workers.
+    They also have a different `self` within the worker, being an instance of `SharedWorkerGlobalScope`.
+    A shared worker can only be accessed by JavaScript running on the same origin.
+    For example, a window running on *http://localhost:5000* cannot access a shared
+    worker running on *http://google.com:80*.
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*共享工作线程*是另一种Web工作线程类型，但其特殊之处在于可以被不同的浏览器环境访问，例如不同的窗口（标签页）、跨iframe甚至来自不同Web工作线程。它们在工作线程内部还有一个不同的`self`，是`SharedWorkerGlobalScope`的一个实例。共享工作线程只能被同源的JavaScript访问。例如，运行在*http://localhost:5000*上的窗口无法访问运行在*http://google.com:80*上的共享工作线程。'
+- en: Warning
+  id: totrans-76
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Shared workers are currently [disabled in Safari](https://oreil.ly/eHlkL), and
+    this seems to have been true since at least 2013, which will undoubtedly harm
+    adoption of the technology.
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Safari当前已禁用共享工作线程，至少从2013年起如此，这无疑会影响该技术的采用。
+- en: Before diving into code, it’s important to consider a few gotchas. One thing
+    that makes shared workers a little hard to reason about is that they aren’t necessarily
+    attached to a particular window (environment). Sure, they’re initially spawned
+    by a particular window, but after that they can end up “belonging” to multiple
+    windows. That means that when the first window is closed, the shared worker is
+    kept around.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在深入编码之前，考虑几个要点是很重要的。一个让共享工作者有些难以理解的因素是，它们并不一定附属于特定的窗口（环境）。当然，它们最初是由特定窗口生成的，但之后它们可能“属于”多个窗口。这意味着当第一个窗口关闭时，共享工作者仍然存在。
+- en: Tip
+  id: totrans-79
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Since shared workers don’t belong to a particular window, one interesting question
+    is where should `console.log` output go? As of Firefox v85, the output is associated
+    with the first window that spawns the shared worker. Open another window and the
+    first still gets the logs. Close the first window and the logs are now invisible.
+    Open another window and the historical logs then appear in the newest window.
+    Chrome v87, on the other hand, doesn’t display shared worker logs at all. Keep
+    this in mind when debugging.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于共享工作者不属于特定的窗口，一个有趣的问题是`console.log`输出应该去哪里？截至 Firefox v85，输出与生成共享工作者的第一个窗口关联。打开另一个窗口，第一个窗口仍然接收日志。关闭第一个窗口，日志现在不可见。打开另一个窗口，历史日志将显示在最新的窗口中。另一方面，Chrome
+    v87 不显示共享工作者的日志。调试时请记住这一点。
+- en: Shared workers can be used to hold a semipersistent state that is maintained
+    when other windows connect to it. For example, if Window 1 tells the shared worker
+    to write a value, then Window 2 can ask the shared worker to read that value back.
+    Refresh Window 1 and the value is still maintained. Refresh Window 2 and it’s
+    also retained. Close Window 1 and it’s still retained. However, once you close
+    or refresh the final window that is still using the shared worker, the state will
+    be lost and the shared worker script will be evaluated again.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 共享工作者可用于保存半持久状态，在其他窗口连接到它时保持状态。例如，如果 Window 1 告诉共享工作者写入一个值，那么 Window 2 可以要求共享工作者将该值读回。刷新
+    Window 1，该值仍然保持。刷新 Window 2，它也保持不变。关闭 Window 1，它仍然保持。然而，一旦关闭或刷新仍在使用共享工作者的最后一个窗口，状态将丢失，并且共享工作者脚本将再次被评估。
+- en: Warning
+  id: totrans-82
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: A shared worker JavaScript file is cached while multiple windows are using it;
+    refreshing a page won’t necessarily reload your changes. Instead, you’ll need
+    to close other open browser windows, then refresh the remaining window, to get
+    the browser to run your new code.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个共享工作者的 JavaScript 文件在多个窗口使用时会被缓存；刷新页面不一定会重新加载您的更改。相反，您需要关闭其他打开的浏览器窗口，然后刷新剩余的窗口，以便让浏览器运行您的新代码。
+- en: With these caveats in mind, you’re now ready to build a simple application that
+    uses shared workers.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 记住这些注意事项后，您现在可以构建一个使用共享工作者的简单应用程序了。
+- en: Shared Worker Hello World
+  id: totrans-85
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 共享工作者你好世界
+- en: A shared worker is “keyed” based on its location in the current origin. For
+    example, the shared worker you’ll work with in this example is located somewhere
+    like *http://localhost:5000/shared-worker.js*. Whether the worker is loaded from
+    an HTML file located at */red.html*, */blue.html*, or even */foo/index.html*,
+    the shared worker instance will always remain the same. There is a way to create
+    different shared worker instances using the same JavaScript file, and that’s covered
+    in [“Advanced Shared Worker Usage”](#ch_browser_sec_shared_ss_adv).
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个共享工作者基于其在当前源中的位置进行“键控”。例如，在本示例中，您将使用的共享工作者位于类似*http://localhost:5000/shared-worker.js*的某个位置。无论工作者是从位于*/red.html*、*/blue.html*或甚至*/foo/index.html*的
+    HTML 文件加载，共享工作者实例始终保持不变。有一种方法可以使用相同的 JavaScript 文件创建不同的共享工作者实例，这在[“高级共享工作者用法”](#ch_browser_sec_shared_ss_adv)中有所介绍。
+- en: The relationship between the page and the worker that you are building is displayed
+    in [Figure 2-2](#fig_shared_worker_relationship).
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您正在构建的页面与工作者之间的关系显示在[Figure 2-2](#fig_shared_worker_relationship)中。
+- en: '![Shared workers can be owned by more than one page.](Images/mtjs_0202.png)'
+  id: totrans-88
+  prefs: []
+  type: TYPE_IMG
+  zh: '![Shared workers can be owned by more than one page.](Images/mtjs_0202.png)'
+- en: Figure 2-2\. Shared worker relationship
+  id: totrans-89
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: Figure 2-2\. 共享工作者关系
+- en: Now, it’s time to create some files. For this example, create a directory named
+    *ch2-shared-workers/*, and all the files necessary will live in this directory.
+    Once that’s done, create an HTML file containing the content in [Example 2-4](#ex_sw_red_html).
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，是时候创建一些文件了。例如，创建一个名为*ch2-shared-workers/*的目录，并且所有必需的文件都将驻留在这个目录中。完成这些步骤后，创建一个包含内容的
+    HTML 文件，内容在[Example 2-4](#ex_sw_red_html)中。
+- en: Example 2-4\. *ch2-shared-workers/red.html*
+  id: totrans-91
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 2-4\. *ch2-shared-workers/red.html*
+- en: '[PRE6]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Much like the HTML file you created in the previous section, this one just sets
+    a title and loads a JavaScript file. Once that’s done, create another HTML file
+    containing the content in [Example 2-5](#ex_sw_blue_html).
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与您在前一节中创建的HTML文件非常类似，这个文件只设置了一个标题并加载了一个JavaScript文件。完成后，创建另一个HTML文件，其中包含[示例 2-5](#ex_sw_blue_html)中的内容。
+- en: Example 2-5\. *ch2-shared-workers/blue.html*
+  id: totrans-94
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-5\. *ch2-shared-workers/blue.html*
+- en: '[PRE7]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: For this example you’re going to work with two separate HTML files, each representing
+    a new JavaScript environment that will be available on the same origin. Technically,
+    you could have reused the same HTML file in both windows, but we want to make
+    it very explicit that none of the state is going to be associated with the HTML
+    files or the *red*/*blue* JavaScript files.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于本例子，您将使用两个单独的HTML文件进行操作，每个文件代表一个新的JavaScript环境，这些环境将在同一个源上可用。从技术上讲，您可以在两个窗口中重复使用同一个HTML文件，但我们希望非常明确地指出，状态不会与HTML文件或*red*/*blue*
+    JavaScript文件相关联。
+- en: Next, you’re ready to create the first JavaScript file loaded directly by an
+    HTML file. Create a file containing the content in [Example 2-6](#ex_sw_red_js).
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，您准备好创建第一个JavaScript文件，直接由HTML文件加载。创建一个包含[示例 2-6](#ex_sw_red_js)内容的文件。
+- en: Example 2-6\. *ch2-shared-workers/red.js*
+  id: totrans-98
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-6\. *ch2-shared-workers/red.js*
+- en: '[PRE8]'
+  id: totrans-99
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '[![1](Images/1.png)](#co_browsers_CO2-1)'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO2-1)'
+- en: Instantiate the shared worker
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实例化共享工作者。
+- en: '[![2](Images/2.png)](#co_browsers_CO2-2)'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO2-2)'
+- en: Note the `worker.port` property for communications
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意通信的`worker.port`属性。
+- en: This JavaScript file is rather basic. What it does is instantiate a shared worker
+    instance by calling `new SharedWorker()`. After that it adds a handler for message
+    events that are emitted from the shared worker. When a message is received, it
+    is simply printed to the console.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个JavaScript文件相当基础。它的作用是通过调用`new SharedWorker()`来实例化一个共享工作者实例。然后，它添加了一个处理来自共享工作者发出的消息事件的处理程序。当接收到消息时，它简单地将其打印到控制台上。
+- en: Unlike with `Worker` instances, where you called `.onmessage` directly, with
+    `SharedWorker` instances you’ll make use of the `.port` property.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与调用`.onmessage`直接与`Worker`实例不同，您将利用`.port`属性与`SharedWorker`实例进行通信。
+- en: Next, copy and paste the *red.js* file that you created in [Example 2-6](#ex_sw_red_js)
+    and name it *blue.js*. Update the `console.log()` call to print *blue.js*; otherwise,
+    the content will remain the same.
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，复制粘贴您在[示例 2-6](#ex_sw_red_js)中创建的*red.js*文件，并将其命名为*blue.js*。更新`console.log()`调用以打印*blue.js*；否则，内容将保持不变。
+- en: Finally, create a *shared-worker.js* file, containing the content in [Example 2-7](#ex_sw_worker_js).
+    This is where most of the magic will happen.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，创建一个*shared-worker.js*文件，其中包含[示例 2-7](#ex_sw_worker_js)中的内容。这是大部分魔法发生的地方。
+- en: Example 2-7\. *ch2-shared-workers/shared-worker.js*
+  id: totrans-108
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-7\. *ch2-shared-workers/shared-worker.js*
+- en: '[PRE9]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '[![1](Images/1.png)](#co_browsers_CO3-1)'
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO3-1)'
+- en: Random ID for debugging
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用于调试的随机ID。
+- en: '[![2](Images/2.png)](#co_browsers_CO3-2)'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO3-2)'
+- en: Singleton list of ports
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 端口的单例列表。
+- en: '[![3](Images/3.png)](#co_browsers_CO3-3)'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO3-3)'
+- en: Connection event handler
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 连接事件处理程序。
+- en: '[![4](Images/4.png)](#co_browsers_CO3-4)'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_browsers_CO3-4)'
+- en: Callback when a new message is received
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 收到新消息时的回调。
+- en: '[![5](Images/5.png)](#co_browsers_CO3-5)'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](Images/5.png)](#co_browsers_CO3-5)'
+- en: Messages are dispatched to each window
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 消息被分派到每个窗口。
+- en: The first thing that happens in this file is that a random ID value is generated.
+    This value is printed in the console and later passed to the calling JavaScript
+    environments. It’s not particularly useful with a real application, but it does
+    a great job proving that state is retained, and when state is lost, when dealing
+    with this shared worker.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件中的第一件事是生成一个随机的ID值。这个值被打印在控制台上，稍后传递给调用JavaScript环境。在实际应用中，这并不特别有用，但它很好地证明了状态的保留和处理共享工作者时状态的丢失。
+- en: Next, a singleton `Set` named `ports` is created.^([1](ch02.xhtml#idm45995925449224))
+    This will contain a list of all of the ports that are made available to the worker.
+    Both the `worker.port` available in the window and the `port` provided in a service
+    worker are an instance of the `MessagePort` class.
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为`ports`的单例`Set`。^([1](ch02.xhtml#idm45995925449224)) 这将包含所有向工作者提供的端口的列表。窗口中可用的`worker.port`和服务工作者中提供的`port`都是`MessagePort`类的实例。
+- en: The final thing that happens in the outer scope of this shared worker file is
+    that a listener for the `connect` event is established. This function is called
+    every time a JavaScript environment creates a `SharedWorker` instance that references
+    this shared worker. When this listener is called, an instance of `MessageEvent`
+    is provided as the argument.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终发生在这个共享工作者文件的外部作用域的事情是建立了一个`connect`事件的监听器。每当JavaScript环境创建一个引用这个共享工作者的`SharedWorker`实例时，就会调用这个函数。当这个监听器被调用时，会传入一个`MessageEvent`实例作为参数。
+- en: There are several properties available on the `connect` event, but the most
+    important one is the `ports` property. This property is an array that contains
+    a single element which is a reference to the `MessagePort` instance that allows
+    communication with the calling JavaScript environment. This particular port is
+    then added to the `ports` set.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`connect`事件有几个可用的属性，但最重要的是`ports`属性。这个属性是一个包含一个元素的数组，这个元素是一个引用了允许与调用JavaScript环境通信的`MessagePort`实例。这个特定的端口然后被添加到`ports`集合中。'
+- en: An event listener for the `message` event is also attached to the port. Much
+    like the `onmessage` method you used previously with the `Worker` instance, this
+    method is called when one of the external JavaScript environments calls the applicable
+    `.postMessage()` method. When a message is received, the code prints the ID value
+    and the data that was received.
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也会为端口附加一个`message`事件的事件监听器。就像你之前在`Worker`实例中使用的`onmessage`方法一样，当外部JavaScript环境之一调用适用的`.postMessage()`方法时，会调用这个方法。当接收到消息时，代码会打印出ID值和接收到的数据。
+- en: The event listener also dispatches the message back to the calling environments.
+    It does this by iterating the `ports` set, calling the `.postMessage()` method
+    for each of the encountered ports. Since this method only takes a single argument,
+    an array is passed in to sort of emulate multiple arguments. The first element
+    of this array is the ID value again, and the second is the data that was passed
+    in.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 事件监听器还会将消息分发回调用环境。它通过迭代`ports`集合来实现这一点，对遇到的每个端口调用`.postMessage()`方法。由于这个方法只接受一个参数，因此传入一个数组以模拟多个参数。这个数组的第一个元素再次是ID值，第二个元素是传入的数据。
+- en: If you’ve worked with WebSockets using Node.js before, then this code pattern
+    might feel familiar. With most popular WebSockets packages, an event is triggered
+    when a connection is made, and the connection argument can then have a message
+    listener attached to it.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你之前使用过Node.js来处理WebSocket，那么这种代码模式可能会感觉很熟悉。在大多数流行的WebSocket包中，当建立连接时会触发一个事件，然后可以给连接参数附加一个消息监听器。
+- en: 'At this point you’re ready to test your application again. First, run the following
+    command inside your *ch2-shared-workers/* directory, and then copy and paste the
+    URL that is displayed:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，你已经准备好再次测试你的应用程序了。首先，在你的*ch2-shared-workers/*目录下运行以下命令，然后复制粘贴显示的URL：
+- en: '[PRE10]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Again, in our case, we’re given the URL *http://localhost:5000*. This time,
+    though, instead of opening the URL directly, you’ll want to first open the web
+    inspector in your browser and then open a modified version of the URL.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次，在我们的情况下，我们得到的URL是*http://localhost:5000*。不过这次，你不会直接打开这个URL，而是首先打开浏览器中的Web检查器，然后打开修改过的URL版本。
+- en: 'Switch to your browser and open a new tab. It’s fine if this opens your home
+    page, a blank tab, or whatever your default page is. Then, open the web inspector
+    again and navigate to the console tab. Once that’s done, paste the URL that was
+    given to you, but modify it to open the */red.html* page. The URL that you enter
+    might look something like this:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 切换到你的浏览器并打开一个新标签页。如果这会打开你的主页、空白标签页或者你的默认页面，都没关系。然后再次打开Web检查器并导航到控制台选项卡。完成这些操作后，粘贴给你的URL，但修改它以打开*/red.html*页面。你输入的URL可能看起来像这样：
+- en: '[PRE11]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: Press Enter to open the page. The `serve` package will probably redirect your
+    browser from */red.html* to */red*, but that’s fine.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按Enter键打开页面。`serve`包可能会将你的浏览器从*/red.html*重定向到*/red*，但这没关系。
+- en: Once the page has loaded, you should see the messages listed in [Table 2-2](#table_sw_output_1)
+    displayed in your console. If you open the inspector after loading the page, then
+    you probably won’t see any logs, though doing so then refreshing the page should
+    display the logs. Note that at the time of writing, only Firefox will display
+    messages generated in *shared-worker.js*.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 页面加载完成后，你应该会看到 [Table 2-2](#table_sw_output_1) 中列出的消息显示在你的控制台中。如果在加载页面后打开检查器，可能看不到任何日志，不过这样做后刷新页面应该可以显示日志。请注意，目前只有
+    Firefox 能显示 *shared-worker.js* 生成的消息。
+- en: Table 2-2\. First window console output
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Table 2-2\. 第一个窗口控制台输出
+- en: '| Log | Location |'
+  id: totrans-135
+  prefs: []
+  type: TYPE_TB
+  zh: '| 日志 | 位置 |'
+- en: '| --- | --- |'
+  id: totrans-136
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| red.js | red.js:1:9 |'
+  id: totrans-137
+  prefs: []
+  type: TYPE_TB
+  zh: '| red.js | red.js:1:9 |'
+- en: '| shared-worker.js 278794 | shared-worker.js:2:9 |'
+  id: totrans-138
+  prefs: []
+  type: TYPE_TB
+  zh: '| shared-worker.js 278794 | shared-worker.js:2:9 |'
+- en: '| CONN 278794 1 | shared-worker.js:9:11 |'
+  id: totrans-139
+  prefs: []
+  type: TYPE_TB
+  zh: '| CONN 278794 1 | shared-worker.js:9:11 |'
+- en: In our case we can see that the *red.js* file was executed, that this particular
+    *shared-worker.js* instance generated an ID of 278794, and that there is currently
+    a single window connected to this shared worker.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们的情况下，我们可以看到 *red.js* 文件已执行，此特定 *shared-worker.js* 实例生成了 ID 278794，并且当前只有一个窗口连接到该共享
+    Worker。
+- en: 'Next, open another browser window. Again, open the web inspector first, switch
+    to the Console tab, paste the base URL that was provided by the `serve` command,
+    and then add */blue.html* to the end of the URL. In our case the URL looks like
+    this:'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，打开另一个浏览器窗口。同样，先打开 Web 检查器，切换到控制台选项卡，粘贴由 `serve` 命令提供的基本 URL，然后在 URL 的末尾添加
+    */blue.html*。在我们的情况下，URL 看起来是这样的：
+- en: '[PRE12]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Press Enter to open the URL. Once the page loads, you should only see a single
+    message printed in the console output stating that the *blue.js* file was executed.
+    At this point it’s not too interesting. But switch back to the previous window
+    you had opened for the *red.html* page. You should see that the new log listed
+    in [Table 2-3](#table_sw_output_2) has been added.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按 Enter 键打开该网址。页面加载后，你应该只会在控制台输出中看到一条消息，说明 *blue.js* 文件已执行。此时还不太有趣。但是切换回你之前打开的
+    *red.html* 页面的窗口，你应该会看到 [Table 2-3](#table_sw_output_2) 中新增加的日志。
+- en: Table 2-3\. First window console output, continued
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Table 2-3\. 第一个窗口控制台输出，继续
+- en: '| Log | Location |'
+  id: totrans-145
+  prefs: []
+  type: TYPE_TB
+  zh: '| 日志 | 位置 |'
+- en: '| --- | --- |'
+  id: totrans-146
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- |'
+- en: '| CONN 278794 2 | shared-worker.js:9:11 |'
+  id: totrans-147
+  prefs: []
+  type: TYPE_TB
+  zh: '| CONN 278794 2 | shared-worker.js:9:11 |'
+- en: Now things are getting a little exciting. The shared worker environment now
+    has two references to a `MessagePort` instance pointing to two separate windows.
+    At the same time, two windows have references to `MessagePort` instances for the
+    same shared worker.
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在事情开始变得有些令人兴奋。共享 Worker 环境现在有两个指向两个独立窗口的 `MessagePort` 实例的引用。同时，两个窗口都有指向同一个共享
+    Worker 的 `MessagePort` 实例的引用。
+- en: 'Now you’re ready to send a message to the shared worker from one of the windows.
+    Switch focus to the console window and type in the following command:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已准备好从一个窗口向共享 Worker 发送消息了。切换到控制台窗口，并输入以下命令：
+- en: '[PRE13]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Press Enter to execute that line of JavaScript. You should see a message in
+    the first console that is generated in the shared worker, a message in the first
+    console from *red.js*, and a message in the second window’s console from *blue.js*.
+    In our case we see the outputs listed in [Table 2-4](#table_sw_output_3).
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 按 Enter 键执行该行 JavaScript。你应该会在第一个控制台中看到来自共享 Worker 的消息，来自 *red.js* 的第一个控制台消息，以及第二个窗口控制台中来自
+    *blue.js* 的消息。在我们的情况下，我们看到的输出列在 [Table 2-4](#table_sw_output_3) 中。
+- en: Table 2-4\. First and second window console output
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Table 2-4\. 第一个和第二个窗口控制台输出
+- en: '| Log | Location | Console |'
+  id: totrans-153
+  prefs: []
+  type: TYPE_TB
+  zh: '| 日志 | 位置 | 控制台 |'
+- en: '| --- | --- | --- |'
+  id: totrans-154
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| MESSAGE 278794 hello, world | shared-worker.js:12:13 | 1 |'
+  id: totrans-155
+  prefs: []
+  type: TYPE_TB
+  zh: '| MESSAGE 278794 你好，世界 | shared-worker.js:12:13 | 1 |'
+- en: '| EVENT Array [ 278794, “hello, world” ] | red.js:6:11 | 1 |'
+  id: totrans-156
+  prefs: []
+  type: TYPE_TB
+  zh: '| EVENT Array [ 278794, “你好，世界” ] | red.js:6:11 | 1 |'
+- en: '| EVENT Array [ 278794, “hello, world” ] | blue.js:6:11 | 2 |'
+  id: totrans-157
+  prefs: []
+  type: TYPE_TB
+  zh: '| EVENT Array [ 278794, “你好，世界” ] | blue.js:6:11 | 2 |'
+- en: At this point you’ve successfully sent a message from the JavaScript environment
+    available in one window to the JavaScript environment in a shared worker, and
+    then passed a message from the worker to two separate windows.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此时，你已成功地从一个窗口中的 JavaScript 环境发送了一条消息到共享 Worker 中的 JavaScript 环境，并且从 Worker
+    中传递了一条消息到两个单独的窗口。
+- en: Advanced Shared Worker Usage
+  id: totrans-159
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 高级共享 Worker 使用
+- en: Shared workers are governed by the same object cloning rules described in the
+    [Appendix](app01.xhtml#app_sca). Also, like their dedicated worker equivalent,
+    shared workers also have access to the `importScripts()` function for loading
+    external JavaScript files. As of Firefox v85/Chrome v87 you may find Firefox more
+    convenient to debug shared workers with due to the output of `console.log()` from
+    the shared worker being available.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 共享工作器遵循与附录中描述的相同对象克隆规则。而且，与专用工作器类似，共享工作器也可以使用`importScripts()`函数来加载外部JavaScript文件。截至Firefox
+    v85/Chrome v87版本，你可能会发现Firefox更方便调试共享工作器，因为共享工作器中的`console.log()`输出是可用的。
+- en: The shared worker instances do have access to a `connect` event, which can be
+    handled with the `self.onconnect()` method. Notably missing, especially if you’re
+    familiar with WebSockets, is a `disconnect` or `close` event.
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 共享工作器实例确实可以访问`connect`事件，可以使用`self.onconnect()`方法处理。值得注意的是，如果你熟悉WebSocket，可能会错过`disconnect`或`close`事件。
+- en: When it comes to creating a singleton collection of `port` instances, like in
+    the sample code in this section, it’s very easy to create a memory leak. In this
+    case, just keep refreshing one of the windows, and each refresh adds a new entry
+    to the set.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当涉及创建`port`实例的单例集合时，就像本节示例代码中的情况一样，很容易造成内存泄漏。在这种情况下，只需不断刷新其中一个窗口，每次刷新都会向集合添加一个新条目。
+- en: 'This is far from ideal. One thing you can do to address this is to add an event
+    listener in your main JavaScript environments (i.e., *red.js* and *blue.js*) that
+    fires when the page is being torn down. Have this event listener pass a special
+    message to the shared worker. Within the shared worker, when the message is received,
+    remove the port from the list of ports. Here’s an example of how to do this:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这远非理想。为了解决这个问题，你可以在主要的JavaScript环境（例如，*red.js* 和 *blue.js*）中添加事件监听器，当页面被卸载时触发。让这个事件监听器向共享工作器传递特殊消息。在共享工作器内部，当接收到消息时，将端口从端口列表中移除。以下是如何实现的示例：
+- en: '[PRE14]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Unfortunately, there are still situations where a port can stick around. If
+    the `beforeunload` event doesn’t fire, or if an error happens when it’s fired,
+    or if the page crashes in an unanticipated way, this can lead to expired port
+    references sticking around in the shared worker.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，仍然存在端口仍然保留的情况。如果`beforeunload`事件未触发，或者在触发时发生错误，或者页面以意外方式崩溃，这可能导致共享工作器中的过期端口引用保留。
+- en: A more robust system would also need a way for the shared worker to occasionally
+    “ping” the calling environments, sending a special message via `port.postMessage()`,
+    and have the calling environments reply. With such an approach the shared worker
+    can delete port instances if it doesn’t receive a reply within a certain amount
+    of time. But even this approach isn’t perfect, as a slow JavaScript environment
+    can lead to long response times. Luckily, interacting with ports that no longer
+    have a valid JavaScript associated with them doesn’t have much of a side effect.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 更健壮的系统还需要共享工作器定期“ping”调用环境，通过`port.postMessage()`发送特殊消息，并让调用环境回复。通过这种方法，如果在一定时间内未收到回复，共享工作器可以删除端口实例。但即使是这种方法也不完美，因为慢速的JavaScript环境可能导致长时间的响应时间。幸运的是，与不再具有有效JavaScript关联的端口交互没有太多副作用。
+- en: 'The full constructor for the `SharedWorker` class looks like this:'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`SharedWorker`类的完整构造函数如下所示：'
+- en: '[PRE15]'
+  id: totrans-168
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: The signature is slightly different than when instantiating a `Worker` instance,
+    notably that the second argument can either be an options object, or the name
+    of the worker. Much like with a `Worker` instance, the name of the worker is available
+    inside the worker as `self.name`.
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 签名与实例化`Worker`实例时略有不同，特别是第二个参数可以是一个选项对象，也可以是工作器的名称。与`Worker`实例类似，工作器的名称在工作器内部作为`self.name`可用。
+- en: At this point you may be wondering how that works. For example, could the shared
+    worker be declared in *red.js* with a name of “red worker” and in *blue.js* with
+    a name of “blue worker”? In this case, two *separate* workers will be created,
+    each with a different global environment, a different ID value, and the appropriate
+    `self.name`.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时你可能想知道它是如何工作的。例如，可以在*red.js*中声明共享工作器，命名为“红色工作器”，在*blue.js*中命名为“蓝色工作器”？在这种情况下，将创建两个*独立*的工作器，每个都有不同的全局环境、不同的ID值和适当的`self.name`。
+- en: You can think of these shared worker instances as being “keyed” by not only
+    their URL but also their name. This may be why the signature changes between a
+    `Worker` and a `SharedWorker`, as the name is much more important for the latter.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你可以将这些共享的工作实例视为不仅仅由它们的 URL，还由它们的名称“键控”的。这可能是为什么在 `Worker` 和 `SharedWorker` 之间签名变化如此大的原因。
+- en: Other than the ability to replace the options argument with a string name, the
+    options argument for a `SharedWorker` is exactly the same as it is for a `Worker`.
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了能够用字符串名称替换选项参数之外，`SharedWorker` 的选项参数与 `Worker` 完全相同。
+- en: In this example, you’ve only created a single `SharedWorker` instance per window,
+    assigned to `worker`, but there is nothing stopping you from creating multiple
+    instances. In fact, you can even create multiple shared workers that point to
+    the same instance, assuming the URLs and names match. When this happens, both
+    of the `SharedWorker` instances’ `.port` properties are able to receive messages.
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，你只创建了一个 `SharedWorker` 实例并分配给 `worker`，但是并没有阻止你创建多个实例。事实上，你甚至可以创建多个指向同一实例的共享工作者，只要
+    URL 和名称匹配。当发生这种情况时，两个 `SharedWorker` 实例的 `.port` 属性都能接收消息。
+- en: These `SharedWorker` instances are definitely capable of maintaining state between
+    page loads. You’ve been doing just that, with the `ID` variable holding a unique
+    number and `ports` containing a list of ports. This state even persists through
+    refreshes as long as one window remains open, like if you were to refresh the
+    *blue.html* page followed by the *red.html* page. However, that state would be
+    lost if both pages were refreshed simultaneously, one closed and the other refreshed,
+    or if both were closed. In the next section you’ll work with a technology that
+    can continue to maintain state—and run code—even when connected windows are closed.
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些 `SharedWorker` 实例确实能够在页面加载之间保持状态。你已经这样做了，`ID` 变量保存了一个唯一的数字，`ports` 包含了一个端口列表。即使通过刷新，只要一个窗口保持打开，这种状态也会持续存在，就像你先刷新
+    *blue.html* 页面，然后再刷新 *red.html* 页面一样。但是，如果同时刷新两个页面，关闭一个并刷新另一个，或者两个页面都关闭，这种状态将会丢失。在下一节中，你将使用一种技术，即使连接的窗口关闭，也能继续保持状态和运行代码。
+- en: Service Workers
+  id: totrans-175
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Service Workers
+- en: A *service worker* functions as a sort of proxy that sits between one or more
+    web pages running in the browser and the server. Because a service worker isn’t
+    associated with just a single web page but potentially multiple pages, it’s more
+    similar to a shared worker than to a dedicated worker. They’re even “keyed” in
+    the same manner as shared workers. But a service worker can exist and run in the
+    background even when a page isn’t necessarily still open. Because of this you
+    can think of a dedicated worker as being associated with one page, a shared worker
+    as being associated with one or more pages, but a service worker as being associated
+    with zero or more pages. But a shared worker doesn’t magically spawn into existence.
+    Instead, it does require a web page to be opened first to install the shared worker.
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*Service worker* 作为一种类似代理的功能存在于运行在浏览器中的一个或多个网页和服务器之间。因为一个服务工作者不仅与单个网页关联，而是可能与多个页面相关，它更类似于共享工作者而不是专用工作者。它们甚至以与共享工作者相同的方式“键控”。但是，服务工作者可以存在并在后台运行，即使页面并不一定还在打开状态。因此，你可以将专用工作者视为与一个页面关联，将共享工作者视为与一个或多个页面关联，但将服务工作者视为与零个或多个页面关联。但共享工作者并不会奇迹般地自动生成。相反，它确实需要首先打开一个网页来安装共享工作者。'
+- en: Service workers are primarily intended for performing cache management of a
+    website or a single page application. They are most commonly invoked when network
+    requests are sent to the server, wherein an event handler inside the service worker
+    intercepts the network request. The service worker’s claim to fame is that it
+    can be used to return cached assets when a browser displays a web page but the
+    computer it’s running on no longer has network access. When the service worker
+    receives the request, it may consult a cache to find a cached resource, make a
+    request to the server to retrieve some semblance of the resource, or even perform
+    a heavy computation and return the result. While this last option makes it similar
+    to the other web workers you’ve looked at, you really shouldn’t use service workers
+    just for the purpose of offloading CPU-intensive work to another thread.
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作者主要用于执行网站或单页面应用程序的缓存管理。 当网络请求发送到服务器时，它们最常被调用，其中服务工作者内的事件处理程序拦截网络请求。 服务工作者的闻名之处在于，当浏览器显示网页但运行它的计算机无法访问网络时，它可以用于返回缓存的资产。
+    当服务工作者接收到请求时，它可能会查询缓存以找到缓存的资源，向服务器发出请求以检索资源的某种形式，甚至执行重型计算并返回结果。 尽管最后一种选项使其类似于您查看过的其他网络工作者，但您确实不应仅仅为了将
+    CPU 密集型工作转移到另一个线程而使用服务工作者。
+- en: Service workers expose a larger API than that of the other web workers, though
+    their primary use case is not for offloading heavy computation from the main thread.
+    Service workers are certainly complex enough to have entire books dedicated to
+    them. That said, because the primary goal of this book is to teach you about the
+    multithreaded capabilities of JavaScript, we won’t cover them in their entirety.
+    For example, there’s an entire Push API available for receiving messages pushed
+    to the browser from the server that won’t be covered at all.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service workers 暴露的 API 比其他网络工作者更多，尽管它们的主要用例不是为了从主线程卸载重型计算。 Service workers
+    绝对足够复杂，以至于有专门讲述它们的整本书籍。 话虽如此，因为本书的主要目标是教你关于 JavaScript 多线程能力的知识，我们不会完全覆盖它们。 例如，有一个完整的
+    Push API 可用于接收从服务器推送到浏览器的消息，但这完全不会被覆盖。
+- en: Much like with the other web workers, a service worker can’t access the DOM.
+    They also can’t make blocking requests. For example, setting the third argument
+    of `XMLHttpRequest#open()` to `false`, which would block code execution until
+    the request succeeds or times out, is not allowed. Browsers will only allow service
+    workers to run on a web page that has been served using the HTTPS protocol. Luckily
+    for us, there is one notable exception, where `localhost` may load service workers
+    using HTTP. This is to make local development easier. Firefox doesn’t allow service
+    workers when using its Private Browsing feature. Chrome, however, does allow service
+    workers when using its Incognito feature. That said, a service worker instance
+    can’t communicate between a normal and Incognito window.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与其他网络工作者类似，服务工作者无法访问 DOM。 它们也不能发出阻塞请求。 例如，将 `XMLHttpRequest#open()` 的第三个参数设置为
+    `false`，这将阻止代码执行直到请求成功或超时，是不允许的。 浏览器只允许在使用 HTTPS 协议提供的网页上运行服务工作者。 幸运的是，对我们来说有一个显著的例外，即
+    `localhost` 可以使用 HTTP 加载服务工作者，这样可以简化本地开发。 Firefox 在使用其私密浏览功能时不允许服务工作者。 然而，Chrome
+    在使用其隐身功能时允许服务工作者。 也就是说，服务工作者实例无法在普通窗口和隐身窗口之间通信。
+- en: 'Both Firefox and Chrome have an Applications panel in the inspector that contains
+    a Service Workers section. You can use this to both view any service workers associated
+    with the current page and to also perform a very important development action:
+    unregister them, which basically allows you to reset the browser state to before
+    the worker was registered. Unfortunately, as of the current browser versions,
+    these browser panels don’t provide a way to hop into the JavaScript inspectors
+    for the service workers.'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Firefox 和 Chrome 的检查器中都有一个包含 Service Workers 部分的应用程序面板。 您可以使用此功能查看与当前页面关联的任何服务工作者，并执行一个非常重要的开发操作：取消注册它们，这基本上允许您将浏览器状态重置到注册工作者之前的状态。
+    不幸的是，到目前为止的浏览器版本，这些浏览器面板并不提供进入服务工作者的 JavaScript 检查器的方式。
+- en: Now that you’re aware of some of the gotchas with service workers, you’re ready
+    to build one out.
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经了解了一些服务工作者的要点，您可以准备好开始构建一个了。
+- en: Service Worker Hello World
+  id: totrans-182
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 服务工作者 Hello World
+- en: In this section you’re going to build a very basic service worker that intercepts
+    all HTTP requests sent from a basic web page. Most of the requests will pass through
+    to the server unaltered. However, requests made to a specific resource will instead
+    return a value that is calculated by the service worker itself. Most service workers
+    would instead do a lot of cache lookups, but again, the goal is to show off service
+    workers from a multithreaded point of view.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，您将构建一个非常基本的服务工作者，该工作者拦截从基本网页发送的所有HTTP请求。大多数请求将不经过修改地传递到服务器。但是，对特定资源的请求将返回由服务工作者自身计算的值。大多数服务工作者将进行大量的缓存查找，但是再次强调，目标是展示多线程角度的服务工作者。
+- en: The first file you’ll need is again an HTML file. Make a new directory named
+    *ch2-service-workers/*. Then, inside this directory, create a file with the content
+    from [Example 2-8](#ex_service_workers_index).
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你将再次需要的第一个文件是HTML文件。创建一个名为*ch2-service-workers/*的新目录。然后，在这个目录中，创建一个文件，其内容来自[示例 2-8](#ex_service_workers_index)。
+- en: Example 2-8\. *ch2-service-workers/index.html*
+  id: totrans-185
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-8\. *ch2-service-workers/index.html*
+- en: '[PRE16]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: This is a rather basic file that just loads your application’s JavaScript file,
+    which comes next. Create a file named *main.js*, and add the content from [Example 2-9](#ex_service_workers_main)
+    to it.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个非常基本的文件，只是加载应用程序的JavaScript文件，接下来是它。创建一个名为*main.js*的文件，并将内容添加到[示例 2-9](#ex_service_workers_main)中。
+- en: Example 2-9\. *ch2-service-workers/main.js*
+  id: totrans-188
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-9\. *ch2-service-workers/main.js*
+- en: '[PRE17]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: '[![1](Images/1.png)](#co_browsers_CO4-1)'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO4-1)'
+- en: Registers service worker and defines scope.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注册服务工作者并定义范围。
+- en: '[![2](Images/2.png)](#co_browsers_CO4-2)'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO4-2)'
+- en: Listens for a `controllerchange` event.
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 监听`controllerchange`事件。
+- en: '[![3](Images/3.png)](#co_browsers_CO4-3)'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO4-3)'
+- en: Function to initiate request.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 初始化请求的功能。
+- en: Now things are starting to get a little interesting. The first thing going on
+    in this file is that the service worker is created. Unlike the other web workers
+    you worked with, you aren’t using the `new` keyword with a constructor. Instead,
+    this code depends on the `navigator.serviceWorker` object to create the worker.
+    The first argument is the path to the JavaScript file that acts as the service
+    worker. The second argument is an optional configuration object that supports
+    a single `scope` property.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在事情开始变得有趣起来了。在这个文件中，首先创建了服务工作者。与你之前接触的其他网络工作者不同，你没有使用构造函数的`new`关键字。相反，这段代码依赖于`navigator.serviceWorker`对象来创建工作者。第一个参数是作为服务工作者的JavaScript文件的路径。第二个参数是一个可选的配置对象，支持一个名为`scope`的属性。
+- en: The `scope` represents the directory for the current origin wherein any HTML
+    pages that are loaded in it will have their requests passed through the service
+    worker. By default, the `scope` value is the same as the directory that the service
+    worker is loaded from. In this case, the */* value is relative to the *index.html*
+    directory, and because *sw.js* is located in the same directory, we could have
+    omitted the scope and it would behave exactly the same.
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`scope`表示当前起源目录的目录，在其中加载的任何HTML页面都将通过服务工作者的请求传递。默认情况下，`scope`值与加载服务工作者的目录相同。在这种情况下，*/
+    *值相对于* index.html *目录，并且因为* sw.js *位于相同目录中，我们可以省略范围，并且它将表现得完全相同。'
+- en: Once the service worker has been installed for the page, all outbound HTTP requests
+    will get sent through the service worker. This includes requests made to different
+    origins. Since the scope for this page is set to the uppermost directory of the
+    origin, any HTML page that is opened in this origin will then have to make requests
+    through the service worker for assets. If the `scope` had been set to */foo*,
+    then a page opened at */bar.html* will be unaffected by the service worker, but
+    a page at */foo/baz.html* would be affected.
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦服务工作者已安装到页面上，所有外发的HTTP请求都将通过服务工作者发送。这包括发送到不同源的请求。由于此页面的范围设置为起始目录，此起源中打开的任何HTML页面都必须通过服务工作者来获取资源。如果`scope`设置为*/foo*，那么在*/bar.html*打开的页面将不受服务工作者的影响，但在*/foo/baz.html*打开的页面将受到影响。
+- en: The next thing that happens is that a listener for the `controllerchange` event
+    is added to the `navigator.serviceWorker` object. When this listener fires, a
+    message is printed to the console. This message is just for debugging when a service
+    worker takes control of a page that has been loaded and which is within the scope
+    of the worker.
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来发生的事情是将一个监听器添加到`navigator.serviceWorker`对象的`controllerchange`事件上。当此监听器触发时，将在控制台打印一条消息。这条消息仅用于调试，用于当服务工作者控制已加载的页面并且该页面在工作者的范围内时。
+- en: Finally, a function named `makeRequest()` is defined. This function makes a
+    `GET` request to the */data.json* path, decodes the response as JavaScript Object
+    Notation (JSON), and prints the result. As you might have noticed, there aren’t
+    any references to that function. Instead, you’ll manually run it in the console
+    later to test the functionality.
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，定义了一个名为`makeRequest()`的函数。此函数向*/data.json*路径发出`GET`请求，将响应解码为 JavaScript 对象表示法（JSON），并打印结果。正如你可能已经注意到的，这个函数没有任何引用。相反，稍后您将手动在控制台中运行它以测试功能性。
+- en: With that file out of the way, you’re now ready to create the service worker
+    itself. Create a third file named *sw.js*, and add the content from [Example 2-10](#ex_service_workers_sw)
+    to it.
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这个文件，现在你可以准备创建服务工作者本身了。创建第三个名为*sw.js*的文件，并将[Example 2-10](#ex_service_workers_sw)中的内容添加到其中。
+- en: Example 2-10\. *ch2-service-workers/sw.js*
+  id: totrans-202
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-10\. *ch2-service-workers/sw.js*
+- en: '[PRE18]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '[![1](Images/1.png)](#co_browsers_CO5-1)'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO5-1)'
+- en: Allows service worker to claim the opened *index.html* page.
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 允许服务工作者声明已打开的*index.html*页面。
+- en: '[![2](Images/2.png)](#co_browsers_CO5-2)'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO5-2)'
+- en: Override for when */data.json* is requested.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重写了对*/data.json*请求的处理。
+- en: '[![3](Images/3.png)](#co_browsers_CO5-3)'
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO5-3)'
+- en: Other URLs will fall back to a normal network request.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其他的 URL 将回退到正常的网络请求。
+- en: The first thing that happens in this file is that a global variable `counter`
+    is initialized to zero. Later, when certain types of requests are intercepted,
+    that number will increment. This is just an example to prove that the service
+    worker is running; in a real application you should never store state that’s meant
+    to be persistent in this way. In fact, expect any service workers to start and
+    stop fairly frequently, in a manner that’s hard to predict and that differs depending
+    on browser implementation.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个文件中发生的第一件事是将一个全局变量`counter`初始化为零。稍后，当拦截某些类型的请求时，该数字将增加。这只是一个示例，证明服务工作者正在运行；在真实的应用程序中，您永远不应该以这种方式存储旨在持久存在的状态。事实上，预期任何服务工作者会以难以预测且因浏览器实现而异的方式频繁启动和停止。
+- en: After that, we create a handler for the `install` event by assigning a function
+    to `self.oninstall`. This function runs when this version of the service worker
+    is installed for the very first time in the browser. Most real-world applications
+    will perform instantiation work at this stage. For example, there’s an object
+    available at `self.caches` which can be used to configure caches that store the
+    result of network requests. However, because this basic application doesn’t have
+    much to do in the way of instantiation, it just prints a message and finishes.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后，我们通过将函数分配给`self.oninstall`来创建`install`事件的处理程序。当这个版本的服务工作者在浏览器中第一次安装时，此函数将运行。大多数实际应用程序将在此阶段执行实例化工作。例如，`self.caches`中有一个可用于配置存储网络请求结果的缓存的对象。但是，由于这个基本应用程序在实例化方面没有太多要做的事情，它只是打印一条消息并完成。
+- en: Next up is a function for handling the `activate` event. This event is useful
+    for performing cleanup work when new versions of the service worker are introduced.
+    With a real-world application, it’s probably going to do work like tearing down
+    old versions of caches.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来是处理`activate`事件的函数。当引入服务工作者的新版本时，此事件非常有用，用于执行清理工作。对于真实世界的应用程序，它可能会执行类似于拆除旧缓存版本的工作。
+- en: In this case, the `activate` handler function is making a call to the `self.clients.claim()`
+    method. Calling this allows the page instance that first created the service worker,
+    that is, the *index.html* page you’ll open for the first time, to then get controlled
+    by the service worker. If you didn’t have this line, the page wouldn’t be controlled
+    by the service worker when first loaded. However, refreshing the page or opening
+    *index.html* in another tab would then allow that page to be controlled.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`activate` 处理程序函数正在调用 `self.clients.claim()` 方法。调用这个方法允许最初创建 service
+    worker 的页面实例（即首次打开的 *index.html* 页面）受 service worker 控制。如果没有这行代码，第一次加载页面时页面将不受
+    service worker 控制。然而，刷新页面或在另一个标签中打开 *index.html* 将允许该页面受到控制。
+- en: The call to `self.clients.claim()` returns a promise. Sadly, event handler functions
+    used in service workers are not async functions able to `await` promises. However,
+    the `event` argument is an object with a `.waitUntil()` method, which does work
+    with a promise. Once the promise provided to that method resolves, it will allow
+    the `oninstall` and `onactivate` (and later `onfetch`) handlers to finish. By
+    not calling that method, like in the `oninstall` handler, the step is considered
+    finished once the function exits.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调用 `self.clients.claim()` 的返回一个 promise。遗憾的是，在 service worker 中使用的事件处理函数不是异步函数，无法
+    `await` promise。然而，`event` 参数是一个带有 `.waitUntil()` 方法的对象，它可以与 promise 一起使用。一旦提供给该方法的
+    promise 解析完成，它将允许 `oninstall` 和 `onactivate`（以及后来的 `onfetch`）处理程序完成。如果不调用该方法，就像在
+    `oninstall` 处理程序中一样，一旦函数退出，这一步被认为已经完成。
+- en: The last event handler is the `onfetch` function. This one is the most complex
+    and also the one that will be called the most throughout the lifetime of the service
+    worker. This handler is called every time a network request is made by a web page
+    under control of the service worker. It’s called `onfetch` to signal that it correlates
+    to the `fetch()` function in the browser, though it’s almost a misnomer because
+    any network request will be passed through it. For example, if an image tag is
+    later added to the page, the request would also trigger `onfetch`.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后一个事件处理程序是 `onfetch` 函数。这是最复杂的处理程序，也是 service worker 生命周期中被调用最频繁的一个。每当由 service
+    worker 控制的网页进行网络请求时，都会调用该处理程序。它被称为 `onfetch` 是为了表明它与浏览器中的 `fetch()` 函数相关，尽管这几乎是一个误称，因为任何网络请求都将通过它。例如，如果稍后向页面添加图像标签，则该请求也会触发
+    `onfetch`。
+- en: This function first logs a message to confirm that it’s being run and also printing
+    the URL that is being requested. Other information about the requested resource
+    is also available, such as headers and the HTTP method. In a real-world application
+    this information can be used to consult with a cache to see if the resource already
+    exists. For example, a `GET` request to a resource within the current origin could
+    be served from the cache, but if it doesn’t exist, it could be requested using
+    the `fetch()` function, then inserted into the cache, then returned to the browser.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个函数首先记录一条消息以确认它正在运行，并打印正在请求的 URL。还可以获取有关请求资源的其他信息，例如标头和 HTTP 方法。在实际应用程序中，这些信息可以用于与缓存进行查询，看看资源是否已经存在。例如，可以从缓存中提供当前源内资源的
+    `GET` 请求，但如果不存在，可以使用 `fetch()` 函数请求，然后将其插入到缓存中，最后返回给浏览器。
+- en: This basic example just takes the URL and checks to see if it’s for a URL that
+    ends in */data.json*. If it is not, the `if` statement body is skipped, and the
+    final line of the function is called. This line just takes the request object
+    (which is an instance of `Request`), passes it to the `fetch()` method, which
+    returns a promise, and passes that promise to `event.respondWith()`. The `fetch()`
+    method will resolve an object that will then be used to represent the response,
+    which is then provided to the browser. This is essentially a very basic HTTP proxy.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个基本示例只是获取 URL 并检查它是否为以 */data.json* 结尾的 URL。如果不是，将跳过 `if` 语句体，并调用函数的最后一行。这行代码只是将请求对象（即
+    `Request` 的一个实例）传递给 `fetch()` 方法，该方法返回一个 promise，并将该 promise 传递给 `event.respondWith()`。`fetch()`
+    方法将解析一个对象，该对象将用于表示响应，并提供给浏览器。这本质上是一个非常基本的 HTTP 代理。
+- en: However, circling back to the */data.json* URL check, if it does pass, then
+    something more complicated happens. In that case the `counter` variable is incremented,
+    and a new response is generated from scratch (which is an instance of `Response`).
+    In this case, a JSON string is constructed that contains the `counter` value.
+    This is provided as the first argument to `Response`, which represents the response
+    body. The second argument contains meta information about the response. In this
+    case the `Content-Type` header is set to `application/json`, which suggests to
+    the browser that the response is a JSON payload.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，回到*/data.json* URL检查，如果通过了，那么会发生更复杂的情况。在这种情况下，`counter`变量递增，并且从头开始生成新的响应（这是`Response`的一个实例）。在这种情况下，构造了包含`counter`值的JSON字符串。这作为`Response`的第一个参数提供，表示响应主体。第二个参数包含有关响应的元信息。在这种情况下，`Content-Type`头部设置为`application/json`，这表明响应是JSON负载。
+- en: 'Now that your files have been created, navigate to the directory where you
+    created them using your console and run the following command to start another
+    web server:'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您的文件已经创建，请使用控制台导航到创建它们的目录，并运行以下命令以启动另一个Web服务器：
+- en: '[PRE19]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Again, copy the URL that was provided, open a new web browser window, open
+    the inspector, then paste the URL to visit the page. You should see this message
+    printed in your console (and possibly others):'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，复制提供的网址，在新的网页浏览器窗口中打开检查器，然后粘贴网址以访问页面。您应该在控制台中看到此消息打印出来（可能还有其他消息）：
+- en: '[PRE20]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'Next, browse to the list of service workers installed in your browser using
+    the aforementioned technique. Within the inspector, you should see the previously
+    logged messages; specifically you should see these two:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，使用上述技术浏览到您的浏览器中安装的服务工作者列表。在检查器中，您应该看到先前记录的消息；具体来说，您应该看到以下两条消息：
+- en: '[PRE21]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'Next, switch back to the browser window. While in the Console tab of the inspector,
+    run the following line of code:'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，切换回浏览器窗口。在检查器的控制台选项卡中，运行以下代码行：
+- en: '[PRE22]'
+  id: totrans-226
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'This runs the `makeRequest()` function, which triggers an HTTP `GET` request
+    to */data.json* of the current origin. Once it completes, you should see the message
+    `Object { counter: 1 }` displayed in your console. That message was generated
+    using the service worker, and the request was never sent to the web server. If
+    you switch to the network tab of the inspector, you should see what looks like
+    an otherwise normal request to get the resource. If you click the request, you
+    should see that it replied with a 200 status code, and the `Content-Type` header
+    should be set to `application/json` as well. As far as the web page is concerned,
+    it did make a normal HTTP request. But you know better.'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这将运行`makeRequest()`函数，该函数触发当前起源的HTTP `GET`请求到*/data.json*。完成后，您应该在控制台中看到消息`Object
+    { counter: 1 }`显示出来。该消息是使用服务工作者生成的，并且该请求从未发送到Web服务器。如果您切换到检查器的网络选项卡，您应该看到看似正常的请求以获取资源。如果您单击请求，您应该看到它以200状态代码回复，并且`Content-Type`头部应设置为`application/json`。就网页而言，它确实执行了一个正常的HTTP请求。但您知道更多。'
+- en: 'Switch back to the service worker inspector console. In here, you should see
+    that a third message has been printed containing the details of the request. On
+    our machine we get the following:'
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 切换回服务工作者检查器控制台。在这里，您应该看到已打印出包含请求详细信息的第三条消息。在我们的机器上，我们得到以下内容：
+- en: '[PRE23]'
+  id: totrans-229
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: At this point you’ve successfully intercepted an HTTP request from one JavaScript
+    environment, performed some computation in another environment, and returned the
+    result back to the main environment. Much like with the other web workers, this
+    calculation was done in a separate thread, running code in parallel. Had the service
+    worker done some very heavy and slow calculations, the web page would have been
+    free to perform other actions while it waited for the response.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，您已成功拦截了来自一个JavaScript环境的HTTP请求，在另一个环境中执行了一些计算，并将结果返回到主环境。就像其他网络工作者一样，此计算是在单独的线程中完成的，可以并行运行代码。如果服务工作者进行了一些非常耗时和缓慢的计算，那么在等待响应时，网页将可以执行其他操作。
+- en: Tip
+  id: totrans-231
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: In your first browser window, you might have noticed an error that an attempt
+    to download the *favicon.ico* file was made but failed. You might also be wondering
+    why the shared worker console doesn’t mention this file. That’s because, at the
+    point when the window was first opened, it wasn’t yet under control of the service
+    worker, so the request was made directly over the network, bypassing the worker.
+    Debugging service workers can be confusing, and this is one of the caveats to
+    keep in mind.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在您的第一个浏览器窗口中，您可能注意到尝试下载*favicon.ico*文件但失败的错误。您可能还想知道为什么共享工作者控制台没有提到此文件。这是因为在窗口首次打开时，它尚未受到服务工作者的控制，因此请求直接通过网络进行，绕过了工作者。调试服务工作者可能会令人困惑，这是需要记住的一个注意事项之一。
+- en: Now that you’ve built a working service worker, you’re ready to learn about
+    some of the more advanced features they have to offer.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经建立了一个可工作的服务工作者，可以学习一些更高级的功能。
+- en: Advanced Service Worker Concepts
+  id: totrans-234
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 高级服务工作者概念
+- en: Service workers are intended to only be used for performing asynchronous operations.
+    Because of that, the `localStorage` API, which technically blocks when reading
+    and writing, isn’t available. However, the asynchronous `indexedDB` API is available.
+    Top-level `await` is disabled within service workers as well.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 服务工作者只用于执行异步操作。因此，技术上会阻塞读写的`localStorage` API不可用。然而，异步的`indexedDB` API是可用的。服务工作者中也禁用了顶层`await`。
+- en: When it comes to keeping track of state, you’ll mostly be using `self.caches`
+    and `indexedDB`. Again, keeping data in a global variable isn’t going to be reliable.
+    In fact, while debugging your service workers, you might find that they occasionally
+    end up stopped, at which point you’re not allowed to hop into the inspector. The
+    browsers have a button that allows you to start the worker again, allowing you
+    to hop back into the inspector. It’s this stopping and starting that flushes out
+    global state.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在跟踪状态方面，您将主要使用`self.caches`和`indexedDB`。再次强调，将数据存储在全局变量中不会可靠。事实上，在调试服务工作者时，您可能会发现它们偶尔停止运行，此时您无法进入检查器。浏览器有一个按钮允许您重新启动工作者，使您可以再次进入检查器。这种停止和启动会清除全局状态。
+- en: Service worker scripts are cached rather aggressively by the browser. When reloading
+    the page, the browser may make a request for the script, but unless the script
+    has changed, it won’t be considered for being replaced. The Chrome browser does
+    offer the ability to trigger an update to the script when reloading the page;
+    to do this, navigate to the Application tab in the inspector, then click “Service
+    Workers,” then click the “Update on reload” checkbox.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器会非常积极地缓存服务工作者脚本。当重新加载页面时，浏览器可能会请求脚本，但除非脚本已更改，否则不会被视为需要替换。Chrome浏览器确实提供了在重新加载页面时触发脚本更新的功能；要做到这一点，请导航到检查器中的应用程序选项卡，然后点击“服务工作者”，然后点击“重新加载时更新”复选框。
+- en: 'Every service worker goes through a state change from the time of its inception
+    until the time it can be used. This state is available within the service worker
+    by reading the `self.serviceWorker.state` property. Here’s a list of the stages
+    it goes through:'
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个服务工作者从其创建之时到可以使用之时都会经历状态变化。通过读取`self.serviceWorker.state`属性，在服务工作者内部可以获得此状态。以下是它经历的各个阶段的列表：
+- en: parsed
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已解析
+- en: This is the very first state of the service worker. At this point the JavaScript
+    content of the file has been parsed. This is more of an internal state that you’ll
+    probably never encounter in your application.
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是服务工作者的第一个状态。此时文件的JavaScript内容已被解析。这更像是一个您在应用程序中可能永远不会遇到的内部状态。
+- en: installing
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正在安装
+- en: The installation has begun but is not yet complete. This happens once per worker
+    version. This state is active after `oninstall` is called and before the `event.respondWith()`
+    promise has resolved.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装已经开始但尚未完成。每个工作者版本只会发生一次。这种状态在调用`oninstall`之后，在`event.respondWith()`承诺解决之前处于活动状态。
+- en: installed
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 安装中
+- en: At this point the installation is complete. The `onactivate` handler is going
+    to be called next. In my testing I find that the service workers jump from `installing`
+    to `activating` so fast that I never see the `installed` state.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时安装已完成。接下来将调用`onactivate`处理程序。在我的测试中，我发现服务工作者从`安装中`状态跳转到`激活中`状态如此之快，以至于我从未看到`已安装`状态。
+- en: activating
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 激活中
+- en: This state happens when `onactivate` is called but the `event.respondWith()`
+    promise hasn’t yet resolved.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当调用`onactivate`但`event.respondWith()`承诺尚未解决时，会发生这种状态。
+- en: activated
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 已激活
+- en: The activation is complete, and the worker is ready to do its thing. At this
+    point `fetch` events will get intercepted.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 激活已完成，工作者已准备就绪，此时`fetch`事件将被拦截。
+- en: redundant
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 冗余
+- en: At this point, a newer version of the script has been loaded, and the previous
+    script is no longer necessary. This can also be triggered if the worker script
+    download fails, if it contains a syntax error, or if an error is thrown.
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，已加载了脚本的更新版本，先前的脚本不再需要。如果工作脚本下载失败、包含语法错误或抛出错误，也会触发这种情况。
+- en: Philosophically, service workers should be treated as a form of progressive
+    enhancement. This means that any web pages using them should still behave as usual
+    if the service worker isn’t used at all. This is important because you might encounter
+    a browser that doesn’t support service workers, or the installation phase might
+    fail, or privacy-conscientious users might disable them entirely. In other words,
+    if you’re only looking to add multithreading capabilities to your application,
+    then choose one of the other web workers instead.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从哲学上讲，Service Worker应被视为一种渐进增强的形式。这意味着如果根本不使用Service Worker，任何使用它们的网页应仍然正常工作。这一点很重要，因为你可能会遇到不支持Service
+    Worker的浏览器，或者安装阶段可能会失败，或者注重隐私的用户可能会完全禁用它们。换句话说，如果你只是想在应用程序中添加多线程功能，则选择其他Web Worker之一。
+- en: The global `self` object used inside service workers is an instance of `ServiceWorkerGlobalScope`.
+    The `importScripts()` function available in other web workers is available in
+    this environment as well. Like the other workers, it’s also possible to pass messages
+    into, and receive messages from, a service worker. The same `self.onmessage` handler
+    can be assigned. This can, perhaps, be used to signal to the service worker that
+    it should perform some sort of cache invalidation. Again, messages passed in this
+    way are subject to the same cloning algorithm that we discuss in the [Appendix](app01.xhtml#app_sca).
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service Worker内部使用的全局`self`对象是`ServiceWorkerGlobalScope`的一个实例。其他Web Worker中可用的`importScripts()`函数在这个环境中也是可用的。像其他工作者一样，还可以将消息传递到Service
+    Worker中，并从中接收消息。同样的`self.onmessage`处理程序可以被分配。也许可以用这种方式向Service Worker发出信号，告诉它应执行某种缓存失效操作。再次提醒，通过这种方式传递的消息也受到我们在[附录](app01.xhtml#app_sca)中讨论的相同克隆算法的约束。
+- en: While debugging your service workers, and the requests that are being made from
+    your browser, you’ll need to keep caching in mind. Not only can the service worker
+    implement caches that you control programmatically, but the browser itself also
+    still has to deal with regular network caching. This can mean requests sent from
+    your service worker to the server might not always be received by the server.
+    For this reason, keep the `Cache-Control` and `Expires` headers in mind, and be
+    sure to set intentional values.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在调试Service Worker及从浏览器发出的请求时，需要牢记缓存。Service Worker不仅可以通过编程方式实现你控制的缓存，而且浏览器本身仍然必须处理常规的网络缓存。这意味着从Service
+    Worker发送到服务器的请求可能并不总是被服务器接收。因此，请记住`Cache-Control`和`Expires`头，并确保设置有意义的值。
+- en: There are many more features available to service workers than those covered
+    in this section. Mozilla, the company behind Firefox, was nice enough to put together
+    a cookbook website full of common strategies when building out service workers.
+    This website is available at [*https://serviceworke.rs*](https://serviceworke.rs)
+    and we recommend checking it out if you’re considering implementing service workers
+    in your next web app.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service Worker具有比本节介绍的更多功能。Mozilla，Firefox背后的公司，很友好地建立了一个充满常见策略的菜谱网站，用于构建Service
+    Worker。如果你考虑在下一个Web应用程序中实现Service Worker，我们建议你查看该网站，地址为[*https://serviceworke.rs*](https://serviceworke.rs)。
+- en: Service workers, and the other web workers you’ve looked at, certainly come
+    with a bit of complexity. Lucky for us, there are some convenient libraries available,
+    and communication patterns that you can implement, to make managing them a little
+    easier.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Service Worker以及你看过的其他Web Worker，确实带来了一些复杂性。幸运的是，有一些方便的库可用，并且可以实现通信模式，使它们的管理变得更加容易。
+- en: Message Passing Abstractions
+  id: totrans-256
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 消息传递抽象
+- en: Each of the web workers covered in this chapter expose an interface for passing
+    messages into, and receiving messages from, a separate JavaScript environment.
+    This allows you to build applications that are capable of running JavaScript simultaneously
+    across multiple cores.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章涵盖的每个 Web Worker 都公开了一个接口，用于将消息传递到另一个 JavaScript 环境，并从中接收消息。这使你能够构建能够在多个核心上同时运行
+    JavaScript 的应用程序。
+- en: However, you’ve really only worked with simple, contrived examples so far, passing
+    along simple strings and calling simple functions. When it comes to building larger
+    applications it’ll be important to pass messages along that can scale and run
+    code in workers that can scale, and simplifying the interface when working with
+    workers will also reduce potential errors.
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，到目前为止，你只使用了简单的、刻意构造的示例，传递简单字符串并调用简单函数。当涉及构建更大型应用程序时，传递可扩展的消息并在能够扩展的 Worker
+    中运行代码将变得至关重要，并简化与 Worker 一起工作时的接口也会减少潜在的错误。
+- en: The RPC Pattern
+  id: totrans-259
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: RPC 模式
+- en: So far, you’ve only worked with passing basic strings along to workers. While
+    this is fine for getting a feel for the capabilities of web workers, it’s something
+    that isn’t going to scale well for a full application.
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，你只传递了基本的字符串给 Worker。虽然这对于了解 Web Worker 的功能是可以的，但对于完整的应用程序来说，这并不是一个良好的扩展方式。
+- en: For example, let’s assume you have a web worker that does a single thing, like
+    sum all the square root values from 1 to 1,000,000\. Well, you could just call
+    the `postMessage()` for the worker, without passing arguments, then run the slow
+    logic in the `onmessage` handler, and send the message back using the worker’s
+    `postMessage()` function. But what if the worker also needs to calculate Fibonacci
+    sequence? In that case you could pass in a string, one for `square_sum`, and one
+    for `fibonacci`. But what if you need arguments? Well, you could pass in `square_sum|1000000`.
+    But what if you need argument types? Maybe you get something like `square_sum|num:1000000`.
+    You can probably see what we’re getting at.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，假设你有一个 Web Worker，它执行一项单一任务，比如计算从1到1,000,000的所有平方根的总和。那么，你可以仅调用`postMessage()`给
+    Worker，不传递参数，然后在`onmessage`处理程序中运行慢速逻辑，并使用 Worker 的`postMessage()`函数发送消息回来。但是如果
+    Worker 还需要计算斐波那契数列呢？在这种情况下，你可以传入一个字符串，一个是`square_sum`，一个是`fibonacci`。但是如果你需要参数呢？那么，你可以传入`square_sum|1000000`。但如果需要参数类型呢？也许你会得到类似`square_sum|num:1000000`的内容。你可能已经看出我们要说什么了。
+- en: The RPC (Remote Procedure Call) pattern is a way to take a representation of
+    a function and its arguments, serialize them, and pass them to a remote destination
+    to have them get executed. The string `square_sum|num:1000000` is actually a form
+    of RPC that we accidentally recreated. Perhaps it could ultimately translate into
+    a function call like `squareNum(1000000)`, which is considered in [“The Command
+    Dispatcher Pattern”](#ch_browser_sec_libs_sub_cmd).
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: RPC（远程过程调用）模式是一种将函数及其参数的表示形式序列化并传递到远程目的地以执行的方法。字符串`square_sum|num:1000000`实际上是我们意外重现的一种
+    RPC 形式。也许它最终可以转换为类似`squareNum(1000000)`的函数调用，这在[“命令调度器模式”](https://wiki.example.org/ch_browser_sec_libs_sub_cmd)中有所考虑。
+- en: 'There’s another bit of complexity that an application needs to worry about
+    as well. If the main thread only sends a single message to a web worker at a time,
+    then when a message is returned from the web worker, you know it’s the response
+    to the message. But if you send multiple messages to a web worker at the same
+    time, there’s no easy way to correlate the responses. For example, imagine an
+    application that sends two messages to a web worker and receives two responses:'
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有另一个复杂性，应用程序还需要担心。如果主线程一次只向 Web Worker 发送一个消息，那么当从 Web Worker 返回消息时，你知道它是该消息的响应。但如果同时向
+    Web Worker 发送多条消息，则很难将响应与消息对应起来。例如，想象一个应用程序同时向 Web Worker 发送两条消息并收到两条响应：
+- en: '[PRE24]'
+  id: totrans-264
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Luckily, there does exist a standard for passing messages around and fulfilling
+    the RPC pattern that inspiration can be drawn from. This standard is called [JSON-RPC](https://jsonrpc.org),
+    and it’s fairly trivial to implement. This standard defines JSON representations
+    of request and response objects as “notification” objects, a way to define the
+    method being called and arguments in the request, the result in the response,
+    and a mechanism for associating requests and responses. It even supports error
+    values and batching of requests. For this example you’ll only work with a request
+    and response.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，存在一种标准用于传递消息并实现RPC模式的方式，可以从中获得灵感。这个标准称为[JSON-RPC](https://jsonrpc.org)，实现起来相当简单。该标准定义了请求和响应对象的JSON表示形式作为“通知”对象，一种定义请求中调用方法和参数以及响应中结果的方式，以及关联请求和响应的机制。它甚至支持错误值和请求的批处理。在这个例子中，您将只使用请求和响应。
+- en: 'Taking the two function calls from our example, the JSON-RPC version of those
+    requests and responses might look like this:'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 从我们的示例中获取的两个函数调用，JSON-RPC版本的请求和响应可能如下所示：
+- en: '[PRE25]'
+  id: totrans-267
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: In this case there’s now a clear correlation between the response messages and
+    their request.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，响应消息现在与其请求之间有了明确的关联。
+- en: JSON-RPC is intended to use JSON as the encoding when serializing messages,
+    particularly when sending messages over the network. In fact, those `jsonrpc`
+    fields define the version of JSON-RPC that the message is adhering to, which is
+    very important in a network setting. However, because web workers use the structured
+    clone algorithm (covered in the [Appendix](app01.xhtml#app_sca)) that allows passing
+    JSON-compatible objects along, an app could just pass objects directly without
+    paying the cost of JSON serialization and deserialization. Also, the `jsonrpc`
+    fields might not be as important in the browser where you have tighter control
+    of both ends of the communication channel.
+  id: totrans-269
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JSON-RPC旨在使用JSON作为消息序列化时的编码，特别是在通过网络发送消息时。事实上，这些`jsonrpc`字段定义了消息所遵循的JSON-RPC版本，在网络设置中非常重要。然而，由于Web工作者使用结构化克隆算法（在[附录](app01.xhtml#app_sca)中介绍），允许直接传递兼容JSON的对象，应用程序可以直接传递对象，而不必支付JSON序列化和反序列化的成本。此外，在浏览器中，通信通道的两端都有更严格的控制，因此`jsonrpc`字段可能不那么重要。
+- en: With these `id` properties correlating request and response objects, it’s possible
+    to then correlate which message relates to which. You’ll build a solution for
+    correlating these two in [“Putting It All Together”](#ch_browser_sec_libs_sub_interface).
+    But, for now, you need to first determine which function to call when a message
+    is received.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有了这些`id`属性，可以关联请求和响应对象，从而可以关联哪个消息与哪个消息相关联。您将在[“将所有内容放在一起”](#ch_browser_sec_libs_sub_interface)中构建一个解决方案来关联这两者。但是，现在，您需要首先确定在收到消息时要调用哪个函数。
+- en: The Command Dispatcher Pattern
+  id: totrans-271
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 命令调度模式
+- en: While the RPC pattern is useful for defining protocols, it doesn’t necessarily
+    provide a mechanism for determining what code path to execute on the receiving
+    end. The command dispatcher pattern solves this, providing a way to take a serialized
+    command, find the appropriate function, and then execute it, optionally passing
+    in arguments.
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然RPC模式在定义协议方面很有用，但并不一定提供确定接收端执行代码路径的机制。命令调度模式解决了这个问题，提供了一种方式来接收序列化命令，找到适当的函数，然后执行它，可选择传递参数。
+- en: This pattern is fairly straightforward to implement and doesn’t require a whole
+    lot of magic. First, we can assume that there are two variables that contain relevant
+    information about the method or *command* that the code needs to run. The first
+    variable is called `method` and is a string. The second variable is called `args`
+    and is an array of values to be passed into the method. Assume these have been
+    pulled from the RPC layer of the application.
+  id: totrans-273
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式实现起来非常直接，不需要太多的魔法。首先，我们可以假设有两个包含有关代码需要运行的方法或*命令*的相关信息的变量。第一个变量称为`method`，是一个字符串。第二个变量称为`args`，是一个要传递给方法的值数组。假设这些信息已从应用程序的RPC层中提取出来。
+- en: The code that ultimately needs to run might live in different parts of the application.
+    For example, maybe the square sum code lives in a third-party library, and the
+    Fibonacci code is something that you’ve declared more locally. Regardless of where
+    that code lives, you’ll want to make a single repository that maps these commands
+    to the code that needs to be run. There are several ways to pull this off, for
+    example by using a `Map` object, but because the commands are going to be fairly
+    static, a humble JavaScript object will suffice.
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最终需要运行的代码可能存在于应用程序的不同部分。例如，可能求平方和的代码存放在第三方库中，而斐波那契数列的代码则更为本地化声明。无论代码存放在何处，都希望建立一个单一的存储库，将这些命令映射到需要运行的代码。有几种方法可以实现这一点，例如使用`Map`对象，但由于命令可能相对静态，一个简单的
+    JavaScript 对象就足够了。
+- en: Another important concept is that only defined commands should be executed.
+    If the caller wants to invoke a method that doesn’t exist, an error should be
+    gracefully generated that can be returned to the caller, without crashing the
+    web worker. And, while the arguments could be passed into the method as an array,
+    it would be a much nicer interface if the array of arguments were spread out into
+    normal function arguments.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个重要概念是，只有已定义的命令才能被执行。如果调用者想要调用一个不存在的方法，应该优雅地生成一个错误，并将其返回给调用者，而不会使 Web Worker
+    崩溃。虽然参数可以作为数组传递到方法中，但如果参数数组展开为普通函数参数，则接口会更友好。
+- en: '[Example 2-11](#ex_command_dispatcher) shows an example implementation of a
+    command dispatcher that you can use in your applications.'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 2-11](#ex_command_dispatcher)展示了一个命令调度器的示例实现，你可以在自己的应用程序中使用。'
+- en: Example 2-11\. Example command dispatcher
+  id: totrans-277
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-11\. 示例命令调度器
+- en: '[PRE26]'
+  id: totrans-278
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '[![1](Images/1.png)](#co_browsers_CO6-1)'
+  id: totrans-279
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO6-1)'
+- en: The definition of all supported commands.
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 所有支持命令的定义。
+- en: '[![2](Images/2.png)](#co_browsers_CO6-2)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO6-2)'
+- en: Check to see if command exists.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 检查命令是否存在。
+- en: '[![3](Images/3.png)](#co_browsers_CO6-3)'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO6-3)'
+- en: Arguments are spread and method is invoked.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数展开并调用方法。
+- en: This code defines an object named `commands` that contains the entire collection
+    of commands that are supported by the command dispatcher. In this case the code
+    is inlined but it’s absolutely fine, and even encouraged, to reach out to code
+    that lives elsewhere.
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码定义了一个名为`commands`的对象，其中包含命令调度器支持的全部命令集合。在本例中，代码是内联的，但可以完全正常地（甚至是鼓励地）访问其他地方的代码。
+- en: The `dispatch()` function takes two arguments, the first being the name of the
+    method and the second being the array of arguments. This function can be invoked
+    when the web worker receives an RPC message representing the command. Within this
+    function the first step is to check if the method exists. This is done using `commands.hasOwnProperty()`.
+    This is much safer than calling `method in commands` or even `commands[method]`
+    since you don’t want noncommand properties like `__proto__` being called.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`dispatch()`函数接受两个参数，第一个是方法名，第二个是参数数组。当 Web Worker 接收到代表命令的 RPC 消息时，可以调用此函数。在此函数中，第一步是检查方法是否存在。可以使用`commands.hasOwnProperty()`来实现此目的。这比调用`method
+    in commands`或甚至`commands[method]`更安全，因为你不希望调用非命令属性如`__proto__`。'
+- en: If the command is determined to exist, then the command arguments are spread
+    out, with the first array element being the first argument, etc. The function
+    is then called with the arguments, with the result of the call being returned.
+    However, if the command doesn’t exist, then a `TypeError` is thrown.
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果确定命令存在，则将命令参数展开，第一个数组元素为第一个参数，依此类推。然后调用函数并返回调用结果。但如果命令不存在，则会抛出`TypeError`。
+- en: This is about as basic of a command dispatcher as you can create. Other, more
+    advanced dispatchers might do things like type checking, where the arguments are
+    validated to adhere to a certain primitive type or where objects follow the appropriate
+    shape, throwing errors generically so that the command method code doesn’t need
+    to do it.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是你可以创建的最基本的命令调度器。更高级的调度器可能会进行诸如类型检查之类的操作，验证参数是否符合某种基本类型或对象是否符合适当的形状，并在命令方法代码无需执行此类操作时，以通用方式抛出错误。
+- en: These two patterns will definitely help your applications out, but the interface
+    can be streamlined even more.
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这两种模式肯定会帮助优化你的应用程序，但接口还可以进一步简化。
+- en: Putting It All Together
+  id: totrans-290
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 将所有内容整合在一起
+- en: With JavaScript applications, we often think about performing work with outside
+    services. For example, maybe we make a call to a database or maybe we make an
+    HTTP request. When this happens we need to wait for a response to happen. Ideally,
+    we can either provide a callback or treat this lookup as a promise. Although the
+    web worker messaging interface doesn’t make this straightforward, we can definitely
+    build it out by hand.
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 应用程序中，我们经常考虑与外部服务进行工作。例如，可能我们会调用数据库或进行 HTTP 请求。当这些操作发生时，我们需要等待响应。理想情况下，我们可以提供回调函数或将此查找视为一个
+    promise。尽管 Web Worker 消息传递接口并不直接支持这一点，但我们绝对可以手动构建它。
+- en: It would also be nice to have a more symmetrical interface within a web worker,
+    perhaps by making use of an asynchronous function, one where the resolved value
+    is automatically sent back to the calling environment, without the need to manually
+    call `postMessage()` within the code.
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 Web Worker 内部也希望有一个更对称的接口，或许可以利用异步函数，其中解析的值会自动发送回调用环境，无需在代码中手动调用 `postMessage()`。
+- en: In this section, you’ll do just that. You’ll combine the RPC pattern and the
+    command dispatcher pattern and end up with an interface that makes working with
+    web workers much like working with other external libraries you may be more familiar
+    with. This example uses a dedicated worker, but the same thing could be built
+    with a shared worker or service worker.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这一节中，您将做到这一点。您将结合 RPC 模式和命令调度模式，最终得到一个界面，使得与 Web Workers 的工作方式与您可能更熟悉的其他外部库类似。这个示例使用了专用
+    worker，但是同样的事情也可以使用共享 worker 或 service worker 来构建。
+- en: First, create a new directory named *ch2-patterns/* to house the files you’re
+    going to create. In here first create another basic HTML file named *index.html*
+    containing the contents of [Example 2-12](#ex_combined_index).
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，在此处创建一个名为 *ch2-patterns/* 的新目录，用于存放您即将创建的文件。在这里，首先创建另一个基本的 HTML 文件，命名为 *index.html*，其中包含
+    [Example 2-12](#ex_combined_index) 的内容。
+- en: Example 2-12\. *ch2-patterns/index.html*
+  id: totrans-295
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 2-12\. *ch2-patterns/index.html*
+- en: '[PRE27]'
+  id: totrans-296
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: This time the file is loading two JavaScript files. The first is a new library,
+    and the second is the main JavaScript file, which you’ll now create. Make a file
+    named *main.js*, and add the contents of [Example 2-13](#ex_combined_main) to
+    it.
+  id: totrans-297
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这次文件加载了两个 JavaScript 文件。第一个是一个新的库，第二个是主 JavaScript 文件，您现在将创建它。创建一个名为 *main.js*
+    的文件，并将 [Example 2-13](#ex_combined_main) 的内容添加到其中。
+- en: Example 2-13\. *ch2-patterns/main.js*
+  id: totrans-298
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 2-13\. *ch2-patterns/main.js*
+- en: '[PRE28]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: This file represents application code using these new design patterns. First,
+    a worker instance is created, but not by calling one of the web worker classes
+    you’ve been working with so far. Instead, the code instantiates a new `RpcWorker`
+    class. This class is going to be defined soon.
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件代表使用这些新设计模式的应用程序代码。首先创建了一个 worker 实例，但不是通过调用到目前为止您一直在使用的 Web Worker 类之一。相反，代码实例化了一个新的
+    `RpcWorker` 类。这个类即将定义。
+- en: After that, four calls to different RPC methods are made by calling `worker.exec`.
+    The first one is a call to the `square_sum` method, the second is to the `fibonacci`
+    method, the third is to a method that doesn’t exist called `fake_method`, and
+    the fourth is to a failing method named `bad`. The first argument is the name
+    of the method, and all the following arguments end up being the arguments that
+    are passed to the method.
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后，通过调用 `worker.exec` 进行四个不同的 RPC 方法调用。第一个是调用 `square_sum` 方法，第二个是调用 `fibonacci`
+    方法，第三个是调用一个不存在的方法 `fake_method`，第四个是调用一个失败的方法 `bad`。第一个参数是方法的名称，所有后续的参数最终都将作为传递给方法的参数。
+- en: The `exec` method returns a promise, one that will resolve if the operation
+    succeeds and will reject if the operation fails. With this in mind, each of the
+    promises has been wrapped into a single `Promise.allSettled()` call. This will
+    run all of them and then continue the execution once each is complete—regardless
+    of success or failure. After that the result of each operation is printed. `allSettled()`
+    results include an array of objects with a `status` string property, and either
+    a `value` or `reason` property depending on success or failure.
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`exec` 方法返回一个 promise，如果操作成功则解析，如果操作失败则拒绝。考虑到这一点，每个 promise 都被包装在单独的 `Promise.allSettled()`
+    调用中。这将运行它们所有，并且一旦每个操作完成（无论成功与否）就继续执行。之后打印每个操作的结果。`allSettled()` 的结果包括一个带有 `status`
+    字符串属性的对象数组，以及根据成功或失败而有的 `value` 或 `reason` 属性。'
+- en: Next, create a file named *rpc-worker.js*, and add the contents of [Example 2-14](#ex_combined_rpc_1)
+    to it.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，创建一个名为 *rpc-worker.js* 的文件，并将 [Example 2-14](#ex_combined_rpc_1) 的内容添加到其中。
+- en: Example 2-14\. *ch2-patterns/rpc-worker.js* (part 1)
+  id: totrans-304
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-14\. *ch2-patterns/rpc-worker.js*（第1部分）
+- en: '[PRE29]'
+  id: totrans-305
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: This first part of the file starts the `RpcWorker` class and defines the constructor.
+    Within the constructor a few properties are initialized. First, the `next_command_id`
+    is set to zero. This value is used as the JSON-RPC-style incrementing message
+    identifier. This is used to correlate the request and response objects.
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件的第一部分开始了`RpcWorker`类并定义了构造函数。在构造函数中初始化了一些属性。首先，`next_command_id`设置为零。这个值被用作
+    JSON-RPC 风格的递增消息标识符。这用于关联请求和响应对象。
+- en: Next, a property named `in_flight_commands` is initialized to an empty `Map`.
+    This contains entries keyed by the command ID, with a value that contains a promise’s
+    resolve and reject functions. The size of this map grows with the number of parallel
+    messages sent to the worker and shrinks as their correlating messages are returned.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，一个名为`in_flight_commands`的属性被初始化为一个空的`Map`。这包含以命令 ID 为键的条目，其值包含一个 promise
+    的 resolve 和 reject 函数。这个映射的大小随着发送到工作线程的并行消息数量的增加而增长，并随着它们对应的消息返回而缩小。
+- en: After that, a dedicated worker is instantiated and assigned to the `worker`
+    property. This class effectively encapsulates a `Worker` instance. After that
+    the `onmessage` handler of the worker is configured to call the `onMessageHandler`
+    for the class (defined in the next chunk of code). The `RpcWorker` class doesn’t
+    extend `Worker` because it doesn’t really want to expose functionality of the
+    underlying web worker, instead creating a completely new interface.
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，一个专用的工作线程被实例化并分配给`worker`属性。这个类有效地封装了一个`Worker`实例。之后，配置工作线程的`onmessage`处理程序，以调用该类的`onMessageHandler`（在下一段代码中定义）。`RpcWorker`类不扩展`Worker`，因为它实际上不想暴露底层
+    web worker 的功能，而是创建一个全新的接口。
+- en: Continue modifying the file by adding the content from [Example 2-15](#ex_combined_rpc_2)
+    to it.
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 继续修改文件，将内容从[示例 2-15](#ex_combined_rpc_2)添加到其中。
+- en: Example 2-15\. *ch2-patterns/rpc-worker.js* (part 2)
+  id: totrans-310
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-15\. *ch2-patterns/rpc-worker.js*（第2部分）
+- en: '[PRE30]'
+  id: totrans-311
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: This chunk of the file defines the `onMessageHandler` method, which runs when
+    the dedicated worker posts a message. This code assumes that a JSON-RPC-like message
+    is passed from the web worker to the calling environment, and so, it first extracts
+    the `result`, `error`, and `id` values from the response.
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件的这一部分定义了`onMessageHandler`方法，当专用工作线程发布消息时运行。这段代码假定从 web worker 传递了类似 JSON-RPC
+    的消息到调用环境，因此，它首先从响应中提取`result`、`error`和`id`值。
+- en: Next, it consults the `in_flight_commands` map to find the matching `id` value,
+    retrieving the appropriate rejection and resolving functions, deleting the entry
+    from the list in the process. If the `error` value was provided, then the operation
+    is considered a failure and the `reject()` function is called with the erroneous
+    value. Otherwise, the `resolve()` function is called with the result of the operation.
+    Note that this doesn’t support throwing falsy values.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，它查询`in_flight_commands`映射以找到匹配的`id`值，检索适当的拒绝和解析函数，并在此过程中从列表中删除条目。如果提供了`error`值，则认为操作失败，并调用带有错误值的`reject()`函数。否则，使用操作的结果调用`resolve()`函数。请注意，这不支持抛出假值。
+- en: For a production-ready version of this library you would also want to support
+    a timeout value for these operations. Theoretically, it’s possible for an error
+    to be thrown in such a way, or for a promise to never end up resolving in the
+    worker, and the calling environment would want to reject the promise and also
+    clear the data from the map. Otherwise the application might end up with a memory
+    leak.
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这个库的生产版本，您还希望为这些操作支持一个超时值。从理论上讲，错误可能以这种方式抛出，或者承诺永远不会在工作线程中解决，调用环境将希望拒绝承诺并清除地图中的数据。否则，应用程序可能会出现内存泄漏。
+- en: Finally, finish up this file by adding the remaining content from [Example 2-16](#ex_combined_rpc_3)
+    to it.
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，通过将剩余内容从[示例 2-16](#ex_combined_rpc_3)添加到其中来完成这个文件。
+- en: Example 2-16\. *ch2-patterns/rpc-worker.js* (part 3)
+  id: totrans-316
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-16\. *ch2-patterns/rpc-worker.js*（第3部分）
+- en: '[PRE31]'
+  id: totrans-317
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: This last chunk of the file defines the `exec()` method, which is called when
+    the application wants to execute a method in the web worker. The first thing that
+    happens is that a new `id` value is generated. Next, a promise is created, which
+    will later be returned by the method. The `reject` and `resolve` functions for
+    the promise are pulled out and are added to the `in_flight_commands` map, associated
+    with the `id` value.
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件的最后一部分定义了`exec()`方法，当应用程序想要在 Web Worker 中执行方法时调用该方法。首先发生的是生成一个新的`id`值。接下来，创建了一个
+    promise，稍后该方法将返回该 promise。将 promise 的`reject`和`resolve`函数从中提取出来，并将它们与`id`值关联添加到`in_flight_commands`映射中。
+- en: After that, a message is posted to the worker. The object that is passed into
+    the worker is an object roughly adhering to the JSON-RPC shape. It contains the
+    `method` property, a `params` property that is the remaining arguments in an array,
+    and the `id` value that was generated for this particular command execution.
+  id: totrans-319
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后，向 worker 发送了一条消息。传递给 worker 的对象大致遵循 JSON-RPC 的形状。它包含`method`属性，一个`params`属性，该属性是数组中剩余的参数，并包含为此特定命令执行生成的`id`值。
+- en: This is a fairly common pattern, useful for associating outgoing asynchronous
+    messages with incoming asynchronous messages. You might find yourself implementing
+    a similar pattern if you needed to, say, put a message onto a network queue and
+    later receive a message. But, again, it does have memory implications.
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一种相当常见的模式，用于将出站异步消息与入站异步消息关联起来。如果需要的话，您可能会发现自己实现类似的模式，比如将消息放入网络队列并稍后接收消息。但是，它确实会有内存影响。
+- en: With the RPC worker file out of the way, you’re ready to create the last file.
+    Make a file named *worker.js*, and add the contents of [Example 2-17](#ex_combined_worker)
+    to it.
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 RPC 工作文件放在一边后，您可以准备创建最后一个文件。创建一个名为*worker.js*的文件，并将[Example 2-17](#ex_combined_worker)的内容添加到其中。
+- en: Example 2-17\. *ch2-patterns/worker.js*
+  id: totrans-322
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-17\. *ch2-patterns/worker.js*
+- en: '[PRE32]'
+  id: totrans-323
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: '[![1](Images/1.png)](#co_browsers_CO7-1)'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](Images/1.png)](#co_browsers_CO7-1)'
+- en: Adds artificial slowdown to methods.
+  id: totrans-325
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 向方法添加人为减速。
+- en: '[![2](Images/2.png)](#co_browsers_CO7-2)'
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](Images/2.png)](#co_browsers_CO7-2)'
+- en: A basic wrapper to convert `onmessage` to an async function.
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个基本的包装器，将`onmessage`转换为异步函数。
+- en: '[![3](Images/3.png)](#co_browsers_CO7-3)'
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](Images/3.png)](#co_browsers_CO7-3)'
+- en: Artificial random slowdowns are added to the commands.
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 人为随机减速添加到命令中。
+- en: '[![4](Images/4.png)](#co_browsers_CO7-4)'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](Images/4.png)](#co_browsers_CO7-4)'
+- en: The `BigInt` result is coerced into a JSON-friendly string value.
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`BigInt`结果被强制转换为 JSON 友好的字符串值。'
+- en: '[![5](Images/5.png)](#co_browsers_CO7-5)'
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](Images/5.png)](#co_browsers_CO7-5)'
+- en: The `onmessage` wrapper is injected.
+  id: totrans-333
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注入了`onmessage`包装器。
+- en: '[![6](Images/6.png)](#co_browsers_CO7-6)'
+  id: totrans-334
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![6](Images/6.png)](#co_browsers_CO7-6)'
+- en: A successful JSON-RPC-like message is resolved on success.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个成功的类 JSON-RPC 消息在成功时被解析。
+- en: '[![7](Images/7.png)](#co_browsers_CO7-7)'
+  id: totrans-336
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![7](Images/7.png)](#co_browsers_CO7-7)'
+- en: An erroneous JSON-RPC-like message is rejected if a method doesn’t exist.
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果方法不存在，则会拒绝错误的类 JSON-RPC 消息。
+- en: This file has a lot going on. First, the `sleep` function is just a promise
+    equivalent version of `setTimeout()`. The `asyncOnMessageWrap()` is a function
+    that can wrap an `async` function and be assigned the `onmessage` handler. This
+    is a convenience to pull out the data property of the incoming message, pass it
+    to the function, await the result, then pass the result to `postMessage()`.
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个文件有很多内容。首先，`sleep`函数只是`setTimeout()`的一个等价的 promise 版本。`asyncOnMessageWrap()`是一个函数，可以包装一个`async`函数并分配`onmessage`处理程序。这是一个便利的功能，可以提取传入消息的数据属性，将其传递给函数，等待结果，然后将结果传递给`postMessage()`。
+- en: After that, the `commands` object from before has made its return. This time,
+    though, artificial timeouts have been added and the functions have been made into
+    `async` functions. This lets the methods emulate an otherwise slow asynchronous
+    process.
+  id: totrans-339
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之后，之前的`commands`对象已经回来了。不过，这一次添加了人为的超时，并且将函数改为了`async`函数。这使得这些方法能够模拟一个否则缓慢的异步过程。
+- en: Finally, the `onmessage` handler is assigned using the wrapper function. The
+    code inside it takes the incoming JSON-RPC-like message and pulls out the `method`,
+    `params`, and `id` properties. Much like before, the commands collection is consulted
+    to see if it has the method. If it doesn’t, a JSON-RPC-like error is returned.
+    The `-32601` value is a magic number defined by JSON-RPC to represent a method
+    that doesn’t exist. When the command does exist, the command method is executed,
+    then the resolved value is coerced into a JSON-RPC-like successful message and
+    returned. If the command throws, then a different error is returned, using another
+    JSON-RPC magic number of `-32000`.
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，使用包装函数分配 `onmessage` 处理程序。其中的代码获取传入的类似 JSON-RPC 的消息，并提取 `method`、`params`
+    和 `id` 属性。与之前类似，会查阅命令集合以查看是否存在该方法。如果不存在，则返回类似 JSON-RPC 的错误。值 `-32601` 是 JSON-RPC
+    定义的魔数，表示不存在的方法。当命令存在时，执行命令方法，然后将解析的值强制转换为类似 JSON-RPC 的成功消息并返回。如果命令抛出异常，则返回不同的错误，使用另一个
+    JSON-RPC 魔数 `-32000`。
+- en: 'Once you’ve got the file created, switch to your browser and open the inspector.
+    Then, launch the web server again using the following command from within the
+    *ch2-patterns/* directory:'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建文件后，切换到浏览器并打开检查器。然后，从 *ch2-patterns/* 目录中使用以下命令再次启动 Web 服务器：
+- en: '[PRE33]'
+  id: totrans-342
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: 'Next, switch back to browser and paste in the URL from the output. You won’t
+    see anything interesting on the page, but in the console you should see the following
+    messages:'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，切换回浏览器并粘贴来自输出的 URL。页面上看不到有趣的内容，但在控制台中，您应该看到以下消息：
+- en: '[PRE34]'
+  id: totrans-344
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: In this case you can see that both the `square_sum` and `fibonacci` calls ended
+    successfully, while the `fake_method` command resulted in failure. More importantly,
+    under the hood, the calls to the methods are resolving in different orders, but
+    thanks to the incrementing `id` values the responses are always properly correlated
+    to their requests.
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，可以看到 `square_sum` 和 `fibonacci` 调用均成功完成，而 `fake_method` 命令导致失败。更重要的是，在内部，方法调用由于增加的
+    `id` 值而总是与其请求正确关联。
+- en: ^([1](ch02.xhtml#idm45995925449224-marker)) As of Firefox v85, regardless of
+    how many entries are in the `ports` set, calling `console.log(ports)` will always
+    display a single entry. For now, to debug the size, call `console.log(ports.size)`
+    instead.
+  id: totrans-346
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch02.xhtml#idm45995925449224-marker)) 从 Firefox v85 开始，无论 `ports` 集合中有多少条目，调用
+    `console.log(ports)` 都将始终显示单个条目。目前，要调试集合大小，请改为调用 `console.log(ports.size)`。

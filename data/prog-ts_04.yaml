@@ -1,0 +1,2608 @@
+- en: Chapter 4\. Functions
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第四章\. 函数
+- en: 'In the last chapter we covered the basics of TypeScript’s type system: primitive
+    types, objects, arrays, tuples, and enums, as well as the basics of TypeScript’s
+    type inference and how type assignability works. You are now ready for TypeScript’s
+    pièce de résistance (or raison d’être, if you’re a functional programmer): functions.
+    A few of the topics we’ll cover in this chapter are:'
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一章中，我们已经讨论了 TypeScript 类型系统的基础知识：原始类型、对象、数组、元组和枚举，以及 TypeScript 类型推断的基础知识以及类型可赋值性是如何工作的。现在你已经准备好学习
+    TypeScript 的“杰作”（或者说是存在的理由，如果你是一个函数式编程者的话）：函数。本章我们将讨论以下几个主题：
+- en: The different ways to declare and invoke functions in TypeScript
+  id: totrans-2
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript 中声明和调用函数的不同方法
+- en: Signature overloading
+  id: totrans-3
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 签名重载
+- en: Polymorphic functions
+  id: totrans-4
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 多态函数
+- en: Polymorphic type aliases
+  id: totrans-5
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 多态类型别名
+- en: Declaring and Invoking Functions
+  id: totrans-6
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 声明和调用函数
+- en: 'In JavaScript, functions are first-class objects. That means you can use them
+    exactly like you would any other object: assign them to variables, pass them to
+    other functions, return them from functions, assign them to objects and prototypes,
+    write properties to them, read those properties back, and so on. There is a lot
+    you can do with functions in JavaScript, and TypeScript models all of those things
+    with its rich type system.'
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，函数是一等对象。这意味着你可以像对待任何其他对象一样使用它们：将它们分配给变量，传递它们给其他函数，从函数中返回它们，将它们分配给对象和原型，写入它们的属性，读取这些属性，等等。在
+    JavaScript 中，你可以对函数做很多事情，而 TypeScript 则通过其丰富的类型系统模拟了所有这些功能。
+- en: 'Here’s what a function looks like in TypeScript (this should look familiar
+    from the last chapter):'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 中函数的样子如下（这在上一章应该看起来很熟悉）：
+- en: '[PRE0]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'You will usually explicitly annotate function parameters (`a` and `b` in this
+    example)—TypeScript will always infer types throughout the body of your function,
+    but in most cases it won’t infer types for your parameters, except for a few special
+    cases where it can infer types from context (more on that in [“Contextual Typing”](#contextual-typing)).
+    The return type *is* inferred, but you can explicitly annotate it too if you want:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常你会显式注解函数的参数（比如这个例子中的 `a` 和 `b`）— TypeScript 总是会在函数体内推断类型，但在大多数情况下它不会从参数中推断类型，除了一些特殊情况，它可以从上下文推断类型（更多关于“上下文类型推断”见
+    [“上下文类型推断”](#contextual-typing)）。返回类型 *会* 被推断，但如果你愿意，你也可以显式注解它：
+- en: '[PRE1]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Note
+  id: totrans-12
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Throughout this book I’ll explicitly annotate return types where it helps you,
+    the reader, understand what the function does. Otherwise I’ll leave the annotations
+    off because TypeScript already infers them for us, and why would we want to repeat
+    work?
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中，当它有助于你理解函数的功能时，我会显式注释返回类型。否则我会略去注释，因为 TypeScript 已经为我们推断了类型，我们为什么要重复做这项工作呢？
+- en: 'The last example used *named function syntax* to declare the function, but
+    JavaScript and TypeScript support at least five ways to do this:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 上一个例子使用了 *命名函数语法* 来声明函数，但是 JavaScript 和 TypeScript 支持至少五种方法来做到这一点：
+- en: '[PRE2]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Besides function constructors (which you shouldn’t use unless you are being
+    chased by bees because they are totally unsafe),^([1](ch04.html#idm46304980032968))
+    all of these syntaxes are supported by TypeScript in a typesafe way, and they
+    all follow the same rules around usually mandatory type annotations for parameters
+    and optional annotations for return types.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了函数构造函数（你不应该使用它们，除非你被蜜蜂追赶，因为它们完全不安全）^([1](ch04.html#idm46304980032968))，所有这些语法都得到了
+    TypeScript 安全类型的支持，并且它们都遵循通常参数需要强制类型注解和返回类型可选注解的相同规则。
+- en: Note
+  id: totrans-17
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'A quick refresher on terminology:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 术语快速复习：
+- en: A parameter is a piece of data that a function needs to run, declared as part
+    of a function declaration. Also called a *formal parameter*.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 参数是函数运行所需的数据片段，作为函数声明的一部分声明。也称为 *形式参数*。
+- en: An argument is a piece of data that you passed to a function when invoking it.
+    Also called an *actual parameter*.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 参数是你在调用函数时传递给它的数据片段。也称为 *实际参数*。
+- en: 'When you invoke a function in TypeScript, you don’t need to provide any additional
+    type information—just pass in some arguments, and TypeScript will go to work checking
+    that your arguments are compatible with the types of your function’s parameters:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你在 TypeScript 中调用函数时，你不需要提供任何额外的类型信息—只需传递一些参数，TypeScript 将开始检查你的参数是否与函数参数的类型兼容：
+- en: '[PRE3]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Of course, if you forgot an argument, or passed an argument of the wrong type,
+    TypeScript will be quick to point it out:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，如果你忘记了一个参数，或者传递了一个错误类型的参数，TypeScript 会迅速指出：
+- en: '[PRE4]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Optional and Default Parameters
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 可选和默认参数
+- en: 'Like in object and tuple types, you can use `?` to mark parameters as optional.
+    When declaring your function’s parameters, required parameters have to come first,
+    followed by optional parameters:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像对象和元组类型一样，你可以使用 `?` 标记参数为可选的。在声明函数的参数时，必需参数必须首先出现，然后是可选参数：
+- en: '[PRE5]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Like in JavaScript, you can provide default values for optional parameters.
+    Semantically it’s similar to making a parameter optional, in that callers no longer
+    have to pass it in (a difference is that default parameters don’t have to be at
+    the end of your list of parameters, while optional parameters do).
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像在 JavaScript 中一样，你可以为可选参数提供默认值。从语义上讲，这类似于使参数变为可选，即调用者不再需要传递它（不同之处在于默认参数不必位于参数列表的末尾，而可选参数必须）。
+- en: 'For example, we can rewrite `log` as:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，我们可以将 `log` 重写为：
+- en: '[PRE6]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: Notice how when we give `userId` a default value, we remove its optional annotation,
+    `?`. We also don’t have to type it anymore. TypeScript is smart enough to infer
+    the parameter’s type from its default value, keeping our code terse and easy to
+    read.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意当我们为 `userId` 设置默认值时，我们去掉了可选注释 `?`。我们也不需要再为它指定类型了。TypeScript 足够聪明，能够从其默认值推断参数的类型，使得我们的代码简洁易读。
+- en: 'Of course, you can also add explicit type annotations to your default parameters,
+    the same way you can for parameters without defaults:'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当然，你也可以为默认参数添加显式类型注解，方式与无默认值的参数相同：
+- en: '[PRE7]'
+  id: totrans-33
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: You’ll find yourself using default parameters over optional parameters often.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你会经常发现自己使用默认参数而不是可选参数。
+- en: Rest Parameters
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Rest 参数
+- en: 'If a function takes a list of arguments, you can of course simply pass the
+    list in as an array:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果一个函数接受一个参数列表，你当然可以将列表作为一个数组直接传入：
+- en: '[PRE8]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Sometimes, you might opt for a *variadic* function API—one that takes a variable
+    number of arguments—instead of a *fixed-arity* API that takes a fixed number of
+    arguments. Traditionally, that required using JavaScript’s magic `arguments` object.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，你可能会选择使用 *可变参数* 函数 API —— 即接受可变数量参数的 API —— 而不是 *固定数量* 参数 API。传统上，这需要使用 JavaScript
+    的魔法 `arguments` 对象。
+- en: '`arguments` is “magic” because your JavaScript runtime automatically defines
+    it for you in functions, and assigns to it the list of arguments you passed to
+    your function. Because `arguments` is only array-like, and not a true array, you
+    first have to convert it to an array before you can call the built-in `.reduce`
+    on it:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`arguments` 是“魔法”，因为你的 JavaScript 运行时自动为函数定义它，并将你传递给函数的参数列表分配给它。因为 `arguments`
+    只是类似数组而不是真正的数组，所以在调用内置的 `.reduce` 方法之前，你首先必须将其转换为数组：'
+- en: '[PRE9]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: 'But there’s one big problem with using `arguments`: it’s totally unsafe! If
+    you hover over `total` or `n` in your text editor, you’ll see output similar to
+    that shown in [Figure 4-1](#fig-arg-unsafe).'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是使用 `arguments` 有一个大问题：它完全不安全！如果你在文本编辑器中悬停在 `total` 或 `n` 上，你将看到类似于在 [Figure 4-1](#fig-arg-unsafe)
+    中显示的输出。
+- en: '![prts 0401](assets/prts_0401.png)'
+  id: totrans-42
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0401](assets/prts_0401.png)'
+- en: Figure 4-1\. arguments is unsafe
+  id: totrans-43
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-1\. arguments 是不安全的
+- en: 'This means TypeScript inferred that both `n` and `total` are of type `any`,
+    and silently let it pass—that is, until you try to use `sumVariadic`:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着 TypeScript 推断 `n` 和 `total` 都是类型 `any`，并且默默地让它通过——也就是说，直到你尝试使用 `sumVariadic`
+    时：
+- en: '[PRE10]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Since we didn’t declare that `sumVariadic` takes arguments, from TypeScript’s
+    point of view it doesn’t take any arguments, so we get a `TypeError` when we try
+    to use it.
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们没有声明 `sumVariadic` 接受参数，从 TypeScript 的角度来看它不接受任何参数，所以当我们尝试使用它时会得到 `TypeError`。
+- en: So, how can we safely type variadic functions?
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，我们如何安全地为可变参数函数设置类型？
+- en: 'Rest parameters to the rescue! Instead of resorting to the unsafe `arguments`
+    magic variable, we can instead use rest parameters to safely make our `sum` function
+    accept any number of arguments:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Rest 参数来拯救！我们可以使用 Rest 参数安全地使我们的 `sum` 函数接受任意数量的参数，而不是借助不安全的 `arguments` 魔法变量：
+- en: '[PRE11]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: That’s it! Notice that the only change between this variadic `sum` and our original
+    single-parameter `sum` function is the extra `...` in the parameter list—nothing
+    else has to change, and it’s totally typesafe.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就是这样！注意这个可变参数 `sum` 和我们原来的单参数 `sum` 函数之间唯一的变化是参数列表中额外的 `...` —— 其他都不需要改变，完全类型安全。
+- en: 'A function can have at most one rest parameter, and that parameter has to be
+    the last one in the function’s parameter list. For example, take a look at TypeScript’s
+    built-in declaration for `console.log` (if you don’t know what an `interface`
+    is, don’t worry—we’ll cover it in [Chapter 5](ch05.html#classes)). `console.log`
+    takes an optional `message`, and any number of additional arguments to log:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数最多可以有一个剩余参数，并且该参数必须是函数参数列表中的最后一个。例如，看看 TypeScript 内置声明的 `console.log`（如果不知道
+    `interface` 是什么，不用担心——我们将在 [第五章](ch05.html#classes) 中介绍它）。`console.log` 接受一个可选的
+    `message` 和任意数量的其他参数来记录：
+- en: '[PRE12]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: call, apply, and bind
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 调用、应用和绑定
+- en: 'In addition to invoking a function with parentheses `()`, JavaScript supports
+    at least two other ways to call a function. Take `add` from earlier in the chapter:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了使用圆括号 `()` 调用函数外，JavaScript 还支持至少两种其他调用函数的方式。看看本章前面的 `add`：
+- en: '[PRE13]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '`apply` binds a value to `this` within your function (in this example, we bind
+    `this` to `null`), and spreads its second argument over your function’s parameters.
+    `call` does the same, but applies its arguments in order instead of spreading.'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`apply` 将一个值绑定到函数内部的 `this`（在本例中，我们将 `this` 绑定到 `null`），并将其第二个参数展开到函数的参数上。`call`
+    执行类似操作，但按顺序应用其参数，而不是展开参数。'
+- en: '`bind()` is similar, in that it *binds* a `this`-argument and a list of arguments
+    to your function. The difference is that `bind` does not invoke your function;
+    instead, it returns a new function that you can then invoke with `()`, `.call`,
+    or `.apply`, passing more arguments in to be bound to the so far unbound parameters
+    if you want.'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`bind()` 类似，它会将 `this` 参数和一系列参数绑定到函数上。不同之处在于，`bind` 不会立即调用函数；相反，它返回一个新的函数，然后您可以使用
+    `()`、`.call` 或 `.apply` 调用它，并传入更多参数来绑定到迄今未绑定的参数。'
+- en: 'TSC Flag: strictBindCallApply'
+  id: totrans-58
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC 标志：strictBindCallApply
+- en: To safely use `.call`, `.apply`, and `.bind` in your code, be sure to enable
+    the `strictBindCallApply` option in your *tsconfig.json* (it’s automatically enabled
+    if you already enabled `strict` mode).
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要在您的代码中安全使用 `.call`、`.apply` 和 `.bind`，请确保在您的 *tsconfig.json* 中启用 `strictBindCallApply`
+    选项（如果您已启用 `strict` 模式，则会自动启用）。
+- en: Typing this
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型化这个
+- en: If you’re not coming from JavaScript, you may be surprised to learn that in
+    JavaScript the `this` variable is defined for every function, not just for those
+    functions that live as methods on classes. `this` has a different value depending
+    on how you called your function, which can make it notoriously fragile and hard
+    to reason about.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你不是从 JavaScript 过来的，你可能会惊讶地了解，在 JavaScript 中，`this` 变量对每个函数都有定义，而不仅仅是作为类方法存在的函数。`this`
+    的值取决于如何调用函数，这使得它异常脆弱且难以理解。
+- en: Tip
+  id: totrans-62
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: For this reason, a lot of teams ban `this` everywhere except in class methods—to
+    do this for your codebase too, enable the `no-invalid-this` TSLint rule.
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 出于这个原因，许多团队禁止在代码中无处不在地使用 `this`，除了在类方法中。若要在您的代码库中执行此操作，请启用 `no-invalid-this`
+    TSLint 规则。
+- en: 'The reason that `this` is fragile has to do with the way it’s assigned. The
+    general rule is that `this` will take the value of the thing to the left of the
+    dot when invoking a method. For example:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`this` 脆弱的原因与其赋值方式有关。通常规则是，在调用方法时，`this` 将取左侧点号的值。例如：'
+- en: '[PRE14]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: But if at some point you reassign `a` before calling it, the result will change!
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但如果在调用之前重新分配 `a`，结果将会改变！
+- en: '[PRE15]'
+  id: totrans-67
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Say you have a utility function for formatting dates that looks like this:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 假设你有一个用于格式化日期的实用函数，其代码如下：
+- en: '[PRE16]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'You designed this API in your early days as a programmer (before you learned
+    about function parameters). To use `fancyDate`, you have to call it with a `Date`
+    bound to `this`:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 你在初学者时期设计了这个 API（在了解函数参数之前）。要使用 `fancyDate`，您必须将一个 `Date` 绑定到 `this` 上：
+- en: '[PRE17]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: If you forget to bind a `Date` to `this`, you’ll get a runtime exception!
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果忘记将 `Date` 绑定到 `this`，将会导致运行时异常！
+- en: '[PRE18]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: Though exploring all of the semantics of `this` is beyond the scope of this
+    book,^([2](ch04.html#idm46304979137208)) this behavior—that `this` depends on
+    the way you called a function, and not on the way that you declared it—can be
+    surprising to say the least.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然探索 `this` 的所有语义超出了本书的范围^([2](ch04.html#idm46304979137208))，但 `this` 的行为——取决于调用函数的方式，而不是声明函数的方式——可能会令人意外。
+- en: 'Thankfully, TypeScript has your back. If your function uses `this`, be sure
+    to declare your expected `this` type as your function’s first parameter (before
+    any additional parameters), and TypeScript will enforce that `this` really is
+    what you say it is at every call site. `this` isn’t treated like other parameters—it’s
+    a reserved word when used as part of a function signature:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幸运的是，TypeScript 为您排忧解难。如果您的函数使用 `this`，请确保在任何其他参数之前（在任何额外的参数之前），将您期望的 `this`
+    类型声明为函数的第一个参数，并且 TypeScript 将在每个调用点强制执行 `this` 确实是您说的那样。`this` 不像其他参数一样对待——在函数签名中使用时它是一个保留字：
+- en: '[PRE19]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'Now here’s what happens when we call `fancyDate`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们来看一下调用 `fancyDate` 时会发生什么：
+- en: '[PRE20]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: We took a runtime error, and gave TypeScript enough information to warn about
+    the error at compile time instead.
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们遇到了一个运行时错误，并向 TypeScript 提供了足够的信息，使其能够在编译时警告该错误。
+- en: 'TSC Flag: noImplicitThis'
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC 标志：noImplicitThis
+- en: To enforce that `this` types are always explicitly annotated in functions, enable
+    the `noImplicitThis` setting in your *tsconfig.json*. `strict` mode includes `noImplicitThis`,
+    so if you already have that enabled you’re good to go.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要强制在函数中始终明确注解 `this` 类型，请在您的 *tsconfig.json* 中启用 `noImplicitThis` 设置。`strict`
+    模式包含 `noImplicitThis`，因此如果您已经启用了它，那就没问题了。
+- en: Note that `noImplicitThis` doesn’t enforce `this`-annotations for classes, or
+    for functions on objects.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，`noImplicitThis` 不会强制要求类或对象上的函数使用 `this` 注解。
+- en: Generator Functions
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 生成器函数
+- en: Generator functions (*generators* for short) are a convenient way to, well,
+    *generate* a bunch of values. They give the generator’s consumer fine control
+    over the pace at which values are produced. Because they’re lazy—that is, they
+    only compute the next value when a consumer asks for it—they can do things that
+    can be hard to do otherwise, like generate infinite lists.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生成器函数（简称 *生成器*）是一种方便的方式来，嗯，*生成* 一堆值。它们让生成器的消费者可以精确控制生成值的速度。因为它们是惰性的——也就是说，只有在消费者要求时才计算下一个值——它们可以做一些其他方式难以实现的事情，比如生成无限列表。
+- en: 'They work like this:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 它们的工作方式如下：
+- en: '[PRE21]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: '[![1](assets/1.png)](#co_functions_CO1-1)'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO1-1)'
+- en: The asterisk (`*`) before a function’s name makes that function a generator.
+    Calling a generator returns an iterable iterator.
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在函数名前的星号（`*`）将该函数定义为生成器。调用生成器会返回一个可迭代的迭代器。
+- en: '[![2](assets/2.png)](#co_functions_CO1-2)'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO1-2)'
+- en: Our generator can generate values forever.
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的生成器可以无限生成值。
+- en: '[![3](assets/3.png)](#co_functions_CO1-3)'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO1-3)'
+- en: Generators use the `yield` keyword to, well, *yield* values. When a consumer
+    asks for the generator’s next value (for example, by calling `next`), `yield`
+    sends a result back to the consumer and pauses execution until the consumer asks
+    for the next value. In this way the `while(true)` loop doesn’t immediately cause
+    the program to run forever and crash.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生成器使用 `yield` 关键字来，嗯，*产出* 值。当消费者请求生成器的下一个值时（例如通过调用 `next`），`yield` 将结果发送回给消费者，并暂停执行，直到消费者请求下一个值。通过这种方式，`while(true)`
+    循环不会立即导致程序无限运行并崩溃。
+- en: '[![4](assets/4.png)](#co_functions_CO1-4)'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_functions_CO1-4)'
+- en: To compute the next Fibonacci number, we reassign `a` to `b` and `b` to `a +
+    b` in a single step.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要计算下一个斐波那契数，我们将 `a` 重新赋值为 `b`，并将 `b` 重新赋值为 `a + b`，这一切都在一步完成。
+- en: We called `createFibonacciGenerator`, and that returned an `IterableIterator`.
+    Every time we call `next`, the iterator computes the next Fibonacci number and
+    `yield`s it back to us. Notice how TypeScript is able to infer the type of our
+    iterator from the type of the value we `yield`ed.
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们调用了 `createFibonacciGenerator`，它返回了一个 `IterableIterator`。每次调用 `next` 方法时，迭代器计算下一个斐波那契数并将其
+    `yield` 回给我们。注意 TypeScript 如何能够根据 `yield` 的值推断出迭代器的类型。
+- en: 'You can also explicitly annotate a generator, wrapping the type it yields in
+    an `IterableIterator`:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您还可以显式注释生成器，将其产出的类型包装在 `IterableIterator` 中：
+- en: '[PRE22]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: We won’t delve deeper into generators in this book—they’re a big topic, and
+    since this book is about TypeScript, I don’t want to get sidetracked with JavaScript
+    features. The short of it is they’re a super cool JavaScript language feature
+    that TypeScript supports too. To learn more about generators, head to their page
+    on [MDN](https://mzl.la/2UitIk4).
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本书中我们不会深入讨论生成器——它们是一个大的主题，而本书关注 TypeScript，我不想被 JavaScript 的特性分心。简而言之，它们是 JavaScript
+    的一个非常酷的语言特性，TypeScript 也支持它们。要了解更多关于生成器的信息，请访问 [MDN](https://mzl.la/2UitIk4)。
+- en: Iterators
+  id: totrans-99
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 迭代器
+- en: 'Iterators are the flip side to generators: while generators are a way to produce
+    a stream of values, iterators are a way to consume those values. The terminology
+    can get pretty confusing, so let’s start with a couple of definitions.'
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 迭代器是生成器的反面：生成器是产生一系列值的方法，而迭代器是消费这些值的方法。术语可以变得相当混乱，因此让我们从一些定义开始。
+- en: When you create a generator (say, by calling `createFibonacciGenerator`), you
+    get a value back that’s *both* an iterable and an iterator—an *iterable iterator*—because
+    it defines both a `Symbol.iterator` property and a `next` method.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您创建一个生成器（比如通过调用`createFibonacciGenerator`），您会得到一个既是可迭代又是迭代器的值——一个*可迭代迭代器*，因为它同时定义了`Symbol.iterator`属性和`next`方法。
+- en: 'You can manually define an iterator or an iterable by creating an object (or
+    a class) that implements `Symbol.iterator` or `next`, respectively. For example,
+    let’s define an iterator that returns the numbers 1 through 10:'
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以通过创建一个实现`Symbol.iterator`或`next`的对象（或类）来手动定义迭代器或可迭代对象。例如，让我们定义一个返回1到10的数字的迭代器：
+- en: '[PRE23]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: If you type that iterator into your code editor and hover over it, you’ll see
+    what TypeScript infers as its type ([Figure 4-2](#fig-manual-define)).
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您将该迭代器键入到您的代码编辑器中并悬停在其上，您将看到TypeScript推断其类型（见[图 4-2](#fig-manual-define)）。
+- en: '![prts 0402](assets/prts_0402.png)'
+  id: totrans-105
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0402](assets/prts_0402.png)'
+- en: Figure 4-2\. Manually defining an iterator
+  id: totrans-106
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图4-2\. 手动定义一个迭代器
+- en: In other words, `numbers` is an iterator, and calling the generator function
+    `numbers[Symbol.iterator]()` returns an iterable iterator.
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 换句话说，`numbers`是一个迭代器，调用生成器函数`numbers[Symbol.iterator]()`会返回一个可迭代的迭代器。
+- en: 'Not only can you define your own iterators, but you can use JavaScript’s built-in
+    iterators for common collection types—`Array`, `Map`, `Set`, `String`,^([3](ch04.html#idm46304978700968))
+    and so on—to do things like:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不仅可以定义自己的迭代器，还可以使用JavaScript内置的迭代器来处理常见的集合类型——`Array`、`Map`、`Set`、`String`，^([3](ch04.html#idm46304978700968))
+    等等，以执行如下操作：
+- en: '[PRE24]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Again, we won’t go more deeply into iterators in this book. You can read more
+    about iterators and async iterators on [MDN](https://mzl.la/2OAoy1o).
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次强调，本书不会深入讲解迭代器。你可以在[MDN](https://mzl.la/2OAoy1o)上了解更多关于迭代器和异步迭代器的信息。
+- en: 'TSC Flag: downlevelIteration'
+  id: totrans-111
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: TSC标志：downlevelIteration
+- en: If you’re compiling your TypeScript to a JavaScript version older than `ES2015`,
+    you can enable custom iterators with the `downlevelIteration` flag in your *tsconfig.json*.
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您将TypeScript编译到早于`ES2015`的JavaScript版本中，您可以在*tsconfig.json*中使用`downlevelIteration`标志启用自定义迭代器。
+- en: 'You may want to keep `downlevelIteration` disabled if your application is especially
+    sensitive to bundle size: it takes a lot of code to get custom iterators working
+    in older environments. For example, the previous `numbers` example generates nearly
+    1 KB of code (gzipped).'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的应用程序对捆绑大小特别敏感，您可能希望保持`downlevelIteration`禁用：在旧环境中使自定义迭代器工作需要大量代码。例如，前面的`numbers`示例生成了将近1
+    KB的代码（经过gzip压缩）。
+- en: Call Signatures
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 调用签名
+- en: So far, we’ve learned to type functions’ parameters and return types. Now, let’s
+    switch gears and talk about how we can express the full types of functions themselves.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经学会了为函数的参数和返回类型进行类型化。现在，让我们转换方向，讨论如何表达函数本身的完整类型。
+- en: 'Let’s revisit `sum` from the top of this chapter. As a reminder, it looks like
+    this:'
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们回顾一下本章开头提到的`sum`。作为提醒，它看起来像这样：
+- en: '[PRE25]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'What is the type of `sum`? Well, `sum` is a function, so its type is:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`sum`的类型是什么？嗯，`sum`是一个函数，所以它的类型是：'
+- en: '[PRE26]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: The `Function` type, as you may have guessed, is not what you want to use most
+    of the time. Like `object` describes all objects, `Function` is a catchall type
+    for all functions, and doesn’t tell you anything about the specific function that
+    it types.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正如你可能已经猜到的那样，`Function`类型并不是您大多数时候想要使用的类型。就像`object`描述了所有对象一样，`Function`是一个适用于所有函数的通用类型，并且不能告诉您有关其具体类型的任何信息。
+- en: 'How else can we type `sum`? `sum` is a function that takes two `numbers` and
+    returns a `number`. In TypeScript we can express its type as:'
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以如何为`sum`定义类型？`sum`是一个接受两个`number`并返回一个`number`的函数。在TypeScript中，我们可以表示它的类型为：
+- en: '[PRE27]'
+  id: totrans-122
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: This is TypeScript’s syntax for a function’s type, or *call signature* (also
+    called a *type signature*). You’ll notice it looks remarkably similar to an arrow
+    function—this is intentional! When you pass functions around as arguments, or
+    return them from other functions, this is the syntax you’ll use to type them.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是TypeScript用于函数类型的语法，或者*调用签名*（也称为*类型签名*）。您会注意到它看起来非常类似于箭头函数——这是有意为之！当您将函数作为参数传递，或者从其他函数返回它们时，您将使用这种语法来为它们类型化。
+- en: Note
+  id: totrans-124
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The parameter names `a` and `b` just serve as documentation, and don’t affect
+    the assignability of a function with that type.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 参数名`a`和`b`仅作为文档说明，不影响具有该类型的函数的可赋值性。
+- en: Function call signatures only contain *type-level* code—that is, types only,
+    no values. That means function call signatures can express parameter types, `this`
+    types (see [“Typing this”](#typing-this)), return types, rest types, and optional
+    types, and they cannot express default values (since a default value is a value,
+    not a type). And because they have no body for TypeScript to infer from, call
+    signatures require explicit return type annotations.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数调用签名只包含*类型级别*代码，即只有类型，没有值。这意味着函数调用签名可以表达参数类型、`this`类型（参见[“Typing this”](#typing-this)）、返回类型、剩余类型和可选类型，但它们不能表达默认值（因为默认值是一个值，不是一个类型）。并且因为它们没有函数体供TypeScript推断，调用签名需要显式的返回类型注释。
+- en: 'Let’s go through a few of the examples of functions we’ve seen so far in this
+    chapter, and pull out their types into standalone call signatures that we’ll bind
+    to type aliases:'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看本章中我们已经见过的一些函数示例，并将它们的类型提取为独立的调用签名，然后将它们绑定到类型别名：
+- en: '[PRE28]'
+  id: totrans-128
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Getting the hang of it? The functions’ call signatures look remarkably similar
+    to their implementations. This is intentional, and is a language design choice
+    that makes call signatures easier to reason about.
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 搞清楚了吗？函数的调用签名看起来与它们的实现非常相似。这是有意为之的，是一种语言设计选择，使调用签名更易于理解。
+- en: 'Let’s make the relationship between call signatures and their implementations
+    more concrete. If you have a call signature, how can you declare a function that
+    implements that signature? You simply combine the call signature with a function
+    expression that implements it. For example, let’s rewrite `Log` to use its shiny
+    new signature:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们使调用签名与它们的实现关系更加具体化。如果你有一个调用签名，你如何声明一个实现该签名的函数？你只需将调用签名与实现它的函数表达式组合起来。例如，让我们重写`Log`以使用它的全新签名：
+- en: '[PRE29]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: '[![1](assets/1.png)](#co_functions_CO2-1)'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO2-1)'
+- en: We declare a function expression `log`, and explicitly type it as type `Log`.
+  id: totrans-133
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明了一个函数表达式`log`，并明确将其类型为`Log`类型。
+- en: '[![2](assets/2.png)](#co_functions_CO2-2)'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO2-2)'
+- en: We don’t need to annotate our parameters twice. Since `message` is already annotated
+    as a `string` as part of the definition for `Log`, we don’t need to type it again
+    here. Instead, we let TypeScript infer it for us from `Log`.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不需要两次注释我们的参数。因为`message`已经作为`Log`定义的一部分注释为`string`，我们不需要在这里再次注释它。相反，我们让TypeScript从`Log`中推断它。
+- en: '[![3](assets/3.png)](#co_functions_CO2-3)'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO2-3)'
+- en: We add a default value for `userId`, since we captured `userId`’s type in our
+    signature for `Log`, but we couldn’t capture the default value as part of `Log`
+    because `Log` is a type and can’t contain values.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们为`userId`添加了一个默认值，因为我们在`Log`的签名中捕获了`userId`的类型，但是我们无法将默认值作为`Log`的一部分捕获，因为`Log`是一种类型，不能包含值。
+- en: '[![4](assets/4.png)](#co_functions_CO2-4)'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_functions_CO2-4)'
+- en: We don’t need to annotate our return type again, since we already declared it
+    as `void` in our `Log` type.
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不需要再次注释我们的返回类型，因为我们已经在`Log`类型中声明了它为`void`。
+- en: Contextual Typing
+  id: totrans-140
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 上下文类型推断
+- en: Notice that the last example was the first example we’ve seen where we didn’t
+    have to explicitly annotate our function parameter types. Because we already declared
+    that `log` is of type `Log`, TypeScript is able to infer from context that `message`
+    has to be of type `string`. This is a powerful feature of TypeScript’s type inference
+    called *contextual typing*.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，最后一个示例是我们看到的第一个示例，我们不需要显式注释我们函数参数类型。因为我们已经声明了`log`的类型为`Log`，TypeScript能够从上下文推断出`message`必须是`string`类型。这是TypeScript类型推断的一个强大特性，称为*上下文类型推断*。
+- en: 'Earlier in this chapter, we touched on one other place where contextual typing
+    comes up: callback functions.^([5](ch04.html#idm46304978237208))'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章的早些时候，我们提到了另一个上下文类型推断出现的地方：回调函数。^([5](ch04.html#idm46304978237208))
+- en: 'Let’s declare a function `times` that calls its callback `f` some number of
+    times `n`, passing the current index to `f` each time:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们声明一个函数`times`，它调用其回调函数`f`多次`n`次，每次将当前索引传递给`f`：
+- en: '[PRE30]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: 'When you call `times`, you don’t have to explicitly annotate the function you
+    pass to `times` if you declare that function inline:'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你调用`times`时，如果你在内联声明函数，你不需要显式地注释传递给`times`的函数：
+- en: '[PRE31]'
+  id: totrans-146
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: TypeScript infers from context that `n` is a `number`—we declared that `f`’s
+    argument `index` is a `number` in `times`’s signature, and TypeScript is smart
+    enough to infer that `n` is that argument, so it must be a `number`.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 从上下文中推断出 `n` 是一个 `number` ——我们在 `times` 的签名中声明 `f` 的参数 `index` 是一个
+    `number`，而 TypeScript 足够智能，推断出 `n` 就是该参数，因此它必须是一个 `number`。
+- en: 'Note that if we didn’t declare `f` inline, TypeScript wouldn’t have been able
+    to infer its type:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，如果我们没有内联声明 `f`，TypeScript 将无法推断其类型：
+- en: '[PRE32]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Overloaded Function Types
+  id: totrans-150
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 函数重载类型
+- en: 'The function type syntax we used in the last section—`type Fn = (...) => ...`—is
+    a *shorthand call signature*. We can instead write it out more explicitly. Again
+    taking the example of `Log`:'
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一节中我们使用的函数类型语法——`type Fn = (...) => ...`——是*简写调用签名*。我们也可以更明确地写出它。再次以 `Log`
+    的例子来说明：
+- en: '[PRE33]'
+  id: totrans-152
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: The two are completely equivalent in every way, and differ only in syntax.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两者在所有方面完全等效，仅在语法上有所不同。
+- en: Would you ever want to use a full call signature over the shorthand? For simple
+    cases like our `Log` function, you should prefer the shorthand; but for more complicated
+    functions, there are a few good use cases for full signatures.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您是否希望在简写和完整签名之间选择完整的调用签名？对于像我们的 `Log` 函数这样的简单情况，您应该更倾向于简写；但对于更复杂的函数，完整签名有几个很好的使用案例。
+- en: The first of these is *overloading* a function type. But first, what does it
+    even mean to overload a function?
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 其中之一是*函数类型的重载*。但首先，重载函数是什么意思呢？
+- en: In most programming languages, once you declare a function that takes some set
+    of parameters and yields some return type, you can call that function with exactly
+    that set of parameters, and you will always get that same return type back. Not
+    so in JavaScript. Because JavaScript is such a dynamic language, it’s a common
+    pattern for there to be multiple ways to call a given function; not only that,
+    but sometimes the output type will actually depend on the input type for an argument!
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数编程语言中，一旦声明了一个接受一些参数并生成某种返回类型的函数，您可以使用完全相同的参数集调用该函数，并且始终会得到相同的返回类型。但在 JavaScript
+    中不是这样的。由于 JavaScript 是一种如此动态的语言，有一个常见模式是有多种方式调用给定函数；不仅如此，有时输出类型实际上取决于参数的输入类型！
+- en: TypeScript models this dynamism—overloaded function declarations, and a function’s
+    output type depending on its input type—with its static type system. We might
+    take this language feature for granted, but it’s a really advanced feature for
+    a type system to have!
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript通过其静态类型系统模拟了这种动态性——函数重载声明以及函数的输出类型取决于其输入类型。我们可能认为这种语言特性理所当然，但对于类型系统来说，这确实是一个非常先进的功能！
+- en: 'You can use overloaded function signatures to design really expressive APIs.
+    For example, let’s design an API to book a vacation—we’ll call it `Reserve`. Let’s
+    start by sketching out its types (with a full type signature this time):'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用函数重载签名设计非常表达力的API。例如，让我们设计一个用于预订假期的API——我们称之为`Reserve`。让我们从勾勒其类型开始（这次是完整的类型签名）：
+- en: '[PRE34]'
+  id: totrans-159
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'Let’s then stub out an implementation for `Reserve`:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们为 `Reserve` 做一个桩实现：
+- en: '[PRE35]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: So a user who wants to book a trip to Bali has to call our `reserve` API with
+    a `from` date, a `to` date, and `"Bali"` as a destination.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，想要预订到巴厘岛的用户必须使用我们的 `reserve` API，提供一个`from`日期，一个`to`日期，并将`"Bali"`作为目的地传入。
+- en: 'We might repurpose our API to support one-way trips too:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以重新设计我们的 API 来支持单程旅行：
+- en: '[PRE36]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: You’ll notice that when you try to run this code, TypeScript will give you an
+    error at the point where you implement `Reserve` (see [Figure 4-3](#fig-typeerror)).
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您尝试运行此代码时，您会注意到 TypeScript 将在您实现 `Reserve` 的地方给出错误（见 [图 4-3](#fig-typeerror)）。
+- en: '![prts 0403](assets/prts_0403.png)'
+  id: totrans-166
+  prefs: []
+  type: TYPE_IMG
+  zh: '![prts 0403](assets/prts_0403.png)'
+- en: Figure 4-3\. TypeError when missing a combined overload signature
+  id: totrans-167
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 4-3\. 当缺少组合重载签名时的 TypeError
+- en: 'This is because of the way call signature overloading works in TypeScript.
+    If you declare a set of overload signatures for a function `f`, from a caller’s
+    point of view `f`’s type is the union of those overload signatures. But from `f`’s
+    *implementation’s* point of view, there needs to be a single, combined type that
+    can actually be implemented. You need to manually declare this combined call signature
+    when implementing `f`—it won’t be inferred for you. For our `Reserve` example,
+    we can update our `reserve` function like this:'
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是因为在 TypeScript 中调用签名重载函数的方式。如果为函数 `f` 声明了一组重载签名，从调用者的角度来看，`f` 的类型是这些重载签名的联合。但从
+    `f` 的实现角度来看，必须有一个单一的、合并的类型实际上可以被实现。在实现 `f` 时，您需要手动声明这个合并的调用签名——它不会为您推断。对于我们的 `Reserve`
+    示例，我们可以像这样更新我们的 `reserve` 函数：
+- en: '[PRE37]'
+  id: totrans-169
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: '[![1](assets/1.png)](#co_functions_CO3-1)'
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO3-1)'
+- en: We declare two overloaded function signatures.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们声明了两个重载函数签名。
+- en: '[![2](assets/2.png)](#co_functions_CO3-2)'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO3-2)'
+- en: 'The implementation’s signature is the result of us manually combining the two
+    overload signatures (in other words, we computed `Signature1 | Signature2` by
+    hand). Note that the combined signature isn’t visible to functions that call `reserve`;
+    from a consumer’s point of view, `Reserve`’s signature is:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实现签名是我们手动组合两个重载签名的结果（换句话说，我们通过手工计算得到 `Signature1 | Signature2`）。请注意，组合签名对调用
+    `reserve` 的函数不可见；从消费者的角度来看，`Reserve` 的签名是：
+- en: '[PRE38]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'Notably, this doesn’t include the combined signature we created:'
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，这不包括我们创建的组合签名：
+- en: '[PRE39]'
+  id: totrans-176
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Since `reserve` might be called in either of two ways, when you implement `reserve`
+    you have to prove to TypeScript that you checked how it was called:^([6](ch04.html#idm46304977663240))
+  id: totrans-177
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 `reserve` 可能以两种方式之一被调用，因此在实现 `reserve` 时，您必须向 TypeScript 证明您检查了它的调用方式：^([6](ch04.html#idm46304977663240))
+- en: '[PRE40]'
+  id: totrans-178
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: 'Overloads come up naturally in browser DOM APIs. The `createElement` DOM API,
+    for example, is used to create a new HTML element. It takes a string corresponding
+    to an HTML tag and returns a new HTML element of that tag’s type. TypeScript comes
+    with built-in types for each HTML element. These include:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 浏览器 DOM API 中自然会遇到重载。例如，`createElement` DOM API 用于创建新的 HTML 元素。它接受一个对应于 HTML
+    标签的字符串，并返回该标签类型的新 HTML 元素。TypeScript 包含每个 HTML 元素的内置类型。这些包括：
+- en: '`HTMLAnchorElement` for `<a>` elements'
+  id: totrans-180
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`<a>` 元素的 `HTMLAnchorElement`'
+- en: '`HTMLCanvasElement` for `<canvas>` elements'
+  id: totrans-181
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`<canvas>` 元素的 `HTMLCanvasElement`'
+- en: '`HTMLTableElement` for `<table>` elements'
+  id: totrans-182
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`<table>` 元素的 `HTMLTableElement`'
+- en: Overloaded call signatures are a natural way to model how `createElement` works.
+    Think about how you might type `createElement` (try to answer this by yourself
+    before you read on!).
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重载的调用签名是模拟 `createElement` 如何工作的一种自然方式。想想您可能如何为 `createElement` 编写类型（在阅读以下内容之前尝试自己回答！）。
+- en: 'The answer:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案是：
+- en: '[PRE41]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: '[![1](assets/1.png)](#co_functions_CO4-1)'
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO4-1)'
+- en: We overload on the parameter’s type, matching on it with string literal types.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们会根据参数的类型进行重载，使用字符串字面类型进行匹配。
+- en: '[![2](assets/2.png)](#co_functions_CO4-2)'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO4-2)'
+- en: 'We add a catchall case: if the user passed a custom tag name, or a cutting-edge
+    experimental tag name that hasn’t made its way into TypeScript’s built-in type
+    declarations yet, we return a generic `HTMLElement`. Since TypeScript resolves
+    overloads in the order they were declared,^([7](ch04.html#idm46304977328888))
+    when you call `createElement` with a string that doesn’t have a specific overload
+    defined (e.g., `createElement(''foo'')`), TypeScript will fall back to `HTMLElement`.'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们添加了一个捕获所有情况：如果用户传递了一个自定义标签名称，或者是一个尚未包含在 TypeScript 内置类型声明中的前沿实验性标签名称，我们将返回一个通用的
+    `HTMLElement`。由于 TypeScript 解析重载时会按照声明的顺序进行（例如，调用没有特定重载定义的字符串时，如 `createElement('foo')`，TypeScript
+    将退而求其次返回 `HTMLElement`）。
+- en: '[![3](assets/3.png)](#co_functions_CO4-3)'
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO4-3)'
+- en: To type the implementation’s parameter, we combine all the types that parameter
+    might have in `createElement`’s overload signatures, resulting in `'a' | 'canvas'
+    | 'table' | string`. Since the three string literal types are all subtypes of
+    `string`, the type reduces to just `string`.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了为实现的参数设置类型，我们将 `createElement` 的重载签名中可能具有的所有类型组合在一起，结果是 `'a' | 'canvas' |
+    'table' | string`。由于这三个字符串字面类型都是 `string` 的子类型，类型最终简化为 `string`。
+- en: Note
+  id: totrans-192
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'In all of the examples in this section we overloaded function expressions.
+    But what if we want to overload a function declaration? As always, TypeScript
+    has your back, with an equivalent syntax for function declarations. Let’s rewrite
+    our `createElement` overloads:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中的所有示例中，我们都重载了函数表达式。但是，如果我们想要重载函数声明怎么办？幸运的是，TypeScript 提供了等效于函数表达式的语法。让我们重新编写我们的
+    `createElement` 的重载：
+- en: '[PRE42]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: Which syntax you use is up to you, and depends on what kind of function you’re
+    overloading (function expression or function declarations).
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以根据需要选择使用哪种语法，这取决于您要重载的函数类型（函数表达式还是函数声明）。
+- en: 'Full type signatures aren’t limited to overloading how you call a function.
+    You can also use them to model properties on functions. Since JavaScript functions
+    are just callable objects, you can assign properties to them to do things like:'
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 完整的类型签名不仅限于重载函数的调用方式。您还可以使用它们来模拟函数的属性。由于 JavaScript 函数只是可调用对象，您可以为它们分配属性来执行诸如以下操作的功能：
+- en: '[PRE43]'
+  id: totrans-197
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: 'That is, we show the user a warning, and we don’t show a warning more than
+    once. Let’s use TypeScript to type `warnUser`’s full signature:'
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 也就是说，我们向用户显示警告，但我们不会重复显示警告。让我们使用 TypeScript 来定义`warnUser`的完整签名：
+- en: '[PRE44]'
+  id: totrans-199
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'We can then rewrite `warnUser` as a function expression that implements that
+    signature:'
+  id: totrans-200
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们可以将`warnUser`重写为一个实现该签名的函数表达式：
+- en: '[PRE45]'
+  id: totrans-201
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Note that TypeScript is smart enough to realize that though we didn’t assign
+    `wasCalled` to `warnUser` when we declared the `warnUser` function, we did assign
+    `wasCalled` to it right after.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，TypeScript 足够聪明，尽管在声明`warnUser`函数时我们没有将`wasCalled`赋值给它，但我们确实在声明后立即将`wasCalled`赋值给它了。
+- en: Polymorphism
+  id: totrans-203
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 多态性
+- en: 'So far in this book, we’ve been talking about the hows and whys of concrete
+    types, and functions that use concrete types. What’s a *concrete type*? It so
+    happens that every type we’ve seen so far is concrete:'
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，在这本书中，我们一直在讨论具体类型的使用方式和原因，以及使用具体类型的函数。什么是*具体类型*？到目前为止，我们看到的每一种类型都是具体类型：
+- en: '`boolean`'
+  id: totrans-205
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`boolean`'
+- en: '`string`'
+  id: totrans-206
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`string`'
+- en: '`Date[]`'
+  id: totrans-207
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`Date[]`'
+- en: '`{a: number} | {b: string}`'
+  id: totrans-208
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`{a: number} | {b: string}`'
+- en: '`(numbers: number[]) => number`'
+  id: totrans-209
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`(numbers: number[]) => number`'
+- en: Concrete types are useful when you know precisely what type you’re expecting,
+    and want to verify that type was actually passed. But sometimes, you don’t know
+    what type to expect beforehand, and you don’t want to restrict your function’s
+    behavior to a specific type!
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 具体类型在您确切知道期望的类型并希望验证实际传递的类型时非常有用。但有时，您并不知道预期的类型，并且不希望将函数的行为限制为特定类型！
+- en: 'As an example of what I mean, let’s implement `filter`. You use `filter` to
+    iterate over an array and refine it; in JavaScript, it might look like this:'
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为我所说的一个例子，让我们来实现`filter`。您可以使用`filter`来迭代数组并细化它；在 JavaScript 中，它可能看起来像这样：
+- en: '[PRE46]'
+  id: totrans-212
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'Let’s start by pulling out `filter`’s full type signature, and adding some
+    placeholder `unknown`s for the types:'
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们首先提取`filter`的完整类型签名，并为类型添加一些占位符`unknown`：
+- en: '[PRE47]'
+  id: totrans-214
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'Now, let’s try to fill in the types with, say, `number`:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，让我们尝试用`number`来填充类型：
+- en: '[PRE48]'
+  id: totrans-216
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: 'Typing the array’s elements as `number` works well for this example, but `filter`
+    is meant to be a generic function—you can filter arrays of numbers, strings, objects,
+    other arrays, anything. The signature we wrote works for arrays of numbers, but
+    it doesn’t work for arrays of other types of elements. Let’s try to use an overload
+    to extend it to work on arrays of strings too:'
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将数组的元素类型定义为`number`对于这个例子效果很好，但是`filter`函数应该是一个泛型函数——您可以过滤数字、字符串、对象、其他数组或任何类型的数组。我们编写的签名适用于数字数组，但对其他类型的数组不适用。让我们尝试使用重载来扩展它，使其也适用于字符串数组：
+- en: '[PRE49]'
+  id: totrans-218
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: So far so good (though it might get messy to write out an overload for every
+    type). What about arrays of objects?
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止还好（虽然为每种类型编写重载可能会变得混乱）。那么对象数组怎么办？
+- en: '[PRE50]'
+  id: totrans-220
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: 'This might look fine at first glance, but let’s try to use it to see where
+    it breaks down. If you implement a `filter` function with that signature (that
+    is, `filter: Filter`), and try to use it, you’ll get:'
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '乍一看，这看起来可能没问题，但让我们试着使用它来看看它在哪里出问题。如果您使用该签名（即`filter: Filter`）来实现一个`filter`函数，并尝试使用它，您会得到：'
+- en: '[PRE51]'
+  id: totrans-222
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: At this point, it should make sense why TypeScript is throwing this error. We
+    told TypeScript that we might pass an array of numbers, strings, or objects to
+    `filter`. We passed an array of objects, but remember that `object` doesn’t tell
+    you anything about the shape of the object. So each time we try to access a property
+    on an object in the array, TypeScript throws an error, because we didn’t tell
+    it what specific shape the object has.
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，TypeScript 抛出错误应该有点讲得通了。我们告诉 TypeScript 我们可能会传递一个数字、字符串或对象的数组给`filter`。我们传递了一个对象数组，但请记住，`object`并不告诉您对象的具体形状。因此，每次我们尝试访问数组中对象的属性时，TypeScript
+    都会抛出错误，因为我们没有告诉它对象具体是什么形状。
+- en: What to do?
+  id: totrans-224
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该怎么办？
+- en: If you come from a language that supports generic types, then by now you are
+    rolling your eyes and shouting, “THAT’S WHAT GENERICS ARE FOR!” The good news
+    is, you’re spot on (the bad news is, you just woke up the neighbors’ kid with
+    your shouting).
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您来自支持泛型类型的语言，那么现在您可能正在翻白眼并大声喊道，“这就是泛型的用途！”好消息是，您说得对（坏消息是，您刚刚把邻居家的孩子吵醒了）。
+- en: In case you haven’t worked with generic types before, I’ll define them first,
+    then give an example with our `filter` function.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您之前没有使用过泛型类型，我将首先定义它们，然后通过我们的`filter`函数给出一个示例。
+- en: 'Going back to our `filter` example, here is what its type looks like when we
+    rewrite it with a generic type parameter `T`:'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 回到我们的`filter`示例，当我们使用泛型类型参数`T`重新编写它时，它的类型如下所示：
+- en: '[PRE52]'
+  id: totrans-228
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'What we’ve done here is say: “This function `filter` uses a generic type parameter
+    `T`; we don’t know what this type will be ahead of time, so TypeScript if you
+    can infer what it is each time we call `filter` that would be swell.” TypeScript
+    infers `T` from the type we pass in for `array`. Once TypeScript infers what `T`
+    is for a given call to `filter`, it substitutes that type in for every `T` it
+    sees. `T` is like a placeholder type, to be filled in by the typechecker from
+    context; it *parameterizes* `Filter`’s type, which is why we call it a generic
+    type *parameter*.'
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在这里做的是告诉 TypeScript：“这个函数 `filter` 使用一个泛型类型参数 `T`；我们事先不知道这种类型会是什么，所以 TypeScript
+    如果你能推断出每次我们调用 `filter` 时它是什么类型，那就太好了。” TypeScript 会从我们为 `array` 传入的类型推断出 `T`。一旦
+    TypeScript 推断出给 `filter` 的特定调用中的 `T` 是什么，它就会用该类型替换它看到的每一个 `T`。`T` 就像是一个占位符类型，将从上下文中由类型检查器填充；它
+    *参数化* 了 `Filter` 的类型，这就是为什么我们称其为泛型类型 *参数*。
+- en: Note
+  id: totrans-230
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Because it’s such a mouthful to say “generic type parameter” every time, people
+    often shorten it to just “generic type,” or simply “generic.” I’ll use the terms
+    interchangeably throughout this book.
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为每次都说 “泛型类型参数” 很麻烦，人们通常将其缩短为 “泛型类型” 或简称 “泛型”。本书中我会交替使用这些术语。
+- en: The funny-looking angle brackets, `<>`, are how you declare generic type parameters
+    (think of them like the `type` keyword, but for generic types); where you place
+    the angle brackets scopes the generics (there are just a few places you can put
+    them), and TypeScript makes sure that within their scope, all instances of the
+    generic type parameters are eventually bound to the same concrete types. Because
+    of where the angle brackets are in this example, TypeScript will bind concrete
+    types to our generic `T` when we call `filter`. And it will decide which concrete
+    type to bind to `T` depending on what we called `filter` with. You can declare
+    as many comma-separated generic type parameters as you want between a pair of
+    angle brackets.
+  id: totrans-232
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 看起来有点滑稽的尖括号 `<>`，是你声明泛型类型参数的方式（把它们想象成 `type` 关键字，但用于泛型类型）；尖括号的位置决定了泛型的作用范围（你可以放它们的地方很有限），TypeScript
+    会确保在它们的范围内，所有泛型类型参数的实例最终都绑定到相同的具体类型。在这个例子中，由于尖括号的位置，当我们调用 `filter` 时，TypeScript
+    将为我们的泛型 `T` 绑定具体类型。它会根据我们如何调用 `filter` 来决定将哪种具体类型绑定到 `T`。你可以在一对尖括号之间声明任意数量的逗号分隔的泛型类型参数。
+- en: Note
+  id: totrans-233
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`T` is just a type name, and we could have used any other name instead: `A`,
+    `Zebra`, or `l33t`. By convention, people use uppercase single-letter names starting
+    with the letter `T` and continuing to `U`, `V`, `W`, and so on depending on how
+    many generics they need.'
+  id: totrans-234
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`T` 只是一个类型名称，我们完全可以使用其他任何名称：`A`、`Zebra` 或 `l33t`。按照惯例，人们使用从大写单字母 `T` 开始一直到
+    `U`、`V`、`W` 等，具体取决于他们需要多少个泛型。'
+- en: If you’re declaring a lot of generics in a row or are using them in a complicated
+    way, consider deviating from this convention and using more descriptive names
+    like `Value` or `WidgetType` instead.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你连续声明了很多泛型，或者在复杂的情况下使用它们，请考虑偏离这种惯例，而是使用更具描述性的名称，比如 `Value` 或 `WidgetType`。
+- en: 'Some people prefer to start at `A` instead of `T`. Different programming language
+    communities prefer one or the other, depending on their heritage: functional language
+    users prefer `A`, `B`, `C`, and so on because of their likeness to the Greek letters
+    α, β, and γ that you might find in math proofs; object-oriented language users
+    tend to use `T` for “Type.” TypeScript, though it supports both programming styles,
+    uses the latter convention.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有些人喜欢从 `A` 开始而不是从 `T` 开始。不同的编程语言社区根据其传统偏好其中之一：函数语言用户喜欢 `A`、`B`、`C` 等，因为它们类似于数学证明中可能会出现的希腊字母
+    α、β 和 γ；面向对象语言用户倾向于使用 `T` 表示 “类型”。尽管 TypeScript 支持这两种编程风格，但它使用后者的约定。
+- en: 'Like a function’s parameter gets re-bound every time you call that function,
+    so each call to `filter` gets its own binding for `T`:'
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像一个函数的参数在每次调用该函数时都会被重新绑定一样，每次调用 `filter` 都会为 `T` 获得自己的绑定：
+- en: '[PRE53]'
+  id: totrans-238
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'TypeScript infers these generic bindings from the types of the arguments we
+    passed in. Let’s walk through how TypeScript binds `T` for (a):'
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 从我们传入的参数类型中推断出这些泛型绑定。让我们逐步了解 TypeScript 如何为 (a) 绑定 `T`：
+- en: From the type signature for `filter`, TypeScript knows that `array` is an array
+    of elements of some type `T`.
+  id: totrans-240
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 从 `filter` 的类型签名中，TypeScript 知道 `array` 是一个包含某种类型 `T` 元素的数组。
+- en: TypeScript notices that we passed in the array `[1, 2, 3]`, so `T` must be `number`.
+  id: totrans-241
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript 注意到我们传入了数组 `[1, 2, 3]`，因此 `T` 必须是 `number`。
+- en: 'Wherever TypeScript sees a `T`, it substitutes in the `number` type. So the
+    parameter `f: (item: T) => boolean` becomes `f: (item: number) => boolean`, and
+    the return type `T[]` becomes `number[]`.'
+  id: totrans-242
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'TypeScript在任何地方看到`T`时都会将其替换为`number`类型。因此，参数`f: (item: T) => boolean`变成了`f:
+    (item: number) => boolean`，返回类型`T[]`变成了`number[]`。'
+- en: TypeScript checks that the types all satisfy assignability, and that the function
+    we passed in as `f` is assignable to its freshly inferred signature.
+  id: totrans-243
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript检查所有类型是否满足可赋值性，并检查我们传入的函数`f`是否可分配给其新推断的签名。
+- en: 'Generics are a powerful way to say what your function does in a more general
+    way than what concrete types allow. The way to think about generics is as *constraints*.
+    Just like annotating a function parameter as `n: number` constrains the *value*
+    of the parameter `n` to the type `number`, so using a generic `T` constrains the
+    *type* of whatever type you bind to `T` to be the same type everywhere that `T`
+    shows up.'
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '泛型是一种比具体类型更通用地描述函数行为的强大方式。理解泛型的方式就像*约束*一样。就像将函数参数注释为`n: number`约束参数`n`的*值*类型为`number`一样，使用泛型`T`约束了绑定到`T`的任何类型在出现`T`的任何地方都是相同的类型。'
+- en: Tip
+  id: totrans-245
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Generic types can also be used in type aliases, classes, and interfaces—we’ll
+    use them copiously throughout this book. I’ll introduce them in context as we
+    cover more topics.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 泛型类型也可以用于类型别名、类和接口中——在本书中我们将大量使用它们。随着我们涵盖更多的主题，我会在相关上下文中介绍它们。
+- en: Use generics whenever you can. They will help keep your code general, reusable,
+    and terse.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽可能使用泛型。它们将有助于保持代码的通用性、重用性和简洁性。
+- en: When Are Generics Bound?
+  id: totrans-248
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 泛型何时被绑定？
+- en: 'The place where you declare a generic type doesn’t just scope the type, but
+    also dictates when TypeScript will bind a concrete type to your generic. From
+    the last example:'
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 声明泛型类型的位置不仅仅是作用域的问题，还决定了TypeScript何时将具体类型绑定到你的泛型中。从最后一个例子可以看出：
+- en: '[PRE54]'
+  id: totrans-250
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: Because we declared `<T>` as part of a call signature (right before the signature’s
+    opening parenthesis, `()`, TypeScript will bind a concrete type to `T` when we
+    actually call a function of type `Filter`.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们将`<T>`声明为调用签名的一部分（在签名的开括号`()`之前），当我们实际调用类型为`Filter`的函数时，TypeScript将会将一个具体的类型绑定到`T`。
+- en: 'If we’d instead scoped `T` to the type alias `Filter`, TypeScript would have
+    required us to bind a type explicitly when we used `Filter`:'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们将`T`限定为类型别名`Filter`，TypeScript将要求我们在使用`Filter`时显式绑定一个类型：
+- en: '[PRE55]'
+  id: totrans-253
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'Generally, TypeScript will bind concrete types to your generic when you use
+    the generic: for functions, it’s when you call them; for classes, it’s when you
+    instantiate them (more on that in [“Polymorphism”](ch05.html#class-generics));
+    and for type aliases and interfaces (see [“Interfaces”](ch05.html#interfaces)),
+    it’s when you use or implement them.'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通常情况下，TypeScript在你使用泛型时会将具体类型绑定到你的泛型中：对于函数来说，是在调用它们时；对于类来说，是在实例化它们时（更多内容请参见[“多态性”](ch05.html#class-generics)）；对于类型别名和接口（请参见[“接口”](ch05.html#interfaces)），是在使用或实现它们时。
+- en: Where Can You Declare Generics?
+  id: totrans-255
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 你可以在哪里声明泛型？
+- en: 'For each of TypeScript’s ways to declare a call signature, there’s a way to
+    add a generic type to it:'
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于TypeScript声明调用签名的每种方式，都有一种方法可以为其添加泛型类型：
+- en: '[PRE56]'
+  id: totrans-257
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: '[![1](assets/1.png)](#co_functions_CO5-1)'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO5-1)'
+- en: A full call signature, with `T` scoped to an individual signature. Because `T`
+    is scoped to a single signature, TypeScript will bind the `T` in this signature
+    to a concrete type when you call a function of type `filter`. Each call to `filter`
+    will get its own binding for `T`.
+  id: totrans-259
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 全部调用签名，`T`作用域限定为单个签名。因为`T`限定在单个签名中，所以当你调用类型为`filter`的函数时，TypeScript将为该签名的`T`绑定一个具体的类型。每次调用`filter`都会为`T`获得自己的绑定。
+- en: '[![2](assets/2.png)](#co_functions_CO5-2)'
+  id: totrans-260
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO5-2)'
+- en: A full call signature, with `T` scoped to *all* of the signatures. Because `T`
+    is declared as part of `Filter`’s type (and not part of a specific signature’s
+    type), TypeScript will bind `T` when you declare a function of type `Filter`.
+  id: totrans-261
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 全部调用签名，`T`作用域涵盖*所有*签名。因为`T`声明为`Filter`类型的一部分（而不是特定签名类型的一部分），所以当你声明类型为`Filter`的函数时，TypeScript将绑定`T`。
+- en: '[![3](assets/3.png)](#co_functions_CO5-3)'
+  id: totrans-262
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO5-3)'
+- en: Like [![1](assets/1.png)](#co_functions_CO5-1), but a shorthand call signature
+    instead of a full one.
+  id: totrans-263
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像[![1](assets/1.png)](#co_functions_CO5-1)，但是这是一种简写的调用签名而不是完整的调用签名。
+- en: '[![4](assets/4.png)](#co_functions_CO5-4)'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_functions_CO5-4)'
+- en: Like [![2](assets/2.png)](#co_functions_CO5-2), but a shorthand call signature
+    instead of a full one.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像[![2](assets/2.png)](#co_functions_CO5-2)，但是这是一种简写的调用签名而不是完整的调用签名。
+- en: '[![5](assets/5.png)](#co_functions_CO5-5)'
+  id: totrans-266
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_functions_CO5-5)'
+- en: A named function call signature, with `T` scoped to the signature. TypeScript
+    will bind a concrete type to `T` when you call `filter`, and each call to `filter`
+    will get its own binding for `T`.
+  id: totrans-267
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个命名函数调用签名，`T`作用域在签名中。当你调用`filter`时，TypeScript 将一个具体类型绑定到`T`，每次调用`filter`都会为`T`得到一个新的绑定。
+- en: 'As a second example, let’s write a `map` function. `map` is pretty similar
+    to `filter`, but instead of removing items from an array, it transforms each item
+    with a mapping function. We’ll start by sketching out the implementation:'
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为第二个例子，让我们编写一个`map`函数。`map`函数与`filter`非常相似，但是它不会从数组中移除项目，而是使用映射函数转换每个项目。我们首先草拟实现如下：
+- en: '[PRE57]'
+  id: totrans-269
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: Before you go on, try to think through how you’d make `map` generic, replacing
+    each `unknown` with some type. How many generics do you need? How do you declare
+    your generics, and scope them to the `map` function? What should the types of
+    `array`, `f`, and the return value be?
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在你继续之前，试着思考一下如何使`map`函数成为泛型，用某些类型替换每个`unknown`。你需要多少个泛型？如何声明你的泛型，并将其作用域限制在`map`函数中？`array`、`f`和返回值应该是什么类型？
+- en: Ready? If you didn’t try to do it yourself first, I encourage you to give it
+    a shot. You can do it. Really!
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 准备好了吗？如果你还没有自己尝试，请尝试一下。你能做到的。真的！
+- en: 'OK, no more nagging. Here’s the answer:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 好了，不再唠叨。答案如下：
+- en: '[PRE58]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'We need exactly two generic types: `T` for the type of the array members going
+    in, and `U` for the type of the array members going out. We pass in an array of
+    `T`s, and a mapping function that takes a `T` and maps it to a `U`. Finally, we
+    return an array of `U`s.'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要确切两个泛型类型：`T`表示输入数组成员的类型，`U`表示输出数组成员的类型。我们传入一个`T`类型的数组，并且传入一个将`T`映射到`U`的映射函数。最后，我们返回一个`U`类型的数组。
+- en: Generic Type Inference
+  id: totrans-275
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 泛型类型推断
+- en: 'In most cases, TypeScript does a great job of inferring generic types for you.
+    When you call the `map` function we wrote earlier, TypeScript infers that `T`
+    is `string` and `U` is `boolean`:'
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在大多数情况下，TypeScript 很好地推断出了泛型类型。当你调用我们之前编写的`map`函数时，TypeScript 推断出`T`是`string`，`U`是`boolean`：
+- en: '[PRE59]'
+  id: totrans-277
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: 'You can, however, explicitly annotate your generics too. Explicit annotations
+    for generics are all-or-nothing; either annotate every required generic type,
+    or none of them:'
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不过，你也可以显式注释你的泛型。对于泛型的显式注释，要么对所有必需的泛型类型进行注释，要么不对任何泛型类型进行注释：
+- en: '[PRE60]'
+  id: totrans-279
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: 'TypeScript will check that each inferred generic type is assignable to its
+    corresponding explicitly bound generic; if it’s not assignable, you’ll get an
+    error:'
+  id: totrans-280
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 将检查每个推断出的泛型类型是否可以分配给其相应的显式绑定泛型类型；如果不能分配，就会报错：
+- en: '[PRE61]'
+  id: totrans-281
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'Since TypeScript infers concrete types for your generics from the arguments
+    you pass into your generic function, sometimes you’ll hit a case like this:'
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 由于 TypeScript 从你传递给泛型函数的参数中推断出泛型的具体类型，有时你会遇到这样的情况：
+- en: '[PRE62]'
+  id: totrans-283
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: What gives? Why did TypeScript infer `result` to be `{}`? Because we didn’t
+    give it enough information to work with—since TypeScript only uses the types of
+    a generic function’s arguments to infer a generic’s type, it defaulted `T` to
+    `{}`!
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 怎么回事？为什么 TypeScript 将`result`推断为`{}`？因为我们没有给它足够的信息来处理——因为 TypeScript 只使用泛型函数参数的类型来推断泛型的类型，它默认将`T`推断为`{}`！
+- en: 'To fix this, we have to explicitly annotate `Promise`s generic type parameter:'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要修复这个问题，我们必须显式注释`Promise`的泛型类型参数：
+- en: '[PRE63]'
+  id: totrans-286
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: Generic Type Aliases
+  id: totrans-287
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 泛型类型别名
+- en: We already touched on generic type aliases with our `Filter` example from earlier
+    in the chapter. And if you recall the `Array` and `ReadonlyArray` types from the
+    last chapter (see [“Read-only arrays and tuples”](ch03.html#readonly-array)),
+    those are generic type aliases too! Let’s take a deeper dive into using generics
+    in type aliases by working through a brief example.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经在本章的`Filter`示例中涉及了泛型类型别名。如果你还记得上一章的`Array`和`ReadonlyArray`类型（参见[“只读数组和元组”](ch03.html#readonly-array)），那些也是泛型类型别名！让我们通过一个简短的示例深入了解在类型别名中使用泛型。
+- en: 'Let’s define a `MyEvent` type that describes a DOM event, like a `click` or
+    a `mousedown`:'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们定义一个描述 DOM 事件（如`click`或`mousedown`）的`MyEvent`类型：
+- en: '[PRE64]'
+  id: totrans-290
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'Note that this is the only valid place to declare a generic type in a type
+    alias: right after the type alias’s name, before its assignment (`=`).'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意，在类型别名中声明泛型类型的唯一有效位置是：在类型别名的名称后面、分配（`=`）之前。
+- en: '`MyEvent`’s `target` property points to the element the event happened on:
+    a `<button />`, a `<div />`, and so on. For example, you might describe a button
+    event like this:'
+  id: totrans-292
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`MyEvent`的`target`属性指向发生事件的元素：如`<button />`，`<div />`等。例如，你可以像这样描述一个按钮事件：'
+- en: '[PRE65]'
+  id: totrans-293
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: 'When you use a generic type like `MyEvent`, you have to explicitly bind its
+    type parameters when you use the type; they won’t be inferred for you:'
+  id: totrans-294
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当您使用像 `MyEvent` 这样的泛型类型时，必须在使用该类型时显式绑定其类型参数；它们不会为您推断出来：
+- en: '[PRE66]'
+  id: totrans-295
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'You can use `MyEvent` to build another type—say, `TimedEvent`. When the generic
+    `T` in `TimedEvent` is bound, TypeScript will also bind it to `MyEvent`:'
+  id: totrans-296
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用 `MyEvent` 来构建另一个类型——比如 `TimedEvent`。当泛型 `T` 在 `TimedEvent` 中被绑定时，TypeScript
+    也会将其绑定到 `MyEvent`：
+- en: '[PRE67]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: 'You can use a generic type alias in a function’s signature, too. When TypeScript
+    binds a type to `T`, it’ll also bind it to `MyEvent` for you:'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您也可以在函数的签名中使用泛型类型别名。当 TypeScript 将一个类型绑定到 `T` 时，它也会为您将其绑定到 `MyEvent`：
+- en: '[PRE68]'
+  id: totrans-299
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'Let’s walk through what’s happening here step by step:'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们一步步地解析这里发生的事情：
+- en: We call `triggerEvent` with an object.
+  id: totrans-301
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 我们使用一个对象调用 `triggerEvent`。
+- en: 'TypeScript sees that according to our function’s signature, the argument we
+    passed has to have the type `MyEvent<T>`. It also notices that we defined `MyEvent<T>`
+    as `{target: T, type: string}`.'
+  id: totrans-302
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 'TypeScript 看到，根据我们函数的签名，我们传递的参数必须是 `MyEvent<T>` 类型。它还注意到，我们定义了 `MyEvent<T>`
+    为 `{target: T, type: string}`。'
+- en: 'TypeScript notices that the `target` field of the object we passed is `document.querySelector(''#myButton'')`.
+    That implies that `T` must be whatever type `document.querySelector(''#myButton'')`
+    is: `Element | null`. So `T` is now bound to `Element | null`.'
+  id: totrans-303
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript 注意到我们传递的对象的 `target` 字段是 `document.querySelector('#myButton')`。这意味着
+    `T` 必须是 `document.querySelector('#myButton')` 的类型：`Element | null`。所以 `T` 现在绑定到
+    `Element | null`。
+- en: TypeScript goes through and replaces every occurrence of `T` with `Element |
+    null`.
+  id: totrans-304
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript 遍历并替换每个 `T` 的出现位置为 `Element | null`。
+- en: TypeScript checks that all of our types satisfy assignability. They do, so our
+    code typechecks.
+  id: totrans-305
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript 检查所有类型是否满足可赋值性。它们确实如此，所以我们的代码类型检查通过。
+- en: Bounded Polymorphism
+  id: totrans-306
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 有界多态性
+- en: Note
+  id: totrans-307
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: 'In this section I’m going to use a binary tree as an example. If you haven’t
+    worked with binary trees before, don’t worry. For our purposes, the basics are:'
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本节中，我将以二叉树为例。如果您之前没有使用过二叉树，请不要担心。对于我们的目的，基本原理是：
+- en: A binary tree is a kind of data structure.
+  id: totrans-309
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 二叉树是一种数据结构。
+- en: A binary tree consists of nodes.
+  id: totrans-310
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个二叉树由节点组成。
+- en: A node holds a value, and can point to up to two child nodes.
+  id: totrans-311
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个节点持有一个值，并且可以指向最多两个子节点。
+- en: 'A node can be one of two types: a *leaf node* (meaning it has no children)
+    or an *inner node* (meaning it has at least one child).'
+  id: totrans-312
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 一个节点可以是两种类型之一：*叶节点*（表示它没有子节点）或*内部节点*（表示它至少有一个子节点）。
+- en: Sometimes, saying “this thing is of some generic type `T` and that thing has
+    to have the same type `T`" just isn’t enough. Sometimes you also want to say “the
+    type `U` should be *at least `T`*.” We call this putting an *upper bound* on `U`.
+  id: totrans-313
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 有时，仅仅说“这个东西是某种泛型类型 `T`，并且那个东西必须具有相同的类型 `T`”是不够的。有时，您还想说“类型 `U` 应该*至少是 `T`*”。我们称这在
+    `U` 上设置*上界*。
+- en: 'Why might we want to do this? Let’s say we’re implementing a binary tree, and
+    have three types of nodes:'
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么我们要这样做？假设我们正在实现一个二叉树，并且有三种类型的节点：
+- en: Regular `TreeNode`s
+  id: totrans-315
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '常规的 `TreeNode` '
+- en: '`LeafNode`s, which are `TreeNode`s that don’t have children'
+  id: totrans-316
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`LeafNode` 是没有子节点的 `TreeNode`'
+- en: '`InnerNode`s, which are `TreeNode`s that do have children'
+  id: totrans-317
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`InnerNode` 是具有子节点的 `TreeNode`'
+- en: 'Let’s start by declaring types for our nodes:'
+  id: totrans-318
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从声明节点类型开始：
+- en: '[PRE69]'
+  id: totrans-319
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: 'What we’re saying is: a `TreeNode` is an object with a single property, `value`.
+    The `LeafNode` type has all the properties `TreeNode` has, plus a property `isLeaf`
+    that’s always `true`. `InnerNode` also has all of `TreeNode`’s properties, plus
+    a `children` property that points to either one or two children.'
+  id: totrans-320
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们要说的是：`TreeNode` 是一个带有单个属性 `value` 的对象。`LeafNode` 类型具有 `TreeNode` 的所有属性，加上一个始终为
+    `true` 的 `isLeaf` 属性。`InnerNode` 也具有 `TreeNode` 的所有属性，加上一个指向一个或两个子节点的 `children`
+    属性。
+- en: 'Next, let’s write a `mapNode` function that takes a `TreeNode` and maps over
+    its value, returning a new `TreeNode`. We want to come up with a `mapNode` function
+    that we can use like this:'
+  id: totrans-321
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，让我们编写一个 `mapNode` 函数，它接受一个 `TreeNode` 并映射其值，返回一个新的 `TreeNode`。我们希望设计一个可以像这样使用的
+    `mapNode` 函数：
+- en: '[PRE70]'
+  id: totrans-322
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: Now pause, and think about how you might write a `mapNode` function that takes
+    a subtype of `TreeNode` and returns *that same subtype*. Passing in a `LeafNode`
+    should return a `LeafNode`, an `InnerNode` should return an `InnerNode`, and a
+    `TreeNode` should return a `TreeNode`. Consider how you’d do this before you move
+    on. Is it possible?
+  id: totrans-323
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在暂停一下，考虑一下如何编写一个 `mapNode` 函数，它接受 `TreeNode` 的子类型并返回*相同的子类型*。传入 `LeafNode`
+    应该返回 `LeafNode`，传入 `InnerNode` 应该返回 `InnerNode`，传入 `TreeNode` 应该返回 `TreeNode`。在继续之前，请考虑一下如何做到这一点。这可能吗？
+- en: 'Here’s the answer:'
+  id: totrans-324
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 答案如下：
+- en: '[PRE71]'
+  id: totrans-325
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE71]'
+- en: '[![1](assets/1.png)](#co_functions_CO6-1)'
+  id: totrans-326
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO6-1)'
+- en: '`mapNode` is a function that defines a single generic type parameter, `T`.
+    `T` has an upper bound of `TreeNode`. That is, `T` can be either a `TreeNode`,
+    or a subtype of `TreeNode`.'
+  id: totrans-327
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`mapNode`是一个定义了单个泛型类型参数`T`的函数。`T`的上界是`TreeNode`。也就是说，`T`可以是`TreeNode`，或者`TreeNode`的子类型。'
+- en: '[![2](assets/2.png)](#co_functions_CO6-2)'
+  id: totrans-328
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO6-2)'
+- en: '`mapNode` takes two parameters, the first of which is a `node` of type `T`.
+    Because in [![1](assets/1.png)](#co_functions_CO6-1) we said `node extends TreeNode`,
+    if we passed in something that’s not a `TreeNode`—say, an empty object `{}`, `null`,
+    or an array of `TreeNode`s—that would be an instant red squiggly. `node` has to
+    be either a `TreeNode` or a subtype of `TreeNode`.'
+  id: totrans-329
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`mapNode`接受两个参数，第一个参数是类型为`T`的`node`。因为在 [![1](assets/1.png)](#co_functions_CO6-1)
+    中我们声明了 `node extends TreeNode`，如果我们传入的不是`TreeNode`，比如空对象`{}`、`null`或者`TreeNode`的数组，那么会立即显示红色下划线。`node`必须是`TreeNode`或`TreeNode`的子类型。'
+- en: '[![3](assets/3.png)](#co_functions_CO6-3)'
+  id: totrans-330
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO6-3)'
+- en: '`mapNode` returns a value of type `T`. Remember that `T` might be a `TreeNode`,
+    or any subtype of `TreeNode`.'
+  id: totrans-331
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`mapNode`返回类型为`T`的值。请记住，`T`可能是`TreeNode`，也可能是`TreeNode`的任何子类型。'
+- en: Why did we have to declare `T` that way?
+  id: totrans-332
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为什么我们要那样声明`T`呢？
+- en: If we had typed `T` as just `T` (leaving off `extends TreeNode`), then `mapNode`
+    would have thrown a compile-time error, because you can’t safely read `node.value`
+    on an unbounded `node` of type `T` (what if a user passes in a number?).
+  id: totrans-333
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果我们将`T`简单地声明为`T`（省略`extends TreeNode`），那么`mapNode`将会抛出编译时错误，因为在未限定类型为`T`的情况下安全读取`node.value`是不可能的（如果用户传递一个数字会怎么样？）。
+- en: 'If we had left off the `T` entirely and declared `mapNode` as `(node: TreeNode,
+    f: (value: string) => string) => TreeNode`, then we would have lost information
+    after mapping a node: `a1`, `b1`, and `c1` would all just be `TreeNode`s.'
+  id: totrans-334
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '如果我们完全省略了`T`并声明`mapNode`为`(node: TreeNode, f: (value: string) => string) =>
+    TreeNode`，那么在映射节点后我们将丢失信息：`a1`、`b1`和`c1`都将只是`TreeNode`。'
+- en: By saying that `T extends TreeNode`, we get to preserve the input node’s specific
+    type (`TreeNode`, `LeafNode`, or `InnerNode`), even after mapping it.
+  id: totrans-335
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过声明`T extends TreeNode`，我们能够在映射后保留输入节点的具体类型（`TreeNode`、`LeafNode`或`InnerNode`）。
+- en: Bounded polymorphism with multiple constraints
+  id: totrans-336
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 使用多个约束的有界多态性
+- en: 'In the last example, we put a single type constraint on `T`: `T` has to be
+    at least a `TreeNode`. But what if you want multiple type constraints?'
+  id: totrans-337
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一个例子中，我们对`T`施加了单一类型约束：`T`至少必须是一个`TreeNode`。但是如果你想要多个类型约束呢？
+- en: 'Just extend the intersection (`&`) of those constraints:'
+  id: totrans-338
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只需扩展这些约束的交集（`&`）：
+- en: '[PRE72]'
+  id: totrans-339
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE72]'
+- en: '[![1](assets/1.png)](#co_functions_CO7-1)'
+  id: totrans-340
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_CO7-1)'
+- en: '`logPerimeter` is a function that takes a single argument `s` of type `Shape`.'
+  id: totrans-341
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`logPerimeter`是一个接受类型为`Shape`的单一参数`s`的函数。'
+- en: '[![2](assets/2.png)](#co_functions_CO7-2)'
+  id: totrans-342
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_CO7-2)'
+- en: '`Shape` is a generic type that extends both the `HasSides` type and the `SidesHaveLength`
+    type. In other words, a `Shape` has to at least have sides with lengths.'
+  id: totrans-343
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Shape`是一个泛型类型，它同时扩展了`HasSides`类型和`SidesHaveLength`类型。换句话说，一个`Shape`至少具有具有长度的边。'
+- en: '[![3](assets/3.png)](#co_functions_CO7-3)'
+  id: totrans-344
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_CO7-3)'
+- en: '`logPerimeter` returns a value of the exact same type you gave it.'
+  id: totrans-345
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`logPerimeter`返回的值与你给它的完全相同的类型。'
+- en: Using bounded polymorphism to model arity
+  id: totrans-346
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 使用有界多态性来建模参数个数
+- en: 'Another place where you’ll find yourself using bounded polymorphism is to model
+    variadic functions (functions that take any number of arguments). For example,
+    let’s implement our own version of JavaScript’s built-in `call` function (as a
+    reminder, `call` is a function that takes a function and a variable number of
+    arguments, and applies those arguments to the function).^([8](ch04.html#idm46304974415464))
+    We’ll define and use it like this, using `unknown` for the types we’ll fill in
+    later:'
+  id: totrans-347
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个你将会使用有界多态性的地方是模拟可变参数函数（接受任意数量参数的函数）。例如，让我们实现自己版本的JavaScript内置的`call`函数（提醒一下，`call`是一个函数，它接受一个函数和可变数量的参数，并将这些参数应用于函数）。^([8](ch04.html#idm46304974415464))
+    我们将定义并使用它如下，使用`unknown`来填充我们稍后会填写的类型：
+- en: '[PRE73]'
+  id: totrans-348
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE73]'
+- en: 'Now let’s fill in the `unknown`s. The constraints we want to express are:'
+  id: totrans-349
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们填写这些`unknown`。我们想要表达的约束是：
+- en: '`f` should be a function that takes some set of arguments `T`, and returns
+    some type `R`. We don’t know how many arguments it’ll have ahead of time.'
+  id: totrans-350
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`f`应该是一个接受某些参数`T`并返回某种类型`R`的函数。我们事先不知道它将有多少个参数。'
+- en: '`call` takes `f`, along with the same set of arguments `T` that `f` itself
+    takes. Again, we don’t know exactly how many arguments to expect ahead of time.'
+  id: totrans-351
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`call`接受`f`，以及与`f`本身接受的`T`相同的一组参数。再次强调，我们事先不知道期望的参数数量。'
+- en: '`call` returns the same type `R` that `f` returns.'
+  id: totrans-352
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`call`返回与`f`返回相同的类型`R`。'
+- en: 'We’ll need two type parameters: `T`, which is an array of arguments, and `R`,
+    which is an arbitrary return value. Let’s fill in the types:'
+  id: totrans-353
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们需要两个类型参数：`T`，它是一个参数数组，以及`R`，它是一个任意返回值。让我们填写类型：
+- en: '[PRE74]'
+  id: totrans-354
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE74]'
+- en: 'How exactly does this work? Let’s walk through it step by step:'
+  id: totrans-355
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这究竟是如何工作的？让我们逐步走过它：
+- en: '[![1](assets/1.png)](#co_functions_1)'
+  id: totrans-356
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_functions_1)'
+- en: '`call` is a variadic function (as a reminder, a variadic function is a function
+    that accepts any number of arguments) that has two type parameters: `T` and `R`.
+    `T` is a subtype of `unknown[]`; that is, `T` is an array or tuple of any type.'
+  id: totrans-357
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`call`是一个可变参数函数（提醒一下，可变参数函数是接受任意数量参数的函数），具有两个类型参数：`T`和`R`。`T`是`unknown[]`的子类型；也就是说，`T`是任何类型的数组或元组。'
+- en: '[![2](assets/2.png)](#co_functions_2)'
+  id: totrans-358
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_functions_2)'
+- en: '`call`’s first parameter is a function `f`. `f` is also variadic, and its arguments
+    share a type with `args`: whatever type `args` is, `f` arguments have the same
+    exact type.'
+  id: totrans-359
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`call`的第一个参数是一个函数`f`。`f`也是可变参数的，并且其参数与`args`共享类型：无论`args`的类型是什么，`f`的参数类型都完全相同。'
+- en: '[![3](assets/3.png)](#co_functions_3)'
+  id: totrans-360
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_functions_3)'
+- en: In addition to a function `f`, `call` has a variable number of additional parameters
+    `...args`. `args` is a rest parameter—that is, a parameter that describes a variable
+    number of arguments. `args`’s type is `T`, and `T` has to be an array type (in
+    fact, if we forgot to say that `T` extends an array type, TypeScript would throw
+    a squiggly at us), so TypeScript will infer a *tuple type* for `T` based on the
+    specific arguments we passed in for `args`.
+  id: totrans-361
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了函数`f`外，`call`还具有一组可变数量的额外参数`...args`。`args`是一个剩余参数，描述了可变数量的参数。`args`的类型是`T`，而`T`必须是数组类型（事实上，如果我们忘记说`T`扩展了数组类型，TypeScript会向我们抛出一个波浪线），因此TypeScript将根据我们传递给`args`的特定参数推断出`T`的*元组类型*。
+- en: '[![4](assets/4.png)](#co_functions_4)'
+  id: totrans-362
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_functions_4)'
+- en: '`call` returns a value of type `R` (`R` is bound to whatever type `f` returns).'
+  id: totrans-363
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`call`返回类型为`R`的值（`R`绑定到`f`返回的任何类型）。'
+- en: 'Now when we call `call`, TypeScript will know exactly what the return type
+    is, and it will complain when we pass the wrong number of arguments:'
+  id: totrans-364
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在当我们调用`call`时，TypeScript将精确地知道返回类型，并且当我们传递错误数量的参数时，它会抱怨：
+- en: '[PRE75]'
+  id: totrans-365
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE75]'
+- en: We use a similar technique to take advantage of the way TypeScript infers tuple
+    types for rest parameters to improve type inference for tuples in [“Improving
+    Type Inference for Tuples”](ch06.html#improving-type-inference-for-tuples).
+  id: totrans-366
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们使用类似的技术来利用TypeScript为剩余参数推断元组类型以改进元组在[“改进元组的类型推断”](ch06.html#improving-type-inference-for-tuples)中的类型推断。
+- en: Generic Type Defaults
+  id: totrans-367
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 泛型类型默认值
+- en: 'Just like you can give function parameters default values, you can give generic
+    type parameters default types. For example, let’s revisit the `MyEvent` type from
+    [“Generic Type Aliases”](#generic-type-aliases). As a reminder, we used the type
+    to model DOM events, and it looks like this:'
+  id: totrans-368
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像你可以给函数参数提供默认值一样，你也可以给泛型类型参数提供默认类型。例如，让我们重新访问来自[“泛型类型别名”](#generic-type-aliases)的`MyEvent`类型。作为提醒，我们用这个类型来模拟DOM事件，它看起来像这样：
+- en: '[PRE76]'
+  id: totrans-369
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE76]'
+- en: 'To create a new event, we have to explicitly bind a generic type to `MyEvent`,
+    representing the type of HTML element that the event was dispatched on:'
+  id: totrans-370
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要创建一个新事件，我们必须显式地将一个泛型类型绑定到`MyEvent`，表示事件分派在其上的HTML元素的类型：
+- en: '[PRE77]'
+  id: totrans-371
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE77]'
+- en: 'As a convenience for when we don’t know the specific element type that `MyEvent`
+    will be bound to beforehand, we can add a default for `MyEvent`’s generic:'
+  id: totrans-372
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了方便起见，当我们事先不知道`MyEvent`将绑定到的具体元素类型时，我们可以为`MyEvent`的泛型添加一个默认值：
+- en: '[PRE78]'
+  id: totrans-373
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE78]'
+- en: 'We can also use this opportunity to apply what we learned in the last few sections
+    and add a bound to `T`, to make sure that `T` is an HTML element:'
+  id: totrans-374
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以利用这个机会应用我们在最近几节中学到的内容，并给`T`添加一个限制，以确保`T`是一个HTML元素：
+- en: '[PRE79]'
+  id: totrans-375
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE79]'
+- en: 'Now, we can easily create an event that’s not specific to a particular HTML
+    element type, and we don’t have to manually bind `MyEvent`s `T` to `HTMLElement`
+    when we create the event:'
+  id: totrans-376
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以轻松创建一个不特定于特定HTML元素类型的事件，并且在创建事件时不必手动将`MyEvent`的`T`绑定到`HTMLElement`：
+- en: '[PRE80]'
+  id: totrans-377
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE80]'
+- en: 'Note that like optional parameters in functions, generic types with defaults
+    have to appear after generic types without defaults:'
+  id: totrans-378
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，与函数中的可选参数一样，具有默认值的泛型类型必须出现在没有默认值的泛型类型之后：
+- en: '[PRE81]'
+  id: totrans-379
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE81]'
+- en: Type-Driven Development
+  id: totrans-380
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 类型驱动开发
+- en: With a powerful type system comes great power. When you write in TypeScript,
+    you will often find yourself “leading with the types.” This, of course, refers
+    to *type-driven development*.
+  id: totrans-381
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 强大的类型系统带来了巨大的威力。当你使用 TypeScript 编写代码时，你经常会发现自己“以类型为先导”。这当然是指 *类型驱动开发*。
+- en: The point of static type systems is to constrain the types of values an expression
+    can hold. The more expressive the type system, the more it tells you about the
+    value contained in that expression. When you apply an expressive type system to
+    a function, the function’s type signature might end up telling you most of what
+    you need to know about that function.
+  id: totrans-382
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 静态类型系统的目的是限制表达式可以保存的值的类型。类型系统越具表达性，它就越能告诉你关于表达式中包含的值的信息。当你将一个具有表达性的类型系统应用于函数时，函数的类型签名可能会告诉你大部分关于该函数的所需信息。
+- en: 'Let’s look at the type signature for the `map` function from earlier in this
+    chapter:'
+  id: totrans-383
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们来看看本章前面提到的 `map` 函数的类型签名：
+- en: '[PRE82]'
+  id: totrans-384
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE82]'
+- en: 'Just looking at that signature—even if you’ve never seen `map` before—you should
+    have some intuition for what `map` does: it takes an array of `T` and a function
+    that maps from a `T` to a `U`, and returns an array of `U`. Notice that you didn’t
+    have to see the function’s implementation to know that!^([9](ch04.html#idm46304973820040))'
+  id: totrans-385
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使你以前从未见过 `map` 函数，单看这个签名，你也应该对 `map` 的功能有一定直觉：它接受一个 `T` 类型的数组和一个从 `T` 到 `U`
+    的映射函数，并返回一个 `U` 类型的数组。请注意，你并不需要看函数的实现就能知道这些！^([9](ch04.html#idm46304973820040))
+- en: When you write a TypeScript program, start by defining your functions’ type
+    signatures—in other words, *lead with the types*—filling in the implementations
+    later. By sketching out your program out at the type level first, you make sure
+    that everything makes sense at a high level before you get down to your implementations.
+  id: totrans-386
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当你编写 TypeScript 程序时，首先定义函数的类型签名——换句话说，*以类型为先导*——稍后再填写实现细节。通过首先在类型层面上勾勒出你的程序，你确保在深入实现之前所有内容都在高层次上有意义。
+- en: 'You’ll notice that so far, we’ve been doing the opposite: leading with the
+    implementation, then deducing the types. Now that you have a grasp of writing
+    and typing functions in TypeScript, we’re going to switch modes, sketching out
+    the types first, and filling in the details later.'
+  id: totrans-387
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们一直在做相反的事情：先实现，然后推断类型。现在你已经掌握了在 TypeScript 中编写和类型化函数的方法，我们将改变方式，首先勾勒类型，然后再填写细节。
+- en: Summary
+  id: totrans-388
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'In this chapter we talked about how to declare and call functions, how to type
+    parameters, and how to express common JavaScript function features like default
+    parameters, rest parameters, generator functions, and iterators in TypeScript.
+    We talked about the difference between functions’ call signatures and implementations,
+    contextual typing, and the different ways to overload functions. Finally, we covered
+    polymorphism for functions and type aliases in depth: why it’s useful, how and
+    where to declare generic types, how TypeScript infers generic types, and how to
+    declare and add bounds and defaults to your generics. We finished off with a short
+    note on type-driven development: what it is, and how you can use your newfound
+    knowledge of function types to do it.'
+  id: totrans-389
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们讨论了如何声明和调用函数，如何为参数类型化，以及如何在 TypeScript 中表达常见的 JavaScript 函数特性，如默认参数、剩余参数、生成器函数和迭代器。我们讨论了函数的调用签名和实现之间的区别，上下文类型化，以及多态函数和类型别名的深入理解：为什么它有用，如何在何处声明泛型类型，TypeScript
+    如何推断泛型类型，以及如何为泛型类型添加界限和默认值。最后，我们简要介绍了类型驱动开发：它是什么，以及如何利用你对函数类型的新知识来实现它。
+- en: Exercises
+  id: totrans-390
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 练习
+- en: 'Which parts of a function’s type signature does TypeScript infer: the parameters,
+    the return type, or both?'
+  id: totrans-391
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: TypeScript 推断函数类型签名的哪些部分：参数、返回类型还是两者都包括？
+- en: Is JavaScript’s `arguments` object typesafe? If not, what can you use instead?
+  id: totrans-392
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: JavaScript 的 `arguments` 对象类型安全吗？如果不安全，有什么替代品？
+- en: You want the ability to book a vacation that starts immediately. Update the
+    overloaded `reserve` function from earlier in this chapter ([“Overloaded Function
+    Types”](#function-overloads)) with a third call signature that takes just a destination,
+    without an explicit start date. Update `reserve`’s implementation to support this
+    new overloaded signature.
+  id: totrans-393
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 你希望能够立即预订一个假期。在本章前面的“函数重载”中更新 `reserve` 函数的多个签名之一，添加一个只接受目的地参数而不需要明确开始日期的第三个调用签名。更新
+    `reserve` 的实现以支持这个新的重载签名。
+- en: '[Hard] Update our `call` implementation from earlier in the chapter ([“Using
+    bounded polymorphism to model arity”](#modelling-arity)) to *only* work for functions
+    whose second argument is a `string`. For all other functions, your implementation
+    should fail at compile time.'
+  id: totrans-394
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '[Hard] 更新我们章节前面的 `call` 实现（“使用有界多态性来建模元数”），*只能*用于第二个参数为 `string` 的函数。对于所有其他函数，你的实现应在编译时失败。'
+- en: 'Implement a small typesafe assertion library, `is`. Start by sketching out
+    your types. When you’re done, you should be able to use it like this:'
+  id: totrans-395
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 实现一个小型类型安全的断言库，`is`。首先勾勒出你的类型。完成后，你应该能像这样使用它：
+- en: '[PRE83]'
+  id: totrans-396
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE83]'
+- en: ^([1](ch04.html#idm46304980032968-marker)) Why are they unsafe? If you enter
+    that last example into your code editor, you’ll see that its type is `Function`.
+    What is this `Function` type? It’s an object that is callable (you know, by putting
+    `()` after it) and has all the prototype methods from `Function.prototype`. But
+    its parameters and return type are untyped, so you can call the function with
+    any arguments you want, and TypeScript will stand idly by, watching you do something
+    that by all means should be illegal in whatever town you live in.
+  id: totrans-397
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch04.html#idm46304980032968-marker)) 为什么它们不安全？如果你将最后一个示例输入到你的代码编辑器中，你会看到它的类型是
+    `Function`。这个 `Function` 类型是什么？它是一个可以调用的对象（你知道，通过在其后加上 `()`），并具有来自 `Function.prototype`
+    的所有原型方法。但它的参数和返回类型是未定义的，所以你可以用任何参数来调用这个函数，而 TypeScript 则会无动于衷地看着你做一些在你所在的任何城市都应该是非法的事情。
+- en: ^([2](ch04.html#idm46304979137208-marker)) For a deep dive into `this`, check
+    out Kyle Simpson’s [You Don’t Know JS](http://shop.oreilly.com/product/0636920033738.do)
+    series from O’Reilly.
+  id: totrans-398
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([2](ch04.html#idm46304979137208-marker)) 深入了解 `this`，请查看 Kyle Simpson 的 [You
+    Don’t Know JS](http://shop.oreilly.com/product/0636920033738.do) 系列书籍。
+- en: ^([3](ch04.html#idm46304978700968-marker)) Notably, `Object` and `Number` are
+    not iterators.
+  id: totrans-399
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([3](ch04.html#idm46304978700968-marker)) 特别要注意，`Object` 和 `Number` 并不是迭代器。
+- en: ^([4](ch04.html#idm46304978500936-marker)) The exceptions to this rule of thumb
+    are enums and namespaces. Enums generate both a type and a value, and namespaces
+    exist just at the value level. See [Appendix C](app03.html#types-and-values) for
+    a complete reference.
+  id: totrans-400
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([4](ch04.html#idm46304978500936-marker)) 例外情况是枚举和命名空间。枚举会生成类型和值，而命名空间仅存在于值级别。详见[附录 C](app03.html#types-and-values)获取完整参考。
+- en: ^([5](ch04.html#idm46304978237208-marker)) If you haven’t heard the term “callback”
+    before, all it is is a function that you passed as an argument to another function.
+  id: totrans-401
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([5](ch04.html#idm46304978237208-marker)) 如果你之前没听说过“回调”这个术语，它只是指将一个函数作为参数传递给另一个函数。
+- en: ^([6](ch04.html#idm46304977663240-marker)) To learn more, jump ahead to [“Refinement”](ch06.html#refinement).
+  id: totrans-402
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([6](ch04.html#idm46304977663240-marker)) 想了解更多，请跳转至[“精炼”](ch06.html#refinement)章节。
+- en: ^([7](ch04.html#idm46304977328888-marker)) Mostly—TypeScript hoists literal
+    overloads above nonliteral ones, before resolving them in order. You might not
+    want to depend on this feature, though, since it can make your overloads hard
+    to understand for other engineers who aren’t familiar with this behavior.
+  id: totrans-403
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([7](ch04.html#idm46304977328888-marker)) 大部分情况下，TypeScript 会将文字重载提升至非文字重载之上，再按顺序解析。不过，你可能不希望依赖这个特性，因为它可能会让其他不熟悉此行为的工程师难以理解你的重载。
+- en: ^([8](ch04.html#idm46304974415464-marker)) To simplify our implementation a
+    little, we’re going to design our `call` function to not take `this` into account.
+  id: totrans-404
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([8](ch04.html#idm46304974415464-marker)) 为了简化我们的实现，我们将设计我们的 `call` 函数时不考虑
+    `this`。
+- en: ^([9](ch04.html#idm46304973820040-marker)) There are a few programming languages
+    (like the Haskell-like language Idris) that have built-in constraint solvers with
+    the ability to *automatically* implement function bodies for you from the signatures
+    you write!
+  id: totrans-405
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([9](ch04.html#idm46304973820040-marker)) 有一些编程语言（如类似 Haskell 的语言 Idris）具有内置的约束求解器，能够*自动*从你编写的签名中实现函数体！

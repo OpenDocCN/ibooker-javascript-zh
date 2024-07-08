@@ -1,0 +1,1422 @@
+- en: Chapter 7\. Enhancing Components with Hooks
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第七章。用 Hooks 增强组件
+- en: Rendering is the heartbeat of a React application. When something changes (props,
+    state), the component tree rerenders, reflecting the latest data as a user interface.
+    So far, `useState` has been our workhorse for describing how our components should
+    be rendering. But we can do more. There are more Hooks that define rules about
+    why and when rendering should happen. There are more Hooks that enhance rendering
+    performance. There are always more Hooks to help us out.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 渲染是 React 应用程序的核心。当某些东西改变（props、state），组件树重新渲染，反映最新的数据作为用户界面。到目前为止，`useState`
+    已经是我们描述组件应如何渲染的工具。但我们可以做得更多。有更多的 Hooks 定义了渲染何时以及为什么应该发生。还有更多的 Hooks 来增强渲染性能。总有更多的
+    Hooks 来帮助我们。
+- en: 'In the last chapter, we introduced `useState`, `useRef`, and `useContext`,
+    and we saw that we could compose these Hooks into our own custom Hooks: `useInput`
+    and `useColors`. There’s more where that came from, though. React comes with more
+    Hooks out of the box. In this chapter, we’re going to take a closer look at `useEffect`,
+    `useLayoutEffect`, and `useReducer`. All of these are vital when building applications.
+    We’ll also look at `useCallback` and `useMemo`, which can help optimize our components
+    for performance.'
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在上一章中，我们介绍了 `useState`、`useRef` 和 `useContext`，并看到我们可以将这些 Hooks 组合成我们自己的自定义
+    Hooks：`useInput` 和 `useColors`。然而，这还不是全部。React 还提供了更多的 Hooks。在本章中，我们将更详细地看看 `useEffect`、`useLayoutEffect`
+    和 `useReducer`。在构建应用程序时，所有这些都是至关重要的。我们还将研究 `useCallback` 和 `useMemo`，它们可以帮助优化我们的组件性能。
+- en: Introducing useEffect
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 介绍 useEffect
+- en: We now have a good sense of what happens when we render a component. A component
+    is simply a function that renders a user interface. Renders occur when the app
+    first loads and when props and state values change. But what happens when we need
+    to do something after a render? Let’s take a closer look.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们对渲染组件发生了什么有了很好的理解。组件只是渲染用户界面的函数。当应用程序首次加载以及 props 和 state 值改变时会发生渲染。但当我们需要在渲染后执行某些操作时会发生什么？让我们仔细看一下。
+- en: 'Consider a simple component, the `Checkbox`. We’re using `useState` to set
+    a `checked` value and a function to change the value of `checked`: `setChecked`.
+    A user can check and uncheck the box, but how might we alert the user that the
+    box has been checked? Let’s try this with an `alert`, as it’s a great way to block
+    the thread:'
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑一个简单的组件，`Checkbox`。我们使用 `useState` 来设置 `checked` 值和一个函数来改变 `checked` 值：`setChecked`。用户可以勾选和取消勾选框，但我们如何通知用户框已被勾选？让我们尝试使用
+    `alert`，因为它是阻塞线程的绝佳方法：
+- en: '[PRE0]'
+  id: totrans-6
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: We’ve added the `alert` before the render to block the render. The component
+    will not render until the user clicks the OK button on the alert box. Because
+    the alert is blocking, we don’t see the next state of the checkbox rendered until
+    clicking OK.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们在渲染前添加了 `alert` 来阻塞渲染。在用户点击警告框的确定按钮之前，组件不会渲染。因为警告是阻塞的，所以我们直到点击确定后才看到复选框的下一个状态被渲染。
+- en: That isn’t the goal, so maybe we should place the alert after the return?
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这不是目标，所以也许我们应该在返回之后放置警报？
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'Scratch that. We can’t call `alert` after the render because the code will
+    never be reached. To ensure that we see the `alert` as expected, we can use `useEffect`.
+    Placing the `alert` inside of the `useEffect` function means that the function
+    will be called after the render, as a side effect:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 刮掉。我们不能在渲染后调用 `alert`，因为代码永远不会被执行到。为了确保我们按预期看到 `alert`，我们可以使用 `useEffect`。将
+    `alert` 放在 `useEffect` 函数内意味着该函数将在渲染后作为副作用被调用：
+- en: '[PRE2]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: We use `useEffect` when a render needs to cause side effects. Think of a side
+    effect as something that a function does that isn’t part of the return. The function
+    is the `Checkbox`. The `Checkbox` function renders UI. But we might want the component
+    to do more than that. Those things we want the component to do other than return
+    UI are called *effects*.
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当渲染需要引起副作用时，我们使用 `useEffect`。将副作用视为函数返回之外的事物。函数是 `Checkbox`。`Checkbox` 函数渲染
+    UI。但我们可能希望组件做更多事情。除了返回 UI 外，我们希望组件执行的这些事情称为*效果*。
+- en: 'An `alert`, a `console.log`, or an interaction with a browser or native API
+    is not part of the render. It’s not part of the return. In a React app, though,
+    the render affects the results of one of these events. We can use `useEffect`
+    to wait for the render, then provide the values to an `alert` or a `console.log`:'
+  id: totrans-13
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`alert`、`console.log` 或与浏览器或本地 API 的交互不是渲染的一部分。它不是返回的一部分。在 React 应用中，渲染确实影响其中一个事件的结果。我们可以使用
+    `useEffect` 等待渲染，然后将值提供给 `alert` 或 `console.log`：'
+- en: '[PRE3]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Similarly, we could check in with the value of `checked` on render and then
+    set that to a value in `localStorage`:'
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似地，在渲染时，我们可以检查 `checked` 的值，然后将其设置为 `localStorage` 中的值：
+- en: '[PRE4]'
+  id: totrans-16
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'We might also use `useEffect` to focus on a specific text input that has been
+    added to the DOM. React will render the output, then call `useEffect` to focus
+    the element:'
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们还可以使用 `useEffect` 来集中焦点于已添加到 DOM 的特定文本输入。React 将渲染输出，然后调用 `useEffect` 来聚焦元素：
+- en: '[PRE5]'
+  id: totrans-18
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'On `render`, the `txtInputRef` will have a value. We can access that value
+    in the effect to apply the focus. Every time we render, `useEffect` has access
+    to the latest values from that render: props, state, refs, etc.'
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在渲染时，`txtInputRef` 将具有一个值。我们可以在效果中访问该值以应用焦点。每次我们渲染时，`useEffect` 都可以访问来自该渲染的最新值：属性、状态、引用等。
+- en: Think of `useEffect` as being a function that happens after a render. When a
+    render fires, we can access the current state values within our component and
+    use them to do something else. Then, once we render again, the whole thing starts
+    over. New values, new renders, new effects.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将 `useEffect` 视为在渲染后发生的函数。当渲染触发时，我们可以在组件内访问当前状态值，并使用它们来执行其他操作。然后，一旦我们再次渲染，整个过程重新开始。新值、新渲染、新效果。
+- en: The Dependency Array
+  id: totrans-21
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 依赖数组
+- en: '`useEffect` is designed to work in conjunction with other stateful Hooks like
+    `useState` and the heretofore unmentioned `useReducer`, which we promise to discuss
+    later in the chapter. React will rerender the component tree when the state changes.
+    As we’ve learned, `useEffect` will be called after these renders.'
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useEffect` 被设计用于与其他有状态 Hooks（如 `useState` 和前面未提及的 `useReducer`）协同工作，我们承诺在本章后面讨论。React
+    在状态改变时重新渲染组件树。正如我们所学，`useEffect` 将在这些渲染后被调用。'
+- en: 'Consider the following, where the `App` component has two separate state values:'
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑以下情况，`App` 组件具有两个单独的状态值：
+- en: '[PRE6]'
+  id: totrans-24
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '`val` is a state variable that represents the value of the input field. The
+    `val` changes every time the value of the input field changes. It causes the component
+    to render every time the user types a new character. When the user clicks the
+    Send button, the `val` of the text area is saved as the phrase, and the `val`
+    is reset to `""`, which empties the text field.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`val` 是表示输入字段值的状态变量。每当输入字段值变化时，`val` 也会变化。这会导致每次用户输入新字符时组件重新渲染。当用户点击发送按钮时，文本区域的
+    `val` 保存为 `phrase`，并且 `val` 被重置为 `""`，这会清空文本字段。'
+- en: 'This works as expected, but the `useEffect` hook is invoked more times than
+    it should be. After every render, both `useEffect` Hooks are called:'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个方法按预期工作，但 `useEffect` 钩子被调用的次数多于应有的次数。每次渲染后，都会调用两次 `useEffect` 钩子：
+- en: '[PRE7]'
+  id: totrans-27
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'We don’t want every effect to be invoked on every render. We need to associate
+    `useEffect` hooks with specific data changes. To solve this problem, we can incorporate
+    the dependency array. The dependency array can be used to control when an effect
+    is invoked:'
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们不希望每次渲染时都调用每个效果。我们需要将 `useEffect` 钩子与特定数据变化关联起来。为了解决这个问题，我们可以加入依赖数组。依赖数组可以用来控制何时调用效果：
+- en: '[PRE8]'
+  id: totrans-29
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: 'We’ve added the dependency array to both effects to control when they’re invoked.
+    The first effect is only invoked when the `val` value has changed. The second
+    effect is only invoked when the `phrase` value has changed. Now, when we run the
+    app and take a look at the console, we’ll see more efficient updates occurring:'
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经向这两个效果添加了依赖数组以控制它们何时被调用。第一个效果仅在 `val` 值更改时被调用。第二个效果仅在 `phrase` 值更改时被调用。现在，当我们运行应用程序并查看控制台时，我们将看到更有效的更新发生：
+- en: '[PRE9]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Changing the `val` value by typing into the input only causes the first effect
+    to fire. When we click the button, the `phrase` is saved and the `val` is reset
+    to `""`.
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过输入更改 `val` 值仅导致第一个效果触发。当我们点击按钮时，`phrase` 被保存，而 `val` 被重置为 `""`。
+- en: 'It’s an array after all, so it’s possible to check multiple values in the dependency
+    array. Let’s say we wanted to run a specific effect any time either the `val`
+    or `phrase` has changed:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 毕竟它是一个数组，因此可以检查依赖数组中的多个值。假设我们想在 `val` 或 `phrase` 发生变化时运行特定效果：
+- en: '[PRE10]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'If either of those values changes, the effect will be called again. It’s also
+    possible to supply an empty array as the second argument to a `useEffect` function.
+    An empty dependency array causes the effect to be invoked only once after the
+    initial render:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果这些值中的任何一个发生变化，效果将再次被调用。也可以将空数组作为 `useEffect` 函数的第二个参数。空依赖数组只会在初始渲染后调用一次效果：
+- en: '[PRE11]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Since there are no dependencies in the array, the effect is invoked for the
+    initial render. No dependencies means no changes, so the effect will never be
+    invoked again. Effects that are only invoked on the first render are extremely
+    useful for initialization:'
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为数组中没有依赖项，所以该效果在初始渲染时被调用。没有依赖项意味着没有变化，因此该效果永远不会再次被调用。仅在首次渲染时被调用的效果对于初始化非常有用：
+- en: '[PRE12]'
+  id: totrans-38
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'If you return a function from the effect, the function will be invoked when
+    the component is removed from the tree:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你从效果中返回一个函数，该函数将在组件从树中移除时被调用：
+- en: '[PRE13]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: This means that you can use `useEffect` for setup and teardown. The empty array
+    means that the welcome chime will play once on first render. Then, we’ll return
+    a function as a cleanup function to play a goodbye chime when the component is
+    removed from the tree.
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着您可以使用 `useEffect` 进行设置和拆卸。空数组意味着欢迎提示音将在首次渲染时仅播放一次。然后，我们将返回一个函数作为清理函数，在组件从树中移除时播放告别提示音。
+- en: 'This pattern is useful in many situations. Perhaps we’ll subscribe to a news
+    feed on first render. Then we’ll unsubscribe from the news feed with the cleanup
+    function. More specifically, we’ll start by creating a state value for `posts`
+    and a function to change that value, called `setPosts`. Then we’ll create a function,
+    `addPosts`, that will take in the newest post and add it to the array. Then we
+    can use `useEffect` to subscribe to the news feed and play the chime. Plus, we
+    can return the cleanup functions, unsubscribing and playing the goodbye chime:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在许多情况下，这种模式非常有用。也许我们会在首次渲染时订阅新闻源。然后，我们将使用清理函数取消订阅新闻源。更具体地说，我们将首先创建一个名为 `posts`
+    的状态值和一个名为 `setPosts` 的函数来修改该值。然后，我们将创建一个名为 `addPosts` 的函数，用于接收最新的帖子并将其添加到数组中。然后，我们可以使用
+    `useEffect` 订阅新闻源并播放提示音。此外，我们可以返回清理函数，用于取消订阅和播放告别提示音：
+- en: '[PRE14]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'This is a lot going on in `useEffect`, though. We might want to use a separate
+    `useEffect` for the news feed events and another `useEffect` for the chime events:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useEffect` 中有很多内容。我们可能希望为新闻订阅事件使用一个单独的 `useEffect`，并为提示音事件使用另一个 `useEffect`：'
+- en: '[PRE15]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Splitting functionality into multiple `useEffect` calls is typically a good
+    idea. But let’s enhance this even further. What we’re trying to create here is
+    functionality for subscribing to a news feed that plays different jazzy sounds
+    for subscribing, unsubscribing, and whenever there’s a new post. Everyone loves
+    lots of loud sounds right? This is a case for a custom hook. Maybe we should call
+    it `useJazzyNews`:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将功能拆分为多个 `useEffect` 调用通常是一个好主意。但让我们进一步增强它。我们要创建的功能是订阅新闻源并为订阅、取消订阅以及每当有新帖子时播放不同的时髦音效。每个人都喜欢很多大声音乐，对吧？这是一个自定义钩子的情况。也许我们应该称其为
+    `useJazzyNews`：
+- en: '[PRE16]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'Our custom hook contains all of the functionality to handle a jazzy news feed,
+    which means that we can easily share this functionality with our components. In
+    a new component called `NewsFeed`, we’ll use the custom hook:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的自定义钩子包含处理时髦新闻源的所有功能，这意味着我们可以轻松地与组件共享此功能。在一个名为 `NewsFeed` 的新组件中，我们将使用自定义钩子：
+- en: '[PRE17]'
+  id: totrans-49
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Deep Checking Dependencies
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 深度检查依赖项
+- en: 'So far, the dependencies we’ve added to the array have been strings. JavaScript
+    primitives like strings, booleans, numbers, etc., are comparable. A string would
+    equal a string as expected:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们在数组中添加的依赖项都是字符串。JavaScript 的原始类型如字符串、布尔值、数字等是可比较的。字符串将如预期般相等：
+- en: '[PRE18]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: 'However, when we start to compare objects, arrays, and functions, the comparison
+    is different. For example, if we compared two arrays:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，当我们开始比较对象、数组和函数时，比较就不同了。例如，如果我们比较两个数组：
+- en: '[PRE19]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'These arrays `[1,2,3]` and `[1,2,3]` are not equal, even though they look identical
+    in length and in entries. This is because they are two different instances of
+    a similar-looking array. If we create a variable to hold this array value and
+    then compare, we’ll see the expected output:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些数组 `[1,2,3]` 和 `[1,2,3]` 不相等，即使它们在长度和条目上看起来相同。这是因为它们是两个不同的类似数组实例。如果我们创建一个变量来保存此数组值，然后进行比较，我们将看到预期的输出：
+- en: '[PRE20]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'In JavaScript, arrays, objects, and functions are the same only when they’re
+    the exact same instance. So how does this relate to the `useEffect` dependency
+    array? To demonstrate this, we’re going to need a component we can force to render
+    as much as we want. Let’s build a hook that causes a component to render whenever
+    a key is pressed:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 JavaScript 中，只有当数组、对象和函数完全相同时，它们才相同。那么这如何与 `useEffect` 的依赖数组相关联呢？为了证明这一点，我们需要一个我们可以随意强制重新渲染的组件。让我们构建一个钩子，每当按键时都会导致组件重新渲染：
+- en: '[PRE21]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'At minimum, all we need to do to force a render is invoke a state change function.
+    We don’t care about the state value. We only want the state function: `forceRender`.
+    (That’s why we added the comma using array destructuring. Remember, from [Chapter 2](ch02.html#javascript-for-react)?)
+    When the component first renders, we’ll listen for keydown events. When a key
+    is pressed, we’ll force the component to render by invoking `forceRender`. As
+    we’ve done before, we’ll return a cleanup function where we stop listening to
+    keydown events. By adding this hook to a component, we can force it to rerender
+    simply by pressing a key.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 至少，我们只需调用状态更改函数即可强制重新渲染。我们不关心状态值。我们只需要状态函数：`forceRender`。（这就是我们使用数组解构添加逗号的原因。记住，来自[第
+    2 章](ch02.html#javascript-for-react)？）组件首次渲染时，我们将监听 keydown 事件。按键时，我们通过调用 `forceRender`
+    强制组件重新渲染。如以前所做的那样，我们将返回一个清理函数，停止监听 keydown 事件。通过将此钩子添加到组件中，我们只需按键即可强制重新渲染它。
+- en: 'With the custom hook built, we can use it in the `App` component (and any other
+    component for that matter! Hooks are cool.):'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用自定义钩子构建后，我们可以在 `App` 组件中（以及任何其他组件！Hooks 很酷。）使用它：
+- en: '[PRE22]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Every time we press a key, the `App` component is rendered. `useEffect` demonstrates
+    this by logging “fresh render” to the console every time the `App` is rendered.
+    Let’s adjust `useEffect` in the `App` component to reference the `word` value.
+    If `word` changes, we’ll rerender:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次按键时，都会重新渲染 `App` 组件。`useEffect` 通过在每次 `App` 渲染时将 “fresh render” 记录到控制台来演示这一点。让我们调整
+    `App` 组件中的 `useEffect`，以引用 `word` 值。如果 `word` 改变，我们将重新渲染：
+- en: '[PRE23]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: Instead of calling `useEffect` on every keydown event, we would only call this
+    after first render and any time the `word` value changes. It doesn’t change, so
+    subsequent rerenders don’t occur. Adding a primitive or a number to the dependency
+    array works as expected. The effect is invoked once.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不要在每个 keydown 事件上调用 `useEffect`，我们只在第一次渲染后和 `word` 值变化时调用它。它不会改变，所以不会发生后续的重新渲染。在依赖数组中添加一个原始值或数字的效果与预期相同。该效果仅调用一次。
+- en: What happens if instead of a single word, we use an array of words?
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们使用单词数组而不是单个单词会发生什么？
+- en: '[PRE24]'
+  id: totrans-66
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: The variable `words` is an array. Because a new array is declared with each
+    render, JavaScript assumes that `words` has changed, thus invoking the “fresh
+    render” effect every time. The array is a new instance each time, and this registers
+    as an update that should trigger a rerender.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 变量 `words` 是一个数组。因为每次渲染时都声明了一个新数组，JavaScript 认为 `words` 已经改变，从而触发“fresh render”效果。数组每次都是新实例，这会注册为应触发重新渲染的更新。
+- en: 'Declaring `words` outside of the scope of the `App` would solve the problem:'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `App` 的作用域之外声明 `words` 将解决问题：
+- en: '[PRE25]'
+  id: totrans-69
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'The dependency array in this case refers to one instance of `words` that’s
+    declared outside of the function. The “fresh render” effect does not get called
+    again after the first render because `words` is the same instance as the last
+    render. This is a good solution for this example, but it’s not always possible
+    (or advisable) to have a variable defined outside of the scope of the function.
+    Sometimes the value passed to the dependency array requires variables in scope.
+    For example, we might need to create the `words` array from a React property like
+    `children`:'
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，依赖数组指的是在函数外部声明的 `words` 的一个实例。“fresh render”效果在第一次渲染后不会再次被调用，因为 `words`
+    与上次渲染的实例相同。对于这个例子，这是一个很好的解决方案，但并不总是可能（或建议）在函数作用域外定义变量。有时传递给依赖数组的值需要函数作用域内的变量。例如，我们可能需要从类似
+    `children` 的 React 属性创建 `words` 数组：
+- en: '[PRE26]'
+  id: totrans-71
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: The `App` component contains some words that are children of the `WordCount`
+    component. The `WordCount` component takes in `children` as a property. Then we
+    set `words` in the component equal to an array of those words that we’ve called
+    `.split` on. We would hope that the component will rerender only if `words` changes,
+    but as soon as we press a key, we see the dreaded “fresh render” words appearing
+    in the console.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`App` 组件包含一些作为 `WordCount` 组件子节点的单词。`WordCount` 组件将 `children` 作为属性输入。然后我们在组件中将
+    `words` 设置为调用 `.split` 后的单词数组。我们希望组件仅在 `words` 改变时重新渲染，但是一旦按键，我们就会看到控制台中出现可怕的“fresh
+    render”单词。'
+- en: 'Let’s replace that feeling of dread with one of calm, because the React team
+    has provided us a way to avoid these extra renders. They wouldn’t hang us out
+    to dry like that. The solution to this problem is, as you might expect, another
+    hook: `useMemo`.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们用平静的感觉代替恐惧感，因为 React 团队已经为我们提供了一种避免这些额外渲染的方法。他们不会像那样把我们搭在半空中。解决此问题的方法正如你所期望的另一个钩子：`useMemo`。
+- en: '`useMemo` invokes a function to calculate a memoized value. In computer science
+    in general, memoization is a technique that’s used to improve performance. In
+    a memoized function, the result of a function call is saved and cached. Then,
+    when the function is called again with the same inputs, the cached value is returned.
+    In React, `useMemo` allows us to compare the cached value against itself to see
+    if it has actually changed.'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useMemo` 调用一个函数来计算一个记忆化的值。在计算机科学中，记忆化是一种用来提高性能的技术。在一个记忆化的函数中，函数调用的结果被保存和缓存。然后，当再次使用相同输入调用函数时，返回缓存的值。在
+    React 中，`useMemo` 允许我们将缓存的值与其自身进行比较，以查看它是否实际上已经改变。'
+- en: 'The way `useMemo` works is that we pass it a function that’s used to calculate
+    and create a memoized value. `useMemo` will only recalculate that value when one
+    of the dependencies has changed. First, let’s import the `useMemo` hook:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useMemo` 的工作原理是，我们传递一个函数给它，用于计算和创建一个记忆化的值。只有当依赖项之一发生变化时，`useMemo` 才会重新计算该值。首先，让我们导入
+    `useMemo` 钩子：'
+- en: '[PRE27]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: 'Then we’ll use the function to set `words`:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将使用该函数来设置 `words`：
+- en: '[PRE28]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: '`useMemo` invokes the function sent to it and sets `words` to the return value
+    of that function. Like `useEffect`, `useMemo` relies on a dependency array:'
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useMemo` 调用发送给它的函数，并将 `words` 设置为该函数的返回值。与 `useEffect` 类似，`useMemo` 依赖于依赖项数组：'
+- en: '[PRE29]'
+  id: totrans-80
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: 'When we don’t include the dependency array with `useMemo`, the words are calculated
+    with every render. The dependency array controls when the callback function should
+    be invoked. The second argument sent to the `useMemo` function is the dependency
+    array and should contain the `children` value:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们不包含依赖项数组与 `useMemo` 时，单词将在每次渲染时计算。依赖项数组控制回调函数应该何时被调用。发送给 `useMemo` 函数的第二个参数是依赖项数组，应包含
+    `children` 值：
+- en: '[PRE30]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: The `words` array depends on the `children` property. If `children` changes,
+    we should calculate a new value for `words` that reflects that change. At that
+    point, `useMemo` will calculate a new value for `words` when the component initially
+    renders and if the `children` property changes.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`words` 数组依赖于 `children` 属性。如果 `children` 发生变化，我们应该计算一个反映该变化的新值给 `words`。此时，当组件首次渲染并且
+    `children` 属性发生变化时，`useMemo` 将为 `words` 计算一个新值。'
+- en: The `useMemo` hook is a great function to understand when you’re creating React
+    applications.
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useMemo` 钩子是在创建 React 应用程序时理解的一个很好的函数。'
+- en: '`useCallback` can be used like `useMemo`, but it memoizes functions instead
+    of values. For example:'
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useCallback` 可以像 `useMemo` 一样使用，但它是用来记忆化函数而不是值。例如：'
+- en: '[PRE31]'
+  id: totrans-86
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: '`fn` is a function that logs “Hello” then “World.” It is a dependency of `useEffect`,
+    but just like `words`, JavaScript assumes `fn` is different every render. Therefore,
+    it triggers the effect every render. This yields a “fresh render” for every key
+    press. It’s not ideal.'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`fn` 是一个函数，它依次记录 “Hello” 和 “World”。它是 `useEffect` 的一个依赖项，但与 `words` 一样，JavaScript
+    认为 `fn` 在每次渲染时都是不同的。因此，它会在每次渲染时触发效果。这导致了每次按键都会产生一个 “新鲜的渲染”，这并不理想。'
+- en: 'Start by wrapping the function with `useCallback`:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先通过 `useCallback` 封装该函数：
+- en: '[PRE32]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: '`useCallback` memoizes the function value for `fn`. Just like `useMemo` and
+    `useEffect`, it also expects a dependency array as the second argument. In this
+    case, we create the memoized callback once because the dependency array is empty.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useCallback` 为 `fn` 的函数值进行了记忆化。与 `useMemo` 和 `useEffect` 一样，它也期望一个依赖项数组作为第二个参数。在这种情况下，因为依赖项数组为空，所以我们仅创建了一次记忆化的回调函数。'
+- en: 'Now that we have an understanding of the uses and differences between `useMemo`
+    and `useCallback`, let’s improve our `useJazzyNews` hook. Every time there’s a
+    new post, we’ll call `newPostChime.play()`. In this hook, `posts` are an array,
+    so we’ll need to use `useMemo` to memoize the value:'
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们对 `useMemo` 和 `useCallback` 的用途和区别有了理解，让我们改进我们的 `useJazzyNews` 钩子。每当有新的帖子时，我们将调用
+    `newPostChime.play()`。在这个钩子中，`posts` 是一个数组，所以我们需要使用 `useMemo` 来记忆化该值：
+- en: '[PRE33]'
+  id: totrans-92
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Now, the useJazzyNews hook plays a chime every time there’s a new post. We made
+    this happen with a few changes to the hook. First, `const [posts, setPosts]` was
+    renamed to `const [_posts, setPosts]`. We’ll calculate a new value for `posts`
+    every time `_posts` change.
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，每当有新帖子时，`useJazzyNews` 钩子会播放一个提示音。我们通过对钩子进行几处更改实现了这一点。首先，`const [posts, setPosts]`
+    被重命名为 `const [_posts, setPosts]`。每次 `_posts` 改变时，我们将计算一个新值给 `posts`。
+- en: Next, we added the effect that plays the chime every time the `post` array changes.
+    We’re listening to the news feed for new posts. When a new post is added, this
+    hook is reinvoked with `_posts` reflecting that new post. Then, a new value for
+    `post` is memoized because `_posts` have changed. Then the chime plays because
+    this effect is dependent on `posts`. It only plays when the posts change, and
+    the list of posts only changes when a new one is added.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们添加了一个效果，每次 `post` 数组改变时播放提示音。我们在新闻源上监听新的帖子。当添加新帖子时，这个钩子被重新调用，`_posts`
+    反映了新帖子。然后，因为 `_posts` 已经改变，`post` 的新值被记忆化。然后，由于这个效果依赖于 `posts`，所以提示音会播放。它只在帖子改变时播放，而帖子列表只在添加新帖子时改变。
+- en: 'Later in the chapter, we’ll discuss the React Profiler, a browser extension
+    for testing performance and rendering of React components. There, we’ll dig into
+    more detail about when to use `useMemo` and `useCallback`. (Spoiler alert: sparingly!)'
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章后面，我们将讨论 React Profiler，这是一个用于测试 React 组件性能和渲染的浏览器扩展。在那里，我们将更详细地讨论何时使用 `useMemo`
+    和 `useCallback`。（剧透警告：节俭使用！）
+- en: When to useLayoutEffect
+  id: totrans-96
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 何时使用 useLayoutEffect
+- en: 'We understand that the render always comes before `useEffect`. The render happens
+    first, then all effects run in order with full access to all of the values from
+    the render. A quick look at the React docs will point out that there’s another
+    type of effect hook: `useLayoutEffect`.'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们知道渲染总是在 `useEffect` 之前发生。首先发生渲染，然后所有效果按顺序运行，并完全访问来自渲染的所有值。快速查看 React 文档将指出还有另一种类型的效果钩子：`useLayoutEffect`。
+- en: 'useLayoutEffect is called at a specific moment in the render cycle. The series
+    of events is as follows:'
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: useLayoutEffect 在渲染周期中的特定时刻被调用。事件序列如下：
+- en: Render
+  id: totrans-99
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 渲染
+- en: '`useLayoutEffect` is called'
+  id: totrans-100
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`useLayoutEffect` 被调用'
+- en: 'Browser paint: the time when the component’s elements are actually added to
+    the DOM'
+  id: totrans-101
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: 浏览器绘制：组件元素实际添加到 DOM 的时间
+- en: '`useEffect` is called'
+  id: totrans-102
+  prefs:
+  - PREF_OL
+  type: TYPE_NORMAL
+  zh: '`useEffect` 被调用'
+- en: 'This can be observed by adding some simple console messages:'
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可以通过添加一些简单的控制台消息来观察这一点：
+- en: '[PRE34]'
+  id: totrans-104
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: 'In the `App` component, `useEffect` is the first hook, followed by `useLayoutEffect`.
+    We see that `useLayoutEffect` is invoked before `useEffect`:'
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在 `App` 组件中，`useEffect` 是第一个 Hook，紧随其后的是 `useLayoutEffect`。我们看到 `useLayoutEffect`
+    在 `useEffect` 之前被调用：
+- en: '[PRE35]'
+  id: totrans-106
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: '`useLayoutEffect` is invoked after the render but before the browser paints
+    the change. In most circumstances, `useEffect` is the right tool for the job,
+    but if your effect is essential to the browser paint (the appearance or placement
+    of the UI elements on the screen), you may want to use `useLayoutEffect`. For
+    instance, you may want to obtain the width and height of an element when the window
+    is resized:'
+  id: totrans-107
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useLayoutEffect` 在渲染之后但在浏览器绘制更改之前被调用。在大多数情况下，`useEffect` 是合适的工具，但如果你的效果对于浏览器绘制（UI
+    元素在屏幕上的出现或位置）很重要，你可能需要使用 `useLayoutEffect`。例如，当窗口调整大小时，你可能想要获取元素的宽度和高度：'
+- en: '[PRE36]'
+  id: totrans-108
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: 'The `width` and `height` of the window is information that your component may
+    need before the browser paints. `useLayoutEffect` is used to calculate the window’s
+    `width` and `height` before the paint. Another example of when to use `useLayoutEffect`
+    is when tracking the position of the mouse:'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 窗口的 `width` 和 `height` 是组件可能在浏览器绘制之前需要的信息。`useLayoutEffect` 用于在绘制之前计算窗口的 `width`
+    和 `height`。另一个需要使用 `useLayoutEffect` 的例子是跟踪鼠标位置：
+- en: '[PRE37]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE37]'
+- en: It’s highly likely that the `x` and `y` position of the mouse will be used when
+    painting the screen. `useLayoutEffect` is available to help calculate those positions
+    accurately before the paint.
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很可能在绘制屏幕时会使用鼠标的 `x` 和 `y` 位置。`useLayoutEffect` 可用于在绘制之前准确计算这些位置。
+- en: Rules to Follow with Hooks
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 Hooks 的规则
+- en: 'As you’re working with Hooks, there are a few guidelines to keep in mind that
+    can help avoid bugs and unusual behavior:'
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用 Hooks 时，有一些指南需要牢记，这可以帮助避免错误和异常行为：
+- en: Hooks only run in the scope of a component
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Hooks 只在组件的作用域内运行
+- en: Hooks should only be called from React components. They can also be added to
+    custom Hooks, which are eventually added to components. Hooks are not regular
+    JavaScript—they’re a React pattern, but they’re starting to be modeled and incorporated
+    in other libraries.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Hooks 应该只从 React 组件中调用。它们也可以添加到自定义 Hooks 中，最终添加到组件中。Hooks 不是常规 JavaScript ——
+    它们是 React 的一种模式，但它们开始被建模并纳入其他库中。
+- en: It’s a good idea to break functionality out into multiple Hooks
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将功能分解成多个 Hooks 是个好主意
+- en: 'In our earlier example with the Jazzy News component, we split everything related
+    to subscriptions into one effect and everything related to sound effects into
+    another effect. This immediately made the code easier to read, but there was another
+    benefit to doing this. Since Hooks are invoked in order, it’s a good idea to keep
+    them small. Once invoked, React saves the values of Hooks in an array so the values
+    can be tracked. Consider the following component:'
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们之前的例子中，与Jazzy News组件相关的一切都被分成一个效果，与声音效果相关的一切被分成另一个效果。这立即使代码更易读，但这样做还有另一个好处。由于Hooks按顺序调用，保持它们小是个好主意。一旦调用，React就会将Hooks的值保存在数组中，以便跟踪这些值。考虑以下组件：
+- en: '[PRE38]'
+  id: totrans-118
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE38]'
+- en: 'The order of Hook calls is the same for each and every render:'
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次渲染时，Hook调用的顺序都是相同的：
+- en: '[PRE39]'
+  id: totrans-120
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE39]'
+- en: Hooks should only be called at the top level
+  id: totrans-121
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Hooks应该只在顶层调用
+- en: 'Hooks should be used at the top level of a React function. They cannot be placed
+    into conditional statements, loops, or nested functions. Let’s adjust the counter:'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Hooks应该在React函数的顶层使用。它们不能放置在条件语句，循环或嵌套函数中。让我们调整计数器：
+- en: '[PRE40]'
+  id: totrans-123
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE40]'
+- en: "When we use `useState` within the `if` statement, we’re saying that the hook\
+    \ should only be called when the `count` value is greater than 5\\. That will\
+    \ throw off the array values. Sometimes the array will be: `[count, checked, DependencyArray,\
+    \ \x960\x97, DependencyArray]`. Other times: `[count, DependencyArray, \x961\x97\
+    ]`. The index of the effect in that array matters to React. It’s how values are\
+    \ saved."
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: "当我们在`if`语句中使用`useState`时，我们的意思是只有当`count`值大于5时才调用该钩子。这会使数组的值混乱。有时数组会是：`[count,\
+    \ checked, DependencyArray, \x960\x97, DependencyArray]`。其他时候是：`[count, DependencyArray,\
+    \ \x961\x97]`。在该数组中，效果的索引对React很重要。这是值保存的方式。"
+- en: 'Wait, so are we saying that we can never use conditional logic in React applications
+    anymore? Of course not! We just have to organize these conditionals differently.
+    We can nest `if` statements, loops, and other conditionals within the hook:'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 等等，我们是在说在React应用程序中我们再也不能使用条件逻辑了吗？当然不是！我们只是要以不同的方式组织这些条件。我们可以在钩子内嵌套`if`语句，循环和其他条件：
+- en: '[PRE41]'
+  id: totrans-126
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE41]'
+- en: 'Here, the value for `checked` is based on the condition that the `count` is
+    greater than 5\. When `count` is less than 5, the value for `checked` is `undefined`.
+    Nesting this conditional inside the hook means that the hook remains on the top
+    level, but the result is similar. The second effect enforces the same rules. If
+    the `count` is less than 5, the return statement will prevent the effect from
+    continuing to execute. This keeps the hook values array intact: `[countValue,
+    checkedValue, DependencyArray, DependencyArray, DependencyArray]`.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`checked`的值是基于`count`大于5的条件。当`count`小于5时，`checked`的值是`undefined`。将此条件嵌套在钩子内意味着钩子保持在顶层，但结果类似。第二个效果强制执行相同的规则。如果`count`小于5，则返回语句将阻止效果继续执行。这样可以保持钩子值数组完整：`[countValue,
+    checkedValue, DependencyArray, DependencyArray, DependencyArray]`。
+- en: 'Like conditional logic, you need to nest asynchronous behavior inside of a
+    hook. `useEffect` takes a function as the first argument, not a promise. So you
+    can’t use an async function as the first argument: `useEffect(async () => {})`.
+    You can, however, create an async function inside of the nested function like
+    this:'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与条件逻辑一样，您需要将异步行为嵌套在钩子内部。`useEffect`以函数作为第一个参数，而不是一个Promise。因此，您不能将异步函数作为第一个参数使用：`useEffect(async
+    () => {})`。但是，您可以在嵌套函数内创建异步函数，就像这样：
+- en: '[PRE42]'
+  id: totrans-129
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE42]'
+- en: 'We created a variable, `fn`, to handle the async/await, then we called the
+    function as the return. You can give this function a name, or you can use async
+    effects as an anonymous function:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们创建了一个变量`fn`来处理异步/等待，然后我们调用函数作为返回值。你可以给这个函数起一个名字，或者你可以将异步效果作为匿名函数使用：
+- en: '[PRE43]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE43]'
+- en: If you follow these rules, you can avoid some common gotchas with React Hooks.
+    If you’re using Create React App, there’s an ESLint plug-in included called eslint-plugin-react-hooks
+    that provides warning hints if you’re in violation of these rules.
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果遵循这些规则，可以避免React Hooks的一些常见陷阱。如果您正在使用Create React App，那么其中包含的ESLint插件称为eslint-plugin-react-hooks将提供警告提示，如果您违反了这些规则。
+- en: Improving Code with useReducer
+  id: totrans-133
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 改善使用`useReducer`的代码
+- en: 'Consider the `Checkbox` component. This component is a perfect example of a
+    component that holds simple state. The box is either checked or not checked. `checked`
+    is the state value, and `setChecked` is a function that will be used to change
+    the state. When the component first renders, the value of `checked` will be `false`:'
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑 `Checkbox` 组件。这个组件是一个简单状态的完美例子。方框要么被选中，要么未选中。`checked` 是状态值，`setChecked`
+    是一个用于改变状态的函数。当组件首次渲染时，`checked` 的值将为 `false`：
+- en: '[PRE44]'
+  id: totrans-135
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE44]'
+- en: 'This works well, but one area of this function could be cause for alarm:'
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个方法很有效，但这个函数的一个方面可能会引起警惕：
+- en: '[PRE45]'
+  id: totrans-137
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE45]'
+- en: Look at it closely. It feels OK at first glance, but are we stirring up trouble
+    here? We’re sending a function that takes in the current value of `checked` and
+    returns the opposite, `!checked`. This is probably more complex than it needs
+    to be. Developers could easily send the wrong information and break the whole
+    thing. Instead of handling it this way, why not provide a function as a toggle?
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仔细看看。乍一看感觉还好，但我们在这里是不是在惹麻烦呢？我们发送了一个函数，它接受 `checked` 的当前值并返回相反值 `!checked`。这可能比必要的复杂。开发者可能会轻易地发送错误的信息并破坏整个功能。为什么不提供一个函数作为切换的方式，而不是这样处理它呢？
+- en: 'Let’s add a function called `toggle` that will do the same thing: call `setChecked`
+    and return the opposite of the current value of `checked`:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们添加一个名为 `toggle` 的函数，它将做同样的事情：调用 `setChecked` 并返回 `checked` 当前值的相反值：
+- en: '[PRE46]'
+  id: totrans-140
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE46]'
+- en: 'This is better. `onChange` is set to a predictable value: the `toggle` function.
+    We know what that function is going to do every time, everywhere it’s used. We
+    can still take this one step farther to yield even more predictable results each
+    time we use the `checkbox` component. Remember the function we sent to `setChecked`
+    in the `toggle` function?'
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这更好。`onChange` 设置为一个可预测的值：`toggle` 函数。我们知道每次在任何地方使用它时，它会做什么。我们仍然可以进一步进行，以在每次使用
+    `checkbox` 组件时产生更可预测的结果。记住我们在 `toggle` 函数中发送给 `setChecked` 的函数？
+- en: '[PRE47]'
+  id: totrans-142
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE47]'
+- en: 'We’re going to refer to this function, `checked => !checked`, by a different
+    name now: a *reducer*. A reducer function’s most simple definition is that it
+    takes in the current state and returns a new state. If `checked` is `false`, it
+    should return the opposite, `true`. Instead of hardcoding this behavior into `onChange`
+    events, we can abstract the logic into a reducer function that will always produce
+    the same results. Instead of `useState` in the component, we’ll use `useReducer`:'
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们将通过另一个名称来引用这个函数，`checked => !checked`：一个 *reducer*。一个 reducer 函数的最简单定义是它接受当前状态并返回一个新状态。如果
+    `checked` 是 `false`，它应该返回相反的 `true`。我们可以将这个行为抽象到一个 reducer 函数中，而不是将这个行为硬编码到 `onChange`
+    事件中，它将始终产生相同的结果。我们将不再在组件中使用 `useState`，而是使用 `useReducer`：
+- en: '[PRE48]'
+  id: totrans-144
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE48]'
+- en: '`useReducer` takes in the reducer function and the initial state, `false`.
+    Then, we’ll set the `onChange` function to `setChecked`, which will call the reducer
+    function.'
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useReducer` 接受 reducer 函数和初始状态 `false`。然后，我们将 `onChange` 函数设置为 `setChecked`，这将调用
+    reducer 函数。'
+- en: 'Our earlier reducer, `checked => !checked`, is a prime example of this. If
+    the same input is provided to a function, the same output should be expected.
+    This concept originates with `Array.reduce` in JavaScript. `reduce` fundamentally
+    does the same thing as a reducer: it takes in a function (to reduce all of the
+    values into a single value) and an initial value and returns one value.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们之前的 reducer，`checked => !checked`，就是一个很好的例子。如果给定相同的输入，应该期望得到相同的输出。这个概念源自 JavaScript
+    中的 `Array.reduce`。`reduce` 基本上与 reducer 做的事情一样：它接受一个函数（用于将所有值减少为单个值）和一个初始值，并返回一个值。
+- en: '`Array.reduce` takes in a reducer function and an initial value. For each value
+    in the `numbers` array, the reducer is called until one value is returned:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Array.reduce` 接受一个 reducer 函数和一个初始值。对于 `numbers` 数组中的每个值，直到返回一个值为止，都会调用 reducer：'
+- en: '[PRE49]'
+  id: totrans-148
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE49]'
+- en: 'The reducer sent to `Array.reduce` takes in two arguments. You can also send
+    multiple arguments to a reducer function:'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发送给 `Array.reduce` 的 reducer 接受两个参数。你也可以向 reducer 函数发送多个参数：
+- en: '[PRE50]'
+  id: totrans-150
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE50]'
+- en: Every time we click on the `h1`, we’ll add 30 to the total.
+  id: totrans-151
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次点击 `h1` 时，我们将总数加 30。
+- en: useReducer to Handle Complex State
+  id: totrans-152
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 `useReducer` 处理复杂状态
+- en: '`useReducer` can help us handle state updates more predictably as state becomes
+    more complex. Consider an object that contains user data:'
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当状态变得更加复杂时，`useReducer` 可以帮助我们更可预测地处理状态更新。考虑一个包含用户数据的对象：
+- en: '[PRE51]'
+  id: totrans-154
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE51]'
+- en: 'Then we have a component called `User` that sets the `firstUser` as the initial
+    state, and the component displays the appropriate data:'
+  id: totrans-155
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们有一个名为 `User` 的组件，将 `firstUser` 设置为初始状态，并且组件显示相应的数据：
+- en: '[PRE52]'
+  id: totrans-156
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE52]'
+- en: 'A common error when managing state is to overwrite the state:'
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在管理状态时常见的错误是覆盖状态：
+- en: '[PRE53]'
+  id: totrans-158
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE53]'
+- en: 'Doing this would overwrite state from `firstUser` and replace it with just
+    what we sent to the `setUser` function: `{admin: true}`. This can be fixed by
+    spreading the current values from user, then overwriting the `admin` value:'
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这样做将覆盖`firstUser`的状态，并用我们传递给`setUser`函数的内容替换：`{admin: true}`。 可以通过从用户当前值中扩展当前值，然后覆盖`admin`值来解决这个问题：'
+- en: '[PRE54]'
+  id: totrans-160
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE54]'
+- en: 'This will take the initial state and push in the new key/values: `{admin: true}`.
+    We need to rewrite this logic in every `onClick`, making it prone to error (we
+    might forget to do this when we come back to the app tomorrow):'
+  id: totrans-161
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '这将获取初始状态并推入新的键/值：`{admin: true}`。 我们需要在每次`onClick`时重新编写此逻辑，这样容易出错（明天再回到应用程序时可能会忘记这样做）：'
+- en: '[PRE55]'
+  id: totrans-162
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE55]'
+- en: 'Then we’ll send the new state value, `newDetails`, to the reducer, and it will
+    be pushed into the object:'
+  id: totrans-163
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，我们将新的状态值`newDetails`发送到reducer，并将其推送到对象中：
+- en: '[PRE56]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE56]'
+- en: This pattern is useful when state has multiple subvalues or when the next state
+    depends on a previous state. Teach everyone to spread, they’ll spread for a day.
+    Teach everyone to `useReducer` and they’ll spread for life.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当状态具有多个子值或下一个状态取决于上一个状态时，此模式非常有用。 教大家如何传播，他们会在一天内传播。 教大家使用`useReducer`，他们会终身传播。
+- en: Improving Component Performance
+  id: totrans-166
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 改进组件性能
+- en: 'In a React application, components are rendered…usually a lot. Improving performance
+    includes preventing unnecessary renders and reducing the time a render takes to
+    propagate. React comes with tools to help us prevent unnecessary renders: `memo`,
+    `useMemo`, and `useCallback`. We looked at `useMemo` and `useCallback` earlier
+    in the chapter, but in this section, we’ll go into more detail about how to use
+    these Hooks to make your websites perform better.'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在React应用程序中，组件通常会被渲染很多次。 改进性能包括防止不必要的渲染并减少渲染传播所需的时间。 React提供了工具来帮助我们防止不必要的渲染：`memo`，`useMemo`和`useCallback`。
+    我们之前在章节中看过`useMemo`和`useCallback`，但在本节中，我们将更详细地讨论如何使用这些Hooks来提升网站性能。
+- en: The `memo` function is used to create pure components. As discussed in [Chapter 3](ch03.html#functional-programming-with-javascript),
+    we know that, given the same parameters, a pure function will always return the
+    same result. A pure component works the same way. In React, a pure component is
+    a component that always renders the same output, given the same properties.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`memo`函数用于创建纯组件。 如在[第三章](ch03.html#functional-programming-with-javascript)中讨论的那样，我们知道，给定相同的参数，纯函数总是返回相同的结果。
+    纯组件也是如此。 在React中，纯组件是一个在给定相同属性时始终呈现相同输出的组件。'
+- en: 'Let’s create a component called `Cat`:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们创建一个名为`Cat`的组件：
+- en: '[PRE57]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE57]'
+- en: '`Cat` is a pure component. The output is always a paragraph that displays the
+    name property. If the name provided as a property is the same, the output will
+    be the same:'
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Cat`是一个纯组件。 输出始终是显示名称属性的段落。 如果提供的名称作为属性相同，则输出将相同：'
+- en: '[PRE58]'
+  id: totrans-172
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE58]'
+- en: 'This app uses the `Cat` component. After the initial render, the console reads:'
+  id: totrans-173
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此应用程序使用`Cat`组件。 初始渲染后，控制台显示：
+- en: '[PRE59]'
+  id: totrans-174
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE59]'
+- en: When the “Add a Cat” button is clicked, the user is prompted to add a cat.
+  id: totrans-175
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单击“添加猫”按钮后，提示用户添加一只猫。
+- en: 'If we add a cat named “Ripple,” we see that all `Cat` components are rerendered:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们添加一个名为“Ripple”的猫，我们会看到所有`Cat`组件都重新渲染：
+- en: '[PRE60]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE60]'
+- en: Warning
+  id: totrans-178
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: This code works because `prompt` is blocking. This is just an example. Don’t
+    use `prompt` in a real app.
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此代码之所以有效，是因为`prompt`是阻塞的。 这只是一个例子。 在真实应用中不要使用`prompt`。
+- en: 'Every time we add a cat, every `Cat` component is rendered, but the `Cat` component
+    is a pure component. Nothing changes about the output given the same prop, so
+    there shouldn’t be a render for each of these. We don’t want to rerender a pure
+    component if the properties haven’t changed. The `memo` function can be used to
+    create a component that will only render when its properties change. Start by
+    importing it from the React library and use it to wrap the current `Cat` component:'
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每次添加猫时，每个`Cat`组件都会被重新渲染，但`Cat`组件是一个纯组件。 给定相同的属性，输出不会改变，因此不应为每个属性重新渲染。 `memo`函数可用于创建仅在其属性更改时才会重新渲染的组件。
+    首先从React库导入它，然后将其用于包装当前的`Cat`组件：
+- en: '[PRE61]'
+  id: totrans-181
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE61]'
+- en: 'Here, we’ve created a new component called `PureCat`. `PureCat` will only cause
+    the `Cat` to render when the properties change. Then we can replace the `Cat`
+    component with `PureCat` in the `App` component:'
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，我们创建了一个名为`PureCat`的新组件。 `PureCat`仅在属性更改时才会导致`Cat`重新渲染。 然后，我们可以在`App`组件中用`PureCat`替换`Cat`组件：
+- en: '[PRE62]'
+  id: totrans-183
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE62]'
+- en: 'Now, every time we add a new cat name, like “Pancake,” we see only one render
+    in the console:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，每当我们添加一个新的猫名字，比如“Pancake”，我们在控制台中只看到一次渲染：
+- en: '[PRE63]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE63]'
+- en: Because the names of the other cats have not changed, we don’t render those
+    `Cat` components. This is working well for a `name` property, but what if we introduce
+    a function property to the `Cat` component?
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为其他猫的名字没有改变，我们不会渲染那些`Cat`组件。这对于`name`属性效果很好，但如果我们向`Cat`组件引入一个函数属性会怎么样？
+- en: '[PRE64]'
+  id: totrans-187
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE64]'
+- en: 'Every time a cat is clicked on, we can use this property to log a `meow` to
+    the console:'
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每当点击猫时，我们可以使用此属性将`meow`记录到控制台中：
+- en: '[PRE65]'
+  id: totrans-189
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE65]'
+- en: When we add this change, `PureCat` no longer works as expected. It’s always
+    rendering every `Cat` component even though the `name` property remains the same.
+    This is because of the added `meow` property. Unfortunately, every time we define
+    the `meow` property as a function, it’s always new function. To React, the `meow`
+    property has changed, and the component is rerendered.
+  id: totrans-190
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当我们添加了这个更改后，`PureCat`不再按预期工作。它始终渲染每个`Cat`组件，即使`name`属性保持不变也是如此。这是因为增加了`meow`属性。不幸的是，每次我们将`meow`属性定义为一个函数时，它总是一个新函数。对于React来说，`meow`属性已经改变，因此组件会重新渲染。
+- en: 'The `memo` function will allow us to define more specific rules around when
+    this component should rerender:'
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`memo`函数将允许我们在何时重新渲染此组件周围定义更具体的规则：'
+- en: '[PRE66]'
+  id: totrans-192
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE66]'
+- en: 'The second argument sent to the `memo` function is a *predicate*. A predicate
+    is a function that only returns `true` or `false`. This function decides whether
+    to rerender a cat or not. When it returns `false`, the `Cat` is rerendered. When
+    this function returns `true`, the `Cat` will not be rerendered. No matter what,
+    the `Cat` is always rendered at least once. This is why, with `RenderCatOnce`,
+    it will render once and then never again. Typically, this function is used to
+    check actual values:'
+  id: totrans-193
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个参数传递给`memo`函数的是一个*predicate*。谓词是一个仅返回`true`或`false`的函数。此函数决定是否重新渲染猫。当它返回`false`时，`Cat`会重新渲染。当此函数返回`true`时，`Cat`将不会重新渲染。无论如何，`Cat`至少渲染一次。这就是为什么在`RenderCatOnce`中，它会渲染一次，然后再也不会。通常，此函数用于检查实际值：
+- en: '[PRE67]'
+  id: totrans-194
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE67]'
+- en: We can use the second argument to compare properties and decide if `Cat` should
+    be rerendered. The predicate receives the previous properties and the next properties.
+    These objects are used to compare the `name` property. If the `name` changes,
+    the component will be re-rendered. If the `name` is the same, it will be rerendered
+    regardless of what React thinks about the `meow` property.
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以使用第二个参数来比较属性并决定是否应重新渲染`Cat`。谓词接收先前的属性和下一个属性。这些对象用于比较`name`属性。如果`name`发生变化，组件将重新渲染。如果`name`相同，那么不管React如何看待`meow`属性，它都将重新渲染。
+- en: shouldComponentUpdate and PureComponent
+  id: totrans-196
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: shouldComponentUpdate和PureComponent
+- en: 'The concepts we’re discussing are not new to React. The `memo` function is
+    a new solution to a common problem. In previous versions of React, there was a
+    method called `shouldComponentUpdate`. If present in the component, it was used
+    to let React know under which circumstances the component should update. `shouldComponentUpdate`
+    described which props or state would need to change for the component to rerender.
+    Once `shouldComponentUpdate` was part of the React library, it was embraced as
+    a useful feature by many. So useful that the React team decided to create an alternate
+    way of creating a component as a class. A class component would look like this:'
+  id: totrans-197
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们讨论的概念对React并不新鲜。`memo`函数是解决一个常见问题的新方法。在React的早期版本中，有一种称为`shouldComponentUpdate`的方法。如果存在于组件中，它将告诉React在哪些情况下组件应该更新。`shouldComponentUpdate`描述了哪些props或state需要更改以便重新渲染组件。一旦`shouldComponentUpdate`成为React库的一部分，许多人都认为它是一个有用的特性。如此有用，以至于React团队决定创建一个创建类组件的替代方法。类组件看起来像这样：
+- en: '[PRE68]'
+  id: totrans-198
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE68]'
+- en: 'A `PureComponent` would look like this:'
+  id: totrans-199
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个`PureComponent`看起来像这样：
+- en: '[PRE69]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE69]'
+- en: '`PureComponent` is the same as `React.memo`, but `PureComponent` is only for
+    class components; `React.memo` is only for function components.'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`PureComponent`与`React.memo`相同，但`PureComponent`仅适用于类组件；`React.memo`仅适用于函数组件。'
+- en: '`useCallback` and `useMemo` can be used to memoize object and function properties.
+    Let’s use `useCallback` in the `Cat` component:'
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`useCallback`和`useMemo`可用于记忆化对象和函数属性。让我们在`Cat`组件中使用`useCallback`：'
+- en: '[PRE70]'
+  id: totrans-203
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE70]'
+- en: In this case, we did not provide a property-checking predicate to `memo(Cat)`.
+    Instead, we used `useCallback` to ensure that the `meow` function had not changed.
+    Using these functions can be helpful when dealing with too many rerenders in your
+    component tree.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，我们没有为 `memo(Cat)` 提供属性检查谓词。相反，我们使用 `useCallback` 确保 `meow` 函数未发生更改。在处理组件树中过多重新渲染时，使用这些函数会很有帮助。
+- en: When to Refactor
+  id: totrans-205
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 何时重构
+- en: The last Hooks we discussed, `useMemo` and `useCallback`, along with the `memo`
+    function, are commonly overused. React is designed to be fast. It’s designed to
+    have components render a lot. The process of optimizing for performance began
+    when you decided to use React in the first place. It’s fast. Any further refactoring
+    should be a last step.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们讨论的最后两个 Hook，`useMemo` 和 `useCallback`，以及 `memo` 函数，通常被过度使用。React 设计用于快速渲染组件。优化性能的过程从您决定首次使用
+    React 开始。它很快。进一步的重构应该是最后一步。
+- en: There are trade-offs to refactoring. Using `useCallback` and `useMemo` everywhere
+    because it seems like a good idea might actually make your app less performant.
+    You’re adding more lines of code and developer hours to your application. When
+    you refactor for performance, it’s important to have a goal. Perhaps you want
+    to stop the screen from freezing or flickering. Maybe you know there are some
+    costly functions that are slowing the speed of your app unreasonably.
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 重构存在权衡。仅仅因为觉得使用 `useCallback` 和 `useMemo` 是个好主意，实际上可能会降低应用程序的性能。您会增加代码行数和开发人员工时。在为性能重构时，设定一个目标非常重要。也许您想要防止屏幕冻结或闪烁。也许您知道某些昂贵的函数无缘无故地减慢了应用程序的速度。
+- en: The React Profiler can be used to measure the performance of each of your components.
+    The profiler ships with the React Developer Tools that you’ve likely installed
+    already (available for [Chrome](https://oreil.ly/1UNct) and [Firefox](https://oreil.ly/0NYbR)).
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: React Profiler 可用于测量每个组件的性能。该分析器与您可能已经安装的 React 开发者工具一起提供（可在[Chrome](https://oreil.ly/1UNct)和[Firefox](https://oreil.ly/0NYbR)上使用）。
+- en: Always make sure your app works and you’re satisfied with the codebase before
+    refactoring. Over-refactoring, or refactoring before your app works, can introduce
+    weird bugs that are hard to spot, and it might not be worth your time and focus
+    to introduce these optimizations.
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在重构之前，请确保您的应用程序可以正常工作，并且您对代码库感到满意。过度重构或在应用程序工作之前进行重构可能会引入难以发现的怪异 bug，而且也可能不值得花费您的时间和精力来引入这些优化。
+- en: In the last two chapters, we’ve introduced many of the Hooks that ship with
+    React. You’ve seen use cases for each hook, and you’ve created your own custom
+    Hooks by composing other Hooks. Next, we’ll build on these foundational skills
+    by incorporating additional libraries and advanced patterns.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在过去的两章中，我们介绍了许多随 React 一起提供的 Hook。您已经看到了每个 Hook 的用例，并通过组合其他 Hook 创建了自己的自定义 Hook。接下来，我们将通过整合额外的库和高级模式，进一步构建这些基础技能。

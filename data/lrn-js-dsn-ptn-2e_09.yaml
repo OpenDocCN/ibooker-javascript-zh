@@ -1,0 +1,729 @@
+- en: Chapter 9\. Asynchronous Programming Patterns
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第9章. 异步编程模式
+- en: Asynchronous JavaScript programming allows you to execute long-running tasks
+    in the background while allowing the browser to respond to events and run other
+    code to handle these events. Asynchronous programming is relatively new in JavaScript,
+    and the syntax to support it was not available when the first edition of this
+    book was published.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 异步JavaScript编程允许您在后台执行长时间运行的任务，同时允许浏览器响应事件并运行其他代码来处理这些事件。在JavaScript中，异步编程相对较新，当本书第一版发布时，并没有支持它的语法。
+- en: JavaScript concepts such as `promise`, `async`, and `await` make your code tidier
+    and easy to read without blocking the main thread. `async` functions were introduced
+    as part of ES7 in 2016 and are now supported on all browsers. Let’s look at some
+    patterns that use these features to structure our application flows.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript的概念，如`promise`、`async`和`await`，使您的代码更整洁，易于阅读，而不会阻塞主线程。`async`函数作为ES7的一部分在2016年被引入，并且现在所有浏览器都支持。让我们看一些使用这些特性来结构应用流程的模式。
+- en: Asynchronous Programming
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 异步编程
+- en: In JavaScript, synchronous code is executed in a blocking manner, meaning that
+    the code is executed serially, one statement at a time. The following code can
+    run only after the execution of the current statement has been completed. When
+    you call a synchronous function, the code inside that function will execute from
+    start to finish before the control returns to the caller.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在JavaScript中，同步代码以阻塞方式执行，这意味着代码按顺序一个语句一个语句地执行。当前语句的执行完成后，才能运行下面的代码。调用同步函数时，该函数内部的代码将从头到尾执行，然后控制权返回给调用者。
+- en: On the other hand, asynchronous code is executed in a nonblocking manner, meaning
+    that the JavaScript engine can switch to execute this code in the background while
+    the currently running code is waiting on something. When you call an asynchronous
+    function, the code inside the function will execute in the background, and the
+    control returns to the caller immediately.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一方面，异步代码以非阻塞方式执行，这意味着JavaScript引擎可以在当前运行的代码等待时切换到后台执行此代码。调用异步函数时，函数内部的代码将在后台执行，控制立即返回给调用者。
+- en: 'Here is an example of synchronous code in JavaScript:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是JavaScript中同步代码的一个示例：
+- en: '[PRE0]'
+  id: totrans-7
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'And here is an example of asynchronous code in JavaScript:'
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是JavaScript中异步代码的一个示例：
+- en: '[PRE1]'
+  id: totrans-9
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: You can generally use asynchronous code to perform long-running operations without
+    blocking the rest of your code. Asynchronous code is suitable when making network
+    requests, reading or writing to a database, or doing any other type of I/O (input/output)
+    operation.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您通常可以使用异步代码来执行长时间运行的操作，而不会阻塞您的其他代码。当进行网络请求、读写数据库或执行任何其他类型的输入/输出（I/O）操作时，异步代码非常合适。
+- en: Language features such as `async`, `await`, and `promise` make writing asynchronous
+    code in JavaScript easier. They allow you to write asynchronous code in a way
+    that looks and behaves like synchronous code, making it easier to read and understand.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`async`、`await`和`promise`等语言特性可以更轻松地在JavaScript中编写异步代码。它们允许您以看起来和行为类似于同步代码的方式编写异步代码，使其更易于阅读和理解。
+- en: 'Let’s briefly look at the differences between callbacks, promises, and `async`/`await`
+    before diving into each in more depth:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们简要地看一下回调、promise和`async`/`await`之间的区别，然后深入探讨每一种：
+- en: '[PRE2]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: 'In the first example, the `makeRequest` function uses a callback to return
+    the result of the network request. The caller passes a `callback` function to
+    `makeRequest`, which is called back with either the result(`data`) or an `error`:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第一个示例中，`makeRequest`函数使用回调来返回网络请求的结果。调用者向`makeRequest`传递一个`callback`函数，该函数在结果（`data`）或错误时回调：
+- en: '[PRE3]'
+  id: totrans-15
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'In the second example, the `makeRequest` function returns a `promise` that
+    resolves with the result of the network request or rejects with an error. The
+    caller can use the `then` and `catch` methods on the returned promise to handle
+    the result of the request:'
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第二个示例中，`makeRequest`函数返回一个`promise`，该`promise`在网络请求的结果解析后解析，或在出现错误时拒绝。调用者可以使用返回的`promise`的`then`和`catch`方法来处理请求的结果：
+- en: '[PRE4]'
+  id: totrans-17
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: In the third example, the `makeRequest` function is declared with the `async`
+    keyword, which allows it to use the `await` keyword to wait for the result of
+    the network request. The caller can use the `try` and `catch` keywords to handle
+    any errors that may occur during the execution of the function.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在第三个示例中，`makeRequest`函数使用`async`关键字声明，允许它使用`await`关键字等待网络请求的结果。调用者可以使用`try`和`catch`关键字来处理函数执行过程中可能发生的任何错误。
+- en: Background
+  id: totrans-19
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 背景
+- en: Callback functions in JavaScript can be passed to another function as an argument
+    and executed after some asynchronous operation is completed. Callbacks were commonly
+    used to handle the results of asynchronous operations, such as network requests
+    or user input.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript中的回调函数可以作为参数传递给另一个函数，并在某些异步操作完成后执行。回调函数通常用于处理异步操作的结果，例如网络请求或用户输入。
+- en: 'One of the main disadvantages of using callbacks is that they can lead to what
+    is known as “callback hell”—a situation where nested callbacks become challenging
+    to read and maintain. Consider the following example:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用回调函数的一个主要缺点是可能导致所谓的“回调地狱”——嵌套回调变得难以阅读和维护。考虑以下示例：
+- en: '[PRE5]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: In this example, the `makeRequest1` function makes a network request and then
+    calls the `callback` function with the result of the request. The `callback` function
+    then makes a second network request using the `makeRequest2` function, which calls
+    another `callback` function with its result. This pattern continues for the third
+    network request.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`makeRequest1`函数发起网络请求，然后调用`callback`函数处理请求的结果。`callback`函数然后使用`makeRequest2`函数进行第二次网络请求，并使用其结果调用另一个`callback`函数。这种模式继续用于第三个网络请求。
+- en: Promise Patterns
+  id: totrans-24
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: Promise模式
+- en: 'Promises are a more modern approach to handling asynchronous operations in
+    JavaScript. A promise is an object that represents the result of an asynchronous
+    operation. It can be in three states: pending, fulfilled, or rejected. A promise
+    is like a contract that can be settled if it is fulfilled or rejected.'
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Promise是JavaScript中处理异步操作的更现代方法。Promise是表示异步操作结果的对象。它可以处于三种状态之一：pending（进行中）、fulfilled（已成功）或rejected（已失败）。Promise就像是一个合同，可以通过成功或失败来解决。
+- en: 'You can create a promise using the `Promise` constructor, which takes a function
+    as an argument. The function receives two arguments: `resolve` and `reject`. The
+    `resolve` function is called when the asynchronous operation is completed successfully,
+    and the `reject` function is called if the operation fails.'
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您可以使用`Promise`构造函数创建一个promise，该构造函数接受一个函数作为参数。该函数接收两个参数：`resolve`和`reject`。当异步操作成功完成时调用`resolve`函数，如果操作失败则调用`reject`函数。
+- en: 'Here is an example that shows how you can use promises to make network requests:'
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个示例，展示了如何使用promise进行网络请求：
+- en: '[PRE6]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: In this example, the `makeRequest` function returns a `promise` representing
+    the network request’s result. The `fetch` method is used inside the function to
+    make the HTTP request. If the request succeeds, the promise is fulfilled with
+    the data from the response. If it fails, the promise is rejected with the error.
+    The caller can use the `then` and `catch` methods on the returned promise to handle
+    the result of the request.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这个例子中，`makeRequest` 函数返回一个表示网络请求结果的`promise`。函数内部使用`fetch`方法进行HTTP请求。如果请求成功，promise
+    将以响应数据完成。如果失败，则以错误拒绝。调用者可以在返回的promise上使用`then`和`catch`方法来处理请求的结果。
+- en: One of the main advantages of using promises over callbacks is that they provide
+    a more structured and readable approach to handling asynchronous operations. This
+    allows you to avoid “callback hell” and write code that is easier to understand
+    and maintain.
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用promise而不是回调函数的主要优势之一是它们提供了一种更结构化和可读的方法来处理异步操作。这使您可以避免“回调地狱”，编写更易于理解和维护的代码。
+- en: The following sections provide additional examples that will be relevant to
+    help you understand the different promise design patterns that you can use in
+    JavaScript.
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面的章节提供了更多示例，这些示例将有助于您理解在JavaScript中可以使用的不同promise设计模式。
+- en: Promise Chaining
+  id: totrans-32
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise链式调用
+- en: 'This pattern allows you to chain multiple promises together to create more
+    complex `async` logic:'
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您链式连接多个promise以创建更复杂的`async`逻辑：
+- en: '[PRE7]'
+  id: totrans-34
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Promise Error Handling
+  id: totrans-35
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise错误处理
+- en: 'This pattern uses the `catch` method to handle errors that may occur during
+    the execution of a promise chain:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用`catch`方法来处理promise链执行过程中可能出现的错误：
+- en: '[PRE8]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: Promise Parallelism
+  id: totrans-38
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise并行
+- en: 'This pattern allows you to run multiple promises concurrently using the `Promise.all`
+    method:'
+  id: totrans-39
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`Promise.all`方法并行运行多个promise：
+- en: '[PRE9]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: Promise Sequential Execution
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 顺序执行
+- en: 'This pattern allows you to run promises in sequence using the `Promise.resolve`
+    method:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`Promise.resolve`方法按顺序运行promise：
+- en: '[PRE10]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Promise Memoization
+  id: totrans-44
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 记忆化
+- en: 'This pattern uses a cache to store the results of promise function calls, allowing
+    you to avoid making duplicate requests:'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用缓存存储promise函数调用的结果，避免重复请求：
+- en: '[PRE11]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'In this example, we’ll demonstrate how to use the `memoizedMakeRequest` function
+    to avoid making duplicate requests:'
+  id: totrans-47
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，我们将演示如何使用`memoizedMakeRequest`函数避免重复请求：
+- en: '[PRE12]'
+  id: totrans-48
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: Now, when the button is clicked, the `memoizedMakeRequest` function will be
+    called. If the requested URL is already in the cache, the cached data will be
+    returned. Otherwise, a new request will be made, and the result will be cached
+    for future requests.
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，当按钮被点击时，将调用`memoizedMakeRequest`函数。如果请求的URL已经在缓存中，则返回缓存数据。否则，将进行新的请求，并将结果缓存以供将来使用。
+- en: Promise Pipeline
+  id: totrans-50
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 管道
+- en: 'This pattern uses promises and functional programming techniques to create
+    a pipeline of `async` transformations:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用promise和函数式编程技术来创建`async`转换的管道：
+- en: '[PRE13]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Promise Retry
+  id: totrans-53
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 重试
+- en: 'This pattern allows you to retry a promise if it fails:'
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您在promise失败时重试：
+- en: '[PRE14]'
+  id: totrans-55
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Promise Decorator
+  id: totrans-56
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 装饰器
+- en: 'This pattern uses a higher-order function to create a decorator that can be
+    applied to promises to add additional behavior:'
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用高阶函数创建一个装饰器，可应用于promise以添加额外的行为：
+- en: '[PRE15]'
+  id: totrans-58
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Promise Race
+  id: totrans-59
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Promise 竞速
+- en: 'This pattern allows you to run multiple promises concurrently and return the
+    result of the first one to settle:'
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您并行运行多个promise，并返回首个解决的结果：
+- en: '[PRE16]'
+  id: totrans-61
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: async/await Patterns
+  id: totrans-62
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: async/await 模式
+- en: '`async`/`await` is a language feature that allows a programmer to write asynchronous
+    code as if it were synchronous. It is built on top of promises, and it makes working
+    with asynchronous code easier and cleaner.'
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`async`/`await`是一种语言特性，允许程序员像编写同步代码一样编写异步代码。它建立在promises之上，使得处理异步代码更加简单和清晰。'
+- en: 'Here is an example of how you might use `async`/`await` to make an asynchronous
+    HTTP request:'
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个示例，展示了如何使用`async`/`await`进行异步HTTP请求：
+- en: '[PRE17]'
+  id: totrans-65
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: In this example, the `makeRequest` function is asynchronous because it uses
+    the `async` keyword. Inside the function, the `await` keyword is used to pause
+    the execution of the function until the `fetch` call resolves. If the call succeeds,
+    the data is logged to the console. If it fails, the error is caught and logged
+    to the console.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在此示例中，`makeRequest`函数是异步的，因为它使用了`async`关键字。在函数内部，使用`await`关键字暂停函数的执行，直到`fetch`调用解析。如果调用成功，则将数据记录到控制台。如果失败，则捕获错误并记录到控制台。
+- en: Let us now look at some other patterns using `async`.
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们看看其他一些使用`async`的模式。
+- en: async Function Composition
+  id: totrans-68
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 函数组合
+- en: 'This pattern involves composing multiple `async` functions together to create
+    more complex `async` logic:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式涉及将多个`async`函数组合在一起，以创建更复杂的`async`逻辑：
+- en: '[PRE18]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: async Iteration
+  id: totrans-71
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 迭代
+- en: 'This pattern allows you to use the `for-await-of` loop to iterate over an `async`
+    iterable:'
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`for-await-of`循环迭代`async`可迭代对象：
+- en: '[PRE19]'
+  id: totrans-73
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: async Error Handling
+  id: totrans-74
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 错误处理
+- en: 'This pattern uses `try-catch` blocks to handle errors that may occur during
+    the execution of an `async` function:'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用`try-catch`块来处理`async`函数执行过程中可能出现的错误：
+- en: '[PRE20]'
+  id: totrans-76
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: async Parallelism
+  id: totrans-77
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 并行处理
+- en: 'This pattern allows you to run multiple `async` tasks concurrently using the
+    `Promise.all` method:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`Promise.all`方法并行运行多个`async`任务：
+- en: '[PRE21]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: async Sequential Execution
+  id: totrans-80
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 顺序执行
+- en: 'This pattern allows you to run `async` tasks in sequence using the `Promise.resolve`
+    method:'
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`Promise.resolve`方法按顺序运行`async`任务：
+- en: '[PRE22]'
+  id: totrans-82
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: async Memoization
+  id: totrans-83
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 记忆化
+- en: 'This pattern uses a cache to store the results of `async` function calls, allowing
+    you to avoid making duplicate requests:'
+  id: totrans-84
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用缓存存储`async`函数调用的结果，避免重复请求：
+- en: '[PRE23]'
+  id: totrans-85
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: async Event Handling
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 事件处理
+- en: 'This pattern allows you to use `async` functions to handle events:'
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您使用`async`函数处理事件：
+- en: '[PRE24]'
+  id: totrans-88
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: async/await Pipeline
+  id: totrans-89
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async/await 管道
+- en: 'This pattern uses `async`/`await` and functional programming techniques to
+    create a pipeline of `async` transformations:'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用`async`/`await`和函数式编程技术创建`async`转换的管道：
+- en: '[PRE25]'
+  id: totrans-91
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: async Retry
+  id: totrans-92
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async 重试
+- en: 'This pattern allows you to retry an `async` operation if it fails:'
+  id: totrans-93
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式允许您在`async`操作失败时重试：
+- en: '[PRE26]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: async/await Decorator
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: async/await 装饰器
+- en: 'This pattern uses a higher-order function to create a decorator that can be
+    applied to `async` functions to add additional behavior:'
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种模式使用高阶函数创建一个装饰器，可以应用于`async`函数以添加额外的行为：
+- en: '[PRE27]'
+  id: totrans-97
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: Additional Practical Examples
+  id: totrans-98
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 其他实际示例
+- en: In addition to the patterns discussed in the previous sections, let’s take a
+    look at some practical examples of using `async`/`await` in JavaScript.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了前几节讨论的模式外，让我们看一些在 JavaScript 中使用`async`/`await`的实际示例。
+- en: Making an HTTP Request
+  id: totrans-100
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 发送 HTTP 请求
+- en: '[PRE28]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: Reading a File from the Filesystem
+  id: totrans-102
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 从文件系统中读取文件
+- en: '[PRE29]'
+  id: totrans-103
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: Writing to a File on the Filesystem
+  id: totrans-104
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 写入文件到文件系统
+- en: '[PRE30]'
+  id: totrans-105
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: Executing Multiple async Operations
+  id: totrans-106
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 执行多个 async 操作
+- en: '[PRE31]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: Executing Multiple async Operations in Sequence
+  id: totrans-108
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 顺序执行多个 async 操作
+- en: '[PRE32]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: Caching the Result of an async Operation
+  id: totrans-110
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 缓存 async 操作的结果
+- en: '[PRE33]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Handling Events with async/await
+  id: totrans-112
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 使用 async/await 处理事件
+- en: '[PRE34]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE34]'
+- en: Retrying an async Operation on Failure
+  id: totrans-114
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 在失败时重试 async 操作
+- en: '[PRE35]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE35]'
+- en: Creating an async/await Decorator
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 创建一个 async/await 装饰器
+- en: '[PRE36]'
+  id: totrans-117
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE36]'
+- en: Summary
+  id: totrans-118
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 总结
+- en: This chapter covered an extensive set of patterns and examples that can be useful
+    when writing asynchronous code for executing long-running tasks in the background.
+    We saw how `callback` functions made way for promises and `async`/`await` to execute
+    one or many `async` tasks.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章涵盖了一系列广泛的模式和示例，这些模式在编写用于在后台执行长时间运行任务的异步代码时非常有用。我们看到`callback`函数为 promises
+    和`async`/`await`执行一个或多个`async`任务铺平了道路。
+- en: In the next chapter, we will look at another angle of application architecture
+    patterns. We will look at how the patterns for modular development have evolved
+    over time.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在下一章中，我们将看一看应用架构模式的另一个角度。我们将看看模块化开发的模式是如何随着时间的推移而演变的。

@@ -1,0 +1,1879 @@
+- en: Chapter 8\. Frameworks
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第八章。框架
+- en: In our journey through React thus far, we have uncovered an extensive range
+    of features and principles that contribute to its power and versatility. The previous
+    chapter delved into the fascinating world of asynchronous React, which empowers
+    us with tools like `useTransition` and `useDeferredValue` to create highly responsive
+    and user-friendly interfaces. We explored how these tools utilize the sophisticated
+    scheduling and prioritization mechanisms of React, made possible by the Fiber
+    reconciler, to achieve optimal performance. The understanding of these asynchronous
+    patterns is critical as we venture into the realm of React frameworks in this
+    chapter.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们迄今为止的 React 之旅中，我们已经揭示了一系列功能和原则，这些功能和原则为其功能和多功能性做出了贡献。前一章深入探讨了异步 React 的迷人世界，这使我们能够使用`useTransition`和`useDeferredValue`等工具来创建高度响应和用户友好的界面。我们探索了这些工具如何利用
+    React 的复杂调度和优先级机制，这是由 Fiber reconciler 可能实现的，以实现最佳性能。在本章中，理解这些异步模式对我们进入 React
+    框架的领域至关重要。
+- en: React by itself is incredibly powerful, but as applications grow in complexity,
+    we often find ourselves repeating similar patterns or needing more streamlined
+    solutions for common challenges. This is where frameworks come in. React frameworks
+    are software libraries or toolkits built on top of React, providing additional
+    abstractions to handle common tasks more efficiently and enforce best practices.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 单独使用 React 本身非常强大，但随着应用程序复杂度的增加，我们经常发现自己重复使用类似的模式或需要更简化的解决方案来应对常见挑战。这就是框架的作用。React
+    框架是建立在 React 之上的软件库或工具包，提供额外的抽象以更有效地处理常见任务，并强制执行最佳实践。
+- en: Why We Need a Framework
+  id: totrans-3
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 为什么我们需要一个框架
+- en: While React provides the building blocks to create interactive user interfaces,
+    it leaves many important architectural decisions up to the developers. React is
+    unopinionated in this regard, giving developers the flexibility to structure their
+    applications in the way they see fit. However, as applications scale, this freedom
+    can turn into a burden. You might find yourself reinventing the wheel, dealing
+    with common challenges such as routing, data fetching, and server-side rendering
+    again and again.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然 React 提供了创建交互式用户界面的构建块，但它在许多重要的架构决策上留给开发人员。在这方面，React 并没有明确的意见，使开发人员能够以他们认为合适的方式组织他们的应用程序。然而，随着应用程序的扩展，这种自由可能会成为负担。您可能会发现自己一遍又一遍地重新发明轮子，处理诸如路由、数据获取和服务器端渲染等常见挑战。
+- en: This is where React frameworks come in. They provide a predefined structure
+    and solutions to common problems, allowing developers to focus on what’s unique
+    about their application, rather than getting bogged down with boilerplate code.
+    This can significantly accelerate the development process and improve the quality
+    of the codebase by adhering to best practices enforced by the framework.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 React 框架的作用。它们提供了一个预定义的结构和常见问题的解决方案，使开发人员能够专注于其应用程序的独特之处，而不是陷入样板代码中。这可以显著加速开发过程，并通过遵循框架强制执行的最佳实践来改善代码库的质量。
+- en: 'To fully understand this, let’s try to write our own minimal framework. In
+    order to do this, we need to identify a few key features that we get from frameworks
+    that we do not get as easily from plain React. For the sake of brevity, we’ll
+    identify three key features along these lines that we get from frameworks . It’s
+    worth noting that frameworks do far more, but this subset will help us form the
+    basis of a great discussion:'
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要完全理解这一点，让我们试着编写我们自己的最小框架。为了做到这一点，我们需要确定我们从框架中获得而不容易从纯 React 中获得的一些关键功能。为简洁起见，我们将确定这些行中的三个关键特征，这些特征将帮助我们形成一个很好的讨论基础：
+- en: Server rendering
+  id: totrans-7
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 服务器渲染
+- en: Routing
+  id: totrans-8
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 路由
+- en: Data fetching
+  id: totrans-9
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数据获取
+- en: 'Let’s take a preexisting imaginary React application and incrementally add
+    these features to understand what frameworks do for us. The React app we’re “framework-ifying”
+    has the following structure:'
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们从一个现有的想象中的 React 应用程序开始，并逐步添加这些功能，以了解框架对我们的意义。我们“框架化”的 React 应用程序的结构如下：
+- en: '[PRE0]'
+  id: totrans-11
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: 'Here’s what each file looks like:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是每个文件的样子：
+- en: '[PRE1]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: 'There are a few issues with this that affect all client-only rendered React
+    applications:'
+  id: totrans-14
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这对所有仅客户端渲染的 React 应用程序都存在一些问题：
+- en: We ship an empty page to a user with only code to load, then parse and execute
+    JavaScript.
+  id: totrans-15
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们向用户发送一个只加载代码的空白页面，然后解析和执行 JavaScript。
+- en: A user downloads a blank page until JavaScript kicks in, and then they get our
+    app. If the user is a search engine, they may see nothing. If the search engine
+    crawler does not support JavaScript, the search engine will not index our website.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 用户在JavaScript启动之前会下载一个空白页面，然后他们会得到我们的应用程序。如果用户是搜索引擎，则可能看不到任何内容。如果搜索引擎爬虫不支持JavaScript，则搜索引擎将不会索引我们的网站。
+- en: We start fetching data too late.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们开始太晚获取数据。
+- en: 'Our app falls prey to a user-experience curse called *network waterfalls*:
+    a phenomenon that occurs when network requests happen in succession and slow down
+    applications. Our application has to make multiple requests to a server for basic
+    functionality. For instance, it executes like so:'
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的应用程序遭遇了用户体验的诅咒，称为*网络瀑布*：这种现象发生在网络请求连续进行并减慢应用程序速度时。我们的应用程序必须对服务器进行多次请求以实现基本功能。例如，它执行如下：
+- en: Download, parse, and execute JavaScript.
+  id: totrans-19
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 下载、解析和执行JavaScript。
+- en: Render and commit React components.
+  id: totrans-20
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 渲染和提交React组件。
+- en: '`useEffect` starts fetching data.'
+  id: totrans-21
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`useEffect`开始获取数据。'
+- en: Render and commit spinners, etc.
+  id: totrans-22
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 渲染和提交加载器等。
+- en: '`useEffect` finishes fetching data.'
+  id: totrans-23
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`useEffect`完成数据获取。'
+- en: 'Render and commit data. All of this can be avoided if we serve a page with
+    data straight to the browser: if we send HTML markup as covered in [Chapter 7](ch07.html#ch07)
+    on server-side React.'
+  id: totrans-24
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 渲染和提交数据。如果我们直接向浏览器提供带有数据的页面，那么所有这些都可以避免：如果我们像[第7章](ch07.html#ch07)中介绍的那样，在服务器端渲染React时发送HTML标记。
+- en: Our router is purely client based.
+  id: totrans-25
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的路由器完全基于客户端。
+- en: If a browser requests [*https://our-app.com/detail?thingId=24*](https://our-app.com/detail?thingId=24),
+    the server responds with a 404 page because there is no such file on the server.
+    A common hack used to remedy this is to render an HTML file when a 404 is encountered
+    that loads JavaScript and has the client-side router take over. This hack doesn’t
+    work for search engines or environments where JavaScript support is limited.
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果浏览器请求[*https://our-app.com/detail?thingId=24*](https://our-app.com/detail?thingId=24)，服务器将返回404页面，因为服务器上没有这样的文件。为了解决这个问题，通常会使用一个常见的技巧，当遇到404时渲染一个HTML文件，该文件加载JavaScript并由客户端路由接管。但这种方法对搜索引擎或者JavaScript支持有限的环境不起作用。
+- en: Frameworks help resolve all these issues and more. Let’s explore how exactly
+    they do this.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 框架有助于解决所有这些问题以及更多。让我们具体探讨它们是如何做到的。
+- en: Server Rendering
+  id: totrans-28
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 服务器端渲染
+- en: To start with, frameworks usually give us server rendering out of the box. To
+    add server rendering to this application, we need a server. We can write one ourselves
+    using a package like Express.js. We would then deploy this server and we’re in
+    business. Let’s explore the code that would power such a server.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，框架通常会为我们提供服务器端渲染。要将服务器端渲染添加到此应用程序中，我们需要一个服务器。我们可以使用像Express.js这样的包自己编写一个服务器，然后部署这个服务器，这样就可以使用了。让我们探讨一下将为这样一个服务器提供动力的代码。
+- en: Before we do, please be aware that we’re using `renderToString` merely for simplicity
+    and to illustrate the underlying mechanisms behind how frameworks implement these
+    features. In a real production use case, it’s almost always better to rely on
+    more powerful asynchronous APIs for server rendering like `renderToPipeableStream`,
+    as covered in [Chapter 6](ch06.html#ch06).
+  id: totrans-30
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们继续之前，请注意我们仅仅出于简化和说明框架如何实现这些特性的底层机制，才使用`renderToString`。在真实的生产用例中，通常更好地依赖于更强大的异步API，比如像`renderToPipeableStream`，就像[第6章](ch06.html#ch06)中所介绍的那样。
+- en: 'With that out of the way, let’s do this:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 说完这些，让我们开始吧：
+- en: '[PRE2]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: This code is all we need to add server rendering to our application. Notice
+    how `index.js` on the client side has its own client router, and how we essentially
+    just added another one for the server. Frameworks ship *isomorphic routers*, which
+    are routers that work on both the client and the server.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这段代码就是我们为应用程序添加服务器端渲染所需的全部内容。请注意，在客户端的`index.js`中有其自己的客户端路由，并且我们基本上只是为服务器添加了另一个路由。框架提供*同构路由*，这些路由可以在客户端和服务器上工作。
+- en: Routing
+  id: totrans-34
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 路由
+- en: 'While this server is *OK*, it doesn’t scale well: for each route we add, we’ll
+    have to manually add more `req.get` calls. Let’s make this a little more scalable.
+    We can solve this in a number of ways, like with a configuration object that maps
+    routes to components, or with filesystem-based routing. For the sake of education
+    (and frankly, fun) let’s explore *filesystem-based routing*. This is where the
+    reasoning for and mechanism behind the conventions and opinions of frameworks
+    like Next.js become more clear. When we enforce a convention such that all pages
+    must go in a *./pages* directory and all filenames in this directory become router
+    paths, then our server can rely on the convention as an assumption and become
+    more scalable.'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管这个服务器*还可以*，但它的扩展性不佳：每添加一个路由，我们就得手动添加更多的 `req.get` 调用。让我们让这个更具可扩展性一点。我们可以通过多种方式解决这个问题，比如使用一个配置对象将路由映射到组件，或者基于文件系统的路由。为了教育的目的（实际上也很有趣），让我们来探索*基于文件系统的路由*。这是
+    Next.js 等框架约定和观点背后推理及机制变得更加清晰的地方。当我们强制规定所有页面必须放在*./pages*目录中，且该目录中的所有文件名都成为路由路径时，我们的服务器可以依赖这个约定作为一个假设，从而变得更具可扩展性。
+- en: 'Let’s illustrate this with an example. First, we’ll augment our directory structure.
+    The new directory structure looks like this:'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们用一个例子来说明这一点。首先，我们将扩展我们的目录结构。新的目录结构如下所示：
+- en: '[PRE3]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Now, we can assume that everything in `pages` becomes a route. Let’s update
+    our server to match this:'
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以假设`pages`中的所有内容都变成了一个路由。让我们更新我们的服务器以匹配这个结构：
+- en: '[PRE4]'
+  id: totrans-39
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: Now, our server scales far better because of the new *./pages* directory convention
+    we’ve adopted! Great! However, we’re now forced to have each page’s component
+    be a default export since our approach is more general and there would otherwise
+    be no way to predict what name to import. This is one of the trade-offs of working
+    with frameworks. In this case, the trade-off seems to be worth it.
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，由于我们采用了新的*./pages*目录约定，我们的服务器的扩展性大大提高了！太棒了！但是，现在我们被迫让每个页面的组件成为默认导出，因为我们的方法更通用，否则无法预测导入的名称。这是使用框架时的一种权衡。在这种情况下，这种权衡似乎是值得的。
+- en: Data Fetching
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 数据获取
+- en: 'Great! We’re 2 for 3\. We’ve got server rendering and filesystem-based routing,
+    but we’re still suffering from network waterfalls. Let’s fix the data fetching
+    story. To start with, we’ll update our components to receive initial data through
+    props. For simplicity, we’ll deal with just the `List` component and leave the
+    `Detail` component for you to do as homework:'
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很棒！我们完成了三个目标中的两个。我们已经实现了服务器渲染和基于文件系统的路由，但我们仍然受到网络瀑布效应的影响。让我们解决数据获取的问题。首先，我们将更新我们的组件以通过
+    props 接收初始数据。为了简单起见，我们将只处理 `List` 组件，把 `Detail` 组件留给你做作业：
+- en: '[PRE5]'
+  id: totrans-43
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: 'Great. Now that we’ve added an initial prop, we need some way to fetch the
+    data this page needs on the server, and then pass it to the component before rendering
+    it. Let’s explore how we can do that. Ideally, what we want to do is this:'
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很好。现在我们添加了一个初始 prop，我们需要一种方法来在服务器上获取这个页面所需的数据，然后将其传递给组件以在渲染之前使用。让我们探讨一下我们可以如何做到这一点。理想情况下，我们想要做的是这样的：
+- en: '[PRE6]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: 'This means we’ll need to export a fetcher function called `getData` from any
+    page components that need data! Let’s adjust the list to do this:'
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这意味着我们需要从任何需要数据的页面组件导出一个名为 `getData` 的获取器函数！让我们调整列表来完成这一点：
+- en: '[PRE7]'
+  id: totrans-47
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: 'Done! Now we’re:'
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 搞定！现在我们是这样的：
+- en: Fetching data as early as possible on the server for each route per file
+  id: totrans-49
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在每个文件的每个路由上尽可能早地获取数据
+- en: Rendering a full page as an HTML string
+  id: totrans-50
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 作为 HTML 字符串渲染完整页面
+- en: Sending this to a client
+  id: totrans-51
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 将其发送到客户端
+- en: 'We’ve successfully added and understood the three features we’ve identified
+    from various frameworks and implemented a basic version of them. By doing this,
+    we’ve learned and now understand the underlying mechanism by which frameworks
+    do what they do. Specifically, we learned how frameworks:'
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们已经成功地添加并理解了我们从各种框架中识别并实现的三个特性的基本版本。通过这样做，我们学会了并理解了框架实现其功能的基本机制。具体来说，我们学会了框架如何：
+- en: Give us server rendering
+  id: totrans-53
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 为我们提供服务器渲染
+- en: Have isomorphic routing, influenced by the filesystem
+  id: totrans-54
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 具有受文件系统影响的同构路由
+- en: Fetch data through exported functions
+  id: totrans-55
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 通过导出的函数获取数据
+- en: 'If you’ve used Next.js versions before 13, the reasoning for its various patterns
+    should become abundantly clear at this point, specifically patterns around:'
+  id: totrans-56
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您之前使用过 Next.js 版本低于13，那么它各种模式背后的推理应该在这一点上变得非常清晰，特别是围绕：
+- en: The *./pages* directory
+  id: totrans-57
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '*./pages*目录'
+- en: All page exports are default exports
+  id: totrans-58
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 所有页面的导出都是默认导出
+- en: '`getServerSideProps` and `getStaticProps`'
+  id: totrans-59
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: '`getServerSideProps` 和 `getStaticProps`'
+- en: Now that we understand the mechanism behind frameworks at the code level and
+    the reasons for some of their conventions, let’s zoom out and summarize the benefits
+    of using a framework.
+  id: totrans-60
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们了解了框架在代码层面的机制以及一些约定背后的原因，让我们放大视野，总结使用框架的好处。
+- en: Benefits of Using a Framework
+  id: totrans-61
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用框架的好处
+- en: 'The benefits of using a framework include:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用框架的好处包括：
+- en: Structure and consistency
+  id: totrans-63
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抽象
+- en: Frameworks enforce a certain structure and pattern to organize the codebase.
+    This leads to consistency, making it easier for new developers to understand the
+    flow of the application. It also enables us to focus on our products and features
+    without worrying about the minutiae of how to structure our code.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 框架强制执行一定的结构和模式来组织代码库。这导致一致性，使新开发人员更容易理解应用程序的流程。它还使我们能够专注于我们的产品和功能，而不必担心如何构建代码的细枝末节。
+- en: Best practices
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最佳实践
+- en: Frameworks often come with baked-in best practices that developers are encouraged
+    to follow. This can lead to better code quality and fewer bugs. For example, frameworks
+    might encourage you to fetch data early—i.e., on the server—rather than waiting
+    for the client to fetch it. This can lead to better performance and user experience.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 框架通常内置了最佳实践，鼓励开发人员遵循。这可以提高代码质量，减少错误。例如，框架可能鼓励您尽早获取数据—即，在服务器端—而不是等待客户端获取数据。这可以提高性能和用户体验。
+- en: Abstractions
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能优化
+- en: Frameworks provide higher-level abstractions to handle common tasks such as
+    routing, data fetching, server rendering, and more. This can make your code cleaner,
+    more readable, and easier to maintain, while leaning on the broader community
+    to ensure the quality of these abstractions. An example of this is the `useRouter`
+    hook provided by Next.js, which makes it easy to access the router in your components.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 框架提供更高级别的抽象来处理常见任务，如路由、数据获取、服务器渲染等。这可以使您的代码更清晰、更易读，更易于维护，同时依赖更广泛的社区来确保这些抽象的质量。Next.js提供的`useRouter`钩子就是一个例子，它使得在组件中访问路由变得容易。
+- en: Performance optimizations
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 社区和生态系统
+- en: Many frameworks come with out-of-the-box optimizations such as code splitting,
+    server-side rendering, and static site generation. These can significantly improve
+    the performance of your application. For example, Next.js automatically code-splits
+    your application and preloads the code for the next page when the user hovers
+    over a link, leading to faster page transitions.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 许多框架都带有开箱即用的优化，如代码拆分、服务器端渲染和静态站点生成。这些可以显著提高应用程序的性能。例如，Next.js自动对应用程序进行代码拆分，并在用户悬停在链接上时预加载下一页的代码，从而实现更快的页面转换。
+- en: Community and ecosystem
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 流行的框架拥有庞大的社区和丰富的插件和库生态系统。这意味着如果遇到问题，你通常可以快速找到解决方案或获得帮助。
+- en: Popular frameworks have a large community and a rich ecosystem of plug-ins and
+    libraries. This means you can often find a solution or get help quickly if you
+    run into a problem.
+  id: totrans-72
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 流程和一致性
+- en: Trade-Offs of Using a Framework
+  id: totrans-73
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用框架的权衡
+- en: 'While frameworks come with many advantages, they are not without their trade-offs.
+    Understanding these can help you make an informed decision about whether to use
+    a framework and which one to choose:'
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管框架有许多优点，但也不是没有权衡之处。了解这些可以帮助您就是否使用框架以及选择哪个框架做出明智的决定：
+- en: Learning curve
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 学习曲线
+- en: Every framework comes with its own set of concepts, APIs, and conventions that
+    you need to learn. If you’re new to React, trying to learn a framework at the
+    same time can be overwhelming but is still recommended. If you’re already familiar
+    with React, you’ll need to invest time in learning the framework’s specific features
+    and APIs.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 每个框架都有自己的一套概念、API和约定，您需要学习。如果您是React的新手，同时尝试学习一个框架可能会让人不知所措，但仍然值得推荐。如果您已经熟悉React，您需要投入时间学习框架的特定功能和API。
+- en: Flexibility versus convention
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 灵活性与约定
+- en: While the enforced structure and conventions of a framework can be a boon, they
+    can also be constraining. If your application has unique requirements that don’t
+    fit into the framework’s model, you might find yourself fighting against the framework
+    rather than being helped by it. There are some cases where you’re building for
+    a specific user group with fast internet and a modern browser, and you don’t need
+    server-side rendering or data fetching. In these cases, a framework might be overkill.
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管框架强制的结构和约定可以是一个福音，但它们也可能是限制性的。如果你的应用程序有独特的要求，不适合框架的模型，你可能会发现自己与框架作斗争，而不是得到它的帮助。有些情况下，你为特定用户群体建设，这些用户有快速的互联网和现代浏览器，并且不需要服务器端渲染或数据获取。在这些情况下，框架可能会显得过于笨重。
+- en: Dependency and commitment
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 依赖性和承诺
+- en: Choosing a framework is a commitment. You’re tying your application to the fate
+    of the framework. If the framework stops being maintained or if it takes a direction
+    that doesn’t align with your needs, you may face difficult decisions about whether
+    to undertake a costly migration to a different framework or to maintain the existing
+    framework code yourself.
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择一个框架就是一种承诺。你正在将你的应用程序与框架的命运联系在一起。如果框架停止维护，或者采取了与你需求不符的方向，你可能需要面临是否进行昂贵迁移或自行维护现有框架代码的困难决策。
+- en: Abstraction overhead
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 抽象层的开销
+- en: While abstractions can simplify development by hiding complexity, they can also
+    create “magic” that makes it difficult to understand what’s happening under the
+    hood. This can make debugging and performance tuning challenging. Furthermore,
+    every abstraction comes with some overhead, which might impact performance. An
+    example of this is server actions in Next.js, where the `"use server"` directive
+    somehow magically makes the action run on the server. This is a great abstraction,
+    but it can be difficult to understand how it works.
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管抽象层可以通过隐藏复杂性来简化开发，但它们也可能创建“魔法”，使得很难理解底层发生了什么。这可能会使调试和性能优化变得复杂。此外，每个抽象层都伴随着一些开销，可能会影响性能。例如，在Next.js中的服务器动作中，使用`"use
+    server"`指令会以某种魔法方式使动作在服务器上运行。这是一个很好的抽象，但理解它的工作原理可能会有难度。
+- en: Now that we understand why we might want to use a React framework, and the benefits
+    and trade-offs involved, we can delve into specific frameworks in the React ecosystem.
+    In the upcoming sections of this chapter, we’ll explore some of the popular choices,
+    such as Next.js and Remix. Each framework offers unique features and advantages,
+    and understanding them will equip you with the knowledge to choose the right tool
+    for your specific needs.
+  id: totrans-83
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在我们明白了为什么要使用React框架，以及涉及其中的利弊后，我们可以深入探讨React生态系统中具体的框架。在本章的接下来的部分中，我们将探索一些流行的选择，如Next.js和Remix。每个框架都提供独特的特性和优势，了解它们将帮助你选择适合特定需求的正确工具。
+- en: Popular React Frameworks
+  id: totrans-84
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 流行的React框架
+- en: Let’s explore some of the popular React frameworks and discuss their features,
+    advantages, and trade-offs. We’ll start with a brief overview of each framework,
+    followed by a detailed comparison of their features and performance. We’ll also
+    discuss some of the factors to consider when choosing a framework for your project.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们探索一些流行的React框架，并讨论它们的特点、优势和权衡。我们将从每个框架的简要概述开始，然后详细比较它们的特性和性能。在选择项目框架时，我们还将讨论一些需要考虑的因素。
+- en: Remix
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Remix
+- en: Remix is a powerful modern web framework that leverages React and the features
+    of the web platform. Let’s get started with some practical examples to understand
+    how it works.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix是一个强大的现代Web框架，利用了React和Web平台的特性。让我们从一些实际例子开始，了解它的工作原理。
+- en: A basic Remix application
+  id: totrans-88
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 一个基本的Remix应用程序
+- en: 'First, we’ll set up a basic Remix application. You can install Remix using
+    `npm`:'
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，我们将设置一个基本的Remix应用程序。你可以使用`npm`来安装Remix：
+- en: '[PRE8]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: This will create a new Remix project in your current directory. Let’s look around
+    and see what’s inside. To start with, we’ve got an *app* directory with *entry.client.tsx*
+    and *entry.server.tsx*. We’ve also got a *root.tsx* in this directory.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将在你当前的目录中创建一个新的Remix项目。让我们四处看看里面有什么。首先，我们有一个*app*目录，其中包含*entry.client.tsx*和*entry.server.tsx*。还有一个*root.tsx*在这个目录中。
+- en: Off the bat, we can immediately see that Remix supports client and server entry
+    points out of the box. Moreover, the *root.tsx* contains a shared layout component
+    that is rendered on every page. This is a great example of how Remix provides
+    a predefined structure to help you get started quickly.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一开始，我们可以立即看到 Remix 默认支持客户端和服务器端入口点。此外，*root.tsx* 包含一个共享布局组件，该组件在每个页面上都会渲染。这是
+    Remix 提供的一个预定义结构的很好示例，帮助您快速入门。
+- en: Server rendering
+  id: totrans-93
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 服务器端渲染
+- en: 'Remix provides server rendering out of the box through its *entry.server.tsx*.
+    The file is generated for us, but let’s understand it a little bit. Here’s what
+    it looks like:'
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 通过其 *entry.server.tsx* 默认支持服务器端渲染。文件由框架为我们生成，但让我们稍微理解一下它。它看起来是这样的：
+- en: '[PRE9]'
+  id: totrans-95
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: The great thing about Remix is that this file is used internally, but is exposed
+    here for us to customize. If we delete this file, Remix will defer to its internal
+    default implementation of the same file. This is a nice escape hatch that allows
+    us to customize the server rendering behavior if we need to, while not locking
+    us into the framework’s “magic.”
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 的一个很棒的特性是，这个文件在内部使用，但在此处暴露出来供我们定制。如果我们删除这个文件，Remix 将会使用其内部默认的实现。这是一个很好的逃生口，允许我们根据需要定制服务器渲染行为，而不会被框架的“魔法”所束缚。
+- en: This file is defining how HTTP responses should be generated and handled in
+    our Remix application, particularly concerning how requests are managed differently
+    for bots and regular browsers. Remix is a framework for building modern React
+    applications, and this file is a part of the server-side logic of a Remix app.
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件定义了在我们的 Remix 应用程序中生成和处理 HTTP 响应的方式，特别是关于如何处理来自机器人和常规浏览器的请求的不同方式。Remix 是一个用于构建现代
+    React 应用程序的框架，而这个文件是 Remix 应用程序的服务器端逻辑的一部分。
+- en: Initially, the file imports necessary modules and types from various libraries,
+    such as the `node:stream`, `@remix-run/node`, `@remix-run/react`, `isbot`, and
+    `react-dom/server`. It defines a constant `ABORT_DELAY` with a value of 5,000
+    milliseconds, which is used as a timeout period for rendering operations.
+  id: totrans-98
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最初，文件从各种库中导入必要的模块和类型，例如 `node:stream`，`@remix-run/node`，`@remix-run/react`，`isbot`
+    和 `react-dom/server`。它定义了一个名为 `ABORT_DELAY` 的常量，其值为 5,000 毫秒，用作渲染操作的超时期限。
+- en: The file exports a default function `handleRequest` that takes several arguments,
+    including the HTTP request, response status code, response headers, and contexts
+    for Remix and the application’s load process. Inside `handleRequest`, it checks
+    the user-agent of the incoming request to determine if it’s coming from a bot
+    using the `isbot` library. Depending on whether the request is from a bot or a
+    browser, it delegates the handling to either `handleBotRequest` or `handleBrowserRequest`
+    functions, respectively.
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 文件导出了一个名为 `handleRequest` 的默认函数，该函数接受多个参数，包括 HTTP 请求、响应状态码、响应头以及 Remix 和应用程序加载过程的上下文。在
+    `handleRequest` 内部，它检查传入请求的用户代理，以确定请求是否来自使用 `isbot` 库的机器人。根据请求来自机器人还是浏览器，它将处理委托给
+    `handleBotRequest` 或 `handleBrowserRequest` 函数。
+- en: This helps with SEO and performance. For example, if a request comes from a
+    bot, it’s important to ensure that the response contains the rendered HTML content
+    of the page, which is what `handleBotRequest` does. On the other hand, if the
+    request comes from a regular browser, it’s important to ensure that the response
+    contains the rendered HTML content of the page along with the necessary JavaScript
+    code to hydrate the page, which is what `handleBrowserRequest` does. It’s pretty
+    cool that Remix handles this for us automatically.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这有助于 SEO 和性能。例如，如果请求来自机器人，则确保响应包含页面的渲染 HTML 内容非常重要，这正是 `handleBotRequest` 的作用。另一方面，如果请求来自常规浏览器，则确保响应包含页面的渲染
+    HTML 内容以及必要的 JavaScript 代码以水合页面非常重要，这正是 `handleBrowserRequest` 的作用。很酷的是，Remix
+    自动为我们处理了这些。
+- en: Both `handleBotRequest` and `handleBrowserRequest` functions are fairly similar
+    in structure but have different handlers for when the rendering shell is ready
+    or encounters an error. They return a promise that resolves to an HTTP response.
+    They initiate a rendering operation to a pipeable stream with `renderToPipeableStream`,
+    passing in a `RemixServer` component along with the necessary context and URL
+    from the request. They define a timeout to abort the rendering operation if it
+    takes longer than `ABORT_DELAY`.
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`handleBotRequest`和`handleBrowserRequest`函数在结构上非常相似，但在渲染外壳准备就绪或遇到错误时有不同的处理程序。它们返回一个解析为HTTP响应的承诺。他们通过`renderToPipeableStream`启动一个到可管道流的渲染操作，传入一个`RemixServer`组件以及来自请求的必要上下文和URL。他们定义了一个超时时间，如果渲染操作时间超过`ABORT_DELAY`，则中止渲染操作。'
+- en: In the event handlers for the rendering operation, they create a `PassThrough`
+    stream and a readable stream from it. They set the `Content-Type` header to `text/html`
+    for the response. They resolve the promise with a new `Response` object that encapsulates
+    the stream, response headers, and status code. In case of errors during rendering,
+    they either reject the promise or log the error to the console, depending on the
+    rendering stage where the error occurred.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在渲染操作的事件处理程序中，他们创建了一个`PassThrough`流和从中读取的可读流。他们为响应设置了`Content-Type`头为`text/html`。他们使用封装了流、响应头和状态码的新`Response`对象来解析承诺。在渲染过程中出现错误时，他们要么拒绝承诺，要么将错误记录到控制台，这取决于错误发生的渲染阶段。
+- en: This file essentially ensures that the HTTP responses are correctly generated
+    and returned, with different rendering logic applied based on whether the request
+    comes from a bot or a regular browser, which is crucial for SEO and performance
+    considerations in modern web applications.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该文件主要确保正确生成并返回HTTP响应，根据请求来自机器人还是常规浏览器的不同渲染逻辑应用，这对于现代Web应用程序的SEO和性能考虑至关重要。
+- en: If we have no customizations to make, we can simply delete this file, and Remix
+    will handle the server rendering for us. Let’s keep it for now and explore how
+    Remix handles routes.
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们没有自定义内容要添加，我们可以简单地删除这个文件，Remix会为我们处理服务器渲染。现在让我们保留它，并探索一下Remix如何处理路由。
+- en: Routing
+  id: totrans-105
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 路由
+- en: 'In Remix, each route is represented by a file in the *routes* directory. If
+    we create *./routes/cheese.tsx*, whose default export is:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Remix中，每个路由都由*routes*目录中的一个文件表示。如果我们创建*./routes/cheese.tsx*，其默认导出为：
+- en: '[PRE10]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: 'and then run the local development server with `npm run dev`, we’ll see a page
+    with a funny heading. Once again, we see how Remix provides a predefined structure
+    to help you get started quickly, and the value of default exports in this convention
+    is similar to our own implementation of filesystem-based routing earlier. When
+    combined with the shared layout component in *./app/root.tsx* and both the server
+    and client entry points, this forms the basis of most websites. However, we’re
+    still missing one crucial component for a modern web application: data fetching.
+    Let’s look at how Remix handles this.'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后用`npm run dev`运行本地开发服务器，我们会看到一个有趣标题的页面。再次看到Remix提供了一个预定义的结构，帮助您快速入门，而这种约定中默认导出的价值类似于我们之前基于文件系统的路由实现。当与*./app/root.tsx*中的共享布局组件以及服务器和客户端入口点结合使用时，这构成了大多数网站的基础。然而，对于现代Web应用程序，我们仍然缺少一个至关重要的组件：数据获取。让我们看看Remix如何处理这个问题。
+- en: Data fetching
+  id: totrans-109
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 数据获取
+- en: The Remix data fetching story at the time of writing involves the use of functions
+    called *loaders*. When you export an async function called `loader` that returns
+    some value, this value becomes available to your page component through the `useLoaderData`
+    hook. Let’s see how this works with an example.
+  id: totrans-110
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在撰写本文时，Remix的数据获取故事涉及使用称为*loaders*的函数。当您导出一个名为`loader`的异步函数，返回某个值时，这个值通过`useLoaderData`钩子可在页面组件中使用。让我们通过一个示例看看这是如何工作的。
+- en: 'To go back to our cheese page, let’s say we want to fetch a list of cheeses
+    from an API and display them on the page. We can do this by exporting a `loader`
+    function from *./routes/cheese.tsx*:'
+  id: totrans-111
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要回到我们的奶酪页面，假设我们想从 API 获取奶酪列表并在页面上显示它们。我们可以通过从*./routes/cheese.tsx*导出一个`loader`函数来实现这一点：
+- en: '[PRE11]'
+  id: totrans-112
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: With this, we see a recurrence in our own earlier implementation of data fetching.
+    We can see how the Remix `loader` function is similar to our own `getData` function.
+    We can also see how the `useLoaderData` hook is similar to our own `initialThings`
+    prop. Ideally, at this time we’re able to glean the common patterns and underlying
+    mechanisms behind how frameworks implement these features.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这个例子，我们可以看到我们之前实现的数据获取的一种重复。我们可以看到 Remix 的 `loader` 函数与我们自己的 `getData` 函数相似。我们还可以看到
+    `useLoaderData` hook 与我们自己的 `initialThings` prop 相似。理想情况下，此时我们能够了解框架如何实现这些功能背后的共同模式和基本机制。
+- en: 'So far, we’ve covered:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经涵盖了：
+- en: Server rendering
+  id: totrans-115
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 服务器渲染
+- en: Routing
+  id: totrans-116
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 路由
+- en: Data fetching
+  id: totrans-117
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 数据获取
+- en: 'But there’s one more Remix feature that we haven’t covered yet: forms and server
+    actions, or mutations—that is, mutating data on the server, like creating, updating,
+    or deleting data. Let’s explore this next.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 但是还有一个 Remix 功能我们还没有涉及到：表单和服务器操作，或者说变异——即在服务器上改变数据，比如创建、更新或删除数据。让我们接着来探索这个。
+- en: Mutating data
+  id: totrans-119
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 数据变异
+- en: 'Remix was responsible for bringing the web back to its fundamentals, leaning
+    heavily on native web platform conventions and behavior. This is best seen around
+    data mutations and Remix’s usage of forms. Let’s explore this with an example,
+    extending our previous cheese example: let’s make the cheese list mutable. To
+    do so, let’s start by updating our *./routes/cheese.tsx* file:'
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 负责将网络带回基础，严重依赖于原生网络平台的约定和行为。这在数据变异和 Remix 对表单的使用上最为明显。让我们通过一个例子来探索这一点，扩展我们之前的奶酪例子：让奶酪列表可变。为此，让我们首先更新我们的
+    *./routes/cheese.tsx* 文件：
+- en: '[PRE12]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Notice we’ve added a new `form` element to the page. This form has an action
+    of `/cheese` and a method of `post`. This is a standard HTML form that will submit
+    a POST request to the `/cheese` route. Moreover, the `input` has a `name` attribute
+    and no `useState` or `onChange` handler: Remix lets the browser manage the state
+    and behavior of the form. This is a great example of how Remix leans on the web
+    platform to provide a great developer experience, and doesn’t try to reinvent
+    the wheel having React manage everything.'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意我们在页面中添加了一个新的 `form` 元素。这个表单的 action 是 `/cheese`，方法是 `post`。这是一个标准的 HTML 表单，将向
+    `/cheese` 路由提交一个 POST 请求。此外，`input` 元素有一个 `name` 属性，没有 `useState` 或 `onChange`
+    处理程序：Remix 让浏览器管理表单的状态和行为。这是 Remix 如何依赖网络平台提供出色开发者体验的一个很好的例子，而不是让 React 管理一切。
+- en: Given that the form’s action property is `/cheese` and we’re already in the
+    *./routes/cheese.tsx* file, we can assume that the form will submit to the same
+    route. When this route is accessed with a `POST` method, we know that the form
+    has been submitted. When this route is accessed with the `GET` method by default,
+    we know that the form has not been submitted and we instead show the initial UI.
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 鉴于表单的 action 属性是 `/cheese`，而我们已经在 *./routes/cheese.tsx* 文件中，我们可以假设表单将提交到相同的路由。当这个路由使用
+    `POST` 方法访问时，我们知道表单已经提交。当这个路由默认使用 `GET` 方法访问时，我们知道表单尚未提交，而是显示初始 UI。
+- en: 'Let’s update our *./routes/cheese.tsx* file to handle this:'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们更新我们的 *./routes/cheese.tsx* 文件来处理这个问题：
+- en: '[PRE13]'
+  id: totrans-125
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: Notice how we’ve added a new `action` function that takes a `params` and `request`
+    argument. The `params` argument is an object that contains the parameters of the
+    route. The `request` argument is an object that contains the request object. We
+    can use this to get the form data from the request and then use it to make a request
+    to our API to add a new cheese.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意我们添加了一个新的 `action` 函数，它接受 `params` 和 `request` 参数。`params` 参数是一个包含路由参数的对象。`request`
+    参数是一个包含请求对象的对象。我们可以使用这个对象从请求中获取表单数据，然后使用它向我们的 API 发送请求以添加新的奶酪。
+- en: We then return a redirect to the same route, but this time with a `GET` method.
+    This will cause the page to be reloaded, and the `loader` function will be called
+    again to fetch the updated list of cheeses.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后我们返回一个重定向到相同的路由，但这次使用 `GET` 方法。这将导致页面重新加载，并且 `loader` 函数将再次被调用以获取更新后的奶酪列表。
+- en: This is how Remix fully leans on the web platform to enable JavaScript to be
+    used where it’s needed, and to let the browser handle the rest. If this page was
+    visited without JavaScript, it would just work because it leans on the web platform.
+    If the page does use JavaScript, Remix progressively enhances the experience by
+    adding interactivity and a better user experience.
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这就是 Remix 如何充分依赖网络平台，使 JavaScript 能够在需要的地方使用，并让浏览器处理其余部分。如果这个页面没有使用 JavaScript
+    访问，它将正常工作，因为它依赖于网络平台。如果页面使用了 JavaScript，Remix 通过添加交互性和更好的用户体验逐步增强体验。
+- en: 'So far, we’ve covered how Remix:'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，我们已经介绍了Remix如何：
+- en: Provides server rendering
+  id: totrans-130
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 提供服务器渲染
+- en: Handles routing
+  id: totrans-131
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 处理路由
+- en: Handles data fetching
+  id: totrans-132
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 处理数据获取
+- en: Handles data mutations
+  id: totrans-133
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 处理数据变化
+- en: At this point, we should be seeing strong parallels between our own implementation
+    of these features and Remix’s implementation. This is a great sign that we’re
+    understanding the underlying mechanisms behind how frameworks implement these
+    features.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此时，我们应该能够看到我们自己实现这些功能与Remix实现之间的强烈对比。这表明我们正在理解框架在实现这些功能背后的机制。
+- en: Now let’s consider Next.js and how it does very similar things to isolate the
+    commonalities behind the way these features are implemented.
+  id: totrans-135
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在让我们考虑一下Next.js，以及它如何与隔离这些功能背后的共同点做非常类似的事情。
+- en: Next.js
+  id: totrans-136
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Next.js
+- en: Next.js, a popular React framework by Vercel, is well-known for its rich features
+    and simplicity in creating server-side rendered (SSR) and static websites. It
+    follows the convention over configuration principle, reducing the amount of boilerplate
+    and decision-making necessary to start a project. With the release of Next.js
+    13, a significant addition has been the introduction of the Next.js App Router.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js是由Vercel开发的流行React框架，以其丰富的功能和简单性在创建服务器端渲染（SSR）和静态网站方面享有盛誉。它遵循“约定优于配置”的原则，减少了启动项目所需的样板代码和决策。随着Next.js
+    13的发布，引入了Next.js应用程序路由器是一项重大的新增功能。
+- en: 'Let’s walk through a basic Next.js application to understand how it works.
+    To start, let’s run the following command to create a new Next.js project:'
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过一个基本的Next.js应用程序来了解其工作原理。首先，让我们运行以下命令创建一个新的Next.js项目：
+- en: '[PRE14]'
+  id: totrans-139
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: This will ask us some questions, but ultimately we’ll arrive at a basic Next.js
+    project. Let’s look around and see what’s inside. To start with, we’ve got an
+    *app* directory with *page.tsx*, *layout.tsx*, *error.tsx*, and *loading.tsx*.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这将提出一些问题，但最终我们将得到一个基本的Next.js项目。让我们四处看看里面有什么。首先，我们有一个*app*目录，包括*page.tsx*、*layout.tsx*、*error.tsx*和*loading.tsx*。
+- en: One thing we immediately notice is that Next.js does not expose server configuration
+    like Remix does, but instead hides away a large number of complexities with the
+    intention of “getting out of the way” and letting developers focus on building
+    their applications. This is a great example of how different frameworks have different
+    philosophies and approaches to solving the same problems.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们立即注意到的一件事是，Next.js不像Remix那样暴露服务器配置，而是隐藏了大量的复杂性，旨在“避让”，让开发者专注于构建他们的应用程序。这是不同框架在解决相同问题时具有不同哲学和方法的一个很好的例子。
+- en: 'Let’s explore Next.js in the context of the three key features we identified
+    earlier: server rendering, routing, and data fetching.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在之前确定的三个关键特性（服务器渲染、路由和数据获取）的背景下探索Next.js。
+- en: Server rendering
+  id: totrans-143
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 服务器渲染
+- en: Next.js not only provides server rendering but is also server-first. Every page
+    and component in Next.js is a server component. We dive quite deep into server
+    components in [Chapter 9](ch09.html#ch09), but for now, suffice it to say that
+    server components are components rendered exclusively on the server. This level
+    of understanding is fine for now, as the focus is on Next.js, not server components.
+    For server components, [Chapter 9](ch09.html#ch09) should be sufficient.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js不仅提供服务器渲染，而且是面向服务器的。Next.js 中的每个页面和组件都是服务器组件。我们将在[第9章](ch09.html#ch09)中深入探讨服务器组件，但现在可以简单地说，服务器组件是专门在服务器上渲染的组件。目前这种理解已经足够，因为重点在于Next.js，而不是服务器组件。对于服务器组件，[第9章](ch09.html#ch09)应该已经足够了。
+- en: What does this mean in the context of Next.js, though? In essence, we are to
+    operate on the basis that all the code we write executes on the server exclusively
+    unless otherwise specified by adding a `"use client"` directive to the top of
+    a given route or component. Without this directive, all code is assumed to be
+    server code.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在Next.js的背景下，这意味着什么呢？实质上，我们要基于以下原则操作：除非在给定的路由或组件顶部添加`"use client"`指令，否则所有编写的代码都将在服务器上执行。没有这个指令，所有代码都被视为服务器端代码。
+- en: 'However, Next.js also is static-first: at build time, the server components
+    are rendered to as much static content as possible and then deployed. This combination
+    of server-first and static-first is what makes Next.js so powerful and prioritizes
+    performance pretty significantly, with static content being arguably the fastest
+    to reach users as there’s no runtime or server-side processing required; it’s
+    just text (HTML). The next step from static is server rendered content, which
+    can be highly optimized and cached, but still requires a server to render the
+    content. The final step is client-rendered content through hydration for interactive
+    portions of the page.'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然而，Next.js 也是以静态为先：在构建时，服务器组件尽可能地渲染成静态内容，然后部署。这种服务器为先和静态为先的结合正是 Next.js 如此强大的地方，显著地优化了性能，因为静态内容可以说是最快到达用户的，因为不需要运行时或服务器端处理；它只是文本（HTML）。从静态内容进一步发展的是服务器渲染内容，可以高度优化和缓存，但仍需要服务器来渲染内容。最后一步是通过水合处理客户端渲染内容，用于页面的交互部分。
+- en: With this approach, Next.js lends itself well to have smaller JavaScript bundles
+    shipped to users, with the bulk of the content being some mix of static and server
+    rendered markup. The level of granularity with which not just pages but components
+    can be rendered on the server is a powerful feature of Next.js, enabling some
+    very powerful data fetching and rendering patterns. Before we get to those patterns,
+    let’s explore how Next.js handles routing.
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 借助这种方法，Next.js 很适合将较小的 JavaScript 包发送给用户，大部分内容都是一些静态和服务器渲染的标记的混合体。不仅页面，而且组件在服务器上的渲染粒度是
+    Next.js 的一个强大功能，它支持一些非常强大的数据获取和渲染模式。在深入探讨这些模式之前，让我们先了解一下 Next.js 如何处理路由。
+- en: Routing
+  id: totrans-148
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 路由
+- en: 'What we see in our new Next.js project is an *app* directory with *layout.tsx*
+    and *page.tsx*. Next.js follows this pattern: the path your users see in their
+    browser, the URL of your page, is the name of the directory where *app* is equivalent
+    to the root (*/*), and every directory under it becomes a subpath.'
+  id: totrans-149
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们新的 Next.js 项目中看到的是一个 *app* 目录，包含 *layout.tsx* 和 *page.tsx*。Next.js 遵循这种模式：你在浏览器中看到的用户页面的
+    URL 是该页面所在目录的名称，*app* 相当于根目录（*/*），其下的每个目录都成为一个子路径。
+- en: 'To understand this, let’s create a directory *cheese* and add a *page.tsx*
+    file to it. When a directory under *./app* has a *page.tsx* file, that directory
+    becomes a route. Let’s add some content to *./app/cheese/page.tsx*:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 要理解这一点，让我们创建一个名为 *cheese* 的目录，并在其中添加一个 *page.tsx* 文件。当 *./app* 下的目录有一个 *page.tsx*
+    文件时，该目录就成为一个路由。让我们向 *./app/cheese/page.tsx* 添加一些内容：
+- en: '[PRE15]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Now, if we run the development server and navigate to */cheese*, we’ll see a
+    page with a funny heading. It’s worth noting here that Next.js also has a concept
+    of shared layouts, similar to Remix, where you can define a layout component in
+    *./app/layout.tsx* and it will be rendered on every page. Then, *./app/cheese/layout.tsx*
+    will be rendered on every page under the */cheese* route. Layouts are typically
+    portions of routes that are shared across multiple pages, such as a header or
+    footer, or other fixed elements.
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们运行开发服务器并导航到 */cheese*，我们将看到一个具有有趣标题的页面。这里值得注意的是，Next.js 还有一个共享布局的概念，类似于
+    Remix，在这里你可以在 *./app/layout.tsx* 中定义一个布局组件，它将在每个页面上呈现。然后，*./app/cheese/layout.tsx*
+    将在 */cheese* 路由下的每个页面上呈现。布局通常是跨多个页面共享的路由部分，例如页眉、页脚或其他固定元素。
+- en: Great, this is how Next.js handles routing. It’s sort of similar to Remix and
+    our own implementation of filesystem-based routing, but with a slight difference
+    that it’s not a single file that becomes a page but instead an entire directory,
+    and that the actual page is expected to called *page.tsx* all the time. Besides
+    this, it’s pretty similar.
+  id: totrans-153
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 很好，这就是 Next.js 处理路由的方式。它有点类似于 Remix 和我们基于文件系统的路由实现，但有一个细微的差异，即不是单个文件成为页面，而是整个目录，实际页面总是要求命名为
+    *page.tsx*。除此之外，它们非常相似。
+- en: Let’s talk about data fetching.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们谈谈数据获取。
+- en: Data fetching
+  id: totrans-155
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 数据获取
+- en: 'Because every component is a server component, every component in Next.js is
+    capable of being asynchronous and thus, `await`-ing data. Let’s try to fetch cheeses
+    like we did in our previous Remix example, but this time in Next.js:'
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为每个组件都是服务器组件，所以 Next.js 中的每个组件都能够是异步的，因此可以等待数据。让我们尝试像在前面的 Remix 示例中那样获取奶酪，但这次在
+    Next.js 中进行：
+- en: '[PRE16]'
+  id: totrans-157
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'If you’re reading that and are impressed—yes. This syntax is what React engineers
+    have hoped for for years, and is quite natural to reason about. This is possible
+    because `CheesePage` here is a server component: it is not included in the client
+    bundle and is instead rendered on the server. This means that we can `await` data
+    and render it directly to the page.'
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你读到并且感到印象深刻——是的。这种语法是 React 工程师多年来一直希望的，而且非常自然地可以理解。这是可能的，因为这里的 `CheesePage`
+    是一个服务器组件：它不包含在客户端捆绑包中，而是在服务器上渲染。这意味着我们可以 `await` 数据并直接渲染到页面。
+- en: Since all components are server components, we can further increase the granularity
+    and not fetch at the page level, but at the component level too if we want to.
+    Consider breaking this page into smaller components where `CheeseList` is reusable
+    and is used in this page, but may be used elsewhere too.
+  id: totrans-159
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为所有组件都是服务器组件，我们可以进一步增加粒度，不仅在页面级别获取数据，还可以在组件级别获取数据。考虑将这个页面拆分成更小的组件，其中 `CheeseList`
+    可以重复使用，也可以在其他地方使用。
+- en: 'Our page would become this:'
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的页面将变成这样：
+- en: '[PRE17]'
+  id: totrans-161
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: 'and our `CheeseList` component would be this:'
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 `CheeseList` 组件将是这样的：
+- en: '[PRE18]'
+  id: totrans-163
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: The true power of this approach is that we can fetch data at the component level,
+    and then render it to the page. We don’t export a function from the page level
+    like `loader`, `getData`, `getServerSideProps`, `getStaticProps`, or anything
+    like that. Instead, we just fetch data at the component level and render it to
+    the page.
+  id: totrans-164
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种方法的真正威力在于我们可以在组件级别获取数据，然后将其渲染到页面上。我们不导出页面级别的函数，比如 `loader`、`getData`、`getServerSideProps`、`getStaticProps`
+    或类似的东西。相反，我们只是在组件级别获取数据并将其渲染到页面上。
+- en: What happens to this data? Next.js uses it to statically generate the first
+    load of our page when we deploy, and server renders it on subsequent loads. Next.js
+    also has a number of caching and deduplication mechanisms that ensure data integrity
+    and performance.
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些数据会怎样呢？Next.js 在我们部署时用它来静态生成页面的第一次加载，并在后续加载时进行服务器渲染。Next.js 还有许多缓存和去重机制，确保数据的完整性和性能。
+- en: Finally, let’s round out the comparison by exploring how Next.js handles data
+    mutations.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，让我们通过探索 Next.js 如何处理数据变更来完成比较。
+- en: Mutating data
+  id: totrans-167
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 数据变异
+- en: Next.js has a concept of *server actions*, which are functions that run on the
+    server. These are functions that are called when a form is submitted, a user clicks
+    a button, or a user navigates to a page. They are functions that run on the server,
+    and are not included in the client bundle.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 有一个 *服务器动作* 的概念，这些是在服务器上运行的函数。这些函数在提交表单、用户点击按钮或用户导航到页面时调用。它们是在服务器上运行的函数，不包含在客户端捆绑包中。
+- en: 'Let’s look at adding a cheese to the list like we did in our Remix example.
+    To do this, we’ll add a form to our page:'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们看看如何像在 Remix 示例中那样向列表中添加一种奶酪。为此，我们将在页面上添加一个表单：
+- en: '[PRE19]'
+  id: totrans-170
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: We’re using a standard-ish HTML form here similar to Remix, except the `action`
+    attribute is a function this time. This function is a server action, and it is
+    called when the form is submitted. This function is not included in the client
+    bundle and is instead run on the server. This is enforced by the `"use server"`
+    directive at the top.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里我们使用了一个类似 Remix 的标准 HTML 表单，只是这次的 `action` 属性是一个函数。这个函数是一个服务器动作，在表单提交时调用。这个函数不包含在客户端捆绑包中，而是在服务器上运行。这是通过顶部的
+    `"use server"` 指令强制执行的。
+- en: 'We could move this function wherever we want, including into the body of the
+    server component, like so:'
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们可以把这个函数移到任何我们想要的地方，包括放入服务器组件的主体中，如下所示：
+- en: '[PRE20]'
+  id: totrans-173
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: 'or even into a separate module, like so:'
+  id: totrans-174
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 或者甚至放入一个单独的模块，如下所示：
+- en: '[PRE21]'
+  id: totrans-175
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: 'In this case, `addCheeseAction` would be in its own file and read like so:'
+  id: totrans-176
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，`addCheeseAction` 将位于自己的文件中，并读取如下：
+- en: '[PRE22]'
+  id: totrans-177
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: There’s an inherent problem here though, because unlike Remix where all components
+    are client components, server components do not support interactivity at all since
+    they are not included in the client bundle and never loaded by the browser; thus,
+    `onClick` handlers never actually make it to users. To solve this problem, Next.js
+    has a concept of client components, which are included in the client bundle and
+    are loaded by the browser. These components are not server components, and thus
+    cannot be asynchronous or have server actions.
+  id: totrans-178
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里存在一个固有的问题，与 Remix 不同，所有组件都是客户端组件，服务器组件根本不支持交互，因为它们不包含在客户端捆绑包中，也从不被浏览器加载；因此，`onClick`
+    处理程序实际上从不传递给用户。为了解决这个问题，Next.js 有一个客户端组件的概念，这些组件包含在客户端捆绑包中，并由浏览器加载。这些组件不是服务器组件，因此不能是异步的，也不能有服务器动作。
+- en: 'Let’s explore adding a cheese, but this time with a mix of server and client
+    components. This will also help us react to the form submission by immediately
+    providing feedback with a spinner or similar. To do this, we’ll create a new component,
+    *./app/AddCheeseForm.tsx*:'
+  id: totrans-179
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们探讨如何添加一个奶酪，但这次使用一些服务器和客户端组件的混合方式。这也将帮助我们在表单提交时立即通过旋转器或类似方式提供反馈。为此，我们将创建一个新组件，*./app/AddCheeseForm.tsx*：
+- en: '[PRE23]'
+  id: totrans-180
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: 'Now that it’s a client component, we can do interactive things—like respond
+    to form state changes. Let’s update our `AddCheeseForm` to do that:'
+  id: totrans-181
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在它是一个客户端组件，我们可以做交互式的事情——比如响应表单状态的变化。让我们更新我们的`AddCheeseForm`来实现这一点：
+- en: '[PRE24]'
+  id: totrans-182
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Because our `AddCheeseForm` is a client component, we can use the `useFormStatus`
+    to get the status of the form. This is a hook provided by React. This hook returns
+    an object with a `pending` property that is `true` when the form is submitting,
+    and `false` when the form is not submitting. We can use this to disable the form
+    while it’s submitting, and to show a loading indicator.
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为我们的`AddCheeseForm`是一个客户端组件，我们可以使用`useFormStatus`来获取表单的状态。这是React提供的一个hook。这个hook返回一个对象，其中有一个`pending`属性，当表单正在提交时为`true`，当表单没有提交时为`false`。我们可以利用这一点在表单提交时禁用表单，并显示加载指示器。
+- en: 'Now, we can use this form in our page, which is a server component, like so:'
+  id: totrans-184
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，我们可以在我们的页面中使用这个表单，就像这样一个服务器组件：
+- en: '[PRE25]'
+  id: totrans-185
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: As a result, we’ve got a mix of server and client components. The `CheesePage`
+    and `CheeseList` are server components, and the `AddCheeseForm` is a client component.
+    Both components are reusable and can be used elsewhere in our application. There
+    are some rules and considerations around client and server components, but we’ll
+    explore those in [Chapter 9](ch09.html#ch09).
+  id: totrans-186
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因此，我们有了一些服务器和客户端组件。`CheesePage`和`CheeseList`是服务器组件，而`AddCheeseForm`是客户端组件。这两个组件都是可重用的，可以在我们的应用程序的其他地方使用。关于客户端和服务器组件还有一些规则和考虑事项，但我们将在[第9章](ch09.html#ch09)中探讨这些内容。
+- en: For now, if we zoom out we can see that Next.js solves similar problems as Remix
+    and our own implementation of filesystem-based routing, data fetching, and data
+    mutations. It does so in a slightly different way, but the underlying mechanisms
+    are somewhat similar.
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，如果我们放大看，我们可以看到Next.js解决了与Remix和我们基于文件系统的路由、数据获取和数据变更类似的问题。它的方式略有不同，但底层机制有些相似。
+- en: Ideally, by exploring both of these frameworks, we’re able to understand why
+    we would reach for frameworks, the problems they solve, and how they solve them
+    for our benefit.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 理想情况下，通过探索这两个框架，我们能够理解为什么我们会选择框架，它们解决的问题以及它们如何为我们带来好处。
+- en: Let’s wrap up by talking about how to choose a framework.
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们通过讨论如何选择一个框架来结束。
+- en: Choosing a Framework
+  id: totrans-190
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 选择一个框架
+- en: Deciding which React framework to use for your project can be a challenging
+    decision, as each offers a distinct set of features, advantages, and trade-offs.
+    In this section, we will attempt to provide some insight into what makes popular
+    React frameworks a viable option for developers today, and discuss factors such
+    as learning curve, flexibility, and performance, which can guide you in choosing
+    the most suitable framework for your specific needs.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 决定为您的项目选择哪个React框架可能是一个具有挑战性的决定，因为每个框架都提供了一套独特的特性、优势和权衡。在本节中，我们将尝试为您提供一些关于当今流行React框架为开发者提供可行选项的见解，并讨论学习曲线、灵活性和性能等因素，这些因素可以帮助您选择最适合您特定需求的框架。
+- en: It’s worth noting that one framework is not inherently better or worse than
+    another. Each framework has its own set of strengths and weaknesses, and the best
+    framework for your project will depend on your specific requirements and preferences.
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 值得注意的是，一个框架并不是比另一个框架更好或更差。每个框架都有其自身的优势和劣势，最适合您项目的框架将取决于您的具体要求和偏好。
+- en: Understanding Your Project Needs
+  id: totrans-193
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 理解您的项目需求
+- en: 'Before we dive into the details of each framework, it’s important to understand
+    your project’s specific needs. Here are some critical questions to consider:'
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在我们深入探讨每个框架的细节之前，了解项目的具体需求非常重要。以下是一些需要考虑的关键问题：
+- en: What is the scope of your project? Is it a small personal project, a medium-sized
+    application with several features, or a large-scale, complex application?
+  id: totrans-195
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您的项目范围是什么？它是一个小型个人项目，还是一个具有多个功能的中型应用程序，或者是一个大规模复杂的应用程序？
+- en: What are the main functionalities and features you want to include in your project?
+  id: totrans-196
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您希望在您的项目中包含哪些主要功能和特性？
+- en: Do you require server-side rendering (SSR), site generation (SSG), or a combination
+    of both?
+  id: totrans-197
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您是否需要服务器端渲染（SSR）、站点生成（SSG）或两者的组合？
+- en: Are you building a content-heavy site like a blog or ecommerce site that might
+    benefit from excellent SEO?
+  id: totrans-198
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您是否正在构建像博客或电子商务站点这样的内容密集型站点，可能受益于优秀的 SEO？
+- en: Is real-time data or highly dynamic content a critical part of your application?
+  id: totrans-199
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 实时数据或高度动态内容是否是您应用程序的关键部分？
+- en: How much flexibility do you require in terms of customization and control over
+    the build process?
+  id: totrans-200
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 在构建过程中，您对自定义和控制的需求有多大？
+- en: How important are the performance and speed of your application?
+  id: totrans-201
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您的应用程序的性能和速度有多重要？
+- en: What is your proficiency level with React and general web development concepts?
+  id: totrans-202
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您在 React 和一般 Web 开发概念方面的熟练程度如何？
+- en: Who are your target users? Enterprise folks sitting at desks with fast internet?
+    Or the general public with a wide range of devices and internet speeds?
+  id: totrans-203
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 您的目标用户是谁？坐在桌子前拥有快速互联网的企业人士？还是拥有各种设备和互联网速度的广大公众？
+- en: Understanding the answers to these questions will give you a clearer picture
+    of what you need from a framework.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 了解这些问题的答案将为您提供一个更清晰的框架需求图景。
+- en: Next.js
+  id: totrans-205
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Next.js
+- en: 'Let’s explore some of these parameters in the context of Next.js:'
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 让我们在 Next.js 的背景下探讨一些这些参数：
+- en: Learning curve
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 学习曲线
+- en: Next.js uses the bleeding edge of React under the hood, often making use of
+    canary releases of React. This means that Next.js is often ahead of the curve
+    and can be a bit more challenging to learn. However, the Next.js team does a great
+    job of documenting the framework and providing clear guides for various features,
+    which can help you get started quickly.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 在内部使用 React 的最前沿技术，经常使用 React 的 canary 版本。这意味着 Next.js 经常走在潮流的前沿，可能会更具挑战性。然而，Next.js
+    团队在框架文档和各种功能的清晰指南方面做得非常出色，这可以帮助您快速入门。
+- en: Flexibility
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 灵活性
+- en: Next.js is designed with flexibility in mind between static and server rendered
+    content. It also supports entirely client-side applications, though this is not
+    its primary use case. Next.js also provides a rich ecosystem of plug-ins and integrations,
+    which can significantly speed up the development process.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 设计时考虑了静态和服务器渲染内容之间的灵活性。它也支持完全客户端应用程序，尽管这不是它的主要用例。Next.js 还提供了丰富的插件和集成生态系统，可以显著加快开发过程。
+- en: Performance
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: Next.js aggressively prioritizes performance, with a focus on static generation
+    and server-side rendering, as well as caching. Next.js ships with four distinct
+    purpose-driven caches at the time of writing, each tailored to provide the best
+    performance for a number of use cases. This performance, though, can come at a
+    cost of friction around the boundaries between client/server and the decision-making
+    around when to use which.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 强调性能优化，专注于静态生成和服务器端渲染，以及缓存。在撰写时，Next.js 发布了四种不同的用途驱动缓存，每种都旨在为多种用例提供最佳性能。然而，这种性能可能会在客户端/服务器边界之间引起摩擦，并且在何时使用哪种决策上需要考虑周到。
+- en: It is also worth noting that some members of the team that builds React work
+    at Vercel, where Next.js is developed, which suggests an extremely tight feedback
+    loop of development between Next.js and React.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还值得注意的是，构建 React 的团队中的一些成员在 Vercel 工作，Next.js 的开发地，这表明 Next.js 和 React 之间存在非常紧密的开发反馈循环。
+- en: Remix
+  id: totrans-214
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: Remix
+- en: 'Compared to Next.js, Remix is a newer entry to the React framework scene, created
+    around 10 years earlier. It’s built by the creators of React Router and emphasizes
+    web fundamentals, making fewer assumptions and providing a lot of flexibility:'
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相比于 Next.js，Remix 是 React 框架领域的较新参与者，大约早了 10 年左右创建。它由 React Router 的创作者构建，强调
+    Web 基础知识，做出较少假设并提供了很多灵活性：
+- en: Learning curve
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 学习曲线
+- en: Remix might have a slightly flatter learning curve because it relies more heavily
+    on web fundamentals and uses React the way many have learned it before the heavier
+    emphasis on server components.
+  id: totrans-217
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 可能有稍平缓的学习曲线，因为它更多地依赖于 Web 基础知识，并且以许多人在更重视服务器组件之前学习的方式使用 React。
+- en: Intuitiveness
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 直觉性
+- en: 'Remix often gets out of the way and allows the fundamentals of the web platform
+    to shine through. This can be a bit of a double-edged sword: on one hand, it’s
+    great because it’s intuitive and familiar, but on the other hand, it can be a
+    bit frustrating because it’s not as “magical” as other frameworks.'
+  id: totrans-219
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 往往退到一边，允许 Web 平台的基础知识发挥作用。这可能是一把双刃剑：一方面很好，因为直观和熟悉，但另一方面可能有点令人沮丧，因为它没有其他框架那么“神奇”。
+- en: Performance
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 性能
+- en: Remix’s unique approach to routing and data loading makes it efficient and performant.
+    Since data fetching is tied to routes, only the necessary data for a specific
+    route is fetched, reducing the overall data requirement. Plus, its optimistic
+    UI updates and progressive enhancement strategies improve the user experience.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 独特的路由和数据加载方法使其高效且性能优越。由于数据获取与路由绑定，仅会获取特定路由所需的必要数据，从而减少了整体数据需求。此外，其乐观的
+    UI 更新和渐进增强策略提升了用户体验。
+- en: Trade-Offs
+  id: totrans-222
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 权衡
+- en: 'Choosing a framework does not come without trade-offs, the meat of which revolve
+    around the continuum of convenience versus control. All frameworks remove a lot
+    of the brainwork and decision-making around our applications by conventionalizing
+    things. For example, frameworks by default have answers for questions like:'
+  id: totrans-223
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 选择一个框架并不是没有权衡，其中最重要的是便利性与控制之间的权衡。所有框架通过传统化的方式，大大减少了我们在应用程序中的脑力劳动和决策过程。例如，默认情况下，框架已经为问题提供了答案，比如：
+- en: How do we do routing?
+  id: totrans-224
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们如何进行路由？
+- en: Where do static assets go?
+  id: totrans-225
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 静态资源放在哪里？
+- en: Should we server render?
+  id: totrans-226
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们应该使用服务器端渲染吗？
+- en: Where do we fetch data?
+  id: totrans-227
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 我们从哪里获取数据？
+- en: Given that frameworks so heavily conventionalize these topics and more, this
+    takes control away from us, the developers. In exchange, we get quite a bit of
+    convenience to charge forward and work on the more central aspects of our applications,
+    like the business logic itself.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 考虑到框架在这些主题及更多方面的强烈约定化，这使得开发者失去了一些控制权。作为交换，我们获得了相当多的便利性，可以更专注于应用程序的核心部分，比如业务逻辑本身。
+- en: Most, if not all, trade-offs around frameworks revolve around this continuum.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数情况下，关于框架的权衡都围绕着这一连续性展开。
+- en: 'So, how to choose the right framework? It all comes down to your project needs
+    and personal preference:'
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那么，如何选择合适的框架呢？关键在于你的项目需求和个人偏好：
+- en: If you need a somewhat flexible full stack framework, Next.js might be a better
+    fit since it lets you choose between static, server-side, or entirely client-only
+    application.
+  id: totrans-231
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你需要一个相对灵活的全栈框架，Next.js 可能更合适，因为它允许你在静态、服务器端或完全客户端的应用之间进行选择。
+- en: If you prefer a serverful, progressively enhanced approach with a strong adherence
+    to web fundamentals, Remix could be your best bet.
+  id: totrans-232
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 如果你偏好一种服务器端优先、渐进增强且坚持 Web 基础知识的方法，Remix 可能是你的最佳选择。
+- en: In any case, it’s a good idea to try one out for a smaller project or a part
+    of your application. This will give you a better understanding of how they work
+    and which one feels most comfortable to work with.
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无论如何，尝试在一个较小的项目或应用程序的一部分中使用其中一个是个好主意。这将帮助你更好地理解它们的工作方式，以及哪个对你来说更舒适。
+- en: Developer Experience
+  id: totrans-234
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 开发者体验
+- en: Both frameworks offer world-class developer experience, with a focus on productivity
+    and ease of use. They both provide a rich set of features and tools to help developers
+    build high-quality applications, as we’ve seen previously in this chapter.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两种框架都提供世界级的开发者体验，专注于生产力和易用性。它们都提供丰富的功能和工具，帮助开发者构建高质量的应用程序，正如我们在本章中前面所见。
+- en: Build performance becomes increasingly critical as a project grows in complexity
+    and size. Both Next.js and Remix have made optimizations to improve the build
+    time.
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 随着项目复杂性和规模的增长，构建性能变得越来越关键。Next.js 和 Remix 都进行了优化，以改善构建时间。
+- en: Next.js uses static generation by default, which means pages are prerendered
+    at build time. This can lead to faster page loads, but also longer build times,
+    especially for sites with a large number of pages.
+  id: totrans-237
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 默认使用静态生成，这意味着页面在构建时预渲染。这可以带来更快的页面加载速度，但对于页面数量较多的站点，构建时间可能较长。
+- en: To address this, Next.js introduced Incremental Static Regeneration (ISR), allowing
+    developers to regenerate static pages after they have been built, without a full
+    rebuild. This feature can significantly improve build times for large, dynamic
+    sites.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 为了解决这个问题，Next.js 引入了增量静态再生（Incremental Static Regeneration，ISR），允许开发者在不进行完整重建的情况下重新生成静态页面。这一功能可以显著提高大型动态网站的构建时间。
+- en: Remix, on the other hand, has a unique take on build performance. It opts for
+    a server-first architecture, which means that pages are rendered on demand by
+    the server, and the HTML is sent down to the client.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 则采用独特的构建性能理念。它选择了一种以服务器为先的架构，这意味着页面会按需由服务器渲染，并将 HTML 发送到客户端。
+- en: Runtime Performance
+  id: totrans-240
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 运行时性能
+- en: Both Next.js and Remix are designed with performance in mind and offer several
+    optimizations to deliver fast, responsive applications.
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 和 Remix 都是以性能为设计核心，并提供多种优化方式，以实现快速响应的应用程序。
+- en: Next.js comes with several built-in performance optimizations. It supports automatic
+    code splitting, which ensures that only the necessary code is loaded for each
+    page. It also has a built-in Image component that optimizes image loading for
+    better performance.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 自带了几种内置的性能优化。它支持自动代码分割，确保每个页面只加载必要的代码。它还有一个内置的 Image 组件，优化图像加载以提升性能。
+- en: The hybrid SSG/SSR model in Next.js allows developers to choose the optimal
+    data fetching strategy for each page, balancing performance and freshness. Pages
+    that don’t require fresh data can be prerendered at build time, resulting in faster
+    page loads. For pages that require fresh data, server-side rendering or ISR can
+    be used.
+  id: totrans-243
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 中的混合 SSG/SSR 模型允许开发者为每个页面选择最佳的数据获取策略，平衡性能和实时性。不需要实时数据的页面可以在构建时预渲染，从而实现更快的页面加载。对于需要实时数据的页面，可以使用服务器端渲染或
+    ISR。
+- en: Next.js also provides automatic static optimization for pages without blocking
+    data requirements, ensuring they are served as static HTML files, leading to faster
+    time to first byte (TTFB).
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 还为没有阻塞数据需求的页面提供了自动静态优化，确保它们作为静态 HTML 文件提供，从而实现更快的首字节时间（TTFB）。
+- en: Finally, Next.js takes full advantage of React Server Components where possible,
+    allowing it to send less JavaScript to the client, resulting in faster page loads
+    and other overhead.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，Next.js 尽可能地利用 React Server Components，使得它能向客户端发送更少的 JavaScript，从而实现更快的页面加载和其他开销。
+- en: Remix takes a slightly different approach to performance. Instead of prerendering
+    pages, it opts for server rendering, streaming down just the HTML that the client
+    needs. This can result in faster TTFB, especially for dynamic content.
+  id: totrans-246
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 在性能方面采用了略有不同的方法。它选择了服务器渲染而不是预渲染页面，仅向客户端流式传输客户端需要的 HTML。这可能会导致更快的 TTFB，特别是对于动态内容而言。
+- en: One of the key features of Remix is its robust caching strategy. It leverages
+    the browser’s native fetch and cache APIs, allowing developers to specify caching
+    strategies for different resources. This leads to faster page loads and a more
+    resilient application.
+  id: totrans-247
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Remix 的一个关键特性是其强大的缓存策略。它利用浏览器的原生 fetch 和 cache API，允许开发者为不同的资源指定缓存策略。这导致更快的页面加载和更具韧性的应用程序。
+- en: Both Next.js and Remix offer compelling benefits for large-scale, complex projects.
+    They both excel in developer experience, build performance, and runtime performance.
+    Next.js might be a better choice if you prefer a mature ecosystem with extensive
+    resources and plug-ins, a hybrid SSG/SSR model, and innovative features like ISR.
+    On the other hand, Remix could be more suitable if you prefer a server rendered
+    approach with instant deploys, a strong emphasis on embracing web platform features
+    like fetch and cache APIs, and advanced React concepts like Suspense and Server
+    Components.
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Next.js 和 Remix 都为大型、复杂项目提供了引人注目的优势。它们在开发者体验、构建性能和运行时性能方面都表现出色。如果你偏好成熟的生态系统、丰富的资源和插件以及混合的
+    SSG/SSR 模型，以及像 ISR 这样的创新功能，那么 Next.js 可能是一个更好的选择。另一方面，如果你更喜欢采用服务器渲染方法，支持即时部署，强调利用网络平台特性如
+    fetch 和 cache APIs，并且涉及高级 React 概念如 Suspense 和 Server Components，那么 Remix 可能更适合你。
+- en: The most suitable framework for your specific project needs would ultimately
+    depend on your team’s expertise, your project requirements, and your preference
+    for certain architectural patterns. Regardless of the choice, both Next.js and
+    Remix are solid foundations for building high-quality, performant React applications.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于你特定项目需求来说，最合适的框架最终取决于你团队的专业知识、项目需求以及你对某些架构模式的偏好。无论选择哪种，Next.js 和 Remix 都是构建高质量、高性能
+    React 应用程序的坚实基础。
+- en: Chapter Review
+  id: totrans-250
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 章节回顾
+- en: Over the course of this chapter, we’ve delved deep into the concept of React
+    frameworks. This chapter allowed us to explore the underlying principles, the
+    reasoning, and the practical implications of using frameworks.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章的过程中，我们深入探讨了 React 框架的概念。本章使我们能够探索使用框架的基本原理、推理以及实际应用的影响。
+- en: 'The discussion began by recapping concurrent React and its implications for
+    efficient rendering and user interactivity. We then moved on to explore the “why”
+    and the “what” of React frameworks: why they are necessary, what benefits they
+    offer, and what trade-offs they entail.'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 讨论从回顾并发 React 及其对高效渲染和用户交互的影响开始。然后，我们继续探讨 React 框架的“为什么”和“什么”：为什么它们是必要的，它们提供了哪些好处，以及它们涉及了哪些权衡。
+- en: We did this by implementing our own basic framework, which allowed us to understand
+    the underlying mechanisms and concepts behind React frameworks. We then explored
+    the concept of filesystem-based routing, which is a common feature in many React
+    frameworks. We also looked at data fetching and how it can be implemented in a
+    framework.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们通过实现我们自己的基本框架来做到这一点，这使我们能够理解 React 框架背后的基本机制和概念。然后，我们探讨了基于文件系统的路由概念，在许多 React
+    框架中是一个常见的特性。我们还研究了数据获取以及如何在框架中实现它。
+- en: Next, we dived into a comparison between different frameworks, focusing primarily
+    on Next.js and Remix. Each framework offers its unique set of features and advantages,
+    and the choice often comes down to the specific needs of the project. We explored
+    how these frameworks solve for server rendering, routing, data fetching, and data
+    mutations, and how they compare to our own implementation of these features.
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，我们深入比较了不同框架，主要集中在 Next.js 和 Remix 上。每个框架都提供其独特的功能和优势，选择往往取决于项目的具体需求。我们探讨了这些框架如何解决服务器渲染、路由、数据获取和数据变更，并且将它们与我们自己的实现进行了比较。
+- en: Through this, we gleaned an understanding of the mechanism through the commonalities
+    between our own implementation and the frameworks. We also explored the trade-offs
+    involved in using frameworks, and how they can be mitigated by understanding the
+    underlying mechanisms.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过这一过程，我们通过我们自己实现与框架之间的共同点，获得了对机制的理解。我们还探讨了使用框架所涉及的权衡，并通过理解其基本机制来缓解这些问题。
+- en: Finally, we discussed how to choose a framework, and explored some of the trade-offs
+    involved in this decision. We also looked at the developer experience and runtime
+    performance of frameworks and considered what might be the best for our projects.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最后，我们讨论了如何选择一个框架，并探讨了此决策所涉及的一些权衡。我们还研究了框架的开发者体验和运行时性能，并考虑了对我们的项目可能最好的选择。
+- en: Review Questions
+  id: totrans-257
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 复习问题
+- en: 'As we wrap up this chapter, here are some questions to help you review the
+    concepts we’ve covered:'
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章结束时，这里有一些问题帮助您复习我们所涵盖的概念：
+- en: What are the primary reasons for using a React framework like Next.js or Remix,
+    and what benefits do they offer?
+  id: totrans-259
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用像 Next.js 或 Remix 这样的 React 框架的主要原因是什么，它们提供了哪些好处？
+- en: What are some of the trade-offs or downsides that come with using a React framework?
+  id: totrans-260
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用 React 框架存在哪些权衡或不利之处？
+- en: What are some common problems solved by frameworks?
+  id: totrans-261
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 框架解决了哪些常见问题？
+- en: How do these frameworks solve them?
+  id: totrans-262
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 这些框架是如何解决这些问题的呢？
+- en: Up Next
+  id: totrans-263
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 接下来
+- en: 'In this chapter, we briefly mentioned React Server Components and began to
+    scratch their surface in a crude manner. In the next chapter, we’ll intensify
+    our focus on React Server Components and dive a little bit deeper: understanding
+    their value proposition and how they work by writing a minimal server that renders
+    and serves React Server Components.'
+  id: totrans-264
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，我们简要提到了 React 服务器组件，并以一种粗略的方式开始探索它们。在下一章中，我们将更加深入地关注 React 服务器组件，理解它们的价值主张，并通过编写一个最小的服务器来理解它们的工作原理，以渲染和提供
+    React 服务器组件。
+- en: In addition, we’ll examine why React Server Components require a new generation
+    of build tooling, like bundlers, routers, and more. Ultimately, we will come away
+    with an improved understanding of React Server Components and their underlying
+    mechanism in what is sure to be an informative and educational deep dive.
+  id: totrans-265
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，我们将探讨为什么 React 服务器组件需要像捆绑器、路由器等新一代构建工具。最终，我们将更加深入地理解 React 服务器组件及其背后的机制，在这必定是一个富有信息和教育性的深入探讨中获益良多。

@@ -1,0 +1,1064 @@
+- en: Chapter 11\. Declaration Files
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第11章 声明文件
+- en: Declaration files
+  id: totrans-1
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 声明文件
+- en: ''
+  id: totrans-2
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: Have purely type system code
+  id: totrans-3
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 纯类型系统代码
+- en: ''
+  id: totrans-4
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: No runtime constructs
+  id: totrans-5
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: 没有运行时结构
+- en: Even though writing code in TypeScript is great and that’s all you want to do,
+    you’ll need to be able to work with raw JavaScript files in your TypeScript projects.
+    Many packages are written directly in JavaScript, not TypeScript. Even packages
+    that are written in TypeScript are distributed as JavaScript files.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 尽管在TypeScript中编写代码很棒，这也是你想做的全部，但你需要能够在TypeScript项目中使用原始JavaScript文件。许多包直接用JavaScript编写，而不是TypeScript。即使使用TypeScript编写的包也会以JavaScript文件的形式分发。
+- en: Moreover, TypeScript projects need a way to be told the type shapes of environment-specific
+    features such as global variables and APIs. A project running in, say, Node.js
+    might have access to built-in Node modules not available in browsers—and vice
+    versa.
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此外，TypeScript项目需要一种方式告诉环境特定功能的类型形状，比如全局变量和API。在Node.js中运行的项目可能可以访问浏览器中不可用的内置Node模块，反之亦然。
+- en: TypeScript allows declaring type shapes separately from their implementation.
+    Type declarations are typically written in files whose names end with the *.d.ts*
+    extension, known as *declaration files*. Declaration files are generally either
+    written within a project, built and distributed with a project’s compiled npm
+    package, or shared as a standalone “typings” package.
+  id: totrans-8
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript允许单独声明类型形状，与其实现分开。类型声明通常写在以*.d.ts*结尾的文件中，称为*声明文件*。声明文件通常在项目中编写，随项目的编译npm包一起构建和分发，或者作为独立的“typings”包共享。
+- en: Declaration Files
+  id: totrans-9
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 声明文件
+- en: A *.d.ts* declaration file generally works similarly to a *.ts* file, except
+    with the notable constraint of not being allowed to include runtime code. *.d.ts*
+    files contain only descriptions of available runtime values, interfaces, modules,
+    and general types. They cannot contain any runtime code that could be compiled
+    down to JavaScript.
+  id: totrans-10
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*.d.ts*声明文件通常与*.ts*文件类似，但有一个明显的限制，即不允许包含运行时代码。*.d.ts*文件仅包含可用运行时值、接口、模块和一般类型的描述，不能包含任何可能编译为JavaScript的运行时代码。'
+- en: Declaration files can be imported just like any other source TypeScript file.
+  id: totrans-11
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 声明文件可以像任何其他源TypeScript文件一样导入。
+- en: 'This *types.d.ts* file exports a `Character` interface used by an *index.ts*
+    file:'
+  id: totrans-12
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此*types.d.ts*文件导出了一个在*index.ts*文件中使用的`Character`接口：
+- en: '[PRE0]'
+  id: totrans-13
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: '[PRE1]'
+  id: totrans-14
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: Tip
+  id: totrans-15
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Declaration files create what’s known as an *ambient context*, meaning an area
+    of code where you can only declare types, not values.
+  id: totrans-16
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 声明文件创建了所谓的*环境上下文*，意味着代码区域只能声明类型，而不能声明值。
+- en: This chapter is largely dedicated to declaration files and the most common forms
+    of type declarations used within them.
+  id: totrans-17
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章主要介绍声明文件及其内部使用的最常见的类型声明形式。
+- en: Declaring Runtime Values
+  id: totrans-18
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 声明运行时值
+- en: Although definition files may not create runtime values such as functions or
+    variables, they are able to declare that those constructs exist with the `declare`
+    keyword. Doing so tells the type system that some external influence—such as a
+    `<script>` tag in a web page—has created the value under that name with a particular
+    type.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然定义文件可能不会创建诸如函数或变量之类的运行时值，但它们可以使用`declare`关键字声明这些构造存在。这样做告诉类型系统，某些外部影响——比如网页中的`<script>`标签——已经创建了该名称下特定类型的值。
+- en: Declaring a variable with `declare` uses the same syntax as a normal variable
+    declaration, except an initial value is not allowed.
+  id: totrans-20
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`declare`声明变量的语法与普通变量声明相同，只是不允许有初始值。
+- en: 'This snippet successfully declares a `declared` variable but receives a type
+    error for trying to give a value to an `initializer` variable:'
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此片段成功声明了一个`declared`变量，但在试图给`initializer`变量赋值时接收到了类型错误：
+- en: '[PRE2]'
+  id: totrans-22
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: Functions and classes are also declared similarly to their normal forms, but
+    without the bodies of functions or methods.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 函数和类的声明形式也类似于它们的正常形式，但没有函数或方法的主体部分。
+- en: 'The following `canGrantWish` function and method are properly declared without
+    a body, but the `grantWish` function and method are syntax errors for improperly
+    attempting to set up a body:'
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 以下`canGrantWish`函数和方法在没有主体的情况下被正确声明，但尝试设置主体的`grantWish`函数和方法是语法错误：
+- en: '[PRE3]'
+  id: totrans-25
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: Tip
+  id: totrans-26
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: TypeScript’s implicit `any` rules work the same for functions and variables
+    declared in ambient contexts as they do in normal source code. Because ambient
+    contexts may not provide function bodies or initial variable values, explicit
+    type annotations—including explicit return type annotations—are generally the
+    only way to stop them from implicitly being type `any`.
+  id: totrans-27
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 的隐式 `any` 规则对于声明在环境上下文中的函数和变量与普通源代码中的规则相同。因为环境上下文可能不提供函数主体或初始变量值，因此显式类型注解（包括显式返回类型注解）通常是阻止它们隐式成为
+    `any` 类型的唯一方法。
+- en: Although type declarations using the `declare` keyword are most common in *.d.ts*
+    definition files, the `declare` keyword can be used outside of declaration files
+    as well. A module or script file can use `declare` as well. This can be useful
+    when a globally available variable is only meant to be used in that file.
+  id: totrans-28
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 虽然使用 `declare` 关键字进行类型声明在 *.d.ts* 定义文件中最常见，但 `declare` 关键字也可以在声明文件之外的模块或脚本文件中使用。当全局可用的变量仅打算在该文件中使用时，这是很有用的。
+- en: 'Here, a `myGlobalValue` variable is defined in an *index.ts* file, so it’s
+    allowed to be used in that file:'
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`myGlobalValue` 变量在 *index.ts* 文件中定义，因此允许在该文件中使用：
+- en: '[PRE4]'
+  id: totrans-30
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Note that while type shapes such as interfaces are allowed with or without
+    a `declare` in *.d.ts* definition files, runtime constructs such as functions
+    or variables will trigger a type complaint without a `declare`:'
+  id: totrans-31
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，在 *.d.ts* 定义文件中，类型形状（如接口）可以带有或不带有 `declare`，但是运行时构造（如函数或变量）如果没有 `declare`
+    将触发类型投诉：
+- en: '[PRE5]'
+  id: totrans-32
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: Global Values
+  id: totrans-33
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局值
+- en: Because TypeScript files that have no `import` or `export` statements are treated
+    as *scripts* rather than *modules*, constructs—including types—declared in them
+    are available globally. Definition files without any imports or exports can take
+    advantage of that behavior to declare types globally. Global definition files
+    are particularly useful for declaring global types or variables available across
+    all files in an application.
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为没有 `import` 或 `export` 语句的 TypeScript 文件被视为 *scripts* 而不是 *modules*，因此在其中声明的构造（包括类型）在应用程序的所有文件中全局可用。没有任何导入或导出的定义文件可以利用该行为来全局声明类型。全局定义文件特别适用于在应用程序中所有文件中声明全局类型或变量。
+- en: 'Here, a *globals.d.ts* file declares that a `const version: string` exists
+    globally. A *version.ts* file is then able to refer to a global `version` variable
+    despite not importing from *globals.d.ts*:'
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '在这里，*globals.d.ts* 文件声明全局存在一个 `const version: string`。然后 *version.ts* 文件可以引用全局的
+    `version` 变量，尽管没有从 *globals.d.ts* 导入：'
+- en: '[PRE6]'
+  id: totrans-36
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: '[PRE7]'
+  id: totrans-37
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: Globally declared values are most often used in browser applications that use
+    global variables. Although most modern web frameworks generally use newer techniques
+    such as ECMAScript modules, it can still be useful—especially in smaller projects—to
+    be able to store variables globally.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在使用全局变量的浏览器应用程序中，通常会使用全局声明的值。尽管大多数现代 Web 框架通常使用更新的技术，如 ECMAScript 模块，但在较小的项目中，能够全局存储变量仍然很有用。
+- en: Tip
+  id: totrans-39
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: If you find that you can’t automatically access global types declared in a *.d.ts*
+    file, double-check that the *.d.ts* file isn’t importing and exporting anything.
+    Even a single export will cause the whole file to no longer be available globally!
+  id: totrans-40
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果发现无法自动访问 *.d.ts* 文件中声明的全局类型，请仔细检查该 *.d.ts* 文件是否导入或导出了任何内容。即使只有一个导出，整个文件也将不再全局可用！
+- en: Global Interface Merging
+  id: totrans-41
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局接口合并
+- en: Variables aren’t the only globals floating around in a TypeScript project’s
+    type system. Many type declarations exist globally for global APIs and values.
+    Because interfaces merge with other interfaces of the same name, declaring an
+    interface in a global script context—such as a *.d.ts* declaration file without
+    any `import` or `export` statements—augments that interface globally.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 变量不是 TypeScript 项目类型系统中漂浮的唯一全局元素。许多类型声明全局存在于全局 API 和值中。由于接口与同名其他接口合并，因此在全局脚本上下文中声明接口（如没有任何
+    `import` 或 `export` 语句的 *.d.ts* 声明文件）将全局增加该接口。
+- en: 'For example, a web application that relies on a global variable set by the
+    server might want to declare that as existing on the global `Window` interface.
+    Interface merging would allow a file such as *types/window.d.ts* to declare a
+    variable that exists on the global `window` variable of type `Window`:'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，依赖服务器设置的全局变量的 Web 应用程序可能希望在全局 `Window` 接口上声明其存在。接口合并将允许诸如 *types/window.d.ts*
+    这样的文件声明一个存在于 `Window` 类型的全局 `window` 变量的变量：
+- en: '[PRE8]'
+  id: totrans-44
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '[PRE9]'
+  id: totrans-45
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: '[PRE10]'
+  id: totrans-46
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: Global Augmentations
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 全局增补
+- en: It’s not always feasible to refrain from `import` or `export` statements in
+    a *.d.ts* file that needs to also augment the global scope, such as when your
+    global definitions are simplified greatly by importing a type defined elsewhere.
+    Sometimes types declared in a module file are meant to be consumed globally.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 并非总是可行的要在 *.d.ts* 文件中避免 `import` 或 `export` 语句，当您的全局定义通过从其他地方导入的类型大大简化时，如当模块文件中声明的类型意味着要在全局范围内使用时。
+- en: 'For those cases, TypeScript allows a syntax to `declare global` a block of
+    code. Doing so marks the contents of that block as being in a global context even
+    though their surroundings are not:'
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于这些情况，TypeScript 允许使用 `declare global` 语法来全局声明一段代码。这样做将标记该块内容在全局上下文中，即使它们的周围环境不是：
+- en: '[PRE11]'
+  id: totrans-50
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: 'Here, a `types/data.d.ts` file exports a `Data` interface, which will later
+    be imported by both `types/globals.d.ts` and the runtime *index.ts*:'
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`types/data.d.ts` 文件导出了一个 `Data` 接口，稍后将被 `types/globals.d.ts` 和运行时的 *index.ts*
+    导入：
+- en: '[PRE12]'
+  id: totrans-52
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: 'Additionally, `types/globals.d.ts` declares a variable of type `Data` globally
+    inside a `declare global` block as well as a variable available only in that file:'
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另外，`types/globals.d.ts` 在 `declare global` 块内全局声明了一个类型为 `Data` 的变量，以及一个仅在该文件中可用的变量：
+- en: '[PRE13]'
+  id: totrans-54
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: '*index.ts* then has access to the `globallyDeclared` variable without an import,
+    and still needs to import `Data`:'
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*index.ts* 然后可以访问 `globallyDeclared` 变量而无需导入，并且仍然需要导入 `Data`：'
+- en: '[PRE14]'
+  id: totrans-56
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: Wrangling global and module declarations to play well together can be tricky.
+    Proper usage of TypeScript’s `declare` and `global` keywords can describe which
+    type definitions are meant to be available globally in projects.
+  id: totrans-57
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 调和全局和模块声明以便良好协作可能有些棘手。正确使用 TypeScript 的 `declare` 和 `global` 关键字可以描述哪些类型定义应该在项目中全局可用。
+- en: Built-In Declarations
+  id: totrans-58
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 内置声明
+- en: 'Now that you’ve seen how declarations work, it’s time to unveil their hidden
+    use in TypeScript: they’ve been powering its type checking the whole time! Global
+    objects such as `Array`, `Function`, `Map`, and `Set` are examples of constructs
+    that the type system needs to know about but aren’t declared in your code. They’re
+    provided by whatever runtime(s) your code is meant to run in: Deno, Node, a web
+    browser, etc.'
+  id: totrans-59
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经看到声明是如何工作的，是时候揭示它们在 TypeScript 中的隐含用途了：它们一直在驱动其类型检查！诸如 `Array`、`Function`、`Map`
+    和 `Set` 等全局对象是类型系统需要了解但不在您的代码中声明的构造的示例。它们由您的代码所用的运行时（如 Deno、Node、Web 浏览器等）提供：
+- en: Library Declarations
+  id: totrans-60
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 库声明
+- en: Built-in global objects such as `Array` and `Function` that exist in all JavaScript
+    runtimes are declared in files with names like *lib.[target].d.ts*. *target* is
+    the minimum support version of JavaScript targeted by your project, such as ES5,
+    ES2020, or ESNext.
+  id: totrans-61
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内置全局对象，如在所有 JavaScript 运行时中存在的 `Array` 和 `Function`，在名为 *lib.[target].d.ts*
+    的文件中声明。*target* 是您的项目所针对的 JavaScript 的最低支持版本，例如 ES5、ES2020 或 ESNext。
+- en: 'The built-in library definition files, or “lib files,” are fairly large because
+    they represent the entirety of JavaScript’s built-in APIs. For example, members
+    on the built-in `Array` type are represented by a global `Array` interface that
+    starts like this:'
+  id: totrans-62
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 内置库定义文件或“lib 文件”相当庞大，因为它们代表了 JavaScript 内置 API 的全部。例如，内置 `Array` 类型的成员由全局 `Array`
+    接口表示，起始如下：
+- en: '[PRE15]'
+  id: totrans-63
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: Lib files are distributed as part of the TypeScript npm package. You can find
+    them inside the package at paths like *node_modules/typescript/lib/lib.es5.d.ts*.
+    For IDEs such as VS Code that use their own packaged TypeScript versions to type
+    check code, you can find the lib file being used by right-clicking on a built-in
+    method such as an array’s `forEach` in your code and selecting an option like
+    Go to Definition ([Figure 11-1](#lib_go_to_definition)).
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Lib 文件作为 TypeScript npm 包的一部分进行分发。您可以在包内的路径，如 *node_modules/typescript/lib/lib.es5.d.ts*
+    中找到它们。对于像 VS Code 这样使用其自己打包的 TypeScript 版本来对代码进行类型检查的 IDE，您可以通过右键单击代码中的内置方法，如数组的
+    `forEach`，然后选择类似“转到定义”（[图 11-1](#lib_go_to_definition)）的选项来找到所使用的 lib 文件。
+- en: '![Left: going to definition on a forEach; right: the resultant opened lib.es5.d.ts
+    file.](Images/lets_1101.png)'
+  id: totrans-65
+  prefs: []
+  type: TYPE_IMG
+  zh: '![左侧：在 forEach 上跳转到定义；右侧：打开的结果 lib.es5.d.ts 文件。](Images/lets_1101.png)'
+- en: 'Figure 11-1\. Left: going to definition on a `forEach`; right: the resultant
+    opened lib.es5.d.ts file'
+  id: totrans-66
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 11-1\. 左侧：在 `forEach` 上跳转到定义；右侧：打开的结果 lib.es5.d.ts 文件
+- en: Library targets
+  id: totrans-67
+  prefs:
+  - PREF_H3
+  type: TYPE_NORMAL
+  zh: 库目标
+- en: TypeScript by default will include the appropriate lib file based on the `target`
+    setting provided to the `tsc` CLI and/or in your project’s *tsconfig.json* (by
+    default, `"es5"`). Successive lib files for newer versions of JavaScript build
+    on each other using interface merging.
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 默认会根据传递给 `tsc` CLI 的 `target` 设置以及项目的 *tsconfig.json* 文件（默认为 `"es5"`）包含适当的
+    lib 文件。随着新版本 JavaScript 的 lib 文件的增加，它们通过接口合并进行构建。
+- en: 'For example, static `Number` members such as `EPSILON` and `isFinite` added
+    in ES2015 are listed in *lib.es2015.d.ts*:'
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，ES2015 中添加的静态 `Number` 成员，如 `EPSILON` 和 `isFinite`，列在 *lib.es2015.d.ts* 中：
+- en: '[PRE16]'
+  id: totrans-70
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: TypeScript projects will include the lib files for all version targets of JavaScript
+    up through their minimum target. For example, a project with a target of `"es2016"`
+    would include *lib.es5.d.ts*, *lib.es2015.d.ts*, and *lib.es2016.d.ts*.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 项目将包含 JavaScript 各版本目标的 lib 文件，直到其最低目标版本。例如，目标是 `"es2016"` 的项目将包含
+    *lib.es5.d.ts*、*lib.es2015.d.ts* 和 *lib.es2016.d.ts*。
+- en: Tip
+  id: totrans-72
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Language features available only in newer versions of JavaScript than your target
+    will not be available in the type system. For example, if your target is `"es5"`,
+    language features from ES2015 or later such as `String.prototype.startsWith` will
+    not be recognized.
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 只有比目标版本更新的 JavaScript 中可用的语言特性在类型系统中才可用。例如，如果目标是 `"es5"`，那么 ES2015 或更高版本的语言特性如
+    `String.prototype.startsWith` 将不会被识别。
+- en: Compiler options such as `target` are covered in more detail in [Chapter 13,
+    “Configuration Options”](ch13.xhtml#configuration_options).
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编译选项如 `target` 在 [第 13 章，“配置选项”](ch13.xhtml#configuration_options) 中有详细说明。
+- en: DOM Declarations
+  id: totrans-75
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: DOM 声明
+- en: Outside of the JavaScript language itself, the most commonly referenced area
+    of type declarations is for web browsers. Web browser types, generally referred
+    to as “DOM” types, cover APIs such as `localStorage` and type shapes such as `HTMLElement`
+    available primarily in web browsers. DOM types are stored in a *lib.dom.d.ts*
+    file alongside the other *lib.*.d.ts* declaration files.
+  id: totrans-76
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 除了 JavaScript 语言本身之外，类型声明最常引用的领域是网络浏览器。Web 浏览器类型通常称为“DOM”类型，涵盖诸如 `localStorage`
+    和主要在 Web 浏览器中可用的 `HTMLElement` 等 API 和类型形状。DOM 类型存储在 *lib.dom.d.ts* 文件中，与其他 *lib.*.d.ts*
+    声明文件并列。
+- en: 'Global DOM types, like many built-in globals, are often described with global
+    interfaces. For example, the `Storage` interface used for `localStorage` and `sessionStorage`
+    and starts roughly like this:'
+  id: totrans-77
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 像许多内置全局一样，全局 DOM 类型通常用全局接口描述。例如，用于 `localStorage` 和 `sessionStorage` 的 `Storage`
+    接口大致如下所示：
+- en: '[PRE17]'
+  id: totrans-78
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: TypeScript includes DOM types by default in projects that don’t override the
+    `lib` compiler option. That can sometimes be confusing for developers working
+    on projects meant to be run in nonbrowser environments such as Node, as they shouldn’t
+    be able to access the global APIs such as `document` and `localStorage` that the
+    type system would then claim to exist. Compiler options such as `lib` are covered
+    in more detail in [Chapter 13, “Configuration Options”](ch13.xhtml#configuration_options).
+  id: totrans-79
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 在默认情况下会在不覆盖 `lib` 编译选项的项目中包含 DOM 类型。这有时可能会让在非浏览器环境（如 Node）工作的开发人员感到困惑，因为他们不应该能够访问全局
+    API（如 `document` 和 `localStorage`），但类型系统会声明这些全局 API 存在。编译选项如 `lib` 的详细信息在 [第 13
+    章，“配置选项”](ch13.xhtml#configuration_options) 中有详细说明。
+- en: Module Declarations
+  id: totrans-80
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 模块声明
+- en: One more important feature of declaration files is their ability to describe
+    the shapes of modules. The `declare` keyword can be used before a string name
+    of a module to inform the type system of the contents of that module.
+  id: totrans-81
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 声明文件的另一个重要特性是描述模块形状的能力。可以在模块的字符串名称前使用 `declare` 关键字来通知类型系统该模块的内容。
+- en: 'Here, the `"my-example-lib"` module is declared as being in existence in a
+    `modules.d.ts` declaration script file, then used in an *index.ts* file:'
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这里，`"my-example-lib"` 模块被声明存在于一个 `modules.d.ts` 声明脚本文件中，然后在 *index.ts* 文件中使用：
+- en: '[PRE18]'
+  id: totrans-83
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '[PRE19]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: You shouldn’t have to use `declare module` often, if ever, in your own code.
+    It’s mostly used with the following section’s wildcard module declarations and
+    with package types covered later in this chapter. Additionally, see [Chapter 13,
+    “Configuration Options”](ch13.xhtml#configuration_options) for information on
+    `resolveJsonModule`, a compiler option that allows TypeScript to natively recognize
+    imports from *.json* files.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在自己的代码中，您不应该经常使用 `declare module`，或者根本不需要。它主要与以下部分的通配符模块声明以及本章后面涵盖的包类型一起使用。另外，请参阅
+    [第 13 章，“配置选项”](ch13.xhtml#configuration_options) 了解 `resolveJsonModule`，这是一个编译选项，允许
+    TypeScript 原生识别来自 *.json* 文件的导入。
+- en: Wildcard Module Declarations
+  id: totrans-86
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 通配符模块声明
+- en: A common use of module declarations is to tell web applications that a particular
+    non-JavaScript/TypeScript file extension is available to `import` into code. Module
+    declarations may contain a single `*` wildcard to indicate that any module matching
+    that pattern looks the same.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 模块声明的常见用途是告诉Web应用程序，特定的非JavaScript/TypeScript文件扩展名可供`import`到代码中使用。模块声明可能包含一个单独的`*`通配符，表示任何匹配该模式的模块都看起来相同。
+- en: 'For example, many web projects such as those preconfigured in popular React
+    starters such as create-react-app and create-next-app support CSS modules to import
+    styles from CSS files as objects that can be used at runtime. They would define
+    modules with a pattern such as `"*.module.css"` that default exports an object
+    of type `{ [i: string]: string }`:'
+  id: totrans-88
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '例如，许多Web项目（如预配置在流行的React启动器中，如create-react-app和create-next-app中的项目）支持CSS模块，以从CSS文件导入样式作为可在运行时使用的对象。它们会使用类似`"*.module.css"`的模式定义模块，该模块默认导出一个类型为`{
+    [i: string]: string }`的对象：'
+- en: '[PRE20]'
+  id: totrans-89
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: '[PRE21]'
+  id: totrans-90
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: Warning
+  id: totrans-91
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: Using wildcard modules to represent local files isn’t completely type safe.
+    TypeScript does not provide a mechanism to ensure the imported module path matches
+    a local file. Some projects use a build system such as Webpack and/or generate
+    *.d.ts* files from local files to make sure imports match up.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用通配符模块来表示本地文件并不完全安全。TypeScript没有提供一种机制来确保导入的模块路径与本地文件匹配。一些项目使用构建系统（如Webpack）和/或从本地文件生成*.d.ts*文件来确保导入匹配。
+- en: Package Types
+  id: totrans-93
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 包类型
+- en: Now that you’ve seen how to declare typings within a project, it’s time to cover
+    consuming types between packages. Projects written in TypeScript still generally
+    distribute packages containing compiled *.js* outputs. They typically use *.d.ts*
+    files to declare the backing TypeScript type system shapes behind those JavaScript
+    files.
+  id: totrans-94
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经看到如何在项目中声明类型，现在是时候讨论如何在包之间消费类型。使用TypeScript编写的项目通常仍然分发包含编译的*.js*输出的包。它们通常使用*.d.ts*文件来声明这些JavaScript文件背后的TypeScript类型系统形状。
+- en: declaration
+  id: totrans-95
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 声明
+- en: TypeScript provides a `declaration` option to create *.d.ts* outputs for input
+    files alongside JavaScript outputs.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript提供了一个`declaration`选项，用于在JavaScript输出文件旁边创建*.d.ts*输出。
+- en: 'For example, given the following *index.ts* source file:'
+  id: totrans-97
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，给定以下*index.ts*源文件：
+- en: '[PRE22]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: 'Using `declaration`, a `module` of `"es2015"`, and a `target` of `"es2015"`,
+    the following outputs would be generated:'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 使用`declaration`，`module`为`"es2015"`，`target`为`"es2015"`，将生成以下输出：
+- en: '[PRE23]'
+  id: totrans-100
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '[PRE24]'
+  id: totrans-101
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: Auto-generated *.d.ts* files are the best way for a project to create type definitions
+    to be used by consumers. It’s generally recommended that most packages written
+    in TypeScript that produce *.js* file outputs should also bundle *.d.ts* alongside
+    those files.
+  id: totrans-102
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 自动生成的*.d.ts*文件是项目创建供消费者使用的类型定义的最佳方式。通常建议大多数使用TypeScript编写并生成*.js*文件输出的包也应该将*.d.ts*文件与这些文件一起捆绑。
+- en: Compiler options such as `declaration` are covered in more detail in [Chapter 13,
+    “Configuration Options”](ch13.xhtml#configuration_options).
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 编译器选项，例如`declaration`，在[第13章，“配置选项”](ch13.xhtml#configuration_options)中有更详细的说明。
+- en: Dependency Package Types
+  id: totrans-104
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 依赖包类型
+- en: TypeScript is able to detect and utilize *.d.ts* files bundled inside a project’s
+    `node_modules` dependencies. Those files will inform the type system about the
+    type shapes exported by that package as if they were written inside the same project
+    or declared with a `declare` module block.
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript能够检测并利用项目`node_modules`依赖中捆绑的*.d.ts*文件。这些文件会向类型系统提供关于该包导出的类型形状的信息，就像它们是在同一项目内编写或使用`declare`模块块声明一样。
+- en: 'A typical npm module that comes with its own *.d.ts* declaration files might
+    have a file structure something like:'
+  id: totrans-106
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 典型的npm模块如果自带其自己的*.d.ts*声明文件，可能会有如下的文件结构：
+- en: '[PRE25]'
+  id: totrans-107
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'As an example, the ever-popular test runner Jest is written in TypeScript and
+    provides its own bundled *.d.ts* files in its `jest` package. It has a dependency
+    on the `@jest/globals` package that provides functions such as `describe` and
+    `it`, which `jest` then makes available globally:'
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为示例，备受欢迎的测试运行器**Jest**是用TypeScript编写的，并在其`jest`包中提供了自己捆绑的*.d.ts*文件。它依赖于`@jest/globals`包，该包提供诸如`describe`和`it`等函数，`jest`然后将其全局可用：
+- en: '[PRE26]'
+  id: totrans-109
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: '[PRE27]'
+  id: totrans-110
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '[PRE28]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'If we were to re-create a very limited subset of the Jest typings packages
+    from scratch, they might look some something like these files. The `@jest/globals`
+    package exports the `describe` and `it` functions. Then, the `jest` package imports
+    those functions and augments the global scope with `describe` and `it` variables
+    of their corresponding function’s type:'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果我们要从头开始重新创建 Jest 类型定义包的非常有限子集，它们可能看起来像这些文件一样。`@jest/globals` 包导出 `describe`
+    和 `it` 函数。然后，`jest` 包导入这些函数，并使用其相应函数类型增强全局作用域的 `describe` 和 `it` 变量：
+- en: '[PRE29]'
+  id: totrans-113
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: '[PRE30]'
+  id: totrans-114
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: This structure allows projects that use Jest to refer to global versions of
+    `describe` and `it`. Projects can alternatively choose to import those functions
+    from the `@jest/globals` package.
+  id: totrans-115
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这种结构允许使用 Jest 的项目引用全局版本的 `describe` 和 `it`。项目也可以选择从 `@jest/globals` 包导入这些函数。
+- en: Exposing Package Types
+  id: totrans-116
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 暴露包类型
+- en: If your project is meant to be distributed on npm and provide types for consumers,
+    add a `"types"` field in the package’s *package.json* file to point to the root
+    declaration file. The `types` field works similarly to the `main` field—and often
+    will look the same but with the *.d.ts* extension instead of *.js*.
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果您的项目旨在在 npm 上分发并为消费者提供类型，请在包的 *package.json* 文件中添加 `"types"` 字段，指向根声明文件。`types`
+    字段的工作方式与 `main` 字段类似，通常看起来相同，但扩展名为 *.d.ts* 而不是 *.js*。
+- en: 'For example, in this `fictional` package file, the *./lib/index.js* main runtime
+    file is paralleled by the *./lib/index.d.ts* types file:'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，在这个 `fictional` 包文件中，*./lib/index.js* 的主运行时文件与 *./lib/index.d.ts* 的类型文件并行：
+- en: '[PRE31]'
+  id: totrans-119
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: TypeScript would then use the contents of the *./lib/index.d.ts* as what should
+    be provided for consuming files that import from the `utilitarian` package.
+  id: totrans-120
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TypeScript 随后将使用 *./lib/index.d.ts* 的内容，作为导入 `utilitarian` 包的消费文件应提供的内容。
+- en: Note
+  id: totrans-121
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: If the `types` field does not exist in a package’s *package.json*, TypeScript
+    will assume a default value of *./index.d.ts*. This mirrors the default npm behavior
+    of assuming an *./index.js* file as the `main` entry point for a package if not
+    specified.
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果包的 *package.json* 中不存在 `types` 字段，则 TypeScript 将假定默认值为 *./index.d.ts*。这反映了
+    npm 的默认行为，即如果未指定，则假定 *./index.js* 文件为包的 `main` 入口点。
+- en: Most packages use TypeScript’s `declaration` compiler option to create *.d.ts*
+    files alongside *.js* outputs from source files. Compiler options are covered
+    in [Chapter 13, “Configuration Options”](ch13.xhtml#configuration_options).
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数包使用 TypeScript 的 `declaration` 编译选项，在源文件生成 *.js* 输出的同时创建 *.d.ts* 文件。编译器选项在[第
+    13 章，“配置选项”](ch13.xhtml#configuration_options)中有详细介绍。
+- en: DefinitelyTyped
+  id: totrans-124
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: DefinitelyTyped
+- en: Sadly, not all projects are written in TypeScript. Some unfortunate developers
+    are still writing their projects in plain old JavaScript without a type checker
+    to aide them. Horrifying.
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不幸的是，并非所有项目都是用 TypeScript 编写的。一些不幸的开发人员仍在用纯老式 JavaScript 写他们的项目，没有类型检查器来帮助他们。可怕。
+- en: Our TypeScript projects still need to be informed of the type shapes of the
+    modules from those packages. The TypeScript team and community created a giant
+    repository called [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)
+    to house community-authored definitions for packages. DefinitelyTyped, or DT for
+    short, is one of the most active repositories on GitHub. It contains thousands
+    of packages of *.d.ts* definitions, along with automation around reviewing change
+    proposals and publishing updates.
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我们的 TypeScript 项目仍然需要了解这些包的模块类型形状。TypeScript 团队和社区创建了一个名为[DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)的巨大存储库，用于容纳社区编写的包定义。DefinitelyTyped，或简称
+    DT，是 GitHub 上最活跃的存储库之一。它包含数千个 *.d.ts* 定义的包，以及围绕审核变更提案和发布更新的自动化。
+- en: DT packages are published on npm under the `@types` scope with the same name
+    as the package they provide types for. For example, as of 2022, `@types/react`
+    provides type definitions for the `react` package.
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: DT 包在 npm 上发布，在 `@types` 范围下使用与其提供类型的包同名。例如，截至 2022 年，`@types/react` 为 `react`
+    包提供类型定义。
+- en: Note
+  id: totrans-128
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: '`@types` are generally installed as either `dependencies` or `devDependencies`,
+    though the distinction between those two has become blurred in recent years. In
+    general, if your project is meant to be distributed as an npm package, it should
+    use `dependencies` so consumers of the package also bring in the type definitions
+    used within. If your project is a standalone application such as one built and
+    run on a server, it should use `devDependencies` to convey that the types are
+    just a development-time tool.'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`@types`通常安装为`dependencies`或`devDependencies`，尽管这两者之间的区别在近年来变得模糊。通常来说，如果你的项目是作为npm包分发的，它应该使用`dependencies`，这样包的使用者也会引入所使用的类型定义。如果你的项目是一个独立的应用程序，比如在服务器上构建和运行的应用，它应该使用`devDependencies`来表明类型只是开发时工具。'
+- en: 'For example, for a utility package that relies on `lodash`—which as of 2022
+    has a separate `@types/lodash` package—the *package.json* would contain lines
+    similar to:'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，对于一个依赖于`lodash`的实用程序包（截至2022年，有一个单独的`@types/lodash`包），*package.json*应包含类似以下行：
+- en: '[PRE32]'
+  id: totrans-131
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'The *package.json* for a standalone app built on React might contain lines
+    similar to:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 建立在React上的独立应用程序的*package.json*可能包含类似以下行：
+- en: '[PRE33]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: Note that semantic versioning (“semver”) numbers do not necessarily match between
+    `@types/` packages and the packages they represent. You may often find some that
+    are off by a patch version as with React earlier, a minor version as with Lodash
+    earlier, or even major versions.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请注意，语义化版本号（“semver”）在`@types/`包和它们代表的包之间不一定匹配。你经常会发现它们可能会有一些偏差，如React早期的补丁版本，Lodash早期的次版本，甚至主版本。
+- en: Warning
+  id: totrans-135
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 警告
+- en: As these files are authored by the community, they may lag behind the parent
+    project or have small inaccuracies. If your project compiles successfully yet
+    you get runtime errors when calling libraries, investigate if the signatures of
+    the APIs you are accessing have changed. This is less common, but still not unheard
+    of, for mature projects with stable API surfaces.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 因为这些文件由社区编写，它们可能落后于父项目或存在小的不准确之处。如果你的项目编译成功但在调用库时出现运行时错误，请调查你正在访问的API签名是否发生了变化。这在成熟项目和稳定API表面的情况下较少见，但仍然不罕见。
+- en: Type Availability
+  id: totrans-137
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 类型可用性
+- en: Most popular JavaScript packages either ship with their own typings or have
+    typings available via DefinitelyTyped.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 大多数流行的JavaScript包要么使用自己的类型要么通过DefinitelyTyped提供类型。
+- en: 'If you’d like to get types for a package that doesn’t yet have types available,
+    your three most common options would be:'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果你想为一个还没有可用类型的包获取类型，你最常见的三个选项将是：
+- en: Send a pull request to DefinitelyTyped to create its `@types/` package.
+  id: totrans-140
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 向DefinitelyTyped发送一个拉取请求以创建其`@types/`包。
+- en: Use the `declare module` syntax introduced earlier to write the types within
+    your project.
+  id: totrans-141
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用早期引入的`declare module`语法在你的项目中编写类型。
+- en: Disable `noImplicitAny` as covered—and strongly warned against—in [Chapter 13,
+    “Configuration Options”](ch13.xhtml#configuration_options).
+  id: totrans-142
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 禁用`noImplicitAny`，如在第13章“配置选项”中所述，并强烈警告不要这样做。
+- en: I’d recommend contributing types to DefinitelyTyped if you have the time. Doing
+    so helps out other TypeScript developers who may also want to use that package.
+  id: totrans-143
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 我建议如果你有时间的话，为DefinitelyTyped贡献类型。这样做有助于其他可能想使用该包的TypeScript开发者。
+- en: Tip
+  id: totrans-144
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: See [aka.ms/types](https://aka.ms/types) to display whether a package has types
+    bundled or via a separate `@types/` package.
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 查看[aka.ms/types](https://aka.ms/types)以显示一个包是通过捆绑类型还是通过单独的`@types/`包提供类型。
+- en: Summary
+  id: totrans-146
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 摘要
+- en: 'In this chapter, you used declaration files and value declarations to inform
+    TypeScript about modules and values not declared in your source code:'
+  id: totrans-147
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在本章中，您使用声明文件和值声明来告知TypeScript关于未在源代码中声明的模块和值：
+- en: Creating declaration files with *.d.ts*
+  id: totrans-148
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用*.d.ts*创建声明文件
+- en: Declaring types and values with the `declare` keyword
+  id: totrans-149
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用`declare`关键字声明类型和值
+- en: Changing global types using global values, global interface merges, and global
+    augmentations
+  id: totrans-150
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用全局值、全局接口合并和全局扩展来更改全局类型
+- en: Configuring and using TypeScript’s built-in target, library, and DOM declarations
+  id: totrans-151
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 配置和使用TypeScript内置的目标、库和DOM声明
+- en: Declaring types of modules, including wildcard modules
+  id: totrans-152
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 声明模块类型，包括通配符模块
+- en: How TypeScript picks up types from packages
+  id: totrans-153
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: TypeScript如何从包中获取类型
+- en: Using DefinitelyTyped to acquire types for packages that don’t include their
+    own
+  id: totrans-154
+  prefs:
+  - PREF_UL
+  type: TYPE_NORMAL
+  zh: 使用DefinitelyTyped获取不包含类型的包的类型
+- en: Tip
+  id: totrans-155
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: Now that you’ve finished reading this chapter, practice what you’ve learned
+    on [*https://learningtypescript.com/declaration-files*](https://learningtypescript.com/declaration-files).
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经完成阅读本章，可以在[*https://learningtypescript.com/declaration-files*](https://learningtypescript.com/declaration-files)上练习所学内容。
+- en: What do TypeScript types say in the American South?
+  id: totrans-157
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: TypeScript 的类型在美国南部说什么呢？
+- en: ''
+  id: totrans-158
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+- en: “Why, I do `declare`!”
+  id: totrans-159
+  prefs:
+  - PREF_BQ
+  type: TYPE_NORMAL
+  zh: “Why, I do `declare`!”

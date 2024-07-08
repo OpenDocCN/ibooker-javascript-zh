@@ -1,0 +1,2234 @@
+- en: Chapter 2\. Protocols
+  id: totrans-0
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 第2章\. 协议
+- en: There are various methods a process can use to communicate with other processes.
+    As an example of this, consider communication by reading and writing to the filesystem
+    or by using Inter-Process Communication (IPC). But with these approaches, it’s
+    only possible for a process to communicate with other processes on the same machine.
+  id: totrans-1
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个进程与其他进程进行通信的方法有多种。举例来说，可以通过读写文件系统或使用进程间通信（IPC）进行通信。但是通过这些方法，一个进程只能与同一台机器上的其他进程进行通信。
+- en: Instead, processes are typically built to communicate directly with the network.
+    This still allows for communication between processes on the same machine, but
+    more importantly, it allows processes to communicate across a network. There are
+    limited resources available to any given machine and far more resources available
+    across multiple machines.
+  id: totrans-2
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 相反，进程通常被构建成直接与网络进行通信。这仍然允许在同一台机器上的进程之间进行通信，但更重要的是，它允许进程在网络上进行通信。对于任何给定的机器，资源是有限的，而跨多台机器有更多的资源可用。
+- en: Note
+  id: totrans-3
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Jeff Bezos mandated in the early 2000s that Amazon services must expose APIs
+    over the network. This is credited as transforming Amazon from a simple bookstore
+    to the cloud behemoth that is AWS. This pattern is now embraced by tech companies
+    everywhere, allowing teams to access data and innovate at an unprecedented rate.
+  id: totrans-4
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 杰夫·贝佐斯在21世纪初要求亚马逊服务必须通过网络公开API。这被认为是将亚马逊从简单的书店转变为AWS的云巨头的关键因素。这种模式现在被各大科技公司广泛采用，允许团队以前所未有的速度访问数据和进行创新。
+- en: A *protocol* is a standardized format for communicating between two parties.
+    When communication happens without protocols involved, it’s inevitable that messages
+    either won’t be interpreted correctly or won’t be understood at all. It’s almost
+    always better to adhere to an industry standard than to create a protocol from
+    scratch. It’s also better to embrace a smaller number of inter-service protocols
+    within an organization to reduce the amount of implementation effort and API documentation.
+  id: totrans-5
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*协议* 是两方之间通信的标准化格式。当没有涉及协议的通信发生时，消息要么不会被正确解释，要么根本无法理解。通常情况下，遵循行业标准比从头开始创建协议更好。在组织内部也更好地采用较少的服务间协议，以减少实施工作和API文档的数量。'
+- en: The *Open Systems Interconnection* (OSI) model is a concept for describing the
+    relationship between different layers of network protocols. Officially there are
+    seven layers, though as you’ll see in this chapter, it’s often the case that more
+    layers are needed to describe modern applications. By first examining this model
+    in [Table 2-1](#table_osi_layers), you will better understand some of the concepts
+    covered later. This book mostly discusses Layer 4, Layer 7, and the hypothetical
+    Layer 8.
+  id: totrans-6
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*开放系统互联*（OSI）模型是描述网络协议不同层之间关系的概念。官方上有七层，尽管如本章所述，通常需要更多层来描述现代应用程序。首先在[表2-1](#table_osi_layers)中检查此模型，您将更好地理解后续讨论的一些概念。本书主要讨论了第4层、第7层和假设的第8层。'
+- en: Table 2-1\. The OSI layers
+  id: totrans-7
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表2-1\. OSI层
+- en: '| Layer | Name | Example |'
+  id: totrans-8
+  prefs: []
+  type: TYPE_TB
+  zh: '| 层 | 名称 | 示例 |'
+- en: '| --- | --- | --- |'
+  id: totrans-9
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| *8* | *User* | *JSON, gRPC* |'
+  id: totrans-10
+  prefs: []
+  type: TYPE_TB
+  zh: '| *8* | *用户* | *JSON, gRPC* |'
+- en: '| 7 | Application | HTTP, WebSocket |'
+  id: totrans-11
+  prefs: []
+  type: TYPE_TB
+  zh: '| 7 | 应用 | HTTP, WebSocket |'
+- en: '| 6 | Presentation | MIME, ASCII, TLS |'
+  id: totrans-12
+  prefs: []
+  type: TYPE_TB
+  zh: '| 6 | 表示 | MIME, ASCII, TLS |'
+- en: '| 5 | Session | Sockets |'
+  id: totrans-13
+  prefs: []
+  type: TYPE_TB
+  zh: '| 5 | 会话 | 套接字 |'
+- en: '| 4 | Transport | TCP, UDP |'
+  id: totrans-14
+  prefs: []
+  type: TYPE_TB
+  zh: '| 4 | 传输 | TCP, UDP |'
+- en: '| 3 | Network | IP, ICMP |'
+  id: totrans-15
+  prefs: []
+  type: TYPE_TB
+  zh: '| 3 | 网络 | IP, ICMP |'
+- en: '| 2 | Data Link | MAC, LLC |'
+  id: totrans-16
+  prefs: []
+  type: TYPE_TB
+  zh: '| 2 | 数据链路 | MAC, LLC |'
+- en: '| 1 | Physical | Ethernet, IEEE 802.11 |'
+  id: totrans-17
+  prefs: []
+  type: TYPE_TB
+  zh: '| 1 | 物理 | Ethernet, IEEE 802.11 |'
+- en: This chapter looks at a few protocols that are often used for inter-service
+    communication. The ubiquitous HTTP protocol is the first one discussed, as well
+    as JSON, which it is frequently paired with. Various permutations of this protocol
+    are also examined, such as securing it with TLS and enabling compression. Next,
+    the GraphQL protocol is covered, which comes with a schema syntax and the ability
+    to shape the JSON responses. Finally, the *Remote Procedure Call* (RPC) pattern
+    is also looked at by using an implementation called gRPC.
+  id: totrans-18
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章介绍了一些经常用于服务间通信的协议。首先讨论了无处不在的HTTP协议，以及经常与之配对的JSON。还检查了该协议的各种变体，如使用TLS进行安全保护和启用压缩。接下来，介绍了GraphQL协议，该协议具有模式语法和塑造JSON响应的能力。最后，通过使用名为gRPC的实现，还研究了远程过程调用（RPC）模式。
+- en: The forms of communication covered in this chapter are examples of *synchronous
+    communication*. With this approach, one service sends a request to another service
+    and waits for the other service to reply. An alternative approach, *asynchronous
+    communication*, is when a service doesn’t wait for a response to a message, like
+    pushing a message into a queue.
+  id: totrans-19
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本章涵盖的通信形式是*同步通信*的示例。采用这种方法，一个服务向另一个服务发送请求，并等待另一个服务的回复。另一种方法是*异步通信*，当一个服务不等待消息的响应时，就像将消息推送到队列中一样。
+- en: Request and Response with HTTP
+  id: totrans-20
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用HTTP进行请求和响应
+- en: At its core, HTTP (Layer 7) is a text-based protocol that sits atop TCP (Layer
+    4), the go-to protocol chosen when delivery guarantees are required. The protocol
+    is based on requests, generated by a client to initiate an HTTP conversation,
+    as well as responses, which are returned from a server to the client. It was designed
+    for browsers to consume content from websites. Over the years it has received
+    many enhancements. It comes with semantics for dealing with compression, caching,
+    errors, and even retries. Although it wasn’t exactly designed for API use, it’s
+    certainly the most popular go-to protocol for communicating between networked
+    services and one of the most popular protocols on which to build other protocols.
+  id: totrans-21
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在其核心，HTTP（第7层）是一种基于文本的协议，位于TCP（第4层）之上，是在需要交付保证时选择的首选协议。该协议基于由客户端生成的请求来启动HTTP会话，以及由服务器返回给客户端的响应。它最初是为浏览器从网站获取内容而设计的。多年来，它已经得到了许多增强。它具有处理压缩、缓存、错误甚至重试的语义。尽管它并非专门为API使用而设计，但它无疑是在网络服务之间进行通信的最流行的首选协议之一，也是构建其他协议的最流行协议之一。
+- en: That last point comes up a few times in this chapter. HTTP is a protocol for
+    transferring *hypermedia*, content such as images and HTML documents. This includes
+    content discovered and navigated by a person, not necessarily application code.
+    This “shortcoming” is considered throughout the next few sections.
+  id: totrans-22
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此章节中多次提到最后一点。HTTP是传输*超媒体*，例如图像和HTML文档的协议。这包括人们发现和浏览的内容，不一定是应用程序代码。这一“缺点”在接下来的几节中被认真考虑。
+- en: There are many reasons why HTTP is the default protocol used for public-facing
+    APIs. Most companies already have a website, so the HTTP-speaking infrastructure
+    already exists. Browsers often need to consume such APIs, and there are only a
+    few protocols that browsers can use. Testing an API endpoint can sometimes be
+    done by visiting a URL with a browser—a tool that every developer already has
+    installed.
+  id: totrans-23
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP是用于公共API的默认协议的许多原因。大多数公司已经拥有网站，因此已经存在讲HTTP的基础设施。浏览器经常需要消耗这些API，并且只有少数几种协议可以让浏览器使用。有时可以通过使用浏览器访问URL来测试API端点——这是每个开发者已经安装的工具。
+- en: The following section mostly examines the HTTP 1.1 protocol, which is arguably
+    the most popular version used today.
+  id: totrans-24
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下一节主要讨论了目前可能是最受欢迎的版本HTTP 1.1协议。
+- en: HTTP Payloads
+  id: totrans-25
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: HTTP有效载荷
+- en: HTTP, being a text-based protocol, allows communication using any platform or
+    language that can communicate over TCP. This also allows me to embed the raw content
+    of HTTP messages within the pages of this book. To generate a request, you might
+    write code that looks like [Example 2-1](#ex_node_request).
+  id: totrans-26
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP作为一种基于文本的协议，允许使用任何能够通过TCP进行通信的平台或语言进行通信。这也允许我在本书的页面中嵌入HTTP消息的原始内容。要生成请求，您可能会编写类似于[示例 2-1](#ex_node_request)的代码。
+- en: Example 2-1\. Node.js request code
+  id: totrans-27
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例2-1\. Node.js请求代码
+- en: '[PRE0]'
+  id: totrans-28
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE0]'
+- en: Writing HTTP requests manually can be a bit of a chore. Luckily, most libraries
+    handle serializing and deserializing the tough parts—namely, parsing headers and
+    the request/status lines. [Example 2-2](#ex_http_request) shows the correlating
+    HTTP request that was generated by the previous node application.
+  id: totrans-29
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 手动编写HTTP请求可能有点繁琐。幸运的是，大多数库处理序列化和反序列化的复杂部分——即解析头部和请求/状态行。[示例 2-2](#ex_http_request)展示了前面Node应用程序生成的对应HTTP请求。
+- en: Example 2-2\. HTTP request
+  id: totrans-30
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例2-2\. HTTP请求
+- en: '[PRE1]'
+  id: totrans-31
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE1]'
+- en: '[![1](assets/1.png)](#co_protocols_CO1-1)'
+  id: totrans-32
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO1-1)'
+- en: The first line is the request line.
+  id: totrans-33
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一行是请求行。
+- en: '[![2](assets/2.png)](#co_protocols_CO1-2)'
+  id: totrans-34
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO1-2)'
+- en: Header/value pairs, separated by colons.
+  id: totrans-35
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Header/value pairs, separated by colons.
+- en: '[![3](assets/3.png)](#co_protocols_CO1-3)'
+  id: totrans-36
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO1-3)'
+- en: Two new lines then the (optional) request body.
+  id: totrans-37
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个换行符，然后是（可选的）请求主体。
+- en: This is the raw version of an HTTP request. It’s much simpler than a typical
+    request you’ll see in a browser, lacking items such as cookies and the myriad
+    default headers inserted by modern browsers. Each newline is represented as a
+    combination carriage return character and line feed character (`\r\n`). Responses
+    look fairly similar to requests. [Example 2-3](#ex_http_response) shows a response
+    that could correlate to the previous request.
+  id: totrans-38
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个HTTP请求的原始版本。它比您在浏览器中看到的典型请求要简单得多，不包括诸如Cookie和现代浏览器插入的大量默认标头等项目。每个换行符都表示为组合的回车符和换行符（`\r\n`）。响应看起来与请求非常相似。[示例 2-3](#ex_http_response)显示了可能与前一个请求对应的响应。
+- en: Example 2-3\. HTTP response
+  id: totrans-39
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-3\. HTTP响应
+- en: '[PRE2]'
+  id: totrans-40
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE2]'
+- en: '[![1](assets/1.png)](#co_protocols_CO2-1)'
+  id: totrans-41
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO2-1)'
+- en: The first line is the response line.
+  id: totrans-42
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一行是响应行。
+- en: '[![2](assets/2.png)](#co_protocols_CO2-2)'
+  id: totrans-43
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO2-2)'
+- en: Header/value pairs, separated by colons.
+  id: totrans-44
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 标头/值对，由冒号分隔。
+- en: '[![3](assets/3.png)](#co_protocols_CO2-3)'
+  id: totrans-45
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO2-3)'
+- en: Two new lines, then the response body (also optional).
+  id: totrans-46
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 两个新行，然后是响应体（也可选）。
+- en: HTTP Semantics
+  id: totrans-47
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: HTTP语义
+- en: HTTP has several important semantics built in. It is these semantics that, given
+    enough time, any hand-rolled protocol ultimately ends up rebuilding. Ultimately
+    it is because of these semantics and their universal understanding that many other
+    protocols end up being built on top of HTTP.
+  id: totrans-48
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP具有几个重要的语义内置。正是这些语义，给定足够的时间，任何手动协议最终都会重建。最终，正是因为这些语义及其普遍理解，许多其他协议最终被构建在HTTP之上。
+- en: HTTP methods
+  id: totrans-49
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP方法
+- en: This value is the first word in the request line. In [Example 2-2](#ex_http_request),
+    the method is `POST`. There are several HTTP methods, and the other popular ones
+    include `GET`, `PATCH`, and `DELETE`. These methods map to the basic CRUD operations
+    (Create, Read, Update, and Delete), generic concepts that can be applied to almost
+    all stateful data stores. By having applications adhere to the intentions of the
+    HTTP methods, it’s possible for an outside observer to infer what the intent of
+    a particular request is.
+  id: totrans-50
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这个值是请求行中的第一个单词。在[示例 2-2](#ex_http_request)中，方法是`POST`。有几种HTTP方法，其他流行的方法包括`GET`,
+    `PATCH`和`DELETE`。这些方法映射到基本的CRUD操作（创建、读取、更新和删除），这些通用概念几乎可以应用于所有有状态数据存储。通过让应用程序遵循HTTP方法的意图，外部观察者可以推断出特定请求的意图。
+- en: Idempotency
+  id: totrans-51
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 幂等性
+- en: This is a fancy word meaning that an operation can be executed multiple times
+    without risk of side effects. The HTTP methods `GET`, `PATCH`, and `DELETE` are
+    each considered idempotent operations. If the result of an operation using one
+    of those methods is unknown, for example, a network failure prevents the response
+    from being received, then it is considered safe for a client to retry the same
+    request.
+  id: totrans-52
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这是一个花哨的术语，意味着一个操作可以多次执行而不会产生副作用。HTTP方法`GET`, `PATCH`和`DELETE`被视为幂等操作。如果使用这些方法之一的操作的结果是未知的，例如，网络故障阻止接收响应，则客户端可以安全地重试相同的请求。
+- en: Status codes
+  id: totrans-53
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态码
+- en: Another important concept is that of status codes, and in particular, status
+    code ranges. A status code is the three digit number present in the response line.
+    In [Example 2-3](#ex_http_response), the status code is 403\. An overview of these
+    status code ranges is available in [Table 2-2](#table_status_codes).
+  id: totrans-54
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一个重要的概念是状态码，特别是状态码范围。状态码是响应行中出现的三位数。在[示例 2-3](#ex_http_response)中，状态码是403。状态码范围的概述可在[表 2-2](#table_status_codes)中找到。
+- en: Table 2-2\. HTTP status code ranges
+  id: totrans-55
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2-2\. HTTP状态码范围
+- en: '| Range | Type | Examples |'
+  id: totrans-56
+  prefs: []
+  type: TYPE_TB
+  zh: '| 范围 | 类型 | 示例 |'
+- en: '| --- | --- | --- |'
+  id: totrans-57
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| 100–199 | Information | 101 Switching Protocols |'
+  id: totrans-58
+  prefs: []
+  type: TYPE_TB
+  zh: '| 100–199 | 信息 | 101 切换协议 |'
+- en: '| 200–299 | Success | 200 OK, 201 Created |'
+  id: totrans-59
+  prefs: []
+  type: TYPE_TB
+  zh: '| 200–299 | 成功 | 200 OK, 201 已创建 |'
+- en: '| 300–399 | Redirect | 301 Moved Permanently |'
+  id: totrans-60
+  prefs: []
+  type: TYPE_TB
+  zh: '| 300–399 | 重定向 | 301 永久移动 |'
+- en: '| 400–499 | Client error | 401 Unauthorized, 404 Not Found |'
+  id: totrans-61
+  prefs: []
+  type: TYPE_TB
+  zh: '| 400–499 | 客户端错误 | 401 未经授权, 404 未找到 |'
+- en: '| 500–599 | Server error | 500 Internal Server Error, 502 Bad Gateway |'
+  id: totrans-62
+  prefs: []
+  type: TYPE_TB
+  zh: '| 500–599 | 服务器错误 | 500 内部服务器错误, 502 错误网关 |'
+- en: Note
+  id: totrans-63
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: The text that follows a status code is called the Reason Phrase. Any popular
+    Node.js HTTP framework will infer which text to use based on the numeric status
+    code your application specifies. The value is unused by modern software, and HTTP/2,
+    the successor to HTTP 1.1, doesn’t provide such a value.
+  id: totrans-64
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态码后的文本称为原因短语。任何流行的Node.js HTTP框架都会根据应用程序指定的数值状态码推断要使用的文本。这个值在现代软件中未被使用，而HTTP/2，HTTP
+    1.1的继任者，不提供这样的值。
+- en: Client versus server errors
+  id: totrans-65
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 客户端与服务器错误
+- en: The status code provides some very useful information. For example, the status
+    range 400–499 dictates that the client made a mistake, while the status range
+    500–599 blames the server. This informs the client that if an operation is attempted,
+    and the server decides the client made a mistake, that the client shouldn’t attempt
+    to send the request again. This can happen if the client were to violate the protocol
+    in some manner. However, when a server error happens, the client should feel free
+    to try idempotent requests again. This could be due to a temporary error with
+    the server, such as it being overwhelmed with requests or losing a database connection.
+    In [“Idempotency and Messaging Resilience”](ch08.html#ch_resilience_sec_messaging)
+    you will implement custom logic for retrying HTTP requests based on these status
+    codes.
+  id: totrans-66
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 状态码提供了一些非常有用的信息。例如，状态码范围 400–499 表明客户端出错，而范围 500–599 则是服务器的责任。这告诉客户端，如果尝试操作时，服务器认为客户端出错，那么客户端不应再尝试发送请求。如果客户端违反了某种协议，这种情况可能发生。然而，当发生服务器错误时，客户端应该可以自由地重试幂等请求。这可能是由于服务器的临时错误，例如被请求过载或失去了数据库连接。在
+    [“幂等性和消息可靠性”](ch08.html#ch_resilience_sec_messaging) 中，您将基于这些状态码实现自定义逻辑以重试 HTTP
+    请求。
+- en: Response caching
+  id: totrans-67
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 响应缓存
+- en: 'HTTP also hints at how responses can be cached. Typically, the only responses
+    that get cached, especially by intermediary services, are those associated with
+    a `GET` request. If there’s an error code associated with a response, then it
+    probably shouldn’t be cached. HTTP goes even further and conveys how long a response
+    should be cached. The `Expires` header tells the client a particular date and
+    time by which to discard the cached value. This system isn’t entirely perfect,
+    though. Additional semantics could be applied to caching. For example, if user
+    #123 requests a document with information specific to their bank account, it can
+    be difficult to know that the cached result shouldn’t also be supplied to user
+    #456.'
+  id: totrans-68
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'HTTP 还提示了如何缓存响应。通常情况下，特别是通过中介服务，只有与 `GET` 请求相关联的响应才会被缓存。如果响应关联有错误代码，则可能不应将其缓存。HTTP
+    还说明了响应应该缓存多长时间。`Expires` 头告诉客户端在特定日期和时间之前丢弃缓存值。尽管这个系统并不完美。可以对缓存应用额外的语义。例如，如果用户
+    #123 请求包含其银行账户信息的文档，很难知道是否应该将缓存结果供给用户 #456。'
+- en: Statelessness
+  id: totrans-69
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 无状态性
+- en: HTTP is inherently a stateless protocol. This means that by sending one message,
+    the meaning of a future message won’t change. It’s not like, say, a terminal session
+    where you might list the files in the current directory with `ls`, change directory
+    with `cd`, and then issue the same exact `ls` command but get different output.
+    Instead, every request contains all the information it needs to set the desired
+    state.
+  id: totrans-70
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP 本质上是一种无状态协议。这意味着通过发送一条消息，未来消息的含义不会改变。这不像终端会话那样，您可能会使用 `ls` 列出当前目录中的文件，使用
+    `cd` 更改目录，然后再次执行相同的 `ls` 命令，但输出不同。相反，每个请求包含了设置所需状态的所有信息。
+- en: There *are* conventions for simulating state over HTTP. For example, by making
+    use of a header like `Cookie` and setting a unique session identifier, state about
+    the connection can be maintained in a database. Other than basic authentication
+    information, it’s usually not appropriate to require clients that provide such
+    stateful session tokens when using an API.
+  id: totrans-71
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 通过 HTTP 模拟状态存在一些公约。例如，通过使用类似于 `Cookie` 的头部并设置一个唯一的会话标识符，可以在数据库中维护关于连接的状态。除了基本的身份验证信息外，在使用
+    API 时通常不适合要求提供这种有状态会话令牌的客户端。
+- en: HTTP Compression
+  id: totrans-72
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: HTTP 压缩
+- en: 'It is possible to compress the HTTP response body in order to reduce the amount
+    of data sent over the network. This is another built-in feature of HTTP. When
+    a client supports compression, it can choose to supply the `Accept-Encoding` header.
+    The server, upon encountering the header, can then choose to compress the response
+    body using whichever compression algorithm was supplied in the request. The gzip
+    compression algorithm is the ubiquitous form of HTTP compression, though other
+    algorithms such as brotli may offer higher compression values. The response contains
+    a header specifying which algorithm the server used, such as `Content-Encoding:
+    br` for brotli.'
+  id: totrans-73
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 'HTTP 响应体可以进行压缩，以减少在网络上传输的数据量。这是 HTTP 的另一个内置特性。当客户端支持压缩时，它可以选择提供`Accept-Encoding`头部。服务器在遇到这个头部时，可以选择使用请求中提供的任何压缩算法来压缩响应体。gzip
+    压缩算法是 HTTP 压缩的普遍形式，尽管其他算法如 brotli 可能提供更高的压缩值。响应包含一个头部，指定服务器使用的算法，例如`Content-Encoding:
+    br`表示使用了 brotli 算法。'
+- en: Compression is a trade-off between network payload size and CPU usage. Typically,
+    it’s in your best interest to support HTTP compression at some point between the
+    Node.js server and whatever client is consuming the data, especially if this is
+    traffic being consumed by a third party over the internet. However, Node.js is
+    not the most efficient tool for performing compression. This is a CPU-heavy operation
+    and should be handled outside of the Node.js process whenever possible. [“Reverse
+    Proxies with HAProxy”](ch03.html#ch_scaling_sec_rp) looks at using a tool called
+    a *reverse proxy* to automatically handle HTTP compression. [“SLA and Load Testing”](ch03.html#ch_scaling_sec_bm)
+    looks at some benchmarks to prove this performance claim.
+  id: totrans-74
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 压缩是网络有效载荷大小和 CPU 使用之间的权衡。通常情况下，在 Node.js 服务器和由第三方通过互联网消耗数据的客户端之间的某个点上支持 HTTP
+    压缩是符合你的最佳利益的。然而，Node.js 并不是执行压缩的最高效工具。这是一个 CPU 密集型操作，尽可能在 Node.js 进程外处理。[“使用 HAProxy
+    的反向代理”](ch03.html#ch_scaling_sec_rp) 讨论了使用称为*反向代理*的工具来自动处理 HTTP 压缩。[“SLA 和负载测试”](ch03.html#ch_scaling_sec_bm)
+    查看了一些基准测试来证明这一性能声明。
+- en: '[Example 2-4](#ex_node_gzip)^([1](ch02.html#idm46291204847576)) provides a
+    demonstration of how to create such a server that performs gzip compression in-process.
+    It only uses built-in Node.js modules and doesn’t require a package install. Any
+    popular HTTP framework has its own idiomatic approach for implementing compression,
+    usually just a `require` and a function call away, but under the hood they’re
+    all essentially doing the same thing.'
+  id: totrans-75
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 2-4](#ex_node_gzip)^([1](ch02.html#idm46291204847576)) 演示了如何创建一个在进程中执行
+    gzip 压缩的服务器。它仅使用内置的 Node.js 模块，无需安装任何包。任何流行的 HTTP 框架都有自己习惯用的方法来实现压缩，通常只需`require`和一个函数调用即可，但在底层，它们本质上都在做同样的事情。'
+- en: Example 2-4\. *server-gzip.js*
+  id: totrans-76
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-4\. *server-gzip.js*
+- en: '[PRE3]'
+  id: totrans-77
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE3]'
+- en: 'Now you’re ready to test this server. First create an *index.html* file to
+    serve and then start the server:'
+  id: totrans-78
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在你已经准备好测试这个服务器了。首先创建一个 *index.html* 文件来提供服务，然后启动服务器：
+- en: '[PRE4]'
+  id: totrans-79
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE4]'
+- en: 'Next, run the following commands in a separate terminal window to view the
+    output from the server:'
+  id: totrans-80
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 然后，在一个单独的终端窗口中运行以下命令，以查看服务器的输出：
+- en: '[PRE5]'
+  id: totrans-81
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE5]'
+- en: These `curl` commands act as a client communicating with the service over the
+    network. The service prints whether or not a request used compression to help
+    explain what’s happening. In this particular example, the compressed version of
+    the file is actually larger than the uncompressed version! You can see this happening
+    by running the two commands in [Example 2-5](#ex_request_wc).
+  id: totrans-82
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些`curl`命令充当客户端，通过网络与服务通信。服务会打印请求是否使用了压缩来帮助解释发生了什么。在这个特定的示例中，文件的压缩版本实际上比未压缩版本更大！你可以通过运行
+    [示例 2-5](#ex_request_wc) 中的两个命令来观察到这一点。
+- en: Example 2-5\. Comparing compressed versus uncompressed requests
+  id: totrans-83
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-5\. 比较压缩和未压缩请求
+- en: '[PRE6]'
+  id: totrans-84
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE6]'
+- en: In this case, the uncompressed version of the document is 40 bytes, and the
+    compressed version is 53 bytes.
+  id: totrans-85
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这种情况下，文档的未压缩版本大小为 40 字节，压缩版本为 53 字节。
+- en: With larger documents, this won’t be an issue. To prove this, run the previous
+    `echo` command three more times to increase the *index.html* file size. Then,
+    run the same commands in [Example 2-5](#ex_request_wc) again. This time the uncompressed
+    version is 160 bytes and the compressed version is 56 bytes. This is because gzip
+    operates by removing redundancies in the response bodies, and the example contains
+    the same text repeated four times. This redundancy removal is particularly useful
+    if a response body contains redundant text, like a JSON document with repeating
+    attribute names. Most gzip compression tools can be configured to be bypassed
+    if a document is smaller than a certain size.
+  id: totrans-86
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于较大的文档，这不会成为问题。为了证明这一点，运行前面的`echo`命令再运行三次，增加*index.html*文件的大小。然后再次运行[Example 2-5](#ex_request_wc)中的相同命令。这次未压缩版本是160字节，压缩版本是56字节。这是因为gzip通过删除响应主体中的冗余来运行，并且示例包含相同文本重复四次。如果响应主体包含重复文本（如具有重复属性名称的JSON文档），则此冗余删除尤为有用。大多数gzip压缩工具可以配置为在文档小于某个大小时跳过压缩。
+- en: HTTP compression only compresses the body of the request. It does not affect
+    the HTTP headers (short of changing the value in the `Content-Length` header).
+    In the world of service-to-service APIs with a finite set of intentional HTTP
+    headers, this isn’t that big of a deal. However, when it comes to web browsers,
+    it isn’t uncommon to end up with HTTP requests containing several kilobytes of
+    headers (just think of all those tracking cookies). HTTP/2 was invented to address
+    situations like that and uses HPACK to compress headers.
+  id: totrans-87
+  prefs: []
+  type: TYPE_NORMAL
+  zh: HTTP压缩仅压缩请求体，不影响HTTP头部（除了更改`Content-Length`头部的值）。在有限意图的服务对服务API的世界中，这并不是什么大问题。但是，当涉及到Web浏览器时，HTTP请求可能包含几千字节的头部（想想所有那些跟踪Cookie）。HTTP/2的发明就是为了解决这类情况，并使用HPACK来压缩头部。
+- en: HTTPS / TLS
+  id: totrans-88
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: HTTPS / TLS
+- en: Another form of encoding is encryption. Transport Layer Security (TLS) is the
+    protocol used for encrypting HTTP traffic. It’s what puts the *S* (secure) in
+    *HTTPS*. Unlike gzip compression, TLS does encapsulate the HTTP headers as well.
+    Much like gzip, TLS is a CPU-intensive operation and should also be performed
+    by an external process such as a Reverse Proxy. TLS supplants the obsolete Secure
+    Sockets Layer (SSL) protocol.
+  id: totrans-89
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 另一种编码形式是加密。传输层安全性（TLS）是用于加密HTTP流量的协议。它是为HTTPS加上*S*（安全）的协议。与gzip压缩不同，TLS还包装HTTP头部。与gzip类似，TLS是一个CPU密集型操作，应该由外部进程（如反向代理）执行。TLS取代了过时的安全套接字层（SSL）协议。
+- en: 'TLS works by using certificates. There are two types of certificates: one containing
+    a public key, which can safely be given to anyone in the world, and one containing
+    a private key, which should remain a secret. These two keys are inherently paired.
+    Anyone can take a message and encrypt it using the public key, but only someone
+    with the private key can then decrypt the message. With HTTP, this means a server
+    will provide its public key, and a client will encrypt requests using the public
+    key. When the client first communicates with the server, it also generates a large
+    random number, essentially a password for the session, which is encrypted with
+    the public key and sent to the server. This temporary password is used to encrypt
+    the TLS session.'
+  id: totrans-90
+  prefs: []
+  type: TYPE_NORMAL
+  zh: TLS通过使用证书来工作。有两种类型的证书：一个包含公钥，可以安全地提供给世界上的任何人；另一个包含私钥，应该保持秘密。这两个密钥是固有配对的。任何人都可以使用公钥加密消息，但只有拥有私钥的人才能解密消息。在HTTP中，这意味着服务器将提供其公钥，并且客户端将使用公钥加密请求。当客户端首次与服务器通信时，它还会生成一个大随机数，实质上是会话的密码，用公钥加密并发送给服务器。这个临时密码用于加密TLS会话。
+- en: Generating certificates and enabling them with a server can take some effort
+    to implement. Traditionally, it was even an expensive feature that had to be paid
+    for. Nowadays there is a service called [Let’s Encrypt](https://oreil.ly/OXEmD)
+    that not only automates the process but also makes it free. A caveat of this service
+    is that the tool requires a server to be publicly exposed to the internet to verify
+    DNS ownership of the domain. This makes it difficult to encrypt internal services,
+    even though it is the clear winner for public services.
+  id: totrans-91
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生成证书并将其与服务器配对可能需要一些实施工作。传统上，这是一项昂贵的功能，必须支付费用。如今有一个称为[Let’s Encrypt](https://oreil.ly/OXEmD)的服务，不仅自动化了这一过程，而且还免费提供。该服务的一个警告是，工具要求服务器公开面向互联网，以验证域的DNS所有权。这使得加密内部服务变得困难，尽管对于公共服务来说，它显然是胜利者。
+- en: Now it’s time to do some hands-on work with TLS. The easiest way to get an HTTPS
+    server running locally is to generate a self-signed certificate, have your server
+    read that certificate, and have a client make a request to the server without
+    performing certificate validation. To generate your own certificate, run the command
+    in [Example 2-6](#ex_generate_cert). Feel free to use any values you like, but
+    use `localhost` when prompted for a *common name*.
+  id: totrans-92
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候动手进行一些 TLS 工作了。在本地运行 HTTPS 服务器的最简单方法是生成自签名证书，让您的服务器读取该证书，并使客户端在不执行证书验证的情况下向服务器发出请求。要生成自己的证书，请运行
+    [Example 2-6](#ex_generate_cert) 中的命令。请随意使用任何值，但在提示输入*通用名称*时，请使用`localhost`。
+- en: Example 2-6\. Generating a self-signed certificate
+  id: totrans-93
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-6\. 生成自签名证书
+- en: '[PRE7]'
+  id: totrans-94
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE7]'
+- en: This command creates two files, namely *basic-private-key.key* (the private
+    key) and *basic-certificate.cert* (the public key).
+  id: totrans-95
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此命令创建了两个文件，分别是 *basic-private-key.key*（私钥）和 *basic-certificate.cert*（公钥）。
+- en: Next, copy the *recipe-api/producer-http-basic.js* service that you made in
+    [Example 1-6](ch01.html#ex_producer) to a new file named *recipe-api/producer-https-basic.js*
+    to resemble [Example 2-7](#ex_node_server_https). This is an HTTPS server built
+    entirely with Node.js.
+  id: totrans-96
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，将您在 [Example 1-6](ch01.html#ex_producer) 中创建的 *recipe-api/producer-http-basic.js*
+    服务复制到一个名为 *recipe-api/producer-https-basic.js* 的新文件中，以类似于 [Example 2-7](#ex_node_server_https)
+    的方式构建一个完全基于 Node.js 的 HTTPS 服务器。
+- en: Example 2-7\. *recipe-api/producer-https-basic.js*
+  id: totrans-97
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-7\. *recipe-api/producer-https-basic.js*
+- en: '[PRE8]'
+  id: totrans-98
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE8]'
+- en: '[![1](assets/1.png)](#co_protocols_CO3-1)'
+  id: totrans-99
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO3-1)'
+- en: The web server is now configured to enable HTTPS and read the certificate files.
+  id: totrans-100
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，Web 服务器已配置为启用 HTTPS 并读取证书文件。
+- en: 'Once you’ve created the server file, run the server and then make a request
+    to it. You can do this by running the following commands:'
+  id: totrans-101
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 创建了服务器文件后，请运行服务器，然后对其发出请求。可以通过运行以下命令来实现：
+- en: '[PRE9]'
+  id: totrans-102
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE9]'
+- en: That `--insecure` flag probably caught your attention. In fact, if you were
+    to open the URL directly in a web browser, you would get a warning that there
+    is a problem with the certificate. This is what happens when a certificate is
+    self-signed.
+  id: totrans-103
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 那个`--insecure`标志可能吸引了您的注意。实际上，如果您在 web 浏览器中直接打开该 URL，将会收到有关证书存在问题的警告。这就是自签名证书时会发生的情况。
+- en: 'If you were to make a request to this service using a Node.js application,
+    the request would also fail. The inner Node.js `http` and `https` modules accept
+    an options argument, and most higher-level HTTP libraries in npm accept those
+    same options in some manner. One such way to avoid these errors is to provide
+    the `rejectUnauthorized: false` flag. Unfortunately, this isn’t much more secure
+    than using plain HTTP and should be avoided.'
+  id: totrans-104
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '如果您使用 Node.js 应用程序向此服务发出请求，请求也将失败。Node.js 的内置模块`http`和`https`接受一个选项参数，而大多数
+    npm 中的高级 HTTP 库也以某种方式接受这些选项。避免这些错误的一种方法是提供`rejectUnauthorized: false`标志。不幸的是，这与使用纯HTTP并没有多大区别，应该避免使用。'
+- en: The reason all this matters is that it’s not necessarily safe to trust just
+    any old certificate encountered on the internet. Instead, it’s important to know
+    that a certificate is valid. This is usually done by having one certificate “sign”
+    another certificate. This is a way of saying that one certificate is vouching
+    for the other. As an example of this, the certificate for *thomashunter.name*
+    has been signed for by another certificate called *Let’s Encrypt Authority X3*.
+    That certificate has been signed by another one called *IdenTrust DST Root CA
+    X3*. The three certificates form a *chain of trust* (see [Figure 2-1](#fig_certificate_chain)
+    for a visualization of this).
+  id: totrans-105
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 之所以这么重要的原因在于，并不一定安全地信任在互联网上遇到的任何旧证书。相反，重要的是要知道证书是否有效。通常通过一个证书“签署”另一个证书来实现这一点。这意味着一个证书为另一个证书背书。例如，*thomashunter.name*
+    的证书已由另一个名为 *Let’s Encrypt Authority X3* 的证书签署。而该证书又由另一个名为 *IdenTrust DST Root
+    CA X3* 的证书签署。这三个证书形成了一个*信任链*（见 [Figure 2-1](#fig_certificate_chain) 以了解其可视化）。
+- en: '![Visualization of the certificate chain of trust](assets/dsnj_0201.png)'
+  id: totrans-106
+  prefs: []
+  type: TYPE_IMG
+  zh: '![证书链的可视化](assets/dsnj_0201.png)'
+- en: Figure 2-1\. The certificate chain of trust
+  id: totrans-107
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 图 2-1\. 证书链的信任
+- en: The highest point in the chain is called the root certificate. This certificate
+    is trusted by much of the world; in fact, its public key is included in modern
+    browsers and operating systems.
+  id: totrans-108
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 证书链中的最高点称为根证书。该证书被全球大部分地区信任；事实上，其公钥已包含在现代浏览器和操作系统中。
+- en: 'A better approach to working with self-signed certificates is to actually give
+    the client a copy of the trusted self-signed certificate, in this case the *basic-certificate.cert*
+    file generated previously. This certificate can then be passed along by using
+    the `ca: certContent` options flag. An example of this can be seen in [Example 2-8](#ex_node_client_https).'
+  id: totrans-109
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '处理自签名证书的更好方法实际上是将受信任的自签名证书副本交给客户端，例如之前生成的 *basic-certificate.cert* 文件。然后可以通过使用
+    `ca: certContent` 选项标志来传递此证书。此示例可在 [示例 2-8](#ex_node_client_https) 中看到。'
+- en: Example 2-8\. *web-api/consumer-https-basic.js*
+  id: totrans-110
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-8\. *web-api/consumer-https-basic.js*
+- en: '[PRE10]'
+  id: totrans-111
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE10]'
+- en: '[![1](assets/1.png)](#co_protocols_CO4-1)'
+  id: totrans-112
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO4-1)'
+- en: The client is now trusting the exact public key used by the server.
+  id: totrans-113
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在客户端信任服务器使用的确切公钥。
+- en: 'Now run the *web-api* service and make an HTTP request to it by running the
+    following commands:'
+  id: totrans-114
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在运行 *web-api* 服务，并通过运行以下命令向其发出 HTTP 请求：
+- en: '[PRE11]'
+  id: totrans-115
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE11]'
+- en: The `curl` command talks to *web-api* using HTTP, and *web-api* then talks to
+    *recipe-api* using HTTPS.
+  id: totrans-116
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`curl` 命令使用 HTTP 与 *web-api* 进行通信，然后 *web-api* 使用 HTTPS 与 *recipe-api* 进行通信。'
+- en: Recall from [Example 2-7](#ex_node_server_https) that each HTTPS server needs
+    access to both the public and private key in order to receive requests. Also recall
+    that a private key should never fall into the hands of an adversary. So, having
+    a single pair of public and private keys for all services within a company is
+    dangerous. If just one of the projects leaks its private key, then all projects
+    are affected!
+  id: totrans-117
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请回想 [示例 2-7](#ex_node_server_https)，每个 HTTPS 服务器需要访问公钥和私钥对以接收请求。还请记住，私钥绝不能落入对手手中。因此，为公司内所有服务使用单一的公钥和私钥对是危险的。如果其中一个项目泄露了其私钥，那么所有项目都会受到影响！
+- en: 'One approach is to generate a new key for every single running service. Unfortunately,
+    a copy of every server’s public key would need to be distributed to every client
+    that might want to communicate with it, like in [Example 2-8](#ex_node_client_https).
+    This would be quite a maintenance nightmare! Instead, the approach used by non-self-signed
+    certificates can be emulated: generate a single internal root certificate, keep
+    the private key for that secure, but use it to sign each service’s set of keys.'
+  id: totrans-118
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一种方法是为每个运行中的服务生成新的密钥。不幸的是，需要将每个服务器的公钥副本分发给可能希望与其通信的每个客户端，就像在 [示例 2-8](#ex_node_client_https)
+    中一样。这将是一个相当头痛的维护工作！相反，可以模仿非自签名证书使用的方法：生成单个内部根证书，保持其私钥安全，但使用它来签署每个服务的密钥集合。
+- en: Run the commands in [Example 2-9](#ex_private_ca) to do exactly this. These
+    commands represent a condensed version of what you might do within an organization.
+    The steps noted with *CSR* would be run on a very private machine, one that is
+    just used for certificate generation purposes. The steps noted with *APP* would
+    be performed on behalf of the new application.
+  id: totrans-119
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 执行 [示例 2-9](#ex_private_ca) 中的命令以确切实现此目标。这些命令表示您可能在组织内执行的简化版本。带有 *CSR* 标记的步骤将在一个非常私密的机器上运行，仅用于证书生成目的。带有
+    *APP* 标记的步骤将代表新应用程序执行。
+- en: Example 2-9\. How to be your own Certificate Authority
+  id: totrans-120
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-9\. 如何成为您自己的证书颁发机构
+- en: '[PRE12]'
+  id: totrans-121
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE12]'
+- en: '[![1](assets/1.png)](#co_protocols_CO5-1)'
+  id: totrans-122
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO5-1)'
+- en: '*CSR*: Generate a private key *ca-private-key.key* for the Certificate Authority.
+    You’ll be prompted for a password.'
+  id: totrans-123
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*CSR*: 为证书颁发机构生成私钥 *ca-private-key.key*。您将被提示输入密码。'
+- en: '[![2](assets/2.png)](#co_protocols_CO5-2)'
+  id: totrans-124
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO5-2)'
+- en: '*CSR*: Generate a root cert *shared/tls/ca-certificate.cert* (this will be
+    provided to clients). You’ll get asked a lot of questions, but they don’t matter
+    for this example.'
+  id: totrans-125
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*CSR*: 为证书颁发机构生成根证书 *shared/tls/ca-certificate.cert*（将提供给客户端）。会询问许多问题，但对于此示例并不重要。'
+- en: '[![3](assets/3.png)](#co_protocols_CO5-3)'
+  id: totrans-126
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO5-3)'
+- en: '*APP*: Generate a private key *producer-private-key.key* for a particular service.'
+  id: totrans-127
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*APP*: 为特定服务生成私钥 *producer-private-key.key*。'
+- en: '[![4](assets/4.png)](#co_protocols_CO5-4)'
+  id: totrans-128
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_protocols_CO5-4)'
+- en: '*APP*: Create a CSR *producer.csr* for that same service. Be sure to answer
+    `localhost` for the *Common Name* question, but other questions don’t matter as
+    much.'
+  id: totrans-129
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*APP*: 为同一服务创建 CSR *producer.csr*。确保在 *Common Name* 问题中回答 `localhost`，但其他问题并不那么重要。'
+- en: '[![5](assets/5.png)](#co_protocols_CO5-5)'
+  id: totrans-130
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_protocols_CO5-5)'
+- en: '*CSR*: Generate a service certificate *producer-certificate.cert* signed by
+    the CA.'
+  id: totrans-131
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*CSR*: 生成由 CA 签名的服务证书 *producer-certificate.cert*。'
+- en: 'Now modify the code in *web-api/consumer-https-basic.js* to load the *ca-certificate.cert*
+    file. Also modify *recipe-api/producer-https-basic.js* to load both the *producer-private-key.key*
+    and *producer-certificate.cert* files. Restart both servers and run the following
+    command again:'
+  id: totrans-132
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在修改 *web-api/consumer-https-basic.js* 中的代码，以加载 *ca-certificate.cert* 文件。同时修改
+    *recipe-api/producer-https-basic.js*，加载 *producer-private-key.key* 和 *producer-certificate.cert*
+    文件。重新启动两个服务器，并再次运行以下命令：
+- en: '[PRE13]'
+  id: totrans-133
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE13]'
+- en: You should get a successful response, even though *web-api* wasn’t aware of
+    the *recipe-api* service’s exact certificate; it gains its trust from the root
+    *ca-certificate.cert* certificate instead.
+  id: totrans-134
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使 *web-api* 不知道 *recipe-api* 服务的确切证书，你仍应该得到一个成功的响应；它从根 *ca-certificate.cert*
+    证书中获得了信任。
+- en: JSON over HTTP
+  id: totrans-135
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: JSON over HTTP
+- en: Up to this point, the body of HTTP requests and responses hasn’t really been
+    examined. This is because the HTTP standard doesn’t dictate quite as much what
+    goes in the body of an HTTP message. As I mentioned earlier, HTTP is a protocol
+    that many other protocols end up being built on top of. This is where the mystical
+    Layer 8 of the OSI model comes into play.
+  id: totrans-136
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 到目前为止，HTTP 请求和响应的主体并没有被详细研究过。这是因为 HTTP 标准并没有完全规定 HTTP 消息主体中应包含的内容。正如我之前提到的，HTTP
+    是许多其他协议的基础。这就是神秘的 OSI 模型第 8 层发挥作用的地方。
+- en: The most popular APIs written today are *JSON over HTTP*, a pattern that is
+    often—usually mistakenly—referred to as *REST* (Representational State Transfer).
+    The small JSON payloads you’ve been sending back and forth in the example applications
+    are an example of JSON over HTTP.
+  id: totrans-137
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当今最流行的 API 大多数都是 *JSON over HTTP*，这种模式通常被误称为 *REST*（表现层状态转移）。在示例应用程序中来回发送的小
+    JSON 负载就是 JSON over HTTP 的一个例子。
+- en: Simply communicating by JSON over HTTP leaves a lot to be desired. For example,
+    how are errors represented? Certainly the HTTP error status codes should be leveraged
+    and general semantics should be followed, but what payload should actually be
+    used for the body? What is the correct way to represent a particular internal
+    object in JSON? What about meta information that doesn’t map cleanly to HTTP headers,
+    such as pagination data? The problem with JSON over HTTP, as well as many APIs
+    touting the REST label, is that the entirety of the contract between producer
+    and consumer exists in documentation. A human must read the docs and manually
+    write code to interact with these payloads.
+  id: totrans-138
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 仅仅通过 JSON over HTTP 进行通信远远不够。例如，错误如何表示？当然，应该利用 HTTP 错误状态码和遵循一般语义，但实际上应该使用什么负载来作为主体？在
+    JSON 中如何正确表示特定的内部对象？还有一些不容易映射到 HTTP 头的元信息，比如分页数据。JSON over HTTP 的问题，以及许多自称为 REST
+    的 API，都在于生产者和消费者之间的完整协议仅存在于文档中。人们必须阅读文档，并手动编写与这些负载交互的代码。
+- en: 'Another issue is that every JSON over HTTP service is going to implement things
+    differently. Short of having a `Content-Type: application/json` header, anything
+    can happen between that first and last curly brace. This usually requires that
+    each new service consumed by a particular client must have new code written.'
+  id: totrans-139
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '另一个问题是，每个 JSON over HTTP 服务都会以不同的方式实现事务。除了具有 `Content-Type: application/json`
+    头之外，第一个大括号和最后一个大括号之间可能会发生任何事情。通常情况下，特定客户端消费的每个新服务都需要编写新代码。'
+- en: For a more concrete example, consider pagination. The loose concept of “JSON
+    over HTTP” doesn’t have a built-in way to handle this. The Stripe API uses the
+    query parameters `?limit=10&starting_after=20`. Meta information is provided in
+    the response body, such as the `has_more` boolean property that lets the client
+    know that there is more data to paginate. The GitHub API, on the other hand, uses
+    the query parameters `?per_page=10&page=3`. Meta information about pagination
+    is provided in the `Link` response header.
+  id: totrans-140
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 举个具体的例子，考虑分页。宽泛概念的“JSON over HTTP” 并没有内置处理这一功能的方法。Stripe API 使用查询参数 `?limit=10&starting_after=20`。响应主体中提供了元信息，如
+    `has_more` 布尔属性，用于告知客户端还有更多数据需要分页获取。另一方面，GitHub API 使用查询参数 `?per_page=10&page=3`。分页的元信息则放在
+    `Link` 响应头中。
+- en: It’s because of these reasons that different standards for representing request
+    and response bodies in HTTP have been invented. [JSON:API](https://jsonapi.org/format/),
+    [JSON Schema](http://json-schema.org/specification.html), and [OpenAPI (Swagger)](https://swagger.io/specification/)
+    are specifications that fully embrace JSON over HTTP and attempt to bring order
+    to chaos. They deal with concepts like describing request and response bodies
+    and, to a varying extent, how to interact with an HTTP API server. The next two
+    sections deal with GraphQL and gRPC, which are more extreme protocol changes.
+  id: totrans-141
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 正是因为这些原因，才发明了在 HTTP 中表示请求和响应体的不同标准。[JSON:API](https://jsonapi.org/format/)、[JSON
+    Schema](http://json-schema.org/specification.html) 和 [OpenAPI (Swagger)](https://swagger.io/specification/)
+    是完全接受 JSON over HTTP 并试图为混乱带来秩序的规范。它们处理描述请求和响应体等概念，并在不同程度上介绍了如何与 HTTP API 服务器交互。接下来的两个部分讨论了更极端的协议更改
+    GraphQL 和 gRPC。
+- en: '[“JSON over HTTP benchmarks”](ch03.html#ch_scaling_sec_bm_subsec_protocol_json)
+    contains benchmarks on communicating between two servers using JSON over HTTP.'
+  id: totrans-142
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“JSON over HTTP benchmarks”](ch03.html#ch_scaling_sec_bm_subsec_protocol_json)
+    包含使用 JSON over HTTP 在两个服务器之间通信的基准测试。'
+- en: The Dangers of Serializing POJOs
+  id: totrans-143
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: POJO 序列化的危险
+- en: JavaScript makes it dangerously easy to serialize an in-memory representation
+    of a domain object. By simply calling `JSON.stringify(obj)`—which is what most
+    HTTP frameworks automatically do for you—any refactoring of your project’s internal
+    properties can leak out and result in API breaking changes. It can also result
+    in leaking secrets.
+  id: totrans-144
+  prefs: []
+  type: TYPE_NORMAL
+  zh: JavaScript 使得将域对象的内存表示序列化变得非常容易。只需简单地调用 `JSON.stringify(obj)` —— 这正是大多数 HTTP
+    框架为您自动完成的 —— 您项目内部属性的任何重构都可能泄露并导致 API 破坏性变更。它还可能泄露秘密。
+- en: A much better approach is to add a safety net to objects for manually controlling
+    how they’re to be represented in JSON—a pattern called *marshalling*. This can
+    be achieved by representing serializable data as a class with a `toJSON()` method,
+    instead of storing data as a POJO (Plain Ol’ JavaScript Object).
+  id: totrans-145
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个更好的方法是为手动控制对象如何在 JSON 中表示添加一个安全网 —— 这种模式称为 *marshalling*。可以通过将可序列化数据表示为带有
+    `toJSON()` 方法的类来实现这一点，而不是将数据存储为 POJO（Plain Ol’ JavaScript Object）。
+- en: 'As an example of this, here are two ways to represent a `User` object within
+    your codebase. The first one is a POJO, and the second is a class with a `toJSON()`
+    method:'
+  id: totrans-146
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 作为示例，这里有两种在代码库中表示 `User` 对象的方法。第一种是 POJO，第二种是具有 `toJSON()` 方法的类：
+- en: '[PRE14]'
+  id: totrans-147
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE14]'
+- en: 'In both of these situations, when the response is sent, a consumer of the service
+    will receive a JSON string representing an object with the same properties:'
+  id: totrans-148
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在这两种情况下，当响应发送时，服务的消费者将收到表示具有相同属性的对象的 JSON 字符串：
+- en: '[PRE15]'
+  id: totrans-149
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE15]'
+- en: 'Perhaps at some point the application is modified to start tracking the user’s
+    password as well. This might be done by adding a new `password` attribute to instances
+    of the user object, perhaps by modifying the code where a user instance is created,
+    setting the password at creation time. Or perhaps some dark corner of the codebase
+    is setting the password by calling `user.password = value`. Such a change can
+    be represented like so:'
+  id: totrans-150
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 可能在某些时候，应用程序被修改以开始跟踪用户的密码。这可能通过向用户对象的实例添加一个新的 `password` 属性来完成，也许是通过修改创建用户实例的代码，在创建时设置密码。或者可能是代码库中的某个黑暗角落通过调用
+    `user.password = value` 设置密码。这样的变更可以像这样表示：
+- en: '[PRE16]'
+  id: totrans-151
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE16]'
+- en: 'When this happens, the POJO is now leaking private information to consumers.
+    The class with explicit marshalling logic is not leaking such details:'
+  id: totrans-152
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当这种情况发生时，POJO 现在正在向消费者泄露私人信息。有显式编组逻辑的类不会泄露这些细节：
+- en: '[PRE17]'
+  id: totrans-153
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE17]'
+- en: Even if there are tests that check the HTTP response messages for the presence
+    of values like `username` and `email`, they probably won’t fail when a new attribute
+    like `password` has been added.
+  id: totrans-154
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 即使有测试检查 HTTP 响应消息中是否存在 `username` 和 `email` 等值，当添加了新的属性如 `password` 时，它们可能不会失败。
+- en: API Facade with GraphQL
+  id: totrans-155
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 GraphQL 的 API 外观
+- en: GraphQL is a protocol for querying APIs, designed by Facebook. It’s very useful
+    for building *facade services*—which is one service that sits in front of multiple
+    other services and data sources. GraphQL attempts to solve several issues present
+    with traditional ad hoc implementations of JSON over HTTP APIs. GraphQL is particularly
+    good at returning the smallest amount of data needed by a client. It’s also good
+    at hydrating a response payload with data from multiple sources so that a client
+    can get everything it needs while making a single request.
+  id: totrans-156
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 是由 Facebook 设计的用于查询 API 的协议。它非常适用于构建 *外观服务*——这是一个位于多个其他服务和数据源前面的服务。GraphQL
+    试图解决传统的 JSON over HTTP API 的一些问题。GraphQL 尤其擅长返回客户端所需的最小数据量。它还擅长从多个来源填充响应有效负载，以便客户端可以通过单个请求获取所有需要的内容。
+- en: GraphQL doesn’t dictate that a particular underlying protocol be used. Most
+    implementations, and the implementation used in this section, do use GraphQL over
+    HTTP, but it’s just as happy being consumed over another protocol like TCP. An
+    entire GraphQL query is described using a single string, much like with an SQL
+    query. When implementations are built on top of HTTP they often use a single endpoint,
+    with clients sending queries via the `POST` method.
+  id: totrans-157
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 不强制使用特定的底层协议。大多数实现（包括本节中使用的实现）通常使用 GraphQL over HTTP，但也可以通过其他协议如 TCP
+    进行消费。整个 GraphQL 查询使用单个字符串描述，类似于 SQL 查询。当基于 HTTP 的实现时，通常使用单一端点，客户端通过 `POST` 方法发送查询。
+- en: GraphQL responses are usually provided using JSON, but again, a different response
+    type could be used as long as it’s able to represent a hierarchy of data. These
+    examples use JSON as well.
+  id: totrans-158
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 响应通常使用 JSON 提供，但也可以使用其他响应类型，只要能够表示数据的层次结构。这些示例也使用 JSON。
+- en: Note
+  id: totrans-159
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: As of today, it’s more common to expose JSON over HTTP APIs to the public. GraphQL
+    APIs are more likely to be consumed by clients maintained by the same organization—such
+    as internal usage or mobile first-party apps. This is beginning to change, however,
+    and more companies are beginning to expose public GraphQL APIs.
+  id: totrans-160
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如今，将 JSON 公开为 HTTP API 对公众更为普遍。GraphQL API 更可能被同一组织维护的客户端消费——例如内部使用或首选移动应用。然而，情况正在发生变化，越来越多的公司开始公开
+    GraphQL API。
+- en: GraphQL Schema
+  id: totrans-161
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: GraphQL Schema
+- en: A GraphQL schema is a string that describes all the interactions a particular
+    GraphQL server is able to make. It also describes all the objects a server can
+    represent, as well as the types of those objects (such as `String` and `Int`).
+    There are essentially two classifications of these types; a type is either a primitive
+    or it is a named object. Every named object will need an entry in the schema;
+    no objects can be used that aren’t named and described. Create a new file name
+    *schema.gql* and enter the contents of [Example 2-10](#ex_graphql_schema) into
+    this file.
+  id: totrans-162
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 模式是一个描述特定 GraphQL 服务器能够执行的所有交互的字符串。它还描述了服务器可以表示的所有对象以及这些对象的类型（如 `String`
+    和 `Int`）。这些类型基本上可以分为两类；类型要么是原始的，要么是命名对象。每个命名对象都需要在模式中有一个条目；不能使用未命名和描述的对象。创建一个名为
+    *schema.gql* 的新文件，并将 [Example 2-10](#ex_graphql_schema) 的内容输入到此文件中。
+- en: Example 2-10\. *shared/graphql-schema.gql*
+  id: totrans-163
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-10\. *shared/graphql-schema.gql*
+- en: '[PRE18]'
+  id: totrans-164
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE18]'
+- en: '[![1](assets/1.png)](#co_protocols_CO6-1)'
+  id: totrans-165
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO6-1)'
+- en: Top-level query representation.
+  id: totrans-166
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最顶层的查询表示。
+- en: '[![2](assets/2.png)](#co_protocols_CO6-2)'
+  id: totrans-167
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO6-2)'
+- en: The `Recipe` type.
+  id: totrans-168
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Recipe` 类型。'
+- en: '[![3](assets/3.png)](#co_protocols_CO6-3)'
+  id: totrans-169
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO6-3)'
+- en: A `Recipe` has `Ingredient` children in an array called `ingredients`.
+  id: totrans-170
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Recipe` 在名为 `ingredients` 的数组中具有 `Ingredient` 子项。'
+- en: The first entry, `Query`, represents the root of the query provided by the consumer.
+    In this case the consumer can essentially ask for two different sets of information.
+    The `pid` entry returns an integer. The other entry, `recipe`, returns a `Recipe`
+    type, which was defined in the schema document. This call accepts an argument
+    when it is being queried. In this case the schema is stating that by calling the
+    `recipe` method with an argument named `id`, an object following the `Recipe`
+    schema is returned. [Table 2-3](#table_graphql_scalars) contains a list of scalar
+    types used by GraphQL.
+  id: totrans-171
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个条目 `Query` 表示消费者提供的查询的根。在这种情况下，消费者基本上可以请求两组不同的信息。`pid` 条目返回一个整数。另一个条目 `recipe`
+    返回一个在模式文档中定义的 `Recipe` 类型。此调用在查询时接受一个参数。在本例中，模式说明了通过调用带有名为 `id` 的参数的 `recipe`
+    方法，将返回一个遵循 `Recipe` 模式的对象。[Table 2-3](#table_graphql_scalars) 包含 GraphQL 使用的标量类型列表。
+- en: Table 2-3\. GraphQL scalars
+  id: totrans-172
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 表 2-3\. GraphQL 标量
+- en: '| Name | Examples | JSON equivalent |'
+  id: totrans-173
+  prefs: []
+  type: TYPE_TB
+  zh: '| 名称 | 示例 | JSON 等效 |'
+- en: '| --- | --- | --- |'
+  id: totrans-174
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| `Int` | 10, 0, -1 | Number |'
+  id: totrans-175
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Int` | 10, 0, -1 | Number |'
+- en: '| `Float` | 1, -1.0 | Number |'
+  id: totrans-176
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Float` | 1, -1.0 | Number |'
+- en: '| `String` | “Hello, friend!\n” | String |'
+  id: totrans-177
+  prefs: []
+  type: TYPE_TB
+  zh: '| `String` | “Hello, friend!\n” | String |'
+- en: '| `Boolean` | true, false | Boolean |'
+  id: totrans-178
+  prefs: []
+  type: TYPE_TB
+  zh: '| `Boolean` | true, false | Boolean |'
+- en: '| `ID` | “42”, “975dbe93” | String |'
+  id: totrans-179
+  prefs: []
+  type: TYPE_TB
+  zh: '| `ID` | “42”, “975dbe93” | String |'
+- en: The `Recipe` object is then described in further detail in the next block. This
+    block contains an `id` property, which is an `ID`. By default the fields are nullable—if
+    the client asks for the value and the server doesn’t provide the value, then it
+    will be coerced to null. The `!` character states that the server must provide
+    the field. `Recipe` also has `name` and `steps` properties that are strings (`String`).
+    Finally, it has a property named `ingredients`, which contains an array of `Ingredient`
+    entries. The next block describes the `Ingredient` object and contains its own
+    properties. This schema resembles the response used so far in the example applications.
+  id: totrans-180
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来详细描述了`Recipe`对象。此块包含一个`id`属性，它是一个`ID`。默认情况下，字段是可空的——如果客户端请求值而服务器未提供该值，则会强制转换为
+    null。`Recipe`还具有`name`和`steps`属性，它们是字符串（`String`）。最后，它有一个名为`ingredients`的属性，其中包含一系列`Ingredient`条目。接下来的块描述了`Ingredient`对象并包含其自己的属性。此模式类似于到目前为止在示例应用程序中使用的响应。
+- en: Queries and Responses
+  id: totrans-181
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 查询与响应
+- en: Next, you’ll look at what a query for interacting with this data might look
+    like, as well as the response payloads. Queries in GraphQL have a very useful
+    feature in that the consumer gets to specify exactly what properties it is looking
+    for. Another convenient feature is that there is never any surprise in the format
+    of the response data; the nested query hierarchy ends up being in the same shape
+    as the resulting data.
+  id: totrans-182
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 接下来，您将看看与此数据交互的查询及其响应有效负载可能看起来像什么。GraphQL 中的查询具有一个非常有用的功能，即消费者可以精确指定它正在查找的属性。另一个方便的功能是响应数据的格式永远不会有任何意外；嵌套查询层次结构最终的形状与结果数据的形状相同。
+- en: 'First, consider a very basic example where only the `pid` value should be retrieved
+    from the server. The query to do so looks like this:'
+  id: totrans-183
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 首先，考虑一个非常基本的示例，仅应从服务器检索`pid`值。为此进行的查询如下所示：
+- en: '[PRE19]'
+  id: totrans-184
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE19]'
+- en: 'An example response payload that matches the previous query would then resemble
+    the following:'
+  id: totrans-185
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与前面查询匹配的示例响应有效负载将如下所示：
+- en: '[PRE20]'
+  id: totrans-186
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE20]'
+- en: The outermost “envelope” object, the one that contains `data`, is there to help
+    disambiguate meta information about the response from the response itself. Remember
+    that GraphQL isn’t tied to HTTP, which provides concepts such as errors, so the
+    response payloads must be able to differentiate a successful response from an
+    error (if this query had an error, there would be no `data` property in the root,
+    but there would be an `errors` array).
+  id: totrans-187
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 最外层的“信封”对象，即包含`data`的对象，有助于消除关于响应的元信息的歧义。请记住，GraphQL 并不依赖于提供错误等概念的 HTTP，因此响应有效负载必须能够区分成功的响应和错误（如果此查询有错误，则根本不会有根目录中的`data`属性，但会有一个`errors`数组）。
+- en: Also, notice that the recipe data isn’t displayed at all, even though it was
+    defined in the root `Query` type in the GraphQL schema. Again, this is because
+    queries specify exactly which fields should be returned.
+  id: totrans-188
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还要注意，尽管在 GraphQL 模式的根`Query`类型中定义了配方数据，但配方数据根本没有显示出来。这是因为查询精确指定了应返回哪些字段。
+- en: 'Up next is a more complicated query. This query will get a specific recipe
+    based on its ID. It will also get information about the ingredients that belong
+    to that recipe. The query would then look like this:'
+  id: totrans-189
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 下面是一个更复杂的查询。该查询将根据其ID获取特定的配方。它还将获取属于该配方的成分的信息。查询将如下所示：
+- en: '[PRE21]'
+  id: totrans-190
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE21]'
+- en: This query states that it wants an instance of the recipe having an `id` of
+    42\. It also wants the `name` of that recipe, but not the `id` or the `steps`
+    properties, and wants access to the ingredients, specifically their `name` and
+    `quantity` values.
+  id: totrans-191
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此查询指定要获取具有`id`为42的配方的实例。它还想要该配方的`name`，但不需要`id`或`steps`属性，并且希望访问成分，特别是它们的`name`和`quantity`值。
+- en: 'The response payload for this query would then look something like this:'
+  id: totrans-192
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此查询的响应有效负载将类似于以下内容：
+- en: '[PRE22]'
+  id: totrans-193
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE22]'
+- en: Again, notice how the nested request query follows the same shape as the nested
+    JSON response. Assuming the developer who is writing the query is aware of the
+    schema, that developer can safely write any query and know if it will be valid
+    or not, know the shape of the response, and even know the types of every property
+    in the response.
+  id: totrans-194
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 再次注意，嵌套的请求查询与嵌套的 JSON 响应具有相同的形状。假设编写查询的开发人员了解模式，该开发人员可以安全地编写任何查询，并知道它是否有效，知道响应的形状，甚至知道响应中每个属性的类型。
+- en: In fact, the `graphql` npm package provides a web REPL specifically for writing
+    and testing queries. The name of this interface is *GraphiQL*, a play on “GraphQL”
+    and “graphical.”
+  id: totrans-195
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 实际上，`graphql` npm 包提供了一个专门用于编写和测试查询的 Web REPL。此接口的名称是 *GraphiQL*，这是 “GraphQL”
+    和 “graphical” 的组合。
+- en: The `graphql` package is the official package for building GraphQL services
+    in Node.js. It’s also the official reference implementation for GraphQL as a whole,
+    as GraphQL isn’t tied to a specific language or platform. The following code samples
+    make use of the `fastify-gql` package. This package lets GraphQL work with Fastify
+    in a convenient manner, but it is essentially a wrapper around the official `graphql`
+    package.
+  id: totrans-196
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`graphql` 包是在 Node.js 中构建 GraphQL 服务的官方包。它还是 GraphQL 的官方参考实现，因为 GraphQL 并不与特定语言或平台绑定。以下代码示例使用
+    `fastify-gql` 包。此包使 GraphQL 与 Fastify 以方便的方式配合工作，但本质上是官方 `graphql` 包的包装。'
+- en: GraphQL Producer
+  id: totrans-197
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: GraphQL 生产者
+- en: Now that you’ve seen some sample queries and their responses, you’re ready to
+    write some code. First, create a new *recipe-api* service file based on the content
+    in [Example 2-11](#ex_graphql_producer).
+  id: totrans-198
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经看过一些示例查询及其响应，可以开始编写一些代码了。首先，根据 [示例 2-11](#ex_graphql_producer) 中的内容创建一个新的
+    *recipe-api* 服务文件。
+- en: Example 2-11\. *recipe-api/producer-graphql.js*
+  id: totrans-199
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-11\. *recipe-api/producer-graphql.js*
+- en: '[PRE23]'
+  id: totrans-200
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE23]'
+- en: '[![1](assets/1.png)](#co_protocols_CO7-1)'
+  id: totrans-201
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO7-1)'
+- en: The schema file is provided to the `graphql` package.
+  id: totrans-202
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 将模式文件提供给 `graphql` 包。
+- en: '[![2](assets/2.png)](#co_protocols_CO7-2)'
+  id: totrans-203
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO7-2)'
+- en: The `resolvers` object tells `graphql` how to build responses.
+  id: totrans-204
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`resolvers` 对象告诉 `graphql` 如何构建响应。'
+- en: '[![3](assets/3.png)](#co_protocols_CO7-3)'
+  id: totrans-205
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO7-3)'
+- en: The `Query` entry represents the top-level query.
+  id: totrans-206
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`Query` 条目代表顶级查询。'
+- en: '[![4](assets/4.png)](#co_protocols_CO7-4)'
+  id: totrans-207
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_protocols_CO7-4)'
+- en: The `Recipe` resolver is run when a `Recipe` is retrieved.
+  id: totrans-208
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当检索 `Recipe` 时，将运行 `Recipe` 解析器。
+- en: '[![5](assets/5.png)](#co_protocols_CO7-5)'
+  id: totrans-209
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_protocols_CO7-5)'
+- en: Fastify uses `server.register()` with the `fastify-gql` package; other frameworks
+    have their own conventions.
+  id: totrans-210
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Fastify 使用 `server.register()` 与 `fastify-gql` 包；其他框架有其自己的惯例。
+- en: The GraphQL code gets registered with the Fastify server on the `server.register`
+    line. This ends up creating a route that listens at `/graphql` for incoming requests.
+    It is this endpoint that the consumer will later send queries to. The following
+    object configures GraphQL with the content of the *shared/graphql-schemal.gql*
+    file, a reference to the `resolvers` object (covered shortly), and a final `graphiql`
+    flag. This flag, if true, enables the GraphiQL console mentioned earlier. With
+    the service running, that console can be visited at *http://localhost:4000/graphiql*.
+    Ideally, you’d never set that value to true for a service running in production.
+  id: totrans-211
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 代码在 `server.register` 行中注册到 Fastify 服务器。这最终创建一个路由，在 `/graphql` 处监听传入请求。消费者稍后将向此端点发送查询。以下对象使用
+    *shared/graphql-schemal.gql* 文件的内容配置 GraphQL，引用 `resolvers` 对象（稍后讨论），以及最终的 `graphiql`
+    标志。如果该标志为 true，则启用前面提到的 GraphiQL 控制台。服务运行时，可以访问该控制台 *http://localhost:4000/graphiql*。在生产环境中，最好永远不要将该值设置为
+    true。
+- en: Now it’s time to consider the `resolvers` object. This object has properties
+    at the root that correlate to the different types described in the GraphQL schema.
+    The `Query` property describes the top-level queries, whereas the `Recipe` describes
+    the Recipe objects. Each property of those two objects is an asynchronous method
+    (methods that are awaited somewhere else in the code). That means these methods
+    can return a promise, they can be an `async` function, or they can just return
+    a simple value. There’s no databases involved in this example, so each method
+    runs synchronously and returns a simple value.
+  id: totrans-212
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是考虑 `resolvers` 对象的时候了。该对象具有与 GraphQL 模式中描述的不同类型相对应的根属性。`Query` 属性描述了顶层查询，而
+    `Recipe` 则描述了 Recipe 对象。这两个对象的每个属性都是一个异步方法（在代码的其他地方会进行等待）。这意味着这些方法可以返回一个 Promise，它们可以是一个
+    `async` 函数，或者它们可以只返回一个简单的值。在此示例中没有涉及数据库，因此每个方法都是同步运行并返回一个简单值。
+- en: When these methods are called, GraphQL provides arguments about the context
+    in which they’re being called. Consider the `resolvers.Query.recipe` method, for
+    example. The first argument in this case is an empty object since it’s called
+    at the root of the query. However, the second argument is an object representing
+    the arguments being made to this function. In the schema file, a `recipe()` is
+    defined as accepting an argument named `id` that accepts an ID and as returning
+    a `Recipe` type. So, within this method, the `id` is provided as an argument.
+    It’s also expected to return an object adhering to the `Recipe` shape.
+  id: totrans-213
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 当调用这些方法时，GraphQL 提供关于调用上下文的参数。例如，请考虑 `resolvers.Query.recipe` 方法。在这种情况下，第一个参数是一个空对象，因为它在查询的根部调用。但是，第二个参数是一个表示传递给此函数的参数的对象。在模式文件中，`recipe()`
+    被定义为接受一个名为 `id` 的参数，该参数接受一个 ID 并返回一个 `Recipe` 类型。因此，在此方法中，提供 `id` 作为参数。还预期返回一个符合
+    `Recipe` 结构的对象。
+- en: In the schema, you’ve defined the `Recipe` as having `id`, `name`, `steps`,
+    and `ingredients` properties. So, in the object you’re returning, each of the
+    scalar values have been specified. However, the `ingredients` property hasn’t
+    been defined. That will be picked up by `resolvers.Recipe` automatically when
+    the GraphQL code runs.
+  id: totrans-214
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在模式中，您已将 `Recipe` 定义为具有 `id`、`name`、`steps` 和 `ingredients` 属性。因此，在返回的对象中，已指定每个标量值。但是，`ingredients`
+    属性尚未定义。当 GraphQL 代码运行时，`resolvers.Recipe` 将自动拾取它。
+- en: GraphQL enforces that the JSON response from the request matches the incoming
+    query shape. If the response object in the `recipe()` method were modified to
+    have an additional property called `serves`, GraphQL would automatically strip
+    out that unknown value before the response is sent to the client. Additionally,
+    if the client didn’t request either of the known `id` or `name` values, they would
+    also be stripped from the response.
+  id: totrans-215
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 强制要求请求的 JSON 响应与传入的查询形状匹配。如果 `recipe()` 方法中的响应对象被修改以包含称为 `serves` 的附加属性，GraphQL
+    将在将响应发送给客户端之前自动删除该未知值。此外，如果客户端未请求已知的 `id` 或 `name` 值之一，则它们也将从响应中删除。
+- en: Once the GraphQL code has run the `resolvers` and has recieved the top-level
+    recipe it expects from the `recipe()` method call, and assuming the client has
+    requested the `ingredients`, it’s now ready to call the code to hydrate those
+    ingredient values. This is performed by calling the `resolvers.Recipe.ingredients`
+    method. In this case, the first argument now contains information about the parent
+    object, here the top-level `Recipe` instance. The object provided contains all
+    of the information that was returned from the `recipe()` method call (in this
+    example, the `id`, `name`, and `steps` values). The `id` is typically the most
+    useful value. If this application were backed by a database, then the `id` could
+    be used to make a database query and get the related `Ingredient` entries. However,
+    this simple example just uses hard-coded values.
+  id: totrans-216
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦 GraphQL 代码运行了 `resolvers` 并且从 `recipe()` 方法调用中接收到了顶层配方对象，假设客户端请求了 `ingredients`，现在可以调用代码来填充这些配料值。这是通过调用
+    `resolvers.Recipe.ingredients` 方法来完成的。在这种情况下，第一个参数现在包含有关父对象的信息，这里是顶层 `Recipe`
+    实例。提供的对象包含从 `recipe()` 方法调用返回的所有信息（例如 `id`、`name` 和 `steps` 值）。`id` 通常是最有用的值。如果此应用程序由数据库支持，则可以使用
+    `id` 进行数据库查询并获取相关的 `Ingredient` 条目。但是，此简单示例仅使用硬编码值。
+- en: Note
+  id: totrans-217
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 注意
+- en: Each of the methods described within the `resolvers` object can be called asynchronously.
+    GraphQL is smart enough to call them all essentially in parallel, allowing your
+    application to make multiple outbound asynchronous calls to get data from other
+    sources. Once the slowest request is finished, then the overall query can complete
+    and a response can be sent to the consumer.
+  id: totrans-218
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`resolvers` 对象中描述的每个方法都可以异步调用。GraphQL 足够智能，可以基本并行地调用它们所有，从而使您的应用程序可以从其他源获取多个异步出站调用的数据。一旦最慢的请求完成，那么整体查询就可以完成，并且可以向消费者发送响应。'
+- en: GraphQL Consumer
+  id: totrans-219
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: GraphQL 消费者
+- en: Now that you’re familiar with building a producer that provides a GraphQL interface,
+    it’s time to look at what it takes to build a consumer.
+  id: totrans-220
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经熟悉了构建提供 GraphQL 接口的生产者所需的内容，是时候看看构建消费者所需的内容了。
+- en: Building a consumer is a bit simpler. There are npm packages to help with the
+    query generation, but interacting with a GraphQL service is simple enough that
+    you can simply rebuild it using basic tools.
+  id: totrans-221
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 构建一个消费者要简单一些。有一些 npm 包可以帮助生成查询，但与 GraphQL 服务进行交互是足够简单的，您可以简单地使用基本工具重新构建它。
+- en: '[Example 2-12](#ex_graphql_consumer) creates a new *web-api* consumer. The
+    most important part of this example is the query that will be sent. It’s also
+    going to make use of *query variables*, which are a GraphQL equivalent to *query
+    parameters* in SQL. Variables are useful because, much like SQL, it’s dangerous
+    to manually concatenate strings together to combine dynamic data, like user-supplied
+    values, with static data, such as query code.'
+  id: totrans-222
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[示例 2-12](#ex_graphql_consumer) 创建了一个新的 *web-api* 消费者。此示例中最重要的部分是将要发送的查询。它还将使用
+    *query variables*，这是 SQL 中 *query parameters* 的 GraphQL 等效项。变量非常有用，因为与 SQL 类似，手动将字符串连接在一起以将动态数据（例如用户提供的值）与静态数据（如查询代码）组合起来是危险的。'
+- en: Example 2-12\. *web-api/consumer-graphql.js*
+  id: totrans-223
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-12\. *web-api/consumer-graphql.js*
+- en: '[PRE24]'
+  id: totrans-224
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE24]'
+- en: '[![1](assets/1.png)](#co_protocols_CO8-1)'
+  id: totrans-225
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO8-1)'
+- en: Here’s a more complex query that accepts arguments.
+  id: totrans-226
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这里有一个更复杂的查询，接受参数。
+- en: '[![2](assets/2.png)](#co_protocols_CO8-2)'
+  id: totrans-227
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO8-2)'
+- en: The request body is JSON encapsulating the GraphQL query.
+  id: totrans-228
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 请求体是封装了 GraphQL 查询的 JSON。
+- en: This example makes a `POST` request and sends a JSON payload to the server.
+    This payload contains both the query and the variables. The `query` property is
+    the GraphQL query string, and the `variables` property contains a mapping of variable
+    names with their values.
+  id: totrans-229
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此示例进行了 `POST` 请求，并向服务器发送了 JSON 负载。此负载包含了查询和变量。`query` 属性是 GraphQL 查询字符串，`variables`
+    属性包含变量名称与其值的映射。
+- en: The `complex_query` being sent is asking for almost every piece of data the
+    server supports. It’s also using a more complex syntax for specifying which variables
+    will be used in the query. In this case it names the query `kitchenSink`, which
+    can be useful for debugging. The arguments for the query are defined after the
+    name, in this case it’s declared that there’s a variable named `$id` that is of
+    type ID. That variable is then passed into the `recipe()` method. The `variables`
+    property of the request body contains a single variable. In this section the variable
+    doesn’t need to be prefixed with a `$`.
+  id: totrans-230
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 发送的 `complex_query` 请求几乎要求服务器支持的每一个数据片段。它还使用了更复杂的语法来指定将在查询中使用的变量。在本例中，它命名了查询为
+    `kitchenSink`，这对调试很有用。查询的参数在名称之后被定义，例如声明了一个名为 `$id` 类型为 ID 的变量。然后将该变量传递给 `recipe()`
+    方法。请求体的 `variables` 属性包含一个单一的变量。在此部分，变量不需要以 `$` 开头。
+- en: 'Once you’ve modified the two files, run both of the services and then make
+    a request to the consumer service by running the following commands:'
+  id: totrans-231
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一旦您修改了这两个文件，请运行两个服务，然后通过以下命令向消费者服务发出请求：
+- en: '[PRE25]'
+  id: totrans-232
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE25]'
+- en: 'You’ll then receive a reply that looks like this:'
+  id: totrans-233
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 您将会收到一个类似于这样的回复：
+- en: '[PRE26]'
+  id: totrans-234
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE26]'
+- en: GraphQL offers many more features than those listed in this section. For example,
+    it includes a feature called *mutations*, which allows a client to modify documents.
+    It also has a feature called *subscription*, which allows a client to subscribe
+    to and receive a stream of messages.
+  id: totrans-235
+  prefs: []
+  type: TYPE_NORMAL
+  zh: GraphQL 提供了比本节列出的更多功能。例如，它包括一个称为 *mutations* 的功能，允许客户端修改文档。它还有一个称为 *subscription*
+    的功能，允许客户端订阅并接收消息流。
+- en: '[“GraphQL benchmarks”](ch03.html#ch_scaling_sec_bm_subsec_protocol_graphql)
+    contains benchmarks on communicating between two servers using GraphQL.'
+  id: totrans-236
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“GraphQL基准测试”](ch03.html#ch_scaling_sec_bm_subsec_protocol_graphql) 包含了使用
+    GraphQL 在两个服务器之间进行通信的基准测试。'
+- en: RPC with gRPC
+  id: totrans-237
+  prefs:
+  - PREF_H1
+  type: TYPE_NORMAL
+  zh: 使用 gRPC 进行 RPC
+- en: Patterns like REST—and to an extent GraphQL—attempt to abstract away the underlying
+    functionality provided by a producer and essentially expose an API driven by data
+    and CRUD operations. Despite all the complexity within the service, the consumer
+    is left with an interface with a lot of nouns and very few verbs.
+  id: totrans-238
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 类似REST和在某种程度上GraphQL的模式尝试将生产者提供的底层功能抽象化，并且基本上暴露出一个由数据驱动和CRUD操作的API。尽管服务内部可能非常复杂，但消费者最终只能看到一个充满名词而几乎没有动词的接口。
+- en: For example, an API with a RESTful interface might allow a consumer to create
+    an invoice. Such an operation might be performed by using the `POST` method in
+    combination with a route named `/invoice`. But how does the producer allow the
+    consumer to send an email to the user when the invoice is created? Should there
+    be a separate endpoint for invoice emails? Should there be a property on an invoice
+    record called `email` that, when set to true during create time, triggers the
+    email? There often isn’t a perfect way to represent application functionality
+    using the methods provided by HTTP. This is when it might make sense to reach
+    for a new pattern.
+  id: totrans-239
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 例如，一个具有RESTful接口的API可能允许消费者创建发票。可以使用`POST`方法结合名为`/invoice`的路由执行此操作。但是，当发票创建时，生产者如何允许消费者向用户发送电子邮件呢？是否应该为发票电子邮件设置单独的端点？在创建时是否应该在发票记录中设置一个名为`email`的属性，并将其设置为true以触发电子邮件？通常情况下，使用HTTP提供的方法来表示应用程序功能并不完美。这时候，可能需要寻找一种新的模式。
+- en: '*Remote Procedure Call (RPC)* is such a pattern. Unlike HTTP, which offers
+    a very finite list of verbs, RPC is essentially free to support whatever verb
+    the developer desires. If you think about the heart of the application, the aforementioned
+    `POST /invoice` route ends up calling some code deeper within the application.
+    There very well could be a correlating method called `create_invoice()` within
+    the code. With RPC, instead of going through the work to create a different interface,
+    you can expose that method, almost in its raw form, to the network.'
+  id: totrans-240
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*远程过程调用（RPC）* 就是这样一种模式。与提供有限动词列表的HTTP不同，RPC基本上可以支持开发者想要的任何动词。如果你考虑应用的核心部分，前述的`POST
+    /invoice`路由最终会调用应用程序深处的某些代码。在代码中可能会有一个名为`create_invoice()`的相关方法。通过RPC，你可以将这种方法暴露到网络中，几乎保持其原始形式，而无需创建不同的接口。'
+- en: In general, RPC works by choosing which functions in the application to expose,
+    and creating a mapping between these functions to some sort of network interface.
+    Of course, it’s not as straightforward as simply exposing the functions to the
+    network. Such methods need to be very rigorous about what type of data they accept
+    and who they accept it from (just like an HTTP endpoint should).
+  id: totrans-241
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 总的来说，RPC的工作原理是选择要暴露在应用程序中的函数，并创建这些函数与某种网络接口之间的映射。当然，这不像简单地将函数暴露给网络那样直截了当。这些方法需要非常严格地确定它们接受的数据类型及其来源（就像HTTP端点应该做的那样）。
+- en: One of the most popular standards for providing networked RPC endpoints between
+    services is Google’s [gRPC](https://grpc.io). gRPC is typically served over HTTP/2\.
+    Unlike GraphQL, which uses a single HTTP endpoint, gRPC uses the endpoint to determine
+    what method to call.
+  id: totrans-242
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 在服务之间提供网络RPC端点的最流行标准之一是Google的[gRPC](https://grpc.io)。gRPC通常通过HTTP/2提供服务。与GraphQL使用单个HTTP端点不同，gRPC使用端点确定调用哪种方法。
+- en: Protocol Buffers
+  id: totrans-243
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: 协议缓冲区
+- en: Unlike JSON over HTTP and GraphQL, gRPC typically doesn’t deliver messages over
+    plain text. Instead, it transfers the data using Protocol Buffers (aka Protobufs),
+    a binary format for representing serialized objects. Such a representation leads
+    to smaller message payloads and increased network performance. Not only does it
+    create more compact messages, but it also reduces the amount of redundant information
+    sent with each message. Regarding the OSI model, Protobufs can be thought of as
+    running on Layer 8, while HTTP/2 runs on Layer 7.
+  id: totrans-244
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 不像JSON通过HTTP和GraphQL，gRPC通常不会通过纯文本传递消息。相反，它使用协议缓冲区（即Protobufs）来传输数据，这是一种用于表示序列化对象的二进制格式。这种表示形式导致消息负载更小且网络性能更高。它不仅创建了更紧凑的消息，而且减少了每条消息发送的冗余信息量。关于OSI模型，Protobufs可以被视为运行在第8层，而HTTP/2运行在第7层。
+- en: Protobufs have their own language for describing the messages that can be represented
+    in a gRPC server. These files end in `.proto` and are reminiscent of a GraphQL
+    schema. [Example 2-13](#ex_grpc_proto) demonstrates how a similar operation can
+    be defined for a gRPC service.
+  id: totrans-245
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Protobufs 使用自己的语言描述可以在 gRPC 服务器中表示的消息。这些文件以 `.proto` 结尾，类似于 GraphQL 模式。[Example 2-13](#ex_grpc_proto)
+    展示了如何为 gRPC 服务定义类似操作。
+- en: Example 2-13\. *shared/grpc-recipe.proto*
+  id: totrans-246
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: Example 2-13\. *shared/grpc-recipe.proto*
+- en: '[PRE27]'
+  id: totrans-247
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE27]'
+- en: '[![1](assets/1.png)](#co_protocols_CO9-1)'
+  id: totrans-248
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO9-1)'
+- en: A definition for a service named `RecipeService`.
+  id: totrans-249
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个名为 `RecipeService` 的服务定义。
+- en: '[![2](assets/2.png)](#co_protocols_CO9-4)'
+  id: totrans-250
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO9-4)'
+- en: A message of type `Meta`.
+  id: totrans-251
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个类型为 `Meta` 的消息。
+- en: '[![3](assets/3.png)](#co_protocols_CO9-2)'
+  id: totrans-252
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO9-2)'
+- en: A field named `id` that can be a 32-bit integer.
+  id: totrans-253
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个名为 `id` 的字段，可以是 32 位整数。
+- en: '[![4](assets/4.png)](#co_protocols_CO9-3)'
+  id: totrans-254
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_protocols_CO9-3)'
+- en: An array of `Recipe` messages in a field named `ingredients`, the fourth entry
+    for this message.
+  id: totrans-255
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 一个名为 `ingredients` 的字段中的 `Recipe` 消息数组，这是该消息的第四个条目。
+- en: This *recipe.proto* file is shared by both clients and servers. This allows
+    both ends to communicate with each other and be able to decode and encode the
+    messages being sent. gRPC defines RPC methods, which can accept a message of a
+    particular type and return a message of another type, as well as services, which
+    are ways to group related method calls.
+  id: totrans-256
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '*recipe.proto* 文件由客户端和服务器共享。这使得两端能够相互通信，并能够解码和编码发送的消息。gRPC 定义了 RPC 方法，可以接受特定类型的消息并返回另一个类型的消息，还定义了服务，用于组织相关的方法调用。'
+- en: Notice the granularity of the message types. GraphQL, which was built with JSON
+    and HTTP in mind, specifies numeric types using the value `Int`, simply an integer.
+    gRPC, with lower-level roots in C, describes an integer more specifically using
+    its size, in this case an `int32`. There usually isn’t a reason to limit an integer’s
+    size if it’s going to be used in JSON. [Table 2-4](#table_grpc_scalars) has a
+    more detailed list of common gRPC data types.
+  id: totrans-257
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意消息类型的粒度。GraphQL 是以 JSON 和 HTTP 为基础构建的，使用 `Int` 指定数字类型，即整数。gRPC 则是源自 C 语言的低级描述，更详细地描述整数的大小，例如
+    `int32`。如果用于 JSON，通常没有理由限制整数的大小。[Table 2-4](#table_grpc_scalars) 列出了常见 gRPC 数据类型的详细列表。
+- en: Table 2-4\. Common gRPC scalars
+  id: totrans-258
+  prefs: []
+  type: TYPE_NORMAL
+  zh: Table 2-4\. 常见 gRPC 标量类型
+- en: '| Name | Examples | Node/JS equivalent |'
+  id: totrans-259
+  prefs: []
+  type: TYPE_TB
+  zh: '| 名称 | 示例 | Node/JS 等效 |'
+- en: '| --- | --- | --- |'
+  id: totrans-260
+  prefs: []
+  type: TYPE_TB
+  zh: '| --- | --- | --- |'
+- en: '| `double` | 1.1 | `Number` |'
+  id: totrans-261
+  prefs: []
+  type: TYPE_TB
+  zh: '| `double` | 1.1 | `Number` |'
+- en: '| `float` | 1.1 | `Number` |'
+  id: totrans-262
+  prefs: []
+  type: TYPE_TB
+  zh: '| `float` | 1.1 | `Number` |'
+- en: '| `int32` | -2_147_483_648 | `Number` |'
+  id: totrans-263
+  prefs: []
+  type: TYPE_TB
+  zh: '| `int32` | -2_147_483_648 | `Number` |'
+- en: '| `int64` | 9_223_372_036_854_775_808 | `Number` |'
+  id: totrans-264
+  prefs: []
+  type: TYPE_TB
+  zh: '| `int64` | 9_223_372_036_854_775_808 | `Number` |'
+- en: '| `bool` | true, false | `Boolean` |'
+  id: totrans-265
+  prefs: []
+  type: TYPE_TB
+  zh: '| `bool` | true, false | `Boolean` |'
+- en: '| `string` | “Hello, friend!\n” | `String` |'
+  id: totrans-266
+  prefs: []
+  type: TYPE_TB
+  zh: '| `string` | “Hello, friend!\n” | `String` |'
+- en: '| `bytes` | *binary data* | `Buffer` |'
+  id: totrans-267
+  prefs: []
+  type: TYPE_TB
+  zh: '| `bytes` | *binary data* | `Buffer` |'
+- en: The `repeated` keyword means that a field can contain multiple values. In those
+    situations the values can be represented as an array of that value’s type.
+  id: totrans-268
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`repeated` 关键字意味着字段可以包含多个值。在这些情况下，这些值可以表示为该值类型的数组。'
+- en: Tip
+  id: totrans-269
+  prefs:
+  - PREF_H6
+  type: TYPE_NORMAL
+  zh: 提示
+- en: There are some other number formats that can be represented in gRPC as well.
+    These include `uint32` and `uint64`, `sint32` and `sint64`, `fixed32` and `fixed64`,
+    and finally, `sfixed32` and `sfixed64`. Each has different restrictions on the
+    range of the number represented, accuracy, and how the number is represented in
+    transit. The `@grpc/proto-loader` package can be configured to represent different
+    values using a `String` in cases where a `Number` is insufficient.
+  id: totrans-270
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 还有一些其他的数字格式可以在 gRPC 中表示。包括 `uint32` 和 `uint64`，`sint32` 和 `sint64`，`fixed32`
+    和 `fixed64`，最后是 `sfixed32` 和 `sfixed64`。每种类型对表示的数字范围、精度以及数字在传输中的表示有不同的限制。当 `Number`
+    不够时，可以配置 `@grpc/proto-loader` 包使用 `String` 表示不同的值。
+- en: Another interesting part about these message types is the numeric value associated
+    with each field. These values represent the order in which the field follows within
+    the messages. The `Ingredient` message, for example, has `id` as the first property
+    and `quantity` as the third property. It seems weird to list these numbers at
+    first, but the order is very important. Unlike JSON, which doesn’t technically
+    have an order to properties, the order of properties in a Protocol Buffer message
+    is very important for two reasons.
+  id: totrans-271
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 这些消息类型的另一个有趣之处是每个字段关联的数值。这些值表示字段在消息中的顺序。例如，`Ingredient`消息的`id`是第一个属性，`quantity`是第三个属性。起初列出这些数字似乎很奇怪，但顺序非常重要。与
+    JSON 不同，JSON 技术上没有属性的顺序，但在协议缓冲区消息中，属性的顺序非常重要，有两个原因。
+- en: 'The first reason is that the field names aren’t transmitted with the messages
+    themselves. Since schemas are shared between client and server, the names of the
+    fields would be redundant. As a quick visualization of this, imagine how two integers
+    transmitted using JSON and again using binary might look. The two messages might
+    look like the following:'
+  id: totrans-272
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第一个原因是字段名不会随着消息本身一起传输。由于模式在客户端和服务器之间共享，字段的名称会显得多余。简单来说，想象一下用 JSON 和二进制分别传输两个整数的情况。这两条消息可能看起来像是：
+- en: '[PRE28]'
+  id: totrans-273
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE28]'
+- en: 'If two numbers are always sent, and it’s common knowledge that the first is
+    called `id` and the second is called `code`, then representing the message like
+    in the second row removes unnecessary redundancies. This is similar to how CSV
+    works: having column names in the first row and data in subsequent rows.'
+  id: totrans-274
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 如果始终发送两个数字，并且大家都知道第一个叫`id`，第二个叫`code`，那么像第二行中的消息表示方式就去除了不必要的冗余。这类似于 CSV 的工作原理：第一行是列名，后续行是数据。
+- en: The second reason that field order matters is that messages represented using
+    Protobufs, and gRPC itself, are designed to be backwards compatible. As an example,
+    if v1 of the Protobufs `Ingredient` message contains an `id`, a `name`, and a
+    `quantity` field, and one day a new v2 is created with a fourth `substitute` field,
+    then any nodes on the network still using v1 can safely ignore the additional
+    fields and still communicate with the other nodes. This is beneficial in situations
+    where a new version of the application is slowly released as the old version is
+    phased out.
+  id: totrans-275
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 第二个原因是字段顺序的重要性在于，使用 Protobuf 和 gRPC 本身设计为向后兼容。例如，如果 Protobufs 的 v1 版本的`Ingredient`消息包含`id`、`name`和`quantity`字段，而某一天创建了一个新的
+    v2 版本，并添加了第四个`substitute`字段，那么网络上仍在使用 v1 版本的节点可以安全地忽略额外的字段，并与其他节点进行通信。在旧版本逐步淘汰的情况下，这对于逐步发布新应用程序版本是有利的。
+- en: gRPC supports four styles of messaging, though these examples only look at the
+    most basic style. Message requests and responses can either be streaming or a
+    single message. The basic style used in these examples involves a nonstreaming
+    request and response. However, one can use *server-side streaming RPC*, where
+    the server streams a response; *client-side streaming RPC*, where the client streams
+    a request; or *bidirectional streaming RPC*, where the client and the server stream
+    a request and a response. When working with a stream, an instance of an `EventEmitter`
+    is provided, but when working with singular messages, code will instead deal with
+    callbacks.
+  id: totrans-276
+  prefs: []
+  type: TYPE_NORMAL
+  zh: gRPC 支持四种消息传递方式，尽管这些例子只关注最基本的方式。消息请求和响应可以是流式的，也可以是单个消息。这些例子中使用的基本方式涉及非流式的请求和响应。然而，可以使用*服务器端流式
+    RPC*，其中服务器会流式传输响应；*客户端端流式 RPC*，其中客户端会流式传输请求；或者*双向流式 RPC*，其中客户端和服务器会流式传输请求和响应。在处理流时，会提供一个`EventEmitter`的实例，但在处理单个消息时，代码将使用回调函数。
+- en: gRPC Producer
+  id: totrans-277
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: gRPC 生产者
+- en: Now that you’ve looked at some Protobuf message and service definitions, it’s
+    time to implement a gRPC server using Node.js. Again, you’ll begin by creating
+    a new *recipe-api/* service. Create a file to resemble [Example 2-14](#ex_grpc_producer),
+    and be sure to install the necessary dependencies. Dependencies beginning with
+    an `@` symbol represent scoped packages within the npm registry.
+  id: totrans-278
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在您已经查看了一些 Protobuf 消息和服务定义，现在是时候使用 Node.js 实现一个 gRPC 服务器了。同样，您将从创建一个新的*recipe-api/*服务开始。创建一个文件，类似于
+    [示例 2-14](#ex_grpc_producer)，并确保安装必要的依赖项。以`@`符号开头的依赖项表示在 npm 注册表中的作用域包。
+- en: Example 2-14\. *recipe-api/producer-grpc.js*
+  id: totrans-279
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-14\. *recipe-api/producer-grpc.js*
+- en: '[PRE29]'
+  id: totrans-280
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE29]'
+- en: '[![1](assets/1.png)](#co_protocols_CO10-1)'
+  id: totrans-281
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO10-1)'
+- en: The producer needs access to the *.proto* file. In this case it’s loaded and
+    processed when started, incurring a small startup cost.
+  id: totrans-282
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 生产者需要访问 *.proto* 文件。在这种情况下，它在启动时加载和处理，导致小额启动成本。
+- en: '[![2](assets/2.png)](#co_protocols_CO10-2)'
+  id: totrans-283
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO10-2)'
+- en: When a service is defined, an object is provided with properties reflecting
+    the methods defined in the *.proto* file.
+  id: totrans-284
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 定义服务时，提供一个对象，其属性反映 *.proto* 文件中定义的方法。
+- en: '[![3](assets/3.png)](#co_protocols_CO10-3)'
+  id: totrans-285
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO10-3)'
+- en: This method correlates with the `GetMetaData(Empty)` method in the *.proto*
+    definition.
+  id: totrans-286
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 该方法对应于 *.proto* 定义中的 `GetMetaData(Empty)` 方法。
+- en: '[![4](assets/4.png)](#co_protocols_CO10-4)'
+  id: totrans-287
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_protocols_CO10-4)'
+- en: The `getRecipe()` method makes use of an object passed in during the request.
+    This object is provided as `call.request`.
+  id: totrans-288
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`getRecipe()` 方法在请求期间使用了传入的对象。此对象作为 `call.request` 提供。'
+- en: '[![5](assets/5.png)](#co_protocols_CO10-5)'
+  id: totrans-289
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_protocols_CO10-5)'
+- en: gRPC can use TLS and authentication, but for this example it’s disabled.
+  id: totrans-290
+  prefs: []
+  type: TYPE_NORMAL
+  zh: gRPC 可以使用 TLS 和身份验证，但在本示例中已禁用。
+- en: 'This server listens for incoming HTTP/2 requests sent to localhost via port
+    4000\. The HTTP routes associated with the two methods are based on the name of
+    the service and the name of the methods. This means the `getMetaData()` method
+    technically lives at the following URL:'
+  id: totrans-291
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 此服务器侦听发送到本地主机端口 4000 的 HTTP/2 请求。与两种方法相关联的 HTTP 路由基于服务名称和方法名称。这意味着 `getMetaData()`
+    方法实际上位于以下 URL：
+- en: '[PRE30]'
+  id: totrans-292
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE30]'
+- en: The gRPC package abstracts the underlying HTTP/2 layer, so you typically don’t
+    need to think of a gRPC service as being over HTTP/2, nor do you have to think
+    about the paths.
+  id: totrans-293
+  prefs: []
+  type: TYPE_NORMAL
+  zh: gRPC 包抽象了底层的 HTTP/2 层，因此通常无需将 gRPC 服务视为通过 HTTP/2 进行，也无需考虑路径。
+- en: gRPC Consumer
+  id: totrans-294
+  prefs:
+  - PREF_H2
+  type: TYPE_NORMAL
+  zh: gRPC 消费者
+- en: Now it’s time to implement the consumer. [Example 2-15](#ex_grpc_consumer) is
+    a reworked version of the *web-api* service. At the time of writing, the official
+    `@grpc/grpc-js` npm package works by exposing methods that use callbacks. This
+    code example uses `util.promisify()` so that you can call the methods using async
+    functions.
+  id: totrans-295
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在是时候实现消费者了。[示例 2-15](#ex_grpc_consumer) 是 *web-api* 服务的重制版本。在撰写本文时，官方的 `@grpc/grpc-js`
+    npm 包通过暴露使用回调的方法工作。此代码示例使用 `util.promisify()`，以便您可以使用异步函数调用方法。
+- en: Example 2-15\. *web-api/consumer-grpc.js*
+  id: totrans-296
+  prefs:
+  - PREF_H5
+  type: TYPE_NORMAL
+  zh: 示例 2-15\. *web-api/consumer-grpc.js*
+- en: '[PRE31]'
+  id: totrans-297
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE31]'
+- en: '[![1](assets/1.png)](#co_protocols_CO11-1)'
+  id: totrans-298
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![1](assets/1.png)](#co_protocols_CO11-1)'
+- en: Just like with the producer service, this one loads the *.proto* definitions
+    at startup.
+  id: totrans-299
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 就像生产者服务一样，这个服务在启动时加载 *.proto* 定义。
+- en: '[![2](assets/2.png)](#co_protocols_CO11-2)'
+  id: totrans-300
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![2](assets/2.png)](#co_protocols_CO11-2)'
+- en: The gRPC client is aware that it is connecting to a `recipe.RecipeService` service.
+  id: totrans-301
+  prefs: []
+  type: TYPE_NORMAL
+  zh: gRPC 客户端知道自己正在连接到一个 `recipe.RecipeService` 服务。
+- en: '[![3](assets/3.png)](#co_protocols_CO11-3)'
+  id: totrans-302
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![3](assets/3.png)](#co_protocols_CO11-3)'
+- en: Also like the producer, security has been disabled.
+  id: totrans-303
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 与生产者一样，此处已禁用安全性。
+- en: '[![4](assets/4.png)](#co_protocols_CO11-4)'
+  id: totrans-304
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![4](assets/4.png)](#co_protocols_CO11-4)'
+- en: The `GetMetaData()` call makes use of an `Empty` message, which contains no
+    properties.
+  id: totrans-305
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`GetMetaData()` 调用使用了一个 `Empty` 消息，其中不包含任何属性。'
+- en: '[![5](assets/5.png)](#co_protocols_CO11-5)'
+  id: totrans-306
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[![5](assets/5.png)](#co_protocols_CO11-5)'
+- en: The `GetRecipe()` call, however, expects a `RecipeRequest` message. Here, an
+    object adhering to the same shape is passed in.
+  id: totrans-307
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '`GetRecipe()` 调用期望一个 `RecipeRequest` 消息。在这里，传入一个形状相同的对象。'
+- en: This example sends two requests between the *web-api* and *recipe-api* services,
+    whereas the previous GraphQL and JSON over HTTP examples made a single request.
+    All the required information could have been retrieved in a single request, but
+    I feel this example helps convey the heart of the RPC pattern where individual
+    methods are called on a remote server.
+  id: totrans-308
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 本示例在 *web-api* 和 *recipe-api* 服务之间发送了两个请求，而以前的 GraphQL 和 JSON over HTTP 示例则只进行了单个请求。虽然可以在单个请求中检索所有所需信息，但我觉得此示例有助于传达
+    RPC 模式的核心，即在远程服务器上调用各个方法。
+- en: Note that the `@grpc/grpc-js` package was able to look at your `.proto` file
+    and give you an object with methods on it correlating to methods in the service.
+    In this case the client has a method called `getMetaData()`. This drives the feeling
+    that RPC intends to convey, that code on one service is remotely calling methods
+    on another service, as if the methods existed locally.
+  id: totrans-309
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 注意 `@grpc/grpc-js` 包能够查看您的 `.proto` 文件，并为您提供一个具有与服务中方法对应的方法的对象。在这种情况下，客户端有一个名为
+    `getMetaData()` 的方法。这使得 RPC 所要传达的感觉变得更为强烈，即一个服务上的代码在远程调用另一个服务上的方法，就像这些方法存在于本地一样。
+- en: 'Now that you’ve got the two services defined, go ahead and run both of them
+    and make a request by running the following commands:'
+  id: totrans-310
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 现在，您已经定义了这两个服务，请继续运行它们并通过运行以下命令进行请求：
+- en: '[PRE32]'
+  id: totrans-311
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE32]'
+- en: 'The response to this request should resemble the following JSON payload:'
+  id: totrans-312
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 对于此请求的响应应类似于以下的 JSON 载荷：
+- en: '[PRE33]'
+  id: totrans-313
+  prefs: []
+  type: TYPE_PRE
+  zh: '[PRE33]'
+- en: The consumer service has combined the result of the two gRPC methods together,
+    but they’re still visible in the resulting document. The `recipe` property correlates
+    to the `Recipe` message definition in the *.proto* file. Notice how it contains
+    a property called `ingredients`, which is an array of `Recipe` instances.
+  id: totrans-314
+  prefs: []
+  type: TYPE_NORMAL
+  zh: 消费者服务已经将两个 gRPC 方法的结果合并在一起，但它们仍然在生成的文档中可见。`recipe` 属性与 *.proto* 文件中的 `Recipe`
+    消息定义相关联。请注意，它包含一个名为 `ingredients` 的属性，这是 `Recipe` 实例数组。
+- en: '[“gRPC benchmarks”](ch03.html#ch_scaling_sec_bm_subsec_protocol_grpc) contains
+    benchmarks on communicating between two servers using gRPC.'
+  id: totrans-315
+  prefs: []
+  type: TYPE_NORMAL
+  zh: '[“gRPC benchmarks”](ch03.html#ch_scaling_sec_bm_subsec_protocol_grpc) 包含了使用
+    gRPC 在两个服务器之间通信的基准测试。'
+- en: ^([1](ch02.html#idm46291204847576-marker)) These code examples take many shortcuts
+    to remain terse. For example, always favor `path.join()` over manual string concatenation
+    when generating paths.
+  id: totrans-316
+  prefs: []
+  type: TYPE_NORMAL
+  zh: ^([1](ch02.html#idm46291204847576-marker)) 这些代码示例采取了许多简化措施以保持简洁。例如，在生成路径时始终优先使用
+    `path.join()` 而不是手动字符串连接。
